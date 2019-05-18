@@ -105,7 +105,14 @@ body{
 .btnholder {
 
   margin: 100px auto 0 auto;
-  width:20%;
+  width:100px;
+
+}
+
+.btnholderp {
+
+    margin: 100px auto 0 auto;
+    width:100px;
 
 }
 
