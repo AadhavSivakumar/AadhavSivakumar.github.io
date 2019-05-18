@@ -1,23 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/Home/boyscouts.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/boyscouts.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/robotics.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/robotics.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/school.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/school.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/volunteering.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/volunteering.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Bluej.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Bluej.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Handaid.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Handaid.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Solar.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Solar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Wattergen.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Wattergen.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Ziplockz.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Ziplockz.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/greenfoot.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/greenfoot.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/image.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/image.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/rocket.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/rocket.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/scratch.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/scratch.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/projects.html" beforeDir="false" afterPath="$PROJECT_DIR$/projects.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/temp.html" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,8 +26,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Home/boyscouts.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="544">
-              <caret line="32" column="25" lean-forward="true" selection-start-line="32" selection-start-column="25" selection-end-line="32" selection-end-column="25" />
+            <state relative-caret-position="153">
+              <caret line="9" column="22" selection-start-line="9" selection-start-column="22" selection-end-line="9" selection-end-column="22" />
               <folding>
                 <element signature="n#style#0;n#div#0;n#body#0;n#!!top" expanded="true" />
                 <element signature="n#style#0;n#p#0;n#div#1;n#body#0;n#!!top" expanded="true" />
@@ -205,7 +189,7 @@
   <component name="PhpServers">
     <servers />
   </component>
-  <component name="ProjectFrameBounds" extendedState="7">
+  <component name="ProjectFrameBounds" extendedState="6">
     <option name="x" value="205" />
     <option name="width" value="1400" />
     <option name="height" value="785" />
@@ -294,15 +278,15 @@
       <workItem from="1557247458557" duration="9782000" />
       <workItem from="1558054768786" duration="5527000" />
       <workItem from="1558136170959" duration="3877000" />
-      <workItem from="1558146413478" duration="10352000" />
+      <workItem from="1558146413478" duration="10383000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="50038000" />
+    <option name="totallyTimeSpent" value="50069000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-7" y="-7" width="1550" height="838" extended-state="7" />
+    <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.21275167" />
@@ -586,8 +570,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Home/boyscouts.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="544">
-          <caret line="32" column="25" lean-forward="true" selection-start-line="32" selection-start-column="25" selection-end-line="32" selection-end-column="25" />
+        <state relative-caret-position="153">
+          <caret line="9" column="22" selection-start-line="9" selection-start-column="22" selection-end-line="9" selection-end-column="22" />
           <folding>
             <element signature="n#style#0;n#div#0;n#body#0;n#!!top" expanded="true" />
             <element signature="n#style#0;n#p#0;n#div#1;n#body#0;n#!!top" expanded="true" />
