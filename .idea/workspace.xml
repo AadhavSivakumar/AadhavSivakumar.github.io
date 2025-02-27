@@ -6,25 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/boyscouts.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/boyscouts.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/robotics.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/robotics.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/school.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/school.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Home/volunteering.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/volunteering.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Bluej.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Bluej.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Handaid.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Handaid.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/PCB.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/PCB.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/SevenSegment.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/SevenSegment.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Solar.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Solar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Wattergen.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Wattergen.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/Ziplockz.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Ziplockz.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/greenfoot.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/greenfoot.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/image.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/image.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/rocket.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/rocket.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Projects/scratch.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/scratch.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/css/ss.css" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/ss.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/css/stylesheet.css" beforeDir="false" afterPath="$PROJECT_DIR$/css/stylesheet.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/temp.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -135,7 +117,7 @@
       <workItem from="1585780504357" duration="13543000" />
       <workItem from="1587847175889" duration="2045000" />
       <workItem from="1739823357193" duration="8582000" />
-      <workItem from="1740686227727" duration="1903000" />
+      <workItem from="1740686227727" duration="2115000" />
     </task>
     <servers />
   </component>
