@@ -6,12 +6,25 @@
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/aboutme.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/contact.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/boyscouts.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/boyscouts.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/robotics.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/robotics.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/school.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/school.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/volunteering.html" beforeDir="false" afterPath="$PROJECT_DIR$/Home/volunteering.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Bluej.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Bluej.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Handaid.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Handaid.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/PCB.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/PCB.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/SevenSegment.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/SevenSegment.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Solar.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Solar.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Wattergen.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Wattergen.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Ziplockz.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/Ziplockz.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/greenfoot.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/greenfoot.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/image.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/image.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/rocket.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/rocket.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/scratch.html" beforeDir="false" afterPath="$PROJECT_DIR$/Projects/scratch.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/css/ss.css" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/ss.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/css/stylesheet.css" beforeDir="false" afterPath="$PROJECT_DIR$/css/stylesheet.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/projects.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/resume.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/temp.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/temp.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,6 +62,7 @@
     "JavaScript Debug.resume.html.executor": "Run",
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "master",
+    "last_opened_file_path": "C:/Users/hiaad/OneDrive/Desktop/Staging area/AadhavSivakumar.github.io/legacy",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -60,6 +74,9 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\legacy" />
     </key>
   </component>
   <component name="RunManager" selected="JavaScript Debug.index.html">
@@ -118,25 +135,11 @@
       <workItem from="1585780504357" duration="13543000" />
       <workItem from="1587847175889" duration="2045000" />
       <workItem from="1739823357193" duration="8582000" />
-      <workItem from="1740686227727" duration="996000" />
+      <workItem from="1740686227727" duration="1903000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
-  </component>
-  <component name="WindowStateProjectService">
-    <state x="454" y="246" key="com.intellij.ide.util.TipDialog" timestamp="1585780720475">
-      <screen x="0" y="0" width="1536" height="824" />
-    </state>
-    <state x="454" y="246" key="com.intellij.ide.util.TipDialog/0.0.1536.824@0.0.1536.824" timestamp="1585780720475" />
-    <state x="463" y="0" width="740" height="824" key="find.popup" timestamp="1585882624916">
-      <screen x="0" y="0" width="1536" height="824" />
-    </state>
-    <state x="463" y="0" width="740" height="824" key="find.popup/0.0.1536.824@0.0.1536.824" timestamp="1585882624916" />
-    <state x="809" y="190" key="run.anything.popup" timestamp="1585884109747">
-      <screen x="0" y="0" width="1536" height="824" />
-    </state>
-    <state x="809" y="190" key="run.anything.popup/0.0.1536.824@0.0.1536.824" timestamp="1585884109747" />
   </component>
 </project>
