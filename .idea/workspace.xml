@@ -6,7 +6,12 @@
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/aboutme.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/aboutme.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/contact.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/contact.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/legacyindex.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/legacyindex.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/projects.html" beforeDir="false" afterPath="$PROJECT_DIR$/projects.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/resume.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/resume.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/temp.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,6 +63,7 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io" />
       <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\legacy" />
     </key>
   </component>
@@ -119,6 +125,7 @@
       <workItem from="1739823357193" duration="8582000" />
       <workItem from="1740686227727" duration="8339000" />
       <workItem from="1740760183849" duration="1301000" />
+      <workItem from="1740879322842" duration="1957000" />
     </task>
     <servers />
   </component>
