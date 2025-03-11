@@ -6,10 +6,29 @@
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/projects/bluej.PNG" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/projects/green.PNG" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/projects/scratchscreen.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/projects/ziplockz.PNG" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/boyscouts.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/robotics.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/school.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Home/volunteering.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/Rocket.JPG" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/ZipLockz_image.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/entre.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/gorger.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/pfpimg.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projects/earth.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/rendered_animation_pic.PNG" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/vol.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Bluej.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Handaid.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/PCB.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/SevenSegment.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Solar.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Wattergen.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/Ziplockz.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/greenfoot.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/image.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/rocket.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Projects/scratch.html" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -129,7 +148,7 @@
       <workItem from="1741070686576" duration="3000" />
       <workItem from="1741108079790" duration="2896000" />
       <workItem from="1741234894834" duration="782000" />
-      <workItem from="1741464893829" duration="3312000" />
+      <workItem from="1741464893829" duration="6051000" />
     </task>
     <servers />
   </component>
