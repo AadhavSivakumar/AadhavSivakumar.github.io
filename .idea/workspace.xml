@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/tamilwords200.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
     </list>
@@ -20,6 +21,7 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="HTML File" />
+        <option value="package.json" />
       </list>
     </option>
   </component>
@@ -126,7 +128,12 @@
       <workItem from="1741108079790" duration="2896000" />
       <workItem from="1741234894834" duration="782000" />
       <workItem from="1741464893829" duration="6590000" />
-      <workItem from="1741806655682" duration="2643000" />
+      <workItem from="1741806655682" duration="6147000" />
+      <workItem from="1742448129489" duration="3396000" />
+      <workItem from="1744137734225" duration="16000" />
+      <workItem from="1745776859357" duration="1200000" />
+      <workItem from="1745896588153" duration="2985000" />
+      <workItem from="1747186186168" duration="109000" />
     </task>
     <servers />
   </component>
