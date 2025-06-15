@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Name | Design & Development Portfolio</title>
+  <style>
+    /*
+     * ===================================================================
+     * I. FONT & THEME/COLOR DEFINITIONS
+     * ===================================================================
+     */
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
+
+    :root {
+      --primary-color: #1a1a1a; /* Black */
+      --secondary-color: #555555; /* Dark Gray */
+      --background-color: #F7F5F2; /* Beige */
+      --surface-color: #FFFFFF; /* White */
+      --accent-color: #BFA181; /* Gold */
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--primary-color); line-height: 1.7; overflow-x: hidden; }
+    h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; }
+    a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
+    a:hover { color: var(--primary-color); }
+
+    section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
+    section.visible { opacity: 1; transform: translateY(0); }
+    .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
+
+    /*
+     * ===================================================================
+     * II. ANIMATED SIDE OBJECTS & HEADER
+     * ===================================================================
+     */
+
+    .animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 1; transition: transform 0.1s linear; will-change: transform; }
+    .left-object { width: 80px; height: 80px; border-radius: 50%; left: 10vw; top: 85vh; }
+    .right-object { width: 100px; height: 100px; right: 8vw; top: 0; transform: translateY(-100%); }
+    header { position: fixed; width: 100%; top: 0; left: 0; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; transition: background-color 0.5s ease, box-shadow 0.5s ease; }
+    header.scrolled { background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    header .logo { font-size: 1.5rem; }
+    header nav a { margin-left: 30px; }
+
+    /*
+     * ===================================================================
+     * III. SECTION & PROJECT CARD STYLES
+     * ===================================================================
+     */
+    #hero {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      min-height: 100vh;
+      /* --- THIS IS THE FIX --- */
+      background-color: transparent;
+    }
+    #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
+    #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
+    #about .about-container { display: flex; align-items: center; gap: 50px; }
+    #about .about-image { flex-basis: 35%; }
+    #about .about-image img { width: 100%; border-radius: 10px; }
+    #about .about-text { flex-basis: 65%; }
+    #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
+
+    .major-project-card, .small-project-card { opacity: 0; transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+    .major-project-card:nth-child(odd), .small-project-card:nth-child(odd) { transform: translateX(-100px); }
+    .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(100px); }
+    .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
+    .major-project-card.in-view:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+    .small-project-card.in-view:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+
+    .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; }
+    .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .major-project-card img { width: 100%; height: 300px; object-fit: cover; }
+    .major-project-card .project-content { padding: 25px; }
+    .major-project-card h4 { font-size: 1.7rem; }
+    .major-project-card p { color: var(--secondary-color); }
+
+    .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
+    .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; }
+    .small-project-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
+    .small-project-content { padding: 15px; }
+    .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
+    .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); }
+
+    .skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
+    .skill-item { background-color: var(--surface-color); padding: 30px; border-radius: 10px; text-align: center; }
+    .skill-item h3 { font-family: 'Poppins'; font-weight: 600; }
+    .skill-item .skill-level { font-size: 2.5rem; font-weight: 700; color: var(--accent-color); }
+    #contact { text-align: center; }
+    #contact p { max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); }
+    .contact-button { display: inline-block; padding: 15px 30px; background-color: var(--accent-color); color: var(--surface-color); border-radius: 5px; font-weight: 600; transition: transform 0.3s ease, background-color 0.3s ease; }
+    .contact-button:hover { transform: scale(1.05); background-color: var(--primary-color); color: var(--surface-color); }
+    .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 25px; }
+    .social-links a { display: inline-block; }
+    .social-links svg { width: 32px; height: 32px; fill: var(--secondary-color); transition: fill 0.3s ease; }
+    .social-links a:hover svg { fill: var(--primary-color); }
+    footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid #ddd; margin-top: 50px; position: relative; z-index: 10; }
+  </style>
+</head>
+<body>
+
+<div class="animated-object left-object"></div>
+<div class="animated-object right-object"></div>
+
+<header>
+  <div class="logo"><a href="#hero">YN.</a></div>
+  <nav>
+    <a href="#about">About</a>
+    <a href="#projects">Projects</a>
+    <a href="#skills">Skills</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<main>
+  <section id="hero" class="visible">
+    <h1>Your Name</h1>
+    <p>Creative Developer & Digital Designer</p>
+  </section>
+
+  <section id="about">
+    <div class="about-container">
+      <div class="about-image"><img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=2680&auto=format&fit=crop" alt="Your headshot"></div>
+      <div class="about-text"><h2 class="section-title" style="text-align: left; margin-bottom: 20px;">About Me</h2><p>Hello! I'm a passionate and results-driven creative professional with a knack for turning complex problems into beautiful, intuitive designs. Replace this text with your own biography.</p></div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <h2 class="section-title">My Work</h2>
+    <h3>Major Projects</h3>
+    <div class="major-projects-grid">
+      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop" alt="Major Project 1"><div class="project-content"><h4>Project One</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
+      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop" alt="Major Project 2"><div class="project-content"><h4>Project Two</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
+      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop" alt="Major Project 3"><div class="project-content"><h4>Project Three</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
+      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop" alt="Major Project 4"><div class="project-content"><h4>Project Four</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
+    </div>
+    <h3>More Work</h3>
+    <div class="small-projects-grid">
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" alt="Small Project"><div class="small-project-content"><h4>Project A</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" alt="Small Project"><div class="small-project-content"><h4>Project B</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400" alt="Small Project"><div class="small-project-content"><h4>Project C</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400" alt="Small Project"><div class="small-project-content"><h4>Project D</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1571171637578-41bc2174d4c5?w=400" alt="Small Project"><div class="small-project-content"><h4>Project E</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400" alt="Small Project"><div class="small-project-content"><h4>Project F</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400" alt="Small Project"><div class="small-project-content"><h4>Project G</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400" alt="Small Project"><div class="small-project-content"><h4>Project H</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?w=400" alt="Small Project"><div class="small-project-content"><h4>Project I</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1526498460520-4c246339dccb?w=400" alt="Small Project"><div class="small-project-content"><h4>Project J</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?w=400" alt="Small Project"><div class="small-project-content"><h4>Project K</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1629904853716-f0bc54eea481?w=400" alt="Small Project"><div class="small-project-content"><h4>Project L</h4><p>Short desc.</p></div></div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <h2 class="section-title">Core Skills</h2>
+    <div class="skills-grid">
+      <div class="skill-item"><h3>UI/UX Design</h3><div class="skill-level">90%</div></div>
+      <div class="skill-item"><h3>Web Development</h3><div class="skill-level">85%</div></div>
+      <div class="skill-item"><h3>Brand Strategy</h3><div class="skill-level">80%</div></div>
+      <div class="skill-item"><h3>3D Modeling</h3><div class="skill-level">75%</div></div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2 class="section-title">Get In Touch</h2>
+    <p>I'm currently available for new opportunities. If you have a project in mind or just want to connect, I'd love to hear from you!</p>
+    <a href="mailto:your.email@example.com" class="contact-button">Say Hello</a>
+    <div class="social-links">
+      <a href="#" target="_blank" aria-label="LinkedIn Profile"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/></svg></a>
+      <a href="#" target="_blank" aria-label="GitHub Profile"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg></a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>© 2024 Your Name. All Rights Reserved.</p>
+</footer>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector('header');
+    const leftObject = document.querySelector('.left-object');
+    const rightObject = document.querySelector('.right-object');
+    let raf;
+
+    function handleScrollAnimations() {
+      const scrollY = window.scrollY;
+      const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = scrollY / totalScrollableHeight;
+      const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
+      const squareY = scrollPercent * squareTravelDistance;
+      const squareRotation = scrollPercent * 360;
+      rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
+      const zigzagAmplitude = 70;
+      const zigzagFrequency = 0.01;
+      const upwardSpeed = 0.3;
+      const circleRotation = scrollPercent * 200;
+      const circleX = zigzagAmplitude * Math.sin(scrollY * zigzagFrequency);
+      const circleY = -scrollY * upwardSpeed;
+      leftObject.style.transform = `translate(${circleX}px, ${circleY}px) rotate(-${circleRotation}deg)`;
+      header.classList.toggle('scrolled', scrollY > 50);
+    }
+
+    window.addEventListener('scroll', () => {
+      if (raf) window.cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(handleScrollAnimations);
+    });
+
+    const sections = document.querySelectorAll('section');
+    const sectionObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    sections.forEach(section => sectionObserver.observe(section));
+
+    // --- UPDATED Observer for sliding in/out project cards with staggered delay ---
+    const projectCards = document.querySelectorAll('.major-project-card, .small-project-card');
+    const cardObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach((entry, index) => {
+        const target = entry.target;
+        if (entry.isIntersecting) {
+          // Stagger the delay based on the card's position in the grid
+          const delay = (index % 4) * 100; // Stagger based on column
+          target.style.transitionDelay = `${delay}ms`;
+          target.classList.add('in-view');
+        } else {
+          // No delay when sliding out for a snappy feel
+          target.style.transitionDelay = '0ms';
+          target.classList.remove('in-view');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    projectCards.forEach(card => cardObserver.observe(card));
+  });
+</script>
+</body>
+</html>
