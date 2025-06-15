@@ -23,6 +23,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--primary-color); line-height: 1.7; overflow-x: hidden; }
+    body.modal-open { overflow: hidden; } /* Prevent background scrolling when modal is open */
     h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; }
     a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
     a:hover { color: var(--primary-color); }
@@ -59,7 +60,7 @@
     #about .about-text { flex-basis: 65%; }
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
-    .major-project-card, .small-project-card { opacity: 0; transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+    .major-project-card, .small-project-card { cursor: pointer; opacity: 0; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
     .major-project-card:nth-child(odd), .small-project-card:nth-child(odd) { transform: translateX(-100px); }
     .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(100px); }
     .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
@@ -77,6 +78,24 @@
     .small-project-content { padding: 15px; }
     .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
     .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); }
+
+    /*
+     * ===================================================================
+     * IV. MODAL STYLES
+     * ===================================================================
+     */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease; backdrop-filter: blur(5px); }
+    .modal-overlay.visible { opacity: 1; visibility: visible; }
+    .modal-content { background: var(--surface-color); padding: 40px; border-radius: 10px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.9); transition: transform 0.4s ease; }
+    .modal-overlay.visible .modal-content { transform: scale(1); }
+    .modal-close-button { position: absolute; top: 15px; right: 20px; font-size: 2.5rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.3s ease; }
+    .modal-close-button:hover { color: var(--primary-color); }
+    .modal-content img { width: 100%; height: auto; border-radius: 5px; margin-bottom: 20px; }
+    #modal-title { font-size: 2.5rem; margin-bottom: 15px; }
+    #modal-tech-stack { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+    #modal-tech-stack span { background-color: var(--background-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 5px; font-size: 0.9rem; font-family: 'Poppins'; }
+    #modal-description { margin-bottom: 30px; }
+    #modal-link { margin-top: 20px; }
 
     /* UPDATED Skills Section Styles */
     .skill-category { margin-bottom: 30px; }
@@ -120,7 +139,7 @@
 
   <section id="about">
     <div class="about-container">
-      <div class="about-image"><img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=2680&auto=format&fit=crop" alt="Your headshot"></div>
+      <div class="about-image"><img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=2680&auto=format&fit=crop" alt="Your headshot" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"></div>
       <div class="about-text"><h2 class="section-title" style="text-align: left; margin-bottom: 20px;">About Me</h2><p>Hello! I'm a passionate and results-driven creative professional with a knack for turning complex problems into beautiful, intuitive designs. Replace this text with your own biography.</p></div>
     </div>
   </section>
@@ -129,15 +148,17 @@
     <h2 class="section-title">My Work</h2>
     <h3>Major Projects</h3>
     <div class="major-projects-grid">
-      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop" alt="Major Project 1"><div class="project-content"><h4>Project One</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
-      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop" alt="Major Project 2"><div class="project-content"><h4>Project Two</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
-      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop" alt="Major Project 3"><div class="project-content"><h4>Project Three</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
-      <div class="major-project-card"><img src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop" alt="Major Project 4"><div class="project-content"><h4>Project Four</h4><p>A detailed description of your most significant project.</p><a href="#">View Case Study</a></div></div>
+      <!-- NOTE: Added 'project-modal-trigger' class and data-* attributes for the modal -->
+      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop" data-title="Project One" data-tech="UI/UX Design,React,Node.js" data-description="A detailed description of your most significant project. Explain the problem, the process, and the solution. Highlight your specific contributions and the technologies you used." data-link="#"><img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop" alt="Major Project 1" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project One</h4><p>A detailed description of your most significant project.</p></div></div>
+      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop" data-title="Project Two" data-tech="Python,Machine Learning,Data Visualization" data-description="Here is where you can elaborate on Project Two. Talk about the data analysis performed, the models built, and the insights gained. This is your chance to really show off your skills." data-link="#"><img src="https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop" alt="Major Project 2" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project Two</h4><p>A detailed description of your most significant project.</p></div></div>
+      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop" data-title="Project Three" data-tech="Mobile App,SwiftUI,Firebase" data-description="This mobile application was designed to solve a real-world problem. Discuss the user research, design iterations, and the final product that was launched on the App Store." data-link="#"><img src="https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop" alt="Major Project 3" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project Three</h4><p>A detailed description of your most significant project.</p></div></div>
+      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop" data-title="Project Four" data-tech="Branding,Graphic Design,Illustration" data-description="A complete branding package for a startup. This involved creating a logo, style guide, marketing materials, and a web presence from the ground up." data-link="#"><img src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop" alt="Major Project 4" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project Four</h4><p>A detailed description of your most significant project.</p></div></div>
     </div>
     <h3>More Work</h3>
     <div class="small-projects-grid">
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" alt="Small Project"><div class="small-project-content"><h4>Project A</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" alt="Small Project"><div class="small-project-content"><h4>Project B</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" data-title="Project A" data-tech="Hardware,C++" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="small-project-content"><h4>Project A</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" data-title="Project B" data-tech="Web Dev,JS" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="small-project-content"><h4>Project B</h4><p>Short desc.</p></div></div>
+      <!-- Add data-* attributes to the rest of the small projects as needed -->
       <div class="small-project-card"><img src="https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400" alt="Small Project"><div class="small-project-content"><h4>Project C</h4><p>Short desc.</p></div></div>
       <div class="small-project-card"><img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400" alt="Small Project"><div class="small-project-content"><h4>Project D</h4><p>Short desc.</p></div></div>
       <div class="small-project-card"><img src="https://images.unsplash.com/photo-1571171637578-41bc2174d4c5?w=400" alt="Small Project"><div class="small-project-content"><h4>Project E</h4><p>Short desc.</p></div></div>
@@ -206,21 +227,39 @@
   <p>© 2024 Your Name. All Rights Reserved.</p>
 </footer>
 
+<!-- MODAL HTML -->
+<div id="project-modal" class="modal-overlay">
+  <div class="modal-content">
+    <span class="modal-close-button">&times;</span>
+    <img id="modal-img" src="" alt="Project Image" onerror="this.onerror=null;this.src='https://placehold.co/800x600/F7F5F2/BFA181?text=Image+Not+Found';">
+    <h2 id="modal-title"></h2>
+    <div id="modal-tech-stack"></div>
+    <p id="modal-description"></p>
+    <a id="modal-link" href="#" target="_blank" class="contact-button">View Project</a>
+  </div>
+</div>
+
+
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    // Caching DOM elements for performance
     const header = document.querySelector('header');
     const leftObject = document.querySelector('.left-object');
     const rightObject = document.querySelector('.right-object');
-    let raf;
+    let raf; // requestAnimationFrame ID
 
+    // Handles scroll-based animations for the header and decorative objects
     function handleScrollAnimations() {
       const scrollY = window.scrollY;
       const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const scrollPercent = scrollY / totalScrollableHeight;
+
+      const scrollPercent = totalScrollableHeight > 0 ? scrollY / totalScrollableHeight : 0;
+
       const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
       const squareY = scrollPercent * squareTravelDistance;
       const squareRotation = scrollPercent * 360;
       rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
+
       const zigzagAmplitude = 70;
       const zigzagFrequency = 0.01;
       const upwardSpeed = 0.3;
@@ -228,14 +267,18 @@
       const circleX = zigzagAmplitude * Math.sin(scrollY * zigzagFrequency);
       const circleY = -scrollY * upwardSpeed;
       leftObject.style.transform = `translate(${circleX}px, ${circleY}px) rotate(-${circleRotation}deg)`;
+
       header.classList.toggle('scrolled', scrollY > 50);
     }
 
     window.addEventListener('scroll', () => {
-      if (raf) window.cancelAnimationFrame(raf);
+      if (raf) {
+        window.cancelAnimationFrame(raf);
+      }
       raf = window.requestAnimationFrame(handleScrollAnimations);
-    });
+    }, { passive: true });
 
+    // Intersection Observer for fade-in animations on sections
     const sections = document.querySelectorAll('section');
     const sectionObserver = new IntersectionObserver((entries, observer) => {
       entries.forEach(entry => {
@@ -245,8 +288,10 @@
         }
       });
     }, { threshold: 0.1 });
+
     sections.forEach(section => sectionObserver.observe(section));
 
+    // Intersection Observer for slide-in animations on project cards
     const projectCards = document.querySelectorAll('.major-project-card, .small-project-card');
     const cardObserver = new IntersectionObserver((entries, observer) => {
       entries.forEach((entry, index) => {
@@ -263,6 +308,67 @@
     }, { threshold: 0.1 });
 
     projectCards.forEach(card => cardObserver.observe(card));
+
+    // ===================================================================
+    // V. MODAL LOGIC
+    // ===================================================================
+    const modal = document.getElementById('project-modal');
+    const modalImg = document.getElementById('modal-img');
+    const modalTitle = document.getElementById('modal-title');
+    const modalTechStack = document.getElementById('modal-tech-stack');
+    const modalDescription = document.getElementById('modal-description');
+    const modalLink = document.getElementById('modal-link');
+    const closeModalButton = document.querySelector('.modal-close-button');
+    const projectTriggers = document.querySelectorAll('.project-modal-trigger');
+
+    // Function to open the modal and populate it with data
+    const openModal = (e) => {
+      const card = e.currentTarget;
+      const { imgSrc, title, tech, description, link } = card.dataset;
+
+      // Populate modal content
+      modalImg.src = imgSrc;
+      modalTitle.textContent = title;
+      modalDescription.textContent = description;
+      modalLink.href = link;
+
+      // Create tech stack pills
+      modalTechStack.innerHTML = ''; // Clear previous tech
+      if (tech) {
+        tech.split(',').forEach(techName => {
+          const techPill = document.createElement('span');
+          techPill.textContent = techName.trim();
+          modalTechStack.appendChild(techPill);
+        });
+      }
+
+      // Show the modal
+      document.body.classList.add('modal-open');
+      modal.classList.add('visible');
+    };
+
+    // Function to close the modal
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      modal.classList.remove('visible');
+    };
+
+    // Add event listeners
+    projectTriggers.forEach(trigger => trigger.addEventListener('click', openModal));
+    closeModalButton.addEventListener('click', closeModal);
+    // Close modal if user clicks on the overlay
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    // Close modal on 'Escape' key press
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('visible')) {
+        closeModal();
+      }
+    });
   });
 </script>
 </body>
