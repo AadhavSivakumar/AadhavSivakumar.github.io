@@ -18,8 +18,8 @@
       --background-color: #F7F5F2; /* Beige */
       --surface-color: #FFFFFF; /* White */
       --accent-color: #BFA181; /* Gold */
-      --animation-duration: 0.7s; /* Increased duration */
-      --animation-easing: cubic-bezier(0.45, 0, 0.2, 1);
+      --animation-duration: 0.65s;
+      --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -86,7 +86,7 @@
 
     /*
      * ===================================================================
-     * IV. MODAL STYLES (REFINED FOR FLIP ANIMATION)
+     * IV. MODAL STYLES (REVERTED AND FIXED)
      * ===================================================================
      */
     .modal-overlay {
@@ -120,30 +120,31 @@
       overflow-y: auto;
       position: relative;
       opacity: 0;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.6s ease;
     }
     .modal-overlay.animation-done .modal-content {
       opacity: 1;
     }
     .modal-overlay.is-closing .modal-content {
       opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: opacity 0.3s ease;
     }
 
     .project-image-clone {
       position: fixed;
       z-index: 2001;
       object-fit: cover;
-      /* UPDATED: Animate layout properties instead of transform for perfect positioning */
+      opacity: 1;
       transition: top var(--animation-duration) var(--animation-easing),
       left var(--animation-duration) var(--animation-easing),
       width var(--animation-duration) var(--animation-easing),
       height var(--animation-duration) var(--animation-easing),
-      border-radius var(--animation-duration) var(--animation-easing);
+      border-radius var(--animation-duration) var(--animation-easing),
+      opacity 0.4s ease;
       pointer-events: none;
     }
 
-    .modal-close-button { position: absolute; top: 15px; right: 20px; font-size: 2.5rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.3s ease; }
+    .modal-close-button { position: absolute; top: 15px; right: 20px; font-size: 2.5rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.3s ease; z-index: 10;}
     .modal-close-button:hover { color: var(--primary-color); }
 
     .modal-content #modal-img-wrapper {
@@ -157,7 +158,11 @@
     }
     .modal-overlay.animation-done #modal-img-wrapper {
       opacity: 1;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.6s ease;
+    }
+    .modal-overlay.is-closing #modal-img-wrapper {
+      opacity: 0;
+      transition: none;
     }
 
     .modal-content #modal-img {
@@ -236,7 +241,7 @@
     <h3>More Work</h3>
     <div class="small-projects-grid">
       <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" data-title="Project A" data-tech="Hardware,C++" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="small-project-content"><h4>Project A</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" data-title="Project B" data-tech="Web Dev,JS" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="small-project-content"><h4>Project B</h4><p>Short desc.</p></div></div>
+      <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" data-title="Project B" data-tech="Web Dev,JS" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="project-content"><h4>Project B</h4><p>Short desc.</p></div></div>
       <!-- Add data-* attributes to the rest of the small projects as needed -->
       <div class="small-project-card"><img src="https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400" alt="Small Project"><div class="small-project-content"><h4>Project C</h4><p>Short desc.</p></div></div>
       <div class="small-project-card"><img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400" alt="Small Project"><div class="small-project-content"><h4>Project D</h4><p>Short desc.</p></div></div>
@@ -351,9 +356,10 @@
     projectCards.forEach(card => cardObserver.observe(card));
 
     // ===================================================================
-    // V. MODAL LOGIC (REFINED FLIP ANIMATION)
+    // V. MODAL LOGIC (REVERTED AND FIXED)
     // ===================================================================
     const modal = document.getElementById('project-modal');
+    const modalContent = document.querySelector('.modal-content');
     const modalImgWrapper = document.getElementById('modal-img-wrapper');
     const modalImg = document.getElementById('modal-img');
     const modalTitle = document.getElementById('modal-title');
@@ -364,6 +370,16 @@
     const projectTriggers = document.querySelectorAll('.project-modal-trigger');
     let lastClickedCard = null;
     let isAnimating = false;
+
+    const preloadImages = () => {
+      projectTriggers.forEach(trigger => {
+        if (trigger.dataset.imgSrc) {
+          const img = new Image();
+          img.src = trigger.dataset.imgSrc;
+        }
+      });
+    };
+    preloadImages();
 
     const openModal = (e) => {
       if (isAnimating) return;
@@ -391,7 +407,7 @@
       }
 
       // 2. Create the clone and set its initial position
-      const imageClone = cardImage.cloneNode(true);
+      const imageClone = card.cloneNode(true);
       imageClone.classList.add('project-image-clone');
       imageClone.style.top = `${cardImageRect.top}px`;
       imageClone.style.left = `${cardImageRect.left}px`;
@@ -406,25 +422,32 @@
       card.classList.add('is-animating-out');
 
       // 4. Get the destination position AFTER the modal is visible
-      const modalImageRect = modalImgWrapper.getBoundingClientRect();
+      const modalFinalWidth = Math.min(800, window.innerWidth * 0.9);
+      const modalFinalHeight = Math.min(window.innerHeight * 0.9, modalContent.scrollHeight + 80);
+      const modalFinalTop = (window.innerHeight - modalFinalHeight) / 2;
+      const modalFinalLeft = (window.innerWidth - modalFinalWidth) / 2;
 
       // 5. Animate the clone by setting its final properties
       requestAnimationFrame(() => {
-        // This forces the browser to layout the clone before transitioning it
         imageClone.offsetWidth;
 
-        imageClone.style.top = `${modalImageRect.top}px`;
-        imageClone.style.left = `${modalImageRect.left}px`;
-        imageClone.style.width = `${modalImageRect.width}px`;
-        imageClone.style.height = `${modalImageRect.height}px`;
-        imageClone.style.borderRadius = '5px';
+        imageClone.style.top = `${modalFinalTop}px`;
+        imageClone.style.left = `${modalFinalLeft}px`;
+        imageClone.style.width = `${modalFinalWidth}px`;
+        imageClone.style.height = `${modalFinalHeight}px`;
+        imageClone.style.borderRadius = '10px';
 
         imageClone.addEventListener('transitionend', () => {
           modal.classList.add('animation-done');
-          if (document.body.contains(imageClone)) {
-            document.body.removeChild(imageClone);
-          }
-          isAnimating = false;
+
+          imageClone.style.opacity = '0';
+          imageClone.addEventListener('transitionend', () => {
+            if (document.body.contains(imageClone)) {
+              document.body.removeChild(imageClone);
+            }
+            isAnimating = false;
+          }, { once: true });
+
         }, { once: true });
       });
     };
@@ -433,45 +456,41 @@
       if (isAnimating || !lastClickedCard) return;
       isAnimating = true;
 
-      // 1. Instantly hide modal contents and get positions
-      modal.classList.remove('animation-done');
-      const cardImageRect = lastClickedCard.getBoundingClientRect();
-      const modalImageRect = modalImgWrapper.getBoundingClientRect();
+      const cardRect = lastClickedCard.getBoundingClientRect();
 
-      // 2. Create clone at the modal image's position
-      const imageClone = modalImg.cloneNode(true);
+      const modalRect = modalContent.getBoundingClientRect();
+
+      const imageClone = lastClickedCard.cloneNode(true);
       imageClone.classList.add('project-image-clone');
-      imageClone.style.top = `${modalImageRect.top}px`;
-      imageClone.style.left = `${modalImageRect.left}px`;
-      imageClone.style.width = `${modalImageRect.width}px`;
-      imageClone.style.height = `${modalImageRect.height}px`;
-      imageClone.style.borderRadius = '5px';
+      imageClone.style.top = `${modalRect.top}px`;
+      imageClone.style.left = `${modalRect.left}px`;
+      imageClone.style.width = `${modalRect.width}px`;
+      imageClone.style.height = `${modalRect.height}px`;
+      imageClone.style.borderRadius = '10px';
       document.body.appendChild(imageClone);
 
-      // 3. Start closing transition for the overlay
-      modal.classList.add('is-closing');
-      modal.classList.remove('visible');
+      modal.classList.remove('animation-done');
 
-      // 4. Animate the clone back to the card's position
       requestAnimationFrame(() => {
+        modal.classList.remove('visible');
         imageClone.offsetWidth;
 
-        imageClone.style.top = `${cardImageRect.top}px`;
-        imageClone.style.left = `${cardImageRect.left}px`;
-        imageClone.style.width = `${cardImageRect.width}px`;
-        imageClone.style.height = `${cardImageRect.height}px`;
-        imageClone.style.borderRadius = '10px';
+        imageClone.style.top = `${cardRect.top}px`;
+        imageClone.style.left = `${cardRect.left}px`;
+        imageClone.style.width = `${cardRect.width}px`;
+        imageClone.style.height = `${cardRect.height}px`;
 
-        // 5. Clean up after transition
         imageClone.addEventListener('transitionend', () => {
-          document.body.classList.remove('modal-open');
-          modal.classList.remove('is-closing');
           lastClickedCard.classList.remove('is-animating-out');
           if (document.body.contains(imageClone)) {
             document.body.removeChild(imageClone);
           }
-          lastClickedCard = null;
-          isAnimating = false;
+          // Use a timeout to ensure all animations are finished before resetting state
+          setTimeout(() => {
+            document.body.classList.remove('modal-open');
+            isAnimating = false;
+            lastClickedCard = null;
+          }, 50);
         }, { once: true });
       });
     };
