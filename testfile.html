@@ -63,8 +63,9 @@
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
     .project-modal-trigger { cursor: pointer; }
-    .project-modal-trigger img { transition: opacity 0.3s ease; }
-    .project-modal-trigger.is-animating-out img { opacity: 0; }
+    .project-modal-trigger.is-animating-out {
+      opacity: 0 !important;
+    }
     .major-project-card, .small-project-card { opacity: 0; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
     .major-project-card:nth-child(odd), .small-project-card:nth-child(odd) { transform: translateX(-100px); }
     .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(100px); }
@@ -86,7 +87,7 @@
 
     /*
      * ===================================================================
-     * IV. MODAL STYLES (REVERTED AND FIXED)
+     * IV. MODAL STYLES (DETACHING IMAGE ANIMATION)
      * ===================================================================
      */
     .modal-overlay {
@@ -94,23 +95,26 @@
       top: 0; left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2000;
       opacity: 0;
       visibility: hidden;
-      transition: opacity var(--animation-duration) ease, visibility 0s linear var(--animation-duration);
-      backdrop-filter: blur(5px);
+      background: rgba(0, 0, 0, 0);
+      transition: opacity var(--animation-duration) ease, visibility 0s linear var(--animation-duration), background var(--animation-duration) ease;
+      backdrop-filter: blur(0px);
     }
     .modal-overlay.visible {
       opacity: 1;
       visibility: visible;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
       transition-delay: 0s;
     }
 
     .modal-content {
+      visibility: hidden; /* Hide real modal until animation is done */
       background: var(--surface-color);
       padding: 40px;
       border-radius: 10px;
@@ -120,52 +124,61 @@
       overflow-y: auto;
       position: relative;
       opacity: 0;
-      transition: opacity 0.6s ease;
+      transition: opacity 0.6s ease, visibility 0s linear 0.6s;
     }
     .modal-overlay.animation-done .modal-content {
+      visibility: visible;
       opacity: 1;
-    }
-    .modal-overlay.is-closing .modal-content {
-      opacity: 0;
-      transition: opacity 0.3s ease;
     }
 
-    .project-image-clone {
+    .clone-container, .image-clone {
       position: fixed;
       z-index: 2001;
-      object-fit: cover;
-      opacity: 1;
       transition: top var(--animation-duration) var(--animation-easing),
       left var(--animation-duration) var(--animation-easing),
       width var(--animation-duration) var(--animation-easing),
       height var(--animation-duration) var(--animation-easing),
       border-radius var(--animation-duration) var(--animation-easing),
-      opacity 0.4s ease;
+      opacity 0.3s ease;
+      overflow: hidden;
       pointer-events: none;
+    }
+    .clone-container {
+      background-color: var(--surface-color);
+    }
+    .image-clone {
+      z-index: 2002;
+    }
+
+    .modal-inner-content {
+      padding: 40px;
+      overflow-y: auto;
+      height: 100%;
+      opacity: 0;
+      transition: opacity calc(var(--animation-duration) * 0.5) ease calc(var(--animation-duration) * 0.5);
+    }
+    .modal-overlay.animation-done .modal-inner-content {
+      opacity: 1;
+    }
+    .modal-overlay.is-closing .modal-inner-content {
+      opacity: 0;
+      transition: opacity calc(var(--animation-duration) * 0.4) ease;
     }
 
     .modal-close-button { position: absolute; top: 15px; right: 20px; font-size: 2.5rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.3s ease; z-index: 10;}
     .modal-close-button:hover { color: var(--primary-color); }
 
-    .modal-content #modal-img-wrapper {
+    #modal-img-wrapper {
       width: 100%;
       padding-top: 56.25%;
       position: relative;
       margin-bottom: 20px;
       border-radius: 5px;
       overflow: hidden;
-      opacity: 0;
-    }
-    .modal-overlay.animation-done #modal-img-wrapper {
-      opacity: 1;
-      transition: opacity 0.6s ease;
-    }
-    .modal-overlay.is-closing #modal-img-wrapper {
-      opacity: 0;
-      transition: none;
+      background-color: #eee;
     }
 
-    .modal-content #modal-img {
+    #modal-img {
       position: absolute;
       top: 0;
       left: 0;
@@ -277,16 +290,18 @@
 </footer>
 
 <!-- MODAL HTML -->
-<div id="project-modal" class="modal-overlay">
+<div class="modal-overlay">
   <div class="modal-content">
-    <span class="modal-close-button">&times;</span>
-    <div id="modal-img-wrapper">
-      <img id="modal-img" src="" alt="Project Image" onerror="this.onerror=null;this.src='https://placehold.co/800x600/F7F5F2/BFA181?text=Image+Not+Found';">
+    <div class="modal-inner-content">
+      <span class="modal-close-button">&times;</span>
+      <div id="modal-img-wrapper">
+        <img id="modal-img" src="" alt="Project Image" onerror="this.onerror=null;this.src='https://placehold.co/800x600/F7F5F2/BFA181?text=Image+Not+Found';">
+      </div>
+      <h2 id="modal-title"></h2>
+      <div id="modal-tech-stack"></div>
+      <p id="modal-description"></p>
+      <a id="modal-link" href="#" target="_blank" class="contact-button">View Project</a>
     </div>
-    <h2 id="modal-title"></h2>
-    <div id="modal-tech-stack"></div>
-    <p id="modal-description"></p>
-    <a id="modal-link" href="#" target="_blank" class="contact-button">View Project</a>
   </div>
 </div>
 
@@ -356,11 +371,11 @@
     projectCards.forEach(card => cardObserver.observe(card));
 
     // ===================================================================
-    // V. MODAL LOGIC (REVERTED AND FIXED)
+    // V. MODAL LOGIC (DETACHING IMAGE ANIMATION)
     // ===================================================================
-    const modal = document.getElementById('project-modal');
+    const modalOverlay = document.querySelector('.modal-overlay');
     const modalContent = document.querySelector('.modal-content');
-    const modalImgWrapper = document.getElementById('modal-img-wrapper');
+    const modalInnerContent = document.querySelector('.modal-inner-content');
     const modalImg = document.getElementById('modal-img');
     const modalTitle = document.getElementById('modal-title');
     const modalTechStack = document.getElementById('modal-tech-stack');
@@ -387,12 +402,12 @@
 
       const card = e.currentTarget;
       lastClickedCard = card;
+      const cardRect = card.getBoundingClientRect();
       const cardImage = card.querySelector('img');
       const cardImageRect = cardImage.getBoundingClientRect();
 
       const { imgSrc, title, tech, description, link } = card.dataset;
 
-      // 1. Populate modal content
       modalImg.src = imgSrc;
       modalTitle.textContent = title;
       modalDescription.textContent = description;
@@ -406,47 +421,67 @@
         });
       }
 
-      // 2. Create the clone and set its initial position
-      const imageClone = card.cloneNode(true);
-      imageClone.classList.add('project-image-clone');
+      const finalWidth = Math.min(800, window.innerWidth * 0.9);
+      const modalPadding = 40;
+      const finalImageWidth = finalWidth - (modalPadding * 2);
+      const finalImageHeight = finalImageWidth * (9 / 16);
+      const finalContentHeight = modalInnerContent.scrollHeight;
+      const finalHeight = Math.min(window.innerHeight * 0.9, finalContentHeight);
+
+      const finalTop = (window.innerHeight - finalHeight) / 2;
+      const finalLeft = (window.innerWidth - finalWidth) / 2;
+      const finalImageTop = finalTop + modalPadding;
+      const finalImageLeft = finalLeft + modalPadding;
+
+
+      const cardClone = document.createElement('div');
+      cardClone.classList.add('clone-container');
+      cardClone.style.top = `${cardRect.top}px`;
+      cardClone.style.left = `${cardRect.left}px`;
+      cardClone.style.width = `${cardRect.width}px`;
+      cardClone.style.height = `${cardRect.height}px`;
+      document.body.appendChild(cardClone);
+
+      const imageClone = cardImage.cloneNode(true);
+      imageClone.classList.add('image-clone');
       imageClone.style.top = `${cardImageRect.top}px`;
       imageClone.style.left = `${cardImageRect.left}px`;
       imageClone.style.width = `${cardImageRect.width}px`;
       imageClone.style.height = `${cardImageRect.height}px`;
-      imageClone.style.borderRadius = '10px';
       document.body.appendChild(imageClone);
 
-      // 3. Make the modal visible to calculate its final layout
-      document.body.classList.add('modal-open');
-      modal.classList.add('visible');
       card.classList.add('is-animating-out');
+      document.body.classList.add('modal-open');
+      modalOverlay.classList.add('visible');
 
-      // 4. Get the destination position AFTER the modal is visible
-      const modalFinalWidth = Math.min(800, window.innerWidth * 0.9);
-      const modalFinalHeight = Math.min(window.innerHeight * 0.9, modalContent.scrollHeight + 80);
-      const modalFinalTop = (window.innerHeight - modalFinalHeight) / 2;
-      const modalFinalLeft = (window.innerWidth - modalFinalWidth) / 2;
-
-      // 5. Animate the clone by setting its final properties
       requestAnimationFrame(() => {
-        imageClone.offsetWidth;
+        cardClone.style.top = `${finalTop}px`;
+        cardClone.style.left = `${finalLeft}px`;
+        cardClone.style.width = `${finalWidth}px`;
+        cardClone.style.height = `${finalHeight}px`;
+        cardClone.style.borderRadius = '10px';
 
-        imageClone.style.top = `${modalFinalTop}px`;
-        imageClone.style.left = `${modalFinalLeft}px`;
-        imageClone.style.width = `${modalFinalWidth}px`;
-        imageClone.style.height = `${modalFinalHeight}px`;
-        imageClone.style.borderRadius = '10px';
+        imageClone.style.top = `${finalImageTop}px`;
+        imageClone.style.left = `${finalImageLeft}px`;
+        imageClone.style.width = `${finalImageWidth}px`;
+        imageClone.style.height = `${finalImageHeight}px`;
+        imageClone.style.borderRadius = '5px';
 
-        imageClone.addEventListener('transitionend', () => {
-          modal.classList.add('animation-done');
+        cardClone.addEventListener('transitionend', () => {
+          modalOverlay.classList.add('animation-done');
 
-          imageClone.style.opacity = '0';
-          imageClone.addEventListener('transitionend', () => {
+          cardClone.style.opacity = 0;
+          imageClone.style.opacity = 0;
+
+          setTimeout(() => {
+            if (document.body.contains(cardClone)) {
+              document.body.removeChild(cardClone);
+            }
             if (document.body.contains(imageClone)) {
               document.body.removeChild(imageClone);
             }
             isAnimating = false;
-          }, { once: true });
+          }, 300);
 
         }, { once: true });
       });
@@ -457,51 +492,66 @@
       isAnimating = true;
 
       const cardRect = lastClickedCard.getBoundingClientRect();
-
+      const cardImage = lastClickedCard.querySelector('img');
+      const cardImageRect = cardImage.getBoundingClientRect();
       const modalRect = modalContent.getBoundingClientRect();
+      const modalImageRect = modalImg.getBoundingClientRect();
 
-      const imageClone = lastClickedCard.cloneNode(true);
-      imageClone.classList.add('project-image-clone');
-      imageClone.style.top = `${modalRect.top}px`;
-      imageClone.style.left = `${modalRect.left}px`;
-      imageClone.style.width = `${modalRect.width}px`;
-      imageClone.style.height = `${modalRect.height}px`;
-      imageClone.style.borderRadius = '10px';
+      const cardClone = document.createElement('div');
+      cardClone.classList.add('clone-container');
+      cardClone.style.top = `${modalRect.top}px`;
+      cardClone.style.left = `${modalRect.left}px`;
+      cardClone.style.width = `${modalRect.width}px`;
+      cardClone.style.height = `${modalRect.height}px`;
+      cardClone.style.borderRadius = '10px';
+      document.body.appendChild(cardClone);
+
+      const imageClone = modalImg.cloneNode(true);
+      imageClone.classList.add('image-clone');
+      imageClone.style.top = `${modalImageRect.top}px`;
+      imageClone.style.left = `${modalImageRect.left}px`;
+      imageClone.style.width = `${modalImageRect.width}px`;
+      imageClone.style.height = `${modalImageRect.height}px`;
+      imageClone.style.borderRadius = '5px';
       document.body.appendChild(imageClone);
 
-      modal.classList.remove('animation-done');
+      modalOverlay.classList.remove('visible', 'animation-done');
 
       requestAnimationFrame(() => {
-        modal.classList.remove('visible');
-        imageClone.offsetWidth;
+        cardClone.style.top = `${cardRect.top}px`;
+        cardClone.style.left = `${cardRect.left}px`;
+        cardClone.style.width = `${cardRect.width}px`;
+        cardClone.style.height = `${cardRect.height}px`;
 
-        imageClone.style.top = `${cardRect.top}px`;
-        imageClone.style.left = `${cardRect.left}px`;
-        imageClone.style.width = `${cardRect.width}px`;
-        imageClone.style.height = `${cardRect.height}px`;
+        imageClone.style.top = `${cardImageRect.top}px`;
+        imageClone.style.left = `${cardImageRect.left}px`;
+        imageClone.style.width = `${cardImageRect.width}px`;
+        imageClone.style.height = `${cardImageRect.height}px`;
 
-        imageClone.addEventListener('transitionend', () => {
+        cardClone.addEventListener('transitionend', () => {
+          document.body.classList.remove('modal-open');
           lastClickedCard.classList.remove('is-animating-out');
+          if (document.body.contains(cardClone)) {
+            document.body.removeChild(cardClone);
+          }
           if (document.body.contains(imageClone)) {
             document.body.removeChild(imageClone);
           }
-          // Use a timeout to ensure all animations are finished before resetting state
-          setTimeout(() => {
-            document.body.classList.remove('modal-open');
-            isAnimating = false;
-            lastClickedCard = null;
-          }, 50);
+          isAnimating = false;
+          lastClickedCard = null;
         }, { once: true });
       });
     };
 
     projectTriggers.forEach(trigger => trigger.addEventListener('click', openModal));
     closeModalButton.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
+    modalOverlay.addEventListener('click', (e) => {
+      if(e.target === modalOverlay) closeModal();
     });
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.classList.contains('visible')) closeModal();
+      if (e.key === 'Escape' && modalOverlay.classList.contains('visible')) {
+        closeModal();
+      }
     });
   });
 </script>
