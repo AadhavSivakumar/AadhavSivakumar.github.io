@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your Name | Design & Development Portfolio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     /* FONT & THEME */
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
     :root {
       --primary-color: #1a1a1a;
       --secondary-color: #555555;
@@ -47,7 +48,7 @@
     section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
     section.visible { opacity: 1; transform: translateY(0); }
     .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
-    #hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
+    #hero { min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
     #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
     #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
     #about .about-container { display: flex; align-items: center; gap: 50px; flex-wrap: wrap; }
@@ -97,6 +98,8 @@
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
     .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
     .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden; transition: top var(--animation-duration) var(--animation-easing), left var(--animation-duration) var(--animation-easing), width var(--animation-duration) var(--animation-easing), height var(--animation-duration) var(--animation-easing); pointer-events: none; visibility: hidden; }
+    /* Add this new class to temporarily disable transitions */
+    .modal-animator.no-transition { transition: none !important; }
     .modal-animator.visible { pointer-events: auto; visibility: visible; }
     .modal-animator .modal-content { opacity: 0; transition: opacity 0.3s 0.2s ease; }
     .modal-animator.open .modal-content { opacity: 1; }
@@ -125,7 +128,7 @@
 <div class="animated-object right-object"></div>
 
 <header>
-  <div class="logo"><a href="#hero">YN.</a></div>
+  <div class="logo"><a href="#hero">AS.</a></div>
   <nav>
     <a href="#about">About</a>
     <a href="#projects">Projects</a>
@@ -136,14 +139,14 @@
 
 <main>
   <section id="hero" class="visible">
-    <h1>Your Name</h1>
-    <p>Creative Developer & Digital Designer</p>
+    <h1>Aadhav Sivakumar</h1>
+    <p>Robotics and Embedded Systems Engineer</p>
   </section>
 
   <section id="about">
     <div class="about-container">
       <div class="about-image">
-        <img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=2680&auto=format&fit=crop" alt="Your headshot" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+        <img src="https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG" alt="Your headshot" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
       </div>
       <div class="about-text">
         <h2 class="section-title" style="text-align: left; margin-bottom: 20px;">About Me</h2>
@@ -191,9 +194,10 @@
       <button class="modal-close">&times;</button>
       <img src="" alt="" class="modal-image"/>
       <div class="modal-text-content">
-        <h2></h2>
-        <p></p>
-        <a href="#" target="_blank" rel="noopener noreferrer" class="contact-button">View Project</a>
+        <h2 id="modal-title"></h2>
+        <p id="modal-description"></p>
+        <div id="modal-tech-stack"></div>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="contact-button" id="modal-link">View Project</a>
       </div>
     </div>
   </div>
@@ -201,7 +205,7 @@
 
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('load', () => { // Wait for the whole page to load
 
     // --- DATA ---
     const majorProjectsData = [
@@ -246,9 +250,11 @@
     const modalContent = document.querySelector('.modal-content');
     const modalCloseBtn = document.querySelector('.modal-close');
     const modalImage = document.querySelector('.modal-image');
-    const modalTitle = document.querySelector('.modal-text-content h2');
-    const modalDescription = document.querySelector('.modal-text-content p');
-    const modalLink = document.querySelector('.modal-text-content a');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDescription = document.getElementById('modal-description');
+    const modalLink = document.getElementById('modal-link');
+    const modalTechStack = document.getElementById('modal-tech-stack');
+
 
     // --- STATE ---
     let isAnimating = false;
@@ -356,8 +362,6 @@
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('in-view');
-          } else {
-            entry.target.classList.remove('in-view');
           }
         });
       }, { threshold: 0.1 });
@@ -367,7 +371,7 @@
       });
     };
 
-    // Modal Logic
+    // Modal Logic - UPDATED
     const openModal = (card, project) => {
       if (isAnimating) return;
       isAnimating = true;
@@ -382,16 +386,30 @@
       modalLink.style.display = project.link ? 'inline-block' : 'none';
       if(project.link) modalLink.href = project.link;
 
-      // Set initial state for animation
+      document.body.classList.add('modal-open');
+      modalBackdrop.classList.add('visible');
+
+      // --- BUG FIX ---
+      // 1. Add class to disable transition for instant positioning
+      modalAnimator.classList.add('no-transition');
+
+      // 2. Set initial state for animation to the clicked card's position
       modalAnimator.style.top = `${cardRect.top}px`;
       modalAnimator.style.left = `${cardRect.left}px`;
       modalAnimator.style.width = `${cardRect.width}px`;
       modalAnimator.style.height = `${cardRect.height}px`;
 
-      modalBackdrop.classList.add('visible');
+      // 3. Make the animator visible and hide the original card
       modalAnimator.classList.add('visible');
       card.classList.add('animating-out');
-      document.body.classList.add('modal-open');
+
+      // 4. Force a reflow. This makes the browser apply the above styles
+      // immediately *before* re-enabling the transition.
+      void modalAnimator.offsetHeight;
+
+      // 5. Remove the no-transition class so the next change is animated
+      modalAnimator.classList.remove('no-transition');
+      // --- END FIX ---
 
       // Animate to final state
       requestAnimationFrame(() => {
@@ -404,16 +422,18 @@
         modalAnimator.classList.add('open');
       });
 
+      const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
       setTimeout(() => {
         isAnimating = false;
-      }, 500);
+      }, animationDurationMs);
     };
 
     const closeModal = () => {
-      if (isAnimating) return;
+      if (isAnimating || !lastClickedCard) return;
       isAnimating = true;
 
-      const cardRect = lastClickedCard.getBoundingClientRect();
+      const cardToClose = lastClickedCard;
+      const cardRect = cardToClose.getBoundingClientRect();
 
       modalAnimator.style.top = `${cardRect.top}px`;
       modalAnimator.style.left = `${cardRect.left}px`;
@@ -424,11 +444,12 @@
       modalBackdrop.classList.remove('visible');
 
       setTimeout(() => {
-        lastClickedCard.classList.remove('animating-out');
+        cardToClose.classList.remove('animating-out');
         modalAnimator.classList.remove('visible');
         document.body.classList.remove('modal-open');
         isAnimating = false;
-      }, 500); // Must match CSS transition duration
+        lastClickedCard = null;
+      }, 650);
     };
 
     const setupModalTriggers = () => {
