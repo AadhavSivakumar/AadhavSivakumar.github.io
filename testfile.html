@@ -5,41 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your Name | Design & Development Portfolio</title>
   <style>
-    /*
-     * ===================================================================
-     * I. FONT & THEME/COLOR DEFINITIONS
-     * ===================================================================
-     */
+    /* FONT & THEME */
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
-
     :root {
-      --primary-color: #1a1a1a; /* Black */
-      --secondary-color: #555555; /* Dark Gray */
-      --background-color: #F7F5F2; /* Beige */
-      --surface-color: #FFFFFF; /* White */
-      --accent-color: #BFA181; /* Gold */
+      --primary-color: #1a1a1a;
+      --secondary-color: #555555;
+      --background-color: #F7F5F2;
+      --surface-color: #FFFFFF;
+      --accent-color: #BFA181;
       --animation-duration: 0.65s;
       --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
     }
 
+    /* GLOBAL STYLES */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--primary-color); line-height: 1.7; overflow-x: hidden; }
-    body.modal-open { overflow: hidden; } /* Prevent background scrolling when modal is open */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background-color);
+      color: var(--primary-color);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+    body.modal-open {
+      overflow: hidden;
+    }
     h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; }
     a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
     a:hover { color: var(--primary-color); }
 
-    section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
-    section.visible { opacity: 1; transform: translateY(0); }
-    .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
-
-    /*
-     * ===================================================================
-     * II. ANIMATED SIDE OBJECTS & HEADER
-     * ===================================================================
-     */
-
+    /* ANIMATED OBJECTS & HEADER */
     .animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 1; transition: transform 0.1s linear; will-change: transform; }
     .left-object { width: 80px; height: 80px; border-radius: 50%; left: 10vw; top: 85vh; }
     .right-object { width: 100px; height: 100px; right: 8vw; top: 0; transform: translateY(-100%); }
@@ -48,30 +43,30 @@
     header .logo { font-size: 1.5rem; }
     header nav a { margin-left: 30px; }
 
-    /*
-     * ===================================================================
-     * III. SECTION & PROJECT CARD STYLES
-     * ===================================================================
-     */
-    #hero { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; min-height: 100vh; background-color: transparent; }
+    /* SECTION & CARD STYLES */
+    section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
+    section.visible { opacity: 1; transform: translateY(0); }
+    .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
+    #hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
     #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
     #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
-    #about .about-container { display: flex; align-items: center; gap: 50px; flex-wrap: wrap;}
+    #about .about-container { display: flex; align-items: center; gap: 50px; flex-wrap: wrap; }
     #about .about-image { flex-basis: 35%; min-width: 280px; }
     #about .about-image img { width: 100%; border-radius: 10px; }
-    #about .about-text { flex-basis: 65%; }
+    #about .about-text { flex-basis: 65%; min-width: 300px; flex-grow: 1; }
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
-    .project-modal-trigger { cursor: pointer; }
-    .project-modal-trigger.is-animating-out {
+    .major-project-card, .small-project-card { cursor: pointer; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
+    .project-modal-trigger.animating-out {
       opacity: 0 !important;
+      transition: opacity 0.2s ease;
     }
-    .major-project-card, .small-project-card { opacity: 0; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
-    .major-project-card:nth-child(odd), .small-project-card:nth-child(odd) { transform: translateX(-100px); }
-    .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(100px); }
+    .major-project-card:nth-child(odd), .small-project-card:nth-child(odd) { transform: translateX(-50px); }
+    .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(50px); }
     .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
-    .major-project-card.in-view:hover { transform: translateY(-10px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
-    .small-project-card.in-view:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+    .major-project-card:hover { transform: translateY(-10px) !important; box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
+    .small-project-card:hover { transform: translateY(-5px) !important; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
     .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
     .major-project-card img { width: 100%; height: 300px; object-fit: cover; }
@@ -85,132 +80,43 @@
     .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
     .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); }
 
-    /*
-     * ===================================================================
-     * IV. MODAL STYLES (DETACHING IMAGE ANIMATION)
-     * ===================================================================
-     */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      visibility: hidden;
-      background: rgba(0, 0, 0, 0);
-      transition: opacity var(--animation-duration) ease, visibility 0s linear var(--animation-duration), background var(--animation-duration) ease;
-      backdrop-filter: blur(0px);
-    }
-    .modal-overlay.visible {
-      opacity: 1;
-      visibility: visible;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(5px);
-      transition-delay: 0s;
-    }
-
-    .modal-content {
-      visibility: hidden; /* Hide real modal until animation is done */
-      background: var(--surface-color);
-      padding: 40px;
-      border-radius: 10px;
-      max-width: 800px;
-      width: 90%;
-      max-height: 90vh;
-      overflow-y: auto;
-      position: relative;
-      opacity: 0;
-      transition: opacity 0.6s ease, visibility 0s linear 0.6s;
-    }
-    .modal-overlay.animation-done .modal-content {
-      visibility: visible;
-      opacity: 1;
-    }
-
-    .clone-container, .image-clone {
-      position: fixed;
-      z-index: 2001;
-      transition: top var(--animation-duration) var(--animation-easing),
-      left var(--animation-duration) var(--animation-easing),
-      width var(--animation-duration) var(--animation-easing),
-      height var(--animation-duration) var(--animation-easing),
-      border-radius var(--animation-duration) var(--animation-easing),
-      opacity 0.3s ease;
-      overflow: hidden;
-      pointer-events: none;
-    }
-    .clone-container {
-      background-color: var(--surface-color);
-    }
-    .image-clone {
-      z-index: 2002;
-    }
-
-    .modal-inner-content {
-      padding: 40px;
-      overflow-y: auto;
-      height: 100%;
-      opacity: 0;
-      transition: opacity calc(var(--animation-duration) * 0.5) ease calc(var(--animation-duration) * 0.5);
-    }
-    .modal-overlay.animation-done .modal-inner-content {
-      opacity: 1;
-    }
-    .modal-overlay.is-closing .modal-inner-content {
-      opacity: 0;
-      transition: opacity calc(var(--animation-duration) * 0.4) ease;
-    }
-
-    .modal-close-button { position: absolute; top: 15px; right: 20px; font-size: 2.5rem; line-height: 1; color: var(--secondary-color); cursor: pointer; transition: color 0.3s ease; z-index: 10;}
-    .modal-close-button:hover { color: var(--primary-color); }
-
-    #modal-img-wrapper {
-      width: 100%;
-      padding-top: 56.25%;
-      position: relative;
-      margin-bottom: 20px;
-      border-radius: 5px;
-      overflow: hidden;
-      background-color: #eee;
-    }
-
-    #modal-img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    #modal-title { font-size: 2.5rem; margin-bottom: 15px; }
-    #modal-tech-stack { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
-    #modal-tech-stack span { background-color: var(--background-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 5px; font-size: 0.9rem; font-family: 'Poppins'; }
-    #modal-description { margin-bottom: 30px; }
-    #modal-link { margin-top: 20px; }
-
-    /* SKILLS, CONTACT, FOOTER STYLES ... (omitted for brevity) */
+    /* SKILLS, CONTACT & FOOTER */
     .skill-category { margin-bottom: 30px; }
     .skill-category h3 { color: var(--primary-color); font-size: 1.25rem; font-family: 'Poppins', sans-serif; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid rgba(191, 161, 129, 0.2); padding-bottom: 8px; }
     .skill-list { list-style-type: none; padding: 0; columns: 2; gap: 10px; }
-    @media (max-width: 768px) { .skill-list { columns: 1; } }
     .skill-list li { padding: 5px 0 5px 25px; position: relative; color: var(--secondary-color); font-size: 1rem; }
     .skill-list li::before { content: '▹'; position: absolute; left: 0; top: 5px; color: var(--accent-color); font-weight: bold; }
-
     #contact { text-align: center; }
     #contact p { max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); }
     .contact-button { display: inline-block; padding: 15px 30px; background-color: var(--accent-color); color: var(--surface-color); border-radius: 5px; font-weight: 600; transition: transform 0.3s ease, background-color 0.3s ease; }
     .contact-button:hover { transform: scale(1.05); background-color: var(--primary-color); color: var(--surface-color); }
     .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 25px; }
-    .social-links a { display: inline-block; }
-    .social-links svg { width: 32px; height: 32px; fill: var(--secondary-color); transition: fill 0.3s ease; }
-    .social-links a:hover svg { fill: var(--primary-color); }
     footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid #ddd; margin-top: 50px; position: relative; z-index: 10; }
 
+    /* MODAL STYLES */
+    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
+    .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
+    .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden; transition: top var(--animation-duration) var(--animation-easing), left var(--animation-duration) var(--animation-easing), width var(--animation-duration) var(--animation-easing), height var(--animation-duration) var(--animation-easing); pointer-events: none; visibility: hidden; }
+    .modal-animator.visible { pointer-events: auto; visibility: visible; }
+    .modal-animator .modal-content { opacity: 0; transition: opacity 0.3s 0.2s ease; }
+    .modal-animator.open .modal-content { opacity: 1; }
+
+    .modal-content { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-image { width: 100%; height: 50%; object-fit: cover; flex-shrink: 0; }
+    .modal-text-content { flex-grow: 1; padding: 25px; overflow-y: auto;}
+    .modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2; color: white; mix-blend-mode: difference;}
+    .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
+    .modal-text-content p { margin-bottom: 25px; }
+
+    /* RESPONSIVE DESIGN */
+    @media (max-width: 768px) {
+      #about .about-container { text-align: center; justify-content: center; }
+      .skill-list { columns: 1; }
+      header nav a { margin-left: 15px; }
+      .section-title { font-size: 2.5rem; }
+      .modal-content { padding: 20px; }
+      .modal-text-content h2 { font-size: 2rem; }
+    }
   </style>
 </head>
 <body>
@@ -236,42 +142,27 @@
 
   <section id="about">
     <div class="about-container">
-      <div class="about-image"><img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=2680&auto=format&fit=crop" alt="Your headshot" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"></div>
-      <div class="about-text"><h2 class="section-title" style="text-align: left; margin-bottom: 20px;">About Me</h2><p>Hello! I'm a passionate and results-driven creative professional with a knack for turning complex problems into beautiful, intuitive designs. Replace this text with your own biography.</p></div>
+      <div class="about-image">
+        <img src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?q=80&w=2680&auto=format&fit=crop" alt="Your headshot" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+      </div>
+      <div class="about-text">
+        <h2 class="section-title" style="text-align: left; margin-bottom: 20px;">About Me</h2>
+        <p>Hello! I'm a passionate and results-driven creative professional with a knack for turning complex problems into beautiful, intuitive designs. Replace this text with your own biography.</p>
+      </div>
     </div>
   </section>
 
   <section id="projects">
     <h2 class="section-title">My Work</h2>
     <h3>Major Projects</h3>
-    <div class="major-projects-grid">
-      <!-- Project cards with data attributes -->
-      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop" data-title="Project One" data-tech="UI/UX Design,React,Node.js" data-description="A detailed description of your most significant project. Explain the problem, the process, and the solution. Highlight your specific contributions and the technologies you used." data-link="#"><img src="https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop" alt="Major Project 1" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project One</h4><p>A detailed description of your most significant project.</p></div></div>
-      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop" data-title="Project Two" data-tech="Python,Machine Learning,Data Visualization" data-description="Here is where you can elaborate on Project Two. Talk about the data analysis performed, the models built, and the insights gained. This is your chance to really show off your skills." data-link="#"><img src="https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop" alt="Major Project 2" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project Two</h4><p>A detailed description of your most significant project.</p></div></div>
-      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop" data-title="Project Three" data-tech="Mobile App,SwiftUI,Firebase" data-description="This mobile application was designed to solve a real-world problem. Discuss the user research, design iterations, and the final product that was launched on the App Store." data-link="#"><img src="https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop" alt="Major Project 3" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project Three</h4><p>A detailed description of your most significant project.</p></div></div>
-      <div class="major-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop" data-title="Project Four" data-tech="Branding,Graphic Design,Illustration" data-description="A complete branding package for a startup. This involved creating a logo, style guide, marketing materials, and a web presence from the ground up." data-link="#"><img src="https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop" alt="Major Project 4" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';"><div class="project-content"><h4>Project Four</h4><p>A detailed description of your most significant project.</p></div></div>
-    </div>
+    <div class="major-projects-grid" id="major-projects-container"></div>
     <h3>More Work</h3>
-    <div class="small-projects-grid">
-      <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" data-title="Project A" data-tech="Hardware,C++" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="small-project-content"><h4>Project A</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card project-modal-trigger" data-img-src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" data-title="Project B" data-tech="Web Dev,JS" data-description="A short but sweet description of this smaller project." data-link="#"><img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400" alt="Small Project" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';"><div class="project-content"><h4>Project B</h4><p>Short desc.</p></div></div>
-      <!-- Add data-* attributes to the rest of the small projects as needed -->
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400" alt="Small Project"><div class="small-project-content"><h4>Project C</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400" alt="Small Project"><div class="small-project-content"><h4>Project D</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1571171637578-41bc2174d4c5?w=400" alt="Small Project"><div class="small-project-content"><h4>Project E</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400" alt="Small Project"><div class="small-project-content"><h4>Project F</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400" alt="Small Project"><div class="small-project-content"><h4>Project G</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400" alt="Small Project"><div class="small-project-content"><h4>Project H</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?w=400" alt="Small Project"><div class="small-project-content"><h4>Project I</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1526498460520-4c246339dccb?w=400" alt="Small Project"><div class="small-project-content"><h4>Project J</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?w=400" alt="Small Project"><div class="small-project-content"><h4>Project K</h4><p>Short desc.</p></div></div>
-      <div class="small-project-card"><img src="https://images.unsplash.com/photo-1629904853716-f0bc54eea481?w=400" alt="Small Project"><div class="small-project-content"><h4>Project L</h4><p>Short desc.</p></div></div>
-    </div>
+    <div class="small-projects-grid" id="small-projects-container"></div>
   </section>
 
   <section id="skills">
     <h2 class="section-title">Technical Skills</h2>
-    <!-- Skills content omitted for brevity -->
+    <div id="skills-container"></div>
   </section>
 
   <section id="contact">
@@ -279,8 +170,12 @@
     <p>I'm currently available for new opportunities. If you have a project in mind or just want to connect, I'd love to hear from you!</p>
     <a href="mailto:your.email@example.com" class="contact-button">Say Hello</a>
     <div class="social-links">
-      <a href="#" target="_blank" aria-label="LinkedIn Profile"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/></svg></a>
-      <a href="#" target="_blank"aria-label="GitHub Profile"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg></a>
+      <a href="#" target="_blank" aria-label="LinkedIn Profile">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="32" height="32"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" /></svg>
+      </a>
+      <a href="#" target="_blank" aria-label="GitHub Profile">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="32" height="32"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+      </a>
     </div>
   </section>
 </main>
@@ -289,18 +184,17 @@
   <p>© 2024 Your Name. All Rights Reserved.</p>
 </footer>
 
-<!-- MODAL HTML -->
-<div class="modal-overlay">
-  <div class="modal-content">
-    <div class="modal-inner-content">
-      <span class="modal-close-button">&times;</span>
-      <div id="modal-img-wrapper">
-        <img id="modal-img" src="" alt="Project Image" onerror="this.onerror=null;this.src='https://placehold.co/800x600/F7F5F2/BFA181?text=Image+Not+Found';">
+<!-- Modal Structure -->
+<div class="modal-backdrop">
+  <div class="modal-animator">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <img src="" alt="" class="modal-image"/>
+      <div class="modal-text-content">
+        <h2></h2>
+        <p></p>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="contact-button">View Project</a>
       </div>
-      <h2 id="modal-title"></h2>
-      <div id="modal-tech-stack"></div>
-      <p id="modal-description"></p>
-      <a id="modal-link" href="#" target="_blank" class="contact-button">View Project</a>
     </div>
   </div>
 </div>
@@ -308,251 +202,268 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Caching DOM elements for performance
+
+    // --- DATA ---
+    const majorProjectsData = [
+      { id: 1, title: 'Project One', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
+      { id: 2, title: 'Project Two', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 3, title: 'Project Three', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop', link: '#'},
+      { id: 4, title: 'Project Four', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
+    ];
+
+    const smallProjectsData = [
+      { id: 'a', title: 'Project A', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400' },
+      { id: 'b', title: 'Project B', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400' },
+      { id: 'c', title: 'Project C', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400' },
+      { id: 'd', title: 'Project D', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400' },
+      { id: 'e', title: 'Project E', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1571171637578-41bc2174d4c5?w=400' },
+      { id: 'f', title: 'Project F', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400' },
+      { id: 'g', title: 'Project G', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400' },
+      { id: 'h', title: 'Project H', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400' },
+    ];
+
+    const skillsData = [
+      { category: 'Languages', items: ['C', 'C++', 'Python', 'ROS', 'MATLAB', 'Verilog', 'Java', 'HTML/CSS', 'Javascript (Node.js & React)', 'SQL'] },
+      { category: 'Boards', items: ['Arduino', 'Raspberry Pi', 'Digilent Basys 3 FPGA', 'STM32', 'ESP32', 'Parallax Propeller', 'BASIC Stamp 2'] },
+      { category: 'Hardware', items: ['Franka Research 3 (7 DOF robotic arm)', 'NI DAQ', 'Google Glass', 'Bambu Lab printer', 'Glowforge'] },
+      { category: 'Software', items: ['Solidworks', 'Altium', 'EAGLE', 'Fusion 360', 'Cadence', 'Robosuite', 'WeBots', 'PSpice', 'AutoCAD'] },
+      { category: 'Sensors', items: ['ATI multi-axis force/torque', '9-axis IMU', 'Ultrasonic', 'flex', 'Capsense', 'piezoelectric'] },
+      { category: 'Other Tools', items: ['AI image recognition', 'Communication protocols (SPI, I2C, UART)', 'IK', 'PID', 'Filtering', 'Driver Creation/Calibration', 'Telerobotics with TCP/UDP and 4-channel architecture', 'Statics and Dynamics'] }
+    ];
+
+    // --- DOM ELEMENTS ---
     const header = document.querySelector('header');
     const leftObject = document.querySelector('.left-object');
     const rightObject = document.querySelector('.right-object');
-    let raf; // requestAnimationFrame ID
+    const sections = document.querySelectorAll('section');
+    const majorProjectsContainer = document.getElementById('major-projects-container');
+    const smallProjectsContainer = document.getElementById('small-projects-container');
+    const skillsContainer = document.getElementById('skills-container');
 
-    function handleScrollAnimations() {
+    // Modal elements
+    const modalBackdrop = document.querySelector('.modal-backdrop');
+    const modalAnimator = document.querySelector('.modal-animator');
+    const modalContent = document.querySelector('.modal-content');
+    const modalCloseBtn = document.querySelector('.modal-close');
+    const modalImage = document.querySelector('.modal-image');
+    const modalTitle = document.querySelector('.modal-text-content h2');
+    const modalDescription = document.querySelector('.modal-text-content p');
+    const modalLink = document.querySelector('.modal-text-content a');
+
+    // --- STATE ---
+    let isAnimating = false;
+    let lastClickedCard = null;
+
+    // --- FUNCTIONS ---
+
+    // Populate dynamic content
+    const populateProjects = () => {
+      majorProjectsData.forEach((project, index) => {
+        const card = document.createElement('div');
+        card.className = 'major-project-card project-modal-trigger';
+        card.dataset.projectId = project.id;
+        card.dataset.projectType = 'major';
+        card.innerHTML = `
+                    <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+                    <div class="project-content">
+                        <h4>${project.title}</h4>
+                        <p>${project.description.substring(0, 70)}...</p>
+                        <a href="#">View Case Study</a>
+                    </div>
+                `;
+        majorProjectsContainer.appendChild(card);
+      });
+
+      smallProjectsData.forEach((project, index) => {
+        const card = document.createElement('div');
+        card.className = 'small-project-card project-modal-trigger';
+        card.dataset.projectId = project.id;
+        card.dataset.projectType = 'small';
+        card.innerHTML = `
+                    <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
+                    <div class="small-project-content">
+                        <h4>${project.title}</h4>
+                        <p>${project.description}</p>
+                    </div>
+                `;
+        smallProjectsContainer.appendChild(card);
+      });
+    };
+
+    const populateSkills = () => {
+      skillsData.forEach(skillGroup => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'skill-category';
+
+        const title = document.createElement('h3');
+        title.textContent = skillGroup.category;
+
+        const list = document.createElement('ul');
+        list.className = 'skill-list';
+        skillGroup.items.forEach(itemText => {
+          const listItem = document.createElement('li');
+          listItem.textContent = itemText;
+          list.appendChild(listItem);
+        });
+
+        categoryDiv.appendChild(title);
+        categoryDiv.appendChild(list);
+        skillsContainer.appendChild(categoryDiv);
+      });
+    };
+
+    // Animations
+    const handleScrollAnimations = () => {
       const scrollY = window.scrollY;
       const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-
       const scrollPercent = totalScrollableHeight > 0 ? scrollY / totalScrollableHeight : 0;
 
-      const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
-      const squareY = scrollPercent * squareTravelDistance;
-      const squareRotation = scrollPercent * 360;
-      rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
-
-      const zigzagAmplitude = 70;
-      const zigzagFrequency = 0.01;
-      const upwardSpeed = 0.3;
-      const circleRotation = scrollPercent * 200;
-      const circleX = zigzagAmplitude * Math.sin(scrollY * zigzagFrequency);
-      const circleY = -scrollY * upwardSpeed;
-      leftObject.style.transform = `translate(${circleX}px, ${circleY}px) rotate(-${circleRotation}deg)`;
-
+      // Header scroll
       header.classList.toggle('scrolled', scrollY > 50);
-    }
 
+      // Floating objects
+      if (rightObject) {
+        const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
+        const squareY = scrollPercent * squareTravelDistance;
+        const squareRotation = scrollPercent * 360;
+        rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
+      }
+
+      if (leftObject) {
+        const zigzagAmplitude = 70;
+        const zigzagFrequency = 0.01;
+        const upwardSpeed = 0.3;
+        const circleRotation = scrollPercent * 200;
+        const circleX = zigzagAmplitude * Math.sin(scrollY * zigzagFrequency);
+        const circleY = -scrollY * upwardSpeed;
+        leftObject.style.transform = `translate(${circleX}px, ${circleY}px) rotate(-${circleRotation}deg)`;
+      }
+    };
+
+    const setupIntersectionObservers = () => {
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            sectionObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+
+      sections.forEach(section => sectionObserver.observe(section));
+
+      const cardObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in-view');
+          } else {
+            entry.target.classList.remove('in-view');
+          }
+        });
+      }, { threshold: 0.1 });
+
+      document.querySelectorAll('.major-project-card, .small-project-card').forEach(card => {
+        cardObserver.observe(card);
+      });
+    };
+
+    // Modal Logic
+    const openModal = (card, project) => {
+      if (isAnimating) return;
+      isAnimating = true;
+      lastClickedCard = card;
+
+      const cardRect = card.getBoundingClientRect();
+
+      // Populate modal
+      modalTitle.textContent = project.title;
+      modalDescription.textContent = project.description;
+      modalImage.src = project.imageUrl;
+      modalLink.style.display = project.link ? 'inline-block' : 'none';
+      if(project.link) modalLink.href = project.link;
+
+      // Set initial state for animation
+      modalAnimator.style.top = `${cardRect.top}px`;
+      modalAnimator.style.left = `${cardRect.left}px`;
+      modalAnimator.style.width = `${cardRect.width}px`;
+      modalAnimator.style.height = `${cardRect.height}px`;
+
+      modalBackdrop.classList.add('visible');
+      modalAnimator.classList.add('visible');
+      card.classList.add('animating-out');
+      document.body.classList.add('modal-open');
+
+      // Animate to final state
+      requestAnimationFrame(() => {
+        const finalWidth = Math.min(800, window.innerWidth * 0.9);
+        const finalHeight = Math.min(window.innerHeight * 0.9, 600);
+        modalAnimator.style.top = `${(window.innerHeight - finalHeight) / 2}px`;
+        modalAnimator.style.left = `${(window.innerWidth - finalWidth) / 2}px`;
+        modalAnimator.style.width = `${finalWidth}px`;
+        modalAnimator.style.height = `${finalHeight}px`;
+        modalAnimator.classList.add('open');
+      });
+
+      setTimeout(() => {
+        isAnimating = false;
+      }, 500);
+    };
+
+    const closeModal = () => {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const cardRect = lastClickedCard.getBoundingClientRect();
+
+      modalAnimator.style.top = `${cardRect.top}px`;
+      modalAnimator.style.left = `${cardRect.left}px`;
+      modalAnimator.style.width = `${cardRect.width}px`;
+      modalAnimator.style.height = `${cardRect.height}px`;
+
+      modalAnimator.classList.remove('open');
+      modalBackdrop.classList.remove('visible');
+
+      setTimeout(() => {
+        lastClickedCard.classList.remove('animating-out');
+        modalAnimator.classList.remove('visible');
+        document.body.classList.remove('modal-open');
+        isAnimating = false;
+      }, 500); // Must match CSS transition duration
+    };
+
+    const setupModalTriggers = () => {
+      document.querySelectorAll('.project-modal-trigger').forEach(card => {
+        card.addEventListener('click', () => {
+          const projectId = card.dataset.projectId;
+          const projectType = card.dataset.projectType;
+          const data = projectType === 'major' ? majorProjectsData : smallProjectsData;
+          const project = data.find(p => p.id.toString() === projectId);
+          openModal(card, project);
+        });
+      });
+
+      modalBackdrop.addEventListener('click', closeModal);
+      modalCloseBtn.addEventListener('click', closeModal);
+      window.addEventListener('keydown', (e) => {
+        if(e.key === 'Escape' && modalBackdrop.classList.contains('visible')) {
+          closeModal();
+        }
+      });
+    };
+
+
+    // --- INITIALIZATION ---
+    populateProjects();
+    populateSkills();
+
+    let raf;
     window.addEventListener('scroll', () => {
       if (raf) window.cancelAnimationFrame(raf);
       raf = window.requestAnimationFrame(handleScrollAnimations);
     }, { passive: true });
 
-    const sections = document.querySelectorAll('section');
-    const sectionObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1 });
-
-    sections.forEach(section => sectionObserver.observe(section));
-
-    const projectCards = document.querySelectorAll('.major-project-card, .small-project-card');
-    const cardObserver = new IntersectionObserver((entries, observer) => {
-      entries.forEach((entry, index) => {
-        const target = entry.target;
-        if (entry.isIntersecting) {
-          const delay = (index % 4) * 100;
-          target.style.transitionDelay = `${delay}ms`;
-          target.classList.add('in-view');
-        } else {
-          target.style.transitionDelay = '0ms';
-          target.classList.remove('in-view');
-        }
-      });
-    }, { threshold: 0.1 });
-
-    projectCards.forEach(card => cardObserver.observe(card));
-
-    // ===================================================================
-    // V. MODAL LOGIC (DETACHING IMAGE ANIMATION)
-    // ===================================================================
-    const modalOverlay = document.querySelector('.modal-overlay');
-    const modalContent = document.querySelector('.modal-content');
-    const modalInnerContent = document.querySelector('.modal-inner-content');
-    const modalImg = document.getElementById('modal-img');
-    const modalTitle = document.getElementById('modal-title');
-    const modalTechStack = document.getElementById('modal-tech-stack');
-    const modalDescription = document.getElementById('modal-description');
-    const modalLink = document.getElementById('modal-link');
-    const closeModalButton = document.querySelector('.modal-close-button');
-    const projectTriggers = document.querySelectorAll('.project-modal-trigger');
-    let lastClickedCard = null;
-    let isAnimating = false;
-
-    const preloadImages = () => {
-      projectTriggers.forEach(trigger => {
-        if (trigger.dataset.imgSrc) {
-          const img = new Image();
-          img.src = trigger.dataset.imgSrc;
-        }
-      });
-    };
-    preloadImages();
-
-    const openModal = (e) => {
-      if (isAnimating) return;
-      isAnimating = true;
-
-      const card = e.currentTarget;
-      lastClickedCard = card;
-      const cardRect = card.getBoundingClientRect();
-      const cardImage = card.querySelector('img');
-      const cardImageRect = cardImage.getBoundingClientRect();
-
-      const { imgSrc, title, tech, description, link } = card.dataset;
-
-      modalImg.src = imgSrc;
-      modalTitle.textContent = title;
-      modalDescription.textContent = description;
-      modalLink.href = link;
-      modalTechStack.innerHTML = '';
-      if (tech) {
-        tech.split(',').forEach(techName => {
-          const techPill = document.createElement('span');
-          techPill.textContent = techName.trim();
-          modalTechStack.appendChild(techPill);
-        });
-      }
-
-      const finalWidth = Math.min(800, window.innerWidth * 0.9);
-      const modalPadding = 40;
-      const finalImageWidth = finalWidth - (modalPadding * 2);
-      const finalImageHeight = finalImageWidth * (9 / 16);
-      const finalContentHeight = modalInnerContent.scrollHeight;
-      const finalHeight = Math.min(window.innerHeight * 0.9, finalContentHeight);
-
-      const finalTop = (window.innerHeight - finalHeight) / 2;
-      const finalLeft = (window.innerWidth - finalWidth) / 2;
-      const finalImageTop = finalTop + modalPadding;
-      const finalImageLeft = finalLeft + modalPadding;
-
-
-      const cardClone = document.createElement('div');
-      cardClone.classList.add('clone-container');
-      cardClone.style.top = `${cardRect.top}px`;
-      cardClone.style.left = `${cardRect.left}px`;
-      cardClone.style.width = `${cardRect.width}px`;
-      cardClone.style.height = `${cardRect.height}px`;
-      document.body.appendChild(cardClone);
-
-      const imageClone = cardImage.cloneNode(true);
-      imageClone.classList.add('image-clone');
-      imageClone.style.top = `${cardImageRect.top}px`;
-      imageClone.style.left = `${cardImageRect.left}px`;
-      imageClone.style.width = `${cardImageRect.width}px`;
-      imageClone.style.height = `${cardImageRect.height}px`;
-      document.body.appendChild(imageClone);
-
-      card.classList.add('is-animating-out');
-      document.body.classList.add('modal-open');
-      modalOverlay.classList.add('visible');
-
-      requestAnimationFrame(() => {
-        cardClone.style.top = `${finalTop}px`;
-        cardClone.style.left = `${finalLeft}px`;
-        cardClone.style.width = `${finalWidth}px`;
-        cardClone.style.height = `${finalHeight}px`;
-        cardClone.style.borderRadius = '10px';
-
-        imageClone.style.top = `${finalImageTop}px`;
-        imageClone.style.left = `${finalImageLeft}px`;
-        imageClone.style.width = `${finalImageWidth}px`;
-        imageClone.style.height = `${finalImageHeight}px`;
-        imageClone.style.borderRadius = '5px';
-
-        cardClone.addEventListener('transitionend', () => {
-          modalOverlay.classList.add('animation-done');
-
-          cardClone.style.opacity = 0;
-          imageClone.style.opacity = 0;
-
-          setTimeout(() => {
-            if (document.body.contains(cardClone)) {
-              document.body.removeChild(cardClone);
-            }
-            if (document.body.contains(imageClone)) {
-              document.body.removeChild(imageClone);
-            }
-            isAnimating = false;
-          }, 300);
-
-        }, { once: true });
-      });
-    };
-
-    const closeModal = () => {
-      if (isAnimating || !lastClickedCard) return;
-      isAnimating = true;
-
-      const cardRect = lastClickedCard.getBoundingClientRect();
-      const cardImage = lastClickedCard.querySelector('img');
-      const cardImageRect = cardImage.getBoundingClientRect();
-      const modalRect = modalContent.getBoundingClientRect();
-      const modalImageRect = modalImg.getBoundingClientRect();
-
-      const cardClone = document.createElement('div');
-      cardClone.classList.add('clone-container');
-      cardClone.style.top = `${modalRect.top}px`;
-      cardClone.style.left = `${modalRect.left}px`;
-      cardClone.style.width = `${modalRect.width}px`;
-      cardClone.style.height = `${modalRect.height}px`;
-      cardClone.style.borderRadius = '10px';
-      document.body.appendChild(cardClone);
-
-      const imageClone = modalImg.cloneNode(true);
-      imageClone.classList.add('image-clone');
-      imageClone.style.top = `${modalImageRect.top}px`;
-      imageClone.style.left = `${modalImageRect.left}px`;
-      imageClone.style.width = `${modalImageRect.width}px`;
-      imageClone.style.height = `${modalImageRect.height}px`;
-      imageClone.style.borderRadius = '5px';
-      document.body.appendChild(imageClone);
-
-      modalOverlay.classList.remove('visible', 'animation-done');
-
-      requestAnimationFrame(() => {
-        cardClone.style.top = `${cardRect.top}px`;
-        cardClone.style.left = `${cardRect.left}px`;
-        cardClone.style.width = `${cardRect.width}px`;
-        cardClone.style.height = `${cardRect.height}px`;
-
-        imageClone.style.top = `${cardImageRect.top}px`;
-        imageClone.style.left = `${cardImageRect.left}px`;
-        imageClone.style.width = `${cardImageRect.width}px`;
-        imageClone.style.height = `${cardImageRect.height}px`;
-
-        cardClone.addEventListener('transitionend', () => {
-          document.body.classList.remove('modal-open');
-          lastClickedCard.classList.remove('is-animating-out');
-          if (document.body.contains(cardClone)) {
-            document.body.removeChild(cardClone);
-          }
-          if (document.body.contains(imageClone)) {
-            document.body.removeChild(imageClone);
-          }
-          isAnimating = false;
-          lastClickedCard = null;
-        }, { once: true });
-      });
-    };
-
-    projectTriggers.forEach(trigger => trigger.addEventListener('click', openModal));
-    closeModalButton.addEventListener('click', closeModal);
-    modalOverlay.addEventListener('click', (e) => {
-      if(e.target === modalOverlay) closeModal();
-    });
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modalOverlay.classList.contains('visible')) {
-        closeModal();
-      }
-    });
+    setupIntersectionObservers();
+    setupModalTriggers();
   });
 </script>
 </body>
