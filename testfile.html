@@ -82,11 +82,40 @@
     .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); }
 
     /* SKILLS, CONTACT & FOOTER */
-    .skill-category { margin-bottom: 30px; }
-    .skill-category h3 { color: var(--primary-color); font-size: 1.25rem; font-family: 'Poppins', sans-serif; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid rgba(191, 161, 129, 0.2); padding-bottom: 8px; }
-    .skill-list { list-style-type: none; padding: 0; columns: 2; gap: 10px; }
-    .skill-list li { padding: 5px 0 5px 25px; position: relative; color: var(--secondary-color); font-size: 1rem; }
-    .skill-list li::before { content: '▹'; position: absolute; left: 0; top: 5px; color: var(--accent-color); font-weight: bold; }
+    .skill-category-title {
+      font-size: 1.8rem;
+      margin-top: 60px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: var(--secondary-color);
+      font-family: 'Poppins';
+      font-weight: 400;
+    }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+    }
+
+    .skill-card {
+      background-color: var(--surface-color);
+      border-radius: 10px;
+      padding: 20px 15px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      font-family: 'Poppins', sans-serif;
+      font-weight: 500;
+      font-size: 1rem;
+      color: var(--secondary-color);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .skill-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+    }
+
     #contact { text-align: center; }
     #contact p { max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); }
     .contact-button { display: inline-block; padding: 15px 30px; background-color: var(--accent-color); color: var(--surface-color); border-radius: 5px; font-weight: 600; transition: transform 0.3s ease, background-color 0.3s ease; }
@@ -98,7 +127,6 @@
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
     .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
     .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden; transition: top var(--animation-duration) var(--animation-easing), left var(--animation-duration) var(--animation-easing), width var(--animation-duration) var(--animation-easing), height var(--animation-duration) var(--animation-easing); pointer-events: none; visibility: hidden; }
-    /* Add this new class to temporarily disable transitions */
     .modal-animator.no-transition { transition: none !important; }
     .modal-animator.visible { pointer-events: auto; visibility: visible; }
     .modal-animator .modal-content { opacity: 0; transition: opacity 0.3s 0.2s ease; }
@@ -114,7 +142,7 @@
     /* RESPONSIVE DESIGN */
     @media (max-width: 768px) {
       #about .about-container { text-align: center; justify-content: center; }
-      .skill-list { columns: 1; }
+      .skills-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
       header nav a { margin-left: 15px; }
       .section-title { font-size: 2.5rem; }
       .modal-content { padding: 20px; }
@@ -297,24 +325,27 @@
     };
 
     const populateSkills = () => {
+      skillsContainer.innerHTML = ''; // Clear previous content
       skillsData.forEach(skillGroup => {
-        const categoryDiv = document.createElement('div');
-        categoryDiv.className = 'skill-category';
+        // Create a title for the category
+        const categoryTitle = document.createElement('h3');
+        categoryTitle.className = 'skill-category-title';
+        categoryTitle.textContent = skillGroup.category;
+        skillsContainer.appendChild(categoryTitle);
 
-        const title = document.createElement('h3');
-        title.textContent = skillGroup.category;
+        // Create the grid for the skills
+        const grid = document.createElement('div');
+        grid.className = 'skills-grid';
 
-        const list = document.createElement('ul');
-        list.className = 'skill-list';
+        // Create a card for each skill item
         skillGroup.items.forEach(itemText => {
-          const listItem = document.createElement('li');
-          listItem.textContent = itemText;
-          list.appendChild(listItem);
+          const skillCard = document.createElement('div');
+          skillCard.className = 'skill-card';
+          skillCard.textContent = itemText;
+          grid.appendChild(skillCard);
         });
 
-        categoryDiv.appendChild(title);
-        categoryDiv.appendChild(list);
-        skillsContainer.appendChild(categoryDiv);
+        skillsContainer.appendChild(grid);
       });
     };
 
@@ -371,7 +402,7 @@
       });
     };
 
-    // Modal Logic - UPDATED
+    // Modal Logic
     const openModal = (card, project) => {
       if (isAnimating) return;
       isAnimating = true;
@@ -389,29 +420,18 @@
       document.body.classList.add('modal-open');
       modalBackdrop.classList.add('visible');
 
-      // --- BUG FIX ---
-      // 1. Add class to disable transition for instant positioning
       modalAnimator.classList.add('no-transition');
-
-      // 2. Set initial state for animation to the clicked card's position
       modalAnimator.style.top = `${cardRect.top}px`;
       modalAnimator.style.left = `${cardRect.left}px`;
       modalAnimator.style.width = `${cardRect.width}px`;
       modalAnimator.style.height = `${cardRect.height}px`;
 
-      // 3. Make the animator visible and hide the original card
       modalAnimator.classList.add('visible');
       card.classList.add('animating-out');
 
-      // 4. Force a reflow. This makes the browser apply the above styles
-      // immediately *before* re-enabling the transition.
       void modalAnimator.offsetHeight;
-
-      // 5. Remove the no-transition class so the next change is animated
       modalAnimator.classList.remove('no-transition');
-      // --- END FIX ---
 
-      // Animate to final state
       requestAnimationFrame(() => {
         const finalWidth = Math.min(800, window.innerWidth * 0.9);
         const finalHeight = Math.min(window.innerHeight * 0.9, 600);
