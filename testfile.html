@@ -268,7 +268,6 @@
   <p>© 2024 Your Name. All Rights Reserved.</p>
 </footer>
 
-<!-- Modal Structure -->
 <div class="modal-backdrop">
   <div class="modal-animator">
     <div class="modal-content">
@@ -292,10 +291,10 @@
 
     // --- DATA ---
     const majorProjectsData = [
-      { id: 1, title: 'Project One', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
-      { id: 2, title: 'Project Two', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 3, title: 'Project Three', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop', link: '#'},
-      { id: 4, title: 'Project Four', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 1, title: 'Project One', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
+      { id: 2, title: 'Project Two', description: 'This project focused on developing a scalable backend architecture. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum. Cras venenatis euismod malesuada. Curabitur quis sem libero. Proin sit amet sapien nec justo viverra efficitur. In vel turpis et nisl hendrerit vestibulum. Sed scelerisque, sapien at efficitur laoreet, magna eros laoreet dui, et sollicitudin nulla mi eu nulla. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.', imageUrl: 'https://images.unsplash.com/photo-1555774698-0b77e0ab2329?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 3, title: 'Project Three', description: 'This was a data visualization challenge. We processed a large dataset and created interactive charts and graphs. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla.', imageUrl: 'https://images.unsplash.com/photo-1581287053822-fd7bf4f4bf3f?q=80&w=2564&auto=format&fit=crop', link: '#'},
+      { id: 4, title: 'Project Four', description: 'A mobile application designed for both iOS and Android. This involved a cross-platform framework and a focus on user experience. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam quis quam. Aliquam erat volutpat. In hac habitasse platea dictumst. In sit amet sapien eu urna dapibus rhoncus. Nam vel quam. Nunc eleifend, urna nec iaculis suscipit, libero nunc faucibus nisi, quis laoreet nisl lorem vitae diam.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
     ];
 
     const smallProjectsData = [
@@ -406,8 +405,7 @@
                     <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
                     <div class="project-content">
                         <h4>${project.title}</h4>
-                        <p>${project.description.substring(0, 70)}...</p>
-                        <a href="#">View Case Study</a>
+                        <p>${project.description.substring(0, 80)}...</p>
                     </div>
                 `;
         majorProjectsContainer.appendChild(card);
@@ -557,7 +555,14 @@
 
       requestAnimationFrame(() => {
         const finalWidth = Math.min(800, window.innerWidth * 0.9);
-        const finalHeight = Math.min(window.innerHeight * 0.9, 600);
+        let finalHeight;
+
+        if (itemType === 'major' || itemType === 'small') {
+          finalHeight = Math.min(window.innerHeight * 0.9, 900); // Taller modal for projects
+        } else {
+          finalHeight = Math.min(window.innerHeight * 0.9, 600); // Standard height for skills
+        }
+
         modalAnimator.style.top = `${(window.innerHeight - finalHeight) / 2}px`;
         modalAnimator.style.left = `${(window.innerWidth - finalWidth) / 2}px`;
         modalAnimator.style.width = `${finalWidth}px`;

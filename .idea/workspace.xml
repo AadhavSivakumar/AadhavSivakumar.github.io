@@ -5,24 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/Images/skills and tools/Franka-Emika-Panda-robot.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/Resume Aadhav Sivakumar.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Resume Aadhav Sivakumar.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/beige banner.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/beige banner.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/frontpageprofilepic.JPG" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/frontpageprofilepic.JPG" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/gael.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/gael.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/githubicon.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/githubicon.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/linkedinicon.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/linkedinicon.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/mailicon.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/mailicon.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/newergael.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/newergael.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/newgael.png" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/newgael.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/parallax1.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/parallax1.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/robo.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/robo.jpg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/aboutme.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/aboutme.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/ss.css" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/ss.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/temp.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/projects.html" beforeDir="false" afterPath="$PROJECT_DIR$/projects.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" afterPath="$PROJECT_DIR$/testfile.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -160,7 +143,7 @@
       <workItem from="1749759487292" duration="4365000" />
       <workItem from="1749774835100" duration="3683000" />
       <workItem from="1749966041624" duration="11160000" />
-      <workItem from="1750099981963" duration="27363000" />
+      <workItem from="1750099981963" duration="27990000" />
     </task>
     <servers />
   </component>
