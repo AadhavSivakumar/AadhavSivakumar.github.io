@@ -57,7 +57,7 @@
     #about .about-text { flex-basis: 65%; min-width: 300px; flex-grow: 1; }
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
-    .major-project-card, .small-project-card { cursor: pointer; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
+    .major-project-card, .small-project-card, .skill-card { cursor: pointer; }
     .project-modal-trigger.animating-out {
       opacity: 0 !important;
       transition: opacity 0.2s ease;
@@ -69,13 +69,13 @@
     .small-project-card:hover { transform: translateY(-5px) !important; box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
 
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
-    .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
     .major-project-card img { width: 100%; height: 300px; object-fit: cover; }
     .major-project-card .project-content { padding: 25px; }
     .major-project-card h4 { font-size: 1.7rem; }
     .major-project-card p { color: var(--secondary-color); }
     .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
-    .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; }
+    .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
     .small-project-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
     .small-project-content { padding: 15px; }
     .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
@@ -94,21 +94,37 @@
 
     .skills-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(6, 1fr);
       gap: 20px;
     }
 
     .skill-card {
       background-color: var(--surface-color);
       border-radius: 10px;
-      padding: 20px 15px;
+      padding: 20px 10px;
       text-align: center;
       box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 150px;
+    }
+
+    .skill-card img {
+      height: 55px;
+      width: 55px;
+      margin-bottom: 15px;
+      object-fit: contain;
+    }
+
+    .skill-card span {
       font-family: 'Poppins', sans-serif;
       font-weight: 500;
-      font-size: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.2;
       color: var(--secondary-color);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .skill-card:hover {
@@ -131,22 +147,59 @@
     .modal-animator.visible { pointer-events: auto; visibility: visible; }
     .modal-animator .modal-content { opacity: 0; transition: opacity 0.3s 0.2s ease; }
     .modal-animator.open .modal-content { opacity: 1; }
+    .modal-animator.open .modal-image-container { opacity: 1; }
 
     .modal-content { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-    .modal-image { width: 100%; height: 50%; object-fit: cover; flex-shrink: 0; }
+    .modal-image-container {
+      width: 100%;
+      height: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #e9e9e9;
+      flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.3s 0.2s ease;
+    }
+    .modal-image {
+      width: auto;
+      height: auto;
+      max-width: 80%;
+      max-height: 60%;
+      object-fit: contain;
+    }
+
+    /* Adjustments for project images */
+    .modal-animator.project-modal .modal-image-container {
+      background-color: transparent;
+    }
+    .modal-animator.project-modal .modal-image {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      object-fit: cover;
+    }
+
     .modal-text-content { flex-grow: 1; padding: 25px; overflow-y: auto;}
     .modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2; color: white; mix-blend-mode: difference;}
     .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
     .modal-text-content p { margin-bottom: 25px; }
 
     /* RESPONSIVE DESIGN */
+    @media (max-width: 1024px) {
+      .skills-grid { grid-template-columns: repeat(4, 1fr); }
+    }
     @media (max-width: 768px) {
       #about .about-container { text-align: center; justify-content: center; }
-      .skills-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      .skills-grid { grid-template-columns: repeat(3, 1fr); }
       header nav a { margin-left: 15px; }
       .section-title { font-size: 2.5rem; }
       .modal-content { padding: 20px; }
       .modal-text-content h2 { font-size: 2rem; }
+    }
+    @media (max-width: 480px) {
+      .skills-grid { grid-template-columns: repeat(2, 1fr); }
     }
   </style>
 </head>
@@ -220,7 +273,9 @@
   <div class="modal-animator">
     <div class="modal-content">
       <button class="modal-close">&times;</button>
-      <img src="" alt="" class="modal-image"/>
+      <div class="modal-image-container">
+        <img src="" alt="" class="modal-image"/>
+      </div>
       <div class="modal-text-content">
         <h2 id="modal-title"></h2>
         <p id="modal-description"></p>
@@ -255,12 +310,61 @@
     ];
 
     const skillsData = [
-      { category: 'Languages', items: ['C', 'C++', 'Python', 'ROS', 'MATLAB', 'Verilog', 'Java', 'HTML/CSS', 'Javascript (Node.js & React)', 'SQL'] },
-      { category: 'Boards', items: ['Arduino', 'Raspberry Pi', 'Digilent Basys 3 FPGA', 'STM32', 'ESP32', 'Parallax Propeller', 'BASIC Stamp 2'] },
-      { category: 'Hardware', items: ['Franka Research 3 (7 DOF robotic arm)', 'NI DAQ', 'Google Glass', 'Bambu Lab printer', 'Glowforge'] },
-      { category: 'Software', items: ['Solidworks', 'Altium', 'EAGLE', 'Fusion 360', 'Cadence', 'Robosuite', 'WeBots', 'PSpice', 'AutoCAD'] },
-      { category: 'Sensors', items: ['ATI multi-axis force/torque', '9-axis IMU', 'Ultrasonic', 'flex', 'Capsense', 'piezoelectric'] },
-      { category: 'Other Tools', items: ['AI image recognition', 'Communication protocols (SPI, I2C, UART)', 'IK', 'PID', 'Filtering', 'Driver Creation/Calibration', 'Telerobotics with TCP/UDP and 4-channel architecture', 'Statics and Dynamics'] }
+      { category: 'Hardware', items: [
+          { name: 'Franka Emika Robot', imageUrl: 'https://i.imgur.com/2cc1T9W.png', description: "Experience with the Franka Emika Panda, a 7-DOF collaborative robot arm. Proficient in programming its motion using ROS, MoveIt!, and libfranka for tasks in research and automation." },
+          { name: 'NI DAQ', imageUrl: 'https://icon.icepanel.io/Technology/svg/National-Instruments.svg', description: "Skilled in using National Instruments Data Acquisition (DAQ) hardware for sensor integration, data logging, and real-time control systems in various engineering projects." },
+          { name: 'Google Glass', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Google_Glass_logo.svg/1280px-Google_Glass_logo.svg.png', description: "Developed applications for Google Glass, exploring augmented reality interfaces and hands-free computing for industrial and consumer use cases." },
+          { name: 'Bambu Lab Printer', imageUrl: 'https://bambulab.com/img/logo.svg', description: "Extensive experience with Bambu Lab 3D printers for rapid prototyping, creating custom parts, and optimizing print settings for various materials." },
+          { name: 'Glowforge', imageUrl: 'https://seeklogo.com/images/G/glowforge-logo-A540333A89-seeklogo.com.png', description: "Utilized Glowforge laser cutters for precision cutting and engraving on a wide range of materials, including wood, acrylic, and leather, for prototyping and fabrication." },
+          { name: 'Oscilloscope', imageUrl: 'https://static.thenounproject.com/png/182434-200.png', description: "Proficient in using oscilloscopes and other electronic test equipment for circuit analysis, debugging, and signal verification in embedded systems."}
+        ] },
+      { category: 'Languages', items: [
+          { name: 'C', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg', description: "Strong foundation in C for performance-critical applications, including low-level hardware control and real-time systems." },
+          { name: 'C++', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg', description: "Expertise in C++ for developing complex robotics algorithms, object-oriented software design, and high-performance applications." },
+          { name: 'Python', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg', description: "Advanced proficiency in Python for scripting, automation, data analysis, and developing robotics applications with libraries like NumPy, OpenCV, and ROS." },
+          { name: 'ROS', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/ROS_logo.svg/1200px-ROS_logo.svg.png', description: "Extensive experience with the Robot Operating System (ROS) for building and managing complex robotic systems, including navigation, manipulation, and perception." },
+          { name: 'MATLAB', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Matlab_Logo.png/667px-Matlab_Logo.png', description: "Skilled in MATLAB for numerical analysis, algorithm development, data visualization, and simulation of control systems and dynamic models." },
+          { name: 'Verilog', imageUrl: 'https://www.e-consystems.com/images/blogs/verilog-hdl/verilog-hdl-banner.png', description: "Proficient in Verilog HDL for designing, simulating, and implementing digital logic circuits on FPGAs for custom hardware acceleration and control." },
+          { name: 'Java', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/java/java-original.svg', description: "Experience in Java for developing cross-platform applications and object-oriented software solutions." },
+          { name: 'HTML5', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg', description: "Knowledge of HTML5 for structuring web content and creating the foundation of modern websites and user interfaces." },
+          { name: 'CSS3', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg', description: "Proficient in CSS3 for styling responsive and visually appealing web interfaces, including animations and layouts." },
+          { name: 'JavaScript', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg', description: "Skilled in JavaScript for creating dynamic and interactive user interfaces for web-based robot control and data visualization." },
+          { name: 'SQL', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg', description: "Competent in SQL for managing and querying relational databases to store and retrieve robotics data and experimental results." }
+        ] },
+      { category: 'Boards', items: [
+          { name: 'Arduino', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/arduino/arduino-original.svg', description: "Extensive experience with the Arduino platform for rapid prototyping, sensor integration, and controlling actuators in a wide variety of embedded projects." },
+          { name: 'Raspberry Pi', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/raspberrypi/raspberrypi-original.svg', description: "Proficient in using Raspberry Pi as a low-cost, Linux-based computer for robotics, IoT applications, and running ROS nodes." },
+          { name: 'FPGA', imageUrl: 'https://fpgadeveloper.com/wp-content/uploads/2021/08/xilinx_logo.png', description: "Experience with Xilinx FPGAs for implementing high-speed digital logic, custom co-processors, and parallel processing tasks." },
+          { name: 'STM32', imageUrl: 'https://www.st.com/etc/clientlibs/publish/main/resources/img/logo.svg', description: "Skilled in programming STM32 microcontrollers for real-time applications, motor control, and complex embedded systems requiring high performance." },
+          { name: 'ESP32', imageUrl: 'https://www.espressif.com/sites/default/files/logo/espressif_logo.svg', description: "Used ESP32 microcontrollers for IoT projects, leveraging their built-in Wi-Fi and Bluetooth capabilities for connected devices." },
+          { name: 'Propeller', imageUrl: 'https://www.parallax.com/wp-content/uploads/2016/09/p2-logo-white-background-120x120.png', description: "Familiar with the Parallax Propeller's multi-core architecture for parallel processing in custom robotics and embedded applications." }
+        ] },
+      { category: 'Software', items: [
+          { name: 'SolidWorks', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/solidworks/solidworks-original.svg', description: "Proficient in SolidWorks for 3D mechanical design, modeling, simulation, and creating detailed assemblies for robotic systems." },
+          { name: 'Altium Designer', imageUrl: 'https://icon-library.com/images/altium-icon/altium-icon-22.jpg', description: "Skilled in Altium Designer for schematic capture, PCB layout, and creating professional-grade circuit boards for custom electronics." },
+          { name: 'Autodesk EAGLE', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Autodesk_EAGLE_icon.png', description: "Experience using Autodesk EAGLE for schematic design and PCB layout, a popular tool for electronics hobbyists and professionals." },
+          { name: 'Fusion 360', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/fusion360/fusion360-original.svg', description: "Used Autodesk Fusion 360 for integrated CAD, CAM, and CAE, from concept design to manufacturing." },
+          { name: 'Cadence', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Cadence_Design_Systems_logo.svg/2560px-Cadence_Design_Systems_logo.svg.png', description: "Familiar with the Cadence suite of tools for custom IC design, verification, and analysis." },
+          { name: 'Webots', imageUrl: 'https://cyberbotics.com/assets/images/webots.svg', description: "Utilized Webots for realistic robotic simulation, allowing for algorithm testing and validation before deployment on physical hardware." },
+          { name: 'PSpice', imageUrl: 'https://www.pspice.com/sites/default/files/p_logo.png', description: "Experience with PSpice for simulating and analyzing the behavior of analog and mixed-signal electronic circuits." },
+          { name: 'AutoCAD', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/autocad/autocad-original.svg', description: "Proficient in AutoCAD for 2D drafting, drawing, and creating precise documentation for mechanical parts and layouts." }
+        ] },
+      { category: 'Sensors', items: [
+          { name: 'Force/Torque', imageUrl: 'https://cdn-icons-png.flaticon.com/512/1580/1580894.png', description: "Experience integrating and processing data from multi-axis force/torque sensors for haptics, compliant motion, and interaction control." },
+          { name: 'IMU', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3017/3017237.png', description: "Skilled in using Inertial Measurement Units (IMUs) for orientation tracking, state estimation, and motion capture." },
+          { name: 'Ultrasonic', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3618/3618921.png', description: "Utilized ultrasonic sensors for distance measurement, obstacle avoidance, and environment mapping in mobile robots." },
+          { name: 'Flex Sensor', imageUrl: 'https://components101.com/sites/default/files/inline-images/Flex-Sensor.jpg', description: "Integrated flex sensors to measure bending and angular displacement for applications in wearable technology and soft robotics." },
+          { name: 'Capacitive', imageUrl: 'https://cdn-icons-png.flaticon.com/512/2884/2884143.png', description: "Developed custom capacitive touch sensors for creating novel human-robot interfaces and proximity detection." },
+          { name: 'Piezoelectric', imageUrl: 'https://cdn-icons-png.flaticon.com/512/3715/3715535.png', description: "Used piezoelectric sensors for vibration detection, impact sensing, and energy harvesting applications." }
+        ] },
+      { category: 'Other Tools', items: [
+          { name: 'AI Vision', imageUrl: 'https://cdn-icons-png.flaticon.com/512/2621/2621434.png', description: "Applied computer vision and machine learning techniques for object recognition, tracking, and scene understanding in robotic applications." },
+          { name: 'Comm Protocols', imageUrl: 'https://cdn-icons-png.flaticon.com/512/4294/4294723.png', description: "Proficient with standard communication protocols like SPI, I2C, UART, and TCP/IP for interfacing with sensors, actuators, and other devices." },
+          { name: 'Kinematics', imageUrl: 'https://cdn-icons-png.flaticon.com/512/2809/2809520.png', description: "Strong understanding of forward and inverse kinematics for calculating robot manipulator positions and planning trajectories." },
+          { name: 'PID Control', imageUrl: 'https://cdn-icons-png.flaticon.com/512/4344/4344933.png', description: "Implemented and tuned PID controllers for precise and stable control of motors, robot joints, and other dynamic systems." },
+          { name: 'Digital Filtering', imageUrl: 'https://cdn-icons-png.flaticon.com/512/5613/5613476.png', description: "Designed and applied digital filters (e.g., Kalman, Butterworth) to reduce noise and extract meaningful signals from sensor data." },
+          { name: 'Telerobotics', imageUrl: 'https://cdn-icons-png.flaticon.com/512/8295/8295068.png', description: "Developed telerobotic systems using 4-channel architectures (position-force mapping) to enable intuitive remote manipulation with haptic feedback." }
+        ] }
     ];
 
     // --- DOM ELEMENTS ---
@@ -278,6 +382,7 @@
     const modalContent = document.querySelector('.modal-content');
     const modalCloseBtn = document.querySelector('.modal-close');
     const modalImage = document.querySelector('.modal-image');
+    const modalImageContainer = document.querySelector('.modal-image-container');
     const modalTitle = document.getElementById('modal-title');
     const modalDescription = document.getElementById('modal-description');
     const modalLink = document.getElementById('modal-link');
@@ -295,8 +400,8 @@
       majorProjectsData.forEach((project, index) => {
         const card = document.createElement('div');
         card.className = 'major-project-card project-modal-trigger';
-        card.dataset.projectId = project.id;
-        card.dataset.projectType = 'major';
+        card.dataset.itemId = project.id;
+        card.dataset.itemType = 'major';
         card.innerHTML = `
                     <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
                     <div class="project-content">
@@ -311,8 +416,8 @@
       smallProjectsData.forEach((project, index) => {
         const card = document.createElement('div');
         card.className = 'small-project-card project-modal-trigger';
-        card.dataset.projectId = project.id;
-        card.dataset.projectType = 'small';
+        card.dataset.itemId = project.id;
+        card.dataset.itemType = 'small';
         card.innerHTML = `
                     <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
                     <div class="small-project-content">
@@ -327,21 +432,34 @@
     const populateSkills = () => {
       skillsContainer.innerHTML = ''; // Clear previous content
       skillsData.forEach(skillGroup => {
-        // Create a title for the category
         const categoryTitle = document.createElement('h3');
         categoryTitle.className = 'skill-category-title';
         categoryTitle.textContent = skillGroup.category;
         skillsContainer.appendChild(categoryTitle);
 
-        // Create the grid for the skills
         const grid = document.createElement('div');
         grid.className = 'skills-grid';
 
-        // Create a card for each skill item
-        skillGroup.items.forEach(itemText => {
+        skillGroup.items.forEach(item => {
           const skillCard = document.createElement('div');
-          skillCard.className = 'skill-card';
-          skillCard.textContent = itemText;
+          skillCard.className = 'skill-card project-modal-trigger';
+          skillCard.dataset.itemType = 'skill';
+          skillCard.dataset.itemId = item.name;
+          skillCard.dataset.category = skillGroup.category;
+
+          const img = document.createElement('img');
+          img.src = item.imageUrl;
+          img.alt = item.name;
+          img.onerror = function() {
+            this.onerror=null;
+            this.src='https://placehold.co/55x55/F7F5F2/BFA181?text=?';
+          };
+
+          const name = document.createElement('span');
+          name.textContent = item.name;
+
+          skillCard.appendChild(img);
+          skillCard.appendChild(name);
           grid.appendChild(skillCard);
         });
 
@@ -355,10 +473,8 @@
       const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
       const scrollPercent = totalScrollableHeight > 0 ? scrollY / totalScrollableHeight : 0;
 
-      // Header scroll
       header.classList.toggle('scrolled', scrollY > 50);
 
-      // Floating objects
       if (rightObject) {
         const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
         const squareY = scrollPercent * squareTravelDistance;
@@ -403,7 +519,7 @@
     };
 
     // Modal Logic
-    const openModal = (card, project) => {
+    const openModal = (card, itemData, itemType) => {
       if (isAnimating) return;
       isAnimating = true;
       lastClickedCard = card;
@@ -411,11 +527,18 @@
       const cardRect = card.getBoundingClientRect();
 
       // Populate modal
-      modalTitle.textContent = project.title;
-      modalDescription.textContent = project.description;
-      modalImage.src = project.imageUrl;
-      modalLink.style.display = project.link ? 'inline-block' : 'none';
-      if(project.link) modalLink.href = project.link;
+      modalTitle.textContent = itemData.title || itemData.name;
+      modalDescription.textContent = itemData.description;
+      modalImage.src = itemData.imageUrl;
+      modalLink.style.display = itemData.link ? 'inline-block' : 'none';
+      if(itemData.link) modalLink.href = itemData.link;
+
+      // Style modal differently for skills vs projects
+      if (itemType === 'skill') {
+        modalAnimator.classList.remove('project-modal');
+      } else {
+        modalAnimator.classList.add('project-modal');
+      }
 
       document.body.classList.add('modal-open');
       modalBackdrop.classList.add('visible');
@@ -475,11 +598,25 @@
     const setupModalTriggers = () => {
       document.querySelectorAll('.project-modal-trigger').forEach(card => {
         card.addEventListener('click', () => {
-          const projectId = card.dataset.projectId;
-          const projectType = card.dataset.projectType;
-          const data = projectType === 'major' ? majorProjectsData : smallProjectsData;
-          const project = data.find(p => p.id.toString() === projectId);
-          openModal(card, project);
+          const itemId = card.dataset.itemId;
+          const itemType = card.dataset.itemType;
+          let itemData;
+
+          if (itemType === 'major') {
+            itemData = majorProjectsData.find(p => p.id.toString() === itemId);
+          } else if (itemType === 'small') {
+            itemData = smallProjectsData.find(p => p.id.toString() === itemId);
+          } else if (itemType === 'skill') {
+            const category = card.dataset.category;
+            const skillCategory = skillsData.find(s => s.category === category);
+            if (skillCategory) {
+              itemData = skillCategory.items.find(i => i.name === itemId);
+            }
+          }
+
+          if (itemData) {
+            openModal(card, itemData, itemType);
+          }
         });
       });
 
