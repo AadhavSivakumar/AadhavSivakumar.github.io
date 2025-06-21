@@ -66,14 +66,20 @@
     .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(50px); }
     .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
 
-    .major-project-card:hover {
-      transform: translateY(-10px) !important;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 0 15px rgba(212, 175, 55, 0.5);
+    @keyframes pulse-major {
+      0% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+      50% { transform: translateY(-10px); box-shadow: 0 12px 25px rgba(0,0,0,0.1), 0 0 20px rgba(212, 175, 55, 0.6); }
+      100% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
     }
-    .small-project-card:hover {
-      transform: translateY(-5px) !important;
-      box-shadow: 0 8px 15px rgba(0,0,0,0.1), 0 0 12px rgba(212, 175, 55, 0.5);
+    @keyframes pulse-small {
+      0% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+      50% { transform: translateY(-5px); box-shadow: 0 8px 18px rgba(0,0,0,0.1), 0 0 15px rgba(212, 175, 55, 0.6); }
+      100% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
     }
+
+    .major-project-card:hover { animation: pulse-major 2.5s infinite ease-in-out; }
+    .small-project-card:hover { animation: pulse-small 2.5s infinite ease-in-out; }
+    .skill-card:hover { animation: pulse-small 2.5s infinite ease-in-out; }
 
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
     .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
@@ -132,11 +138,6 @@
       font-size: 0.9rem;
       line-height: 1.2;
       color: var(--secondary-color);
-    }
-
-    .skill-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 15px rgba(0,0,0,0.1), 0 0 12px rgba(212, 175, 55, 0.5);
     }
 
     #contact { text-align: center; }
