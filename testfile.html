@@ -66,29 +66,23 @@
     .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(50px); }
     .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
 
-    @keyframes pulse-major {
-      0% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-      50% { transform: translateY(-10px); box-shadow: 0 12px 25px rgba(0,0,0,0.1), 0 0 20px rgba(212, 175, 55, 0.6); }
-      100% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-    }
-    @keyframes pulse-small {
-      0% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-      50% { transform: translateY(-5px); box-shadow: 0 8px 18px rgba(0,0,0,0.1), 0 0 15px rgba(212, 175, 55, 0.6); }
-      100% { transform: translateY(0); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .major-project-card, .small-project-card, .skill-card {
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
     }
 
-    .major-project-card:hover { animation: pulse-major 2.5s infinite ease-in-out; }
-    .small-project-card:hover { animation: pulse-small 2.5s infinite ease-in-out; }
-    .skill-card:hover { animation: pulse-small 2.5s infinite ease-in-out; }
+    .major-project-card:hover, .small-project-card:hover, .skill-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 0 15px rgba(212, 175, 55, 0.5);
+    }
 
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
-    .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
+    .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
     .major-project-card img { width: 100%; height: 300px; object-fit: cover; }
     .major-project-card .project-content { padding: 25px; }
     .major-project-card h4 { font-size: 1.7rem; }
     .major-project-card p { color: var(--secondary-color); }
     .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
-    .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; transition: opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease; }
+    .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); overflow: hidden; }
     .small-project-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
     .small-project-content { padding: 15px; }
     .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
@@ -117,7 +111,6 @@
       padding: 20px 10px;
       text-align: center;
       box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -176,6 +169,23 @@
       max-height: 60%;
       object-fit: contain;
     }
+
+    .modal-view-button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: var(--accent-color);
+      color: var(--surface-color);
+      border-radius: 5px;
+      font-weight: 600;
+      text-align: center;
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .modal-view-button:hover {
+      transform: scale(1.05);
+      background-color: var(--primary-color);
+      color: var(--surface-color) !important;
+    }
+
 
     /* Adjustments for project images */
     .modal-animator.project-modal .modal-image-container {
@@ -290,7 +300,7 @@
         <h2 id="modal-title"></h2>
         <p id="modal-description"></p>
         <div id="modal-tech-stack"></div>
-        <a href="#" target="_blank" rel="noopener noreferrer" class="contact-button" id="modal-link">View Project</a>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
       </div>
     </div>
   </div>
@@ -301,81 +311,89 @@
   window.addEventListener('load', () => { // Wait for the whole page to load
 
     // --- DATA ---
+    const longLorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. \n\nProin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. \n\nMauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam. Sorbi et per conubia nostra, per inceptos hymenaeos. Cras id ante. Vivamus vel purus sit amet ligula rutrum tempus. Vestibulum condimentum, lacus at tempor. \n\nVivamus et mauris. Quisque tincidunt, sapien vel feugiat pulvinar, TORQUEM eu tellus quis erat. Vestibulum ac, viverra non, rhoncus id, felis. Pellentesque pretium, lectus nec venenatis volutpat, purus lectus ultrices risus, a condimentum risus mi et quam. \n\nDonec quis lectus. Suspendisse potenti. In eleifend, quam a iaculis dictum, lacus quam-sapien, eget, consectetuer, et, eros. Nunc quis enim. Nulla facilisi. In hac habitasse platea dictumst. Curabitur a velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Nam nec ante. Sed lacinia, urna non tincidunt mattis, tortor neque."
+
     const majorProjectsData = [
-      { id: 1, title: 'Project One', description: 'This is a more detailed description for the modal. It explains the project scope, the technologies used, and the outcome. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
-      { id: 2, title: 'Project Two', description: 'This project focused on developing a scalable backend architecture. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum. Cras venenatis euismod malesuada. Curabitur quis sem libero. Proin sit amet sapien nec justo viverra efficitur. In vel turpis et nisl hendrerit vestibulum. Sed scelerisque, sapien at efficitur laoreet, magna eros laoreet dui, et sollicitudin nulla mi eu nulla. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 3, title: 'Project Three', description: 'This was a data visualization challenge. We processed a large dataset and created interactive charts and graphs. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 4, title: 'Project Four', description: 'A mobile application designed for both iOS and Android. This involved a cross-platform framework and a focus on user experience. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Etiam quis quam. Aliquam erat volutpat. In hac habitasse platea dictumst. In sit amet sapien eu urna dapibus rhoncus. Nam vel quam. Nunc eleifend, urna nec iaculis suscipit, libero nunc faucibus nisi, quis laoreet nisl lorem vitae diam.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 5, title: 'Project Five', description: 'This project involved machine learning. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.', imageUrl: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 6, title: 'Project Six', description: 'An e-commerce platform with a custom recommendation engine. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum. Cras venenatis euismod malesuada. Curabitur quis sem libero. Proin sit amet sapien nec justo viverra efficitur. In vel turpis et nisl hendrerit vestibulum. Sed scelerisque, sapien at efficitur laoreet, magna eros laoreet dui, et sollicitudin nulla mi eu nulla. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.', imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', link: '#'},
+      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
+      { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 5, title: 'ASL glove', cardDescription: 'Perform 4 function calculation with your hand using BASIC Stamp.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 6, title: 'MATE ROV', cardDescription: 'Underwater drone completing complex tasks as a part of MATE ROV competition.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', link: '#'},
     ];
 
     const smallProjectsData = [
-      { id: 'a', title: 'Project A', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400' },
-      { id: 'b', title: 'Project B', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400' },
-      { id: 'c', title: 'Project C', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop' },
-      { id: 'd', title: 'Project D', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400' },
-      { id: 'e', title: 'Project E', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2670&auto=format&fit=crop' },
-      { id: 'f', title: 'Project F', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400' },
-      { id: 'g', title: 'Project G', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400' },
-      { id: 'h', title: 'Project H', description: 'A short description for this small but cool project.', imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400' },
+      { id: 'a', title: 'Sand Table', description: '2r manipulator to create patterns in the sand.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400' },
+      { id: 'b', title: 'PONG', description: 'Recreation of PONG with an LED matrix.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400' },
+      { id: 'c', title: 'Stockbot', description: 'Simulation of robot restocking items with optimal path.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop' },
+      { id: 'd', title: 'Automated Dog Feeder', description: 'system that allows dog to get correct portion of food remotely.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400' },
+      { id: 'e', title: 'Project E', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2670&auto=format&fit=crop' },
+      { id: 'f', title: 'Project F', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400' },
+      { id: 'g', title: 'Project G', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400' },
+      { id: 'h', title: 'Project H', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400' },
+      { id: 'i', title: 'Project I', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400' },
+      { id: 'j', title: 'Project J', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1596726805581-8072ee427e41?w=400' },
+      { id: 'k', title: 'Project K', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?w=400' },
+      { id: 'l', title: 'Project L', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400' },
     ];
 
     const skillsData = [
       { category: 'Hardware', items: [
-          { name: 'Franka Emika Robot', imageUrl: 'https://i.imgur.com/2cc1T9W.png', description: "Experience with the Franka Emika Panda, a 7-DOF collaborative robot arm. Proficient in programming its motion using ROS, MoveIt!, and libfranka for tasks in research and automation." },
-          { name: 'NI DAQ', imageUrl: 'https://www.ni.com/images/ni-logos/ni-logo-m.png', description: "Skilled in using National Instruments Data Acquisition (DAQ) hardware for sensor integration, data logging, and real-time control systems in various engineering projects." },
-          { name: 'Google Glass', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Google_Glass_logo.svg/1280px-Google_Glass_logo.svg.png', description: "Developed applications for Google Glass, exploring augmented reality interfaces and hands-free computing for industrial and consumer use cases." },
-          { name: 'Bambu Lab Printer', imageUrl: 'https://bambulab.com/img/logo.svg', description: "Extensive experience with Bambu Lab 3D printers for rapid prototyping, creating custom parts, and optimizing print settings for various materials." },
-          { name: 'Glowforge', imageUrl: 'https://logowik.com/content/uploads/images/glowforge5087.jpg', description: "Utilized Glowforge laser cutters for precision cutting and engraving on a wide range of materials, including wood, acrylic, and leather, for prototyping and fabrication." },
-          { name: 'Oscilloscope', imageUrl: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/oscilloscope-1434947-1211786.png', description: "Proficient in using oscilloscopes and other electronic test equipment for circuit analysis, debugging, and signal verification in embedded systems."}
+          { name: 'Franka Emika Robot', imageUrl: 'https://i.imgur.com/2cc1T9W.png', description: longLorem },
+          { name: 'NI DAQ', imageUrl: 'https://www.ni.com/images/ni-logos/ni-logo-m.png', description: longLorem },
+          { name: 'Google Glass', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Google_Glass_logo.svg/1280px-Google_Glass_logo.svg.png', description: longLorem },
+          { name: 'Bambu Lab Printer', imageUrl: 'https://bambulab.com/img/logo.svg', description: longLorem },
+          { name: 'Glowforge', imageUrl: 'https://logowik.com/content/uploads/images/glowforge5087.jpg', description: longLorem },
+          { name: 'Oscilloscope', imageUrl: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/oscilloscope-1434947-1211786.png', description: longLorem}
         ] },
       { category: 'Languages', items: [
-          { name: 'C', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg', description: "Strong foundation in C for performance-critical applications, including low-level hardware control and real-time systems." },
-          { name: 'C++', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg', description: "Expertise in C++ for developing complex robotics algorithms, object-oriented software design, and high-performance applications." },
-          { name: 'Python', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg', description: "Advanced proficiency in Python for scripting, automation, data analysis, and developing robotics applications with libraries like NumPy, OpenCV, and ROS." },
-          { name: 'ROS', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/ROS_logo.svg/1200px-ROS_logo.svg.png', description: "Extensive experience with the Robot Operating System (ROS) for building and managing complex robotic systems, including navigation, manipulation, and perception." },
-          { name: 'MATLAB', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Matlab_Logo.png/667px-Matlab_Logo.png', description: "Skilled in MATLAB for numerical analysis, algorithm development, data visualization, and simulation of control systems and dynamic models." },
-          { name: 'Verilog', imageUrl: 'https://www.vectorlogo.zone/logos/verilog/verilog-icon.svg', description: "Proficient in Verilog HDL for designing, simulating, and implementing digital logic circuits on FPGAs for custom hardware acceleration and control." },
-          { name: 'Java', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/java/java-original.svg', description: "Experience in Java for developing cross-platform applications and object-oriented software solutions." },
-          { name: 'HTML5', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg', description: "Knowledge of HTML5 for structuring web content and creating the foundation of modern websites and user interfaces." },
-          { name: 'CSS3', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg', description: "Proficient in CSS3 for styling responsive and visually appealing web interfaces, including animations and layouts." },
-          { name: 'JavaScript', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg', description: "Skilled in JavaScript for creating dynamic and interactive user interfaces for web-based robot control and data visualization." },
-          { name: 'SQL', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg', description: "Competent in SQL for managing and querying relational databases to store and retrieve robotics data and experimental results." }
+          { name: 'C', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg', description: longLorem },
+          { name: 'C++', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg', description: longLorem },
+          { name: 'Python', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg', description: longLorem },
+          { name: 'ROS', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/ROS_logo.svg/1200px-ROS_logo.svg.png', description: longLorem },
+          { name: 'MATLAB', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Matlab_Logo.png/667px-Matlab_Logo.png', description: longLorem },
+          { name: 'Verilog', imageUrl: 'https://www.vectorlogo.zone/logos/verilog/verilog-icon.svg', description: longLorem },
+          { name: 'Java', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/java/java-original.svg', description: longLorem },
+          { name: 'HTML5', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg', description: longLorem },
+          { name: 'CSS3', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg', description: longLorem },
+          { name: 'JavaScript', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg', description: longLorem },
+          { name: 'SQL', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg', description: longLorem }
         ] },
       { category: 'Boards', items: [
-          { name: 'Arduino', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/arduino/arduino-original.svg', description: "Extensive experience with the Arduino platform for rapid prototyping, sensor integration, and controlling actuators in a wide variety of embedded projects." },
-          { name: 'Raspberry Pi', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/raspberrypi/raspberrypi-original.svg', description: "Proficient in using Raspberry Pi as a low-cost, Linux-based computer for robotics, IoT applications, and running ROS nodes." },
-          { name: 'FPGA', imageUrl: 'https://fpgadeveloper.com/wp-content/uploads/2021/08/xilinx_logo.png', description: "Experience with Xilinx FPGAs for implementing high-speed digital logic, custom co-processors, and parallel processing tasks." },
-          { name: 'STM32', imageUrl: 'https://www.st.com/etc/clientlibs/publish/main/resources/img/logo.svg', description: "Skilled in programming STM32 microcontrollers for real-time applications, motor control, and complex embedded systems requiring high performance." },
-          { name: 'ESP32', imageUrl: 'https://www.espressif.com/sites/default/files/logo/espressif_logo.svg', description: "Used ESP32 microcontrollers for IoT projects, leveraging their built-in Wi-Fi and Bluetooth capabilities for connected devices." },
-          { name: 'Propeller', imageUrl: 'https://www.parallax.com/wp-content/uploads/2016/09/p2-logo-white-background-120x120.png', description: "Familiar with the Parallax Propeller's multi-core architecture for parallel processing in custom robotics and embedded applications." }
+          { name: 'Arduino', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/arduino/arduino-original.svg', description: longLorem },
+          { name: 'Raspberry Pi', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/raspberrypi/raspberrypi-original.svg', description: longLorem },
+          { name: 'Basys 3 FPGA', imageUrl: 'https://store.digilentinc.com/content/images/thumbs/0001091_basys-3-artix-7-fpga-trainer-board-recommended-for-digital-logic-curricula_400.png', description: longLorem },
+          { name: 'STM32', imageUrl: 'https://www.st.com/etc/clientlibs/publish/main/resources/img/logo.svg', description: longLorem },
+          { name: 'ESP32', imageUrl: 'https://www.espressif.com/sites/default/files/logo/espressif_logo.svg', description: longLorem },
+          { name: 'Infineon PSoC 4', imageUrl: 'https://www.infineon.com/cms/en/product/promopages/psoc-4/psoc_4_logo_rgb_w-text_w-bg_300.png', description: longLorem },
+          { name: 'Parallax Propeller', imageUrl: 'https://www.parallax.com/wp-content/uploads/2016/09/p2-logo-white-background-120x120.png', description: longLorem }
         ] },
       { category: 'Software', items: [
-          { name: 'SolidWorks', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/solidworks/solidworks-original.svg', description: "Proficient in SolidWorks for 3D mechanical design, modeling, simulation, and creating detailed assemblies for robotic systems." },
-          { name: 'Altium Designer', imageUrl: 'https://avatars.githubusercontent.com/u/1083994?s=280&v=4', description: "Skilled in Altium Designer for schematic capture, PCB layout, and creating professional-grade circuit boards for custom electronics." },
-          { name: 'Autodesk EAGLE', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Autodesk_EAGLE_icon.png', description: "Experience using Autodesk EAGLE for schematic design and PCB layout, a popular tool for electronics hobbyists and professionals." },
-          { name: 'Fusion 360', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/fusion360/fusion360-original.svg', description: "Used Autodesk Fusion 360 for integrated CAD, CAM, and CAE, from concept design to manufacturing." },
-          { name: 'Cadence', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Cadence_Design_Systems_logo.svg/2560px-Cadence_Design_Systems_logo.svg.png', description: "Familiar with the Cadence suite of tools for custom IC design, verification, and analysis." },
-          { name: 'Webots', imageUrl: 'https://cyberbotics.com/assets/images/webots.svg', description: "Utilized Webots for realistic robotic simulation, allowing for algorithm testing and validation before deployment on physical hardware." },
-          { name: 'PSpice', imageUrl: 'https://www.pspice.com/sites/default/files/p_logo.png', description: "Experience with PSpice for simulating and analyzing the behavior of analog and mixed-signal electronic circuits." },
-          { name: 'AutoCAD', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/autocad/autocad-original.svg', description: "Proficient in AutoCAD for 2D drafting, drawing, and creating precise documentation for mechanical parts and layouts." }
+          { name: 'SolidWorks', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/solidworks/solidworks-original.svg', description: longLorem },
+          { name: 'Altium Designer', imageUrl: 'https://avatars.githubusercontent.com/u/1083994?s=280&v=4', description: longLorem },
+          { name: 'Autodesk EAGLE', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/e/e3/Autodesk_EAGLE_icon.png', description: longLorem },
+          { name: 'Fusion 360', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/fusion360/fusion360-original.svg', description: longLorem },
+          { name: 'Cadence', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Cadence_Design_Systems_logo.svg/2560px-Cadence_Design_Systems_logo.svg.png', description: longLorem },
+          { name: 'Webots', imageUrl: 'https://cyberbotics.com/assets/images/webots.svg', description: longLorem },
+          { name: 'PSpice', imageUrl: 'https://www.pspice.com/sites/default/files/p_logo.png', description: longLorem },
+          { name: 'AutoCAD', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/autocad/autocad-original.svg', description: longLorem }
         ] },
       { category: 'Sensors', items: [
-          { name: 'Force/Torque', imageUrl: 'https://www.svgrepo.com/show/443048/force.svg', description: "Experience integrating and processing data from multi-axis force/torque sensors for haptics, compliant motion, and interaction control." },
-          { name: 'IMU', imageUrl: 'https://www.svgrepo.com/show/486829/3d-gyroscope.svg', description: "Skilled in using Inertial Measurement Units (IMUs) for orientation tracking, state estimation, and motion capture." },
-          { name: 'Ultrasonic', imageUrl: 'https://www.svgrepo.com/show/244588/ultrasonic.svg', description: "Utilized ultrasonic sensors for distance measurement, obstacle avoidance, and environment mapping in mobile robots." },
-          { name: 'Flex Sensor', imageUrl: 'https://www.svgrepo.com/show/493543/flex.svg', description: "Integrated flex sensors to measure bending and angular displacement for applications in wearable technology and soft robotics." },
-          { name: 'Capacitive', imageUrl: 'https://www.svgrepo.com/show/27838/capacitor.svg', description: "Developed custom capacitive touch sensors for creating novel human-robot interfaces and proximity detection." },
-          { name: 'Piezoelectric', imageUrl: 'https://www.svgrepo.com/show/278637/pressure-force.svg', description: "Used piezoelectric sensors for vibration detection, impact sensing, and energy harvesting applications." }
+          { name: 'Force/Torque', imageUrl: 'https://www.svgrepo.com/show/443048/force.svg', description: longLorem },
+          { name: 'IMU', imageUrl: 'https://www.svgrepo.com/show/486829/3d-gyroscope.svg', description: longLorem },
+          { name: 'Ultrasonic', imageUrl: 'https://www.svgrepo.com/show/244588/ultrasonic.svg', description: longLorem },
+          { name: 'Flex Sensor', imageUrl: 'https://www.svgrepo.com/show/493543/flex.svg', description: longLorem },
+          { name: 'Capacitive', imageUrl: 'https://www.svgrepo.com/show/27838/capacitor.svg', description: longLorem },
+          { name: 'Piezoelectric', imageUrl: 'https://www.svgrepo.com/show/278637/pressure-force.svg', description: longLorem }
         ] },
       { category: 'Other Tools', items: [
-          { name: 'AI Vision', imageUrl: 'https://www.svgrepo.com/show/475107/eye-cyber.svg', description: "Applied computer vision and machine learning techniques for object recognition, tracking, and scene understanding in robotic applications." },
-          { name: 'Comm Protocols', imageUrl: 'https://www.svgrepo.com/show/375252/protocol.svg', description: "Proficient with standard communication protocols like SPI, I2C, UART, and TCP/IP for interfacing with sensors, actuators, and other devices." },
-          { name: 'Kinematics', imageUrl: 'https://www.svgrepo.com/show/305263/robot-arm-robotic-technology.svg', description: "Strong understanding of forward and inverse kinematics for calculating robot manipulator positions and planning trajectories." },
-          { name: 'PID Control', imageUrl: 'https://www.svgrepo.com/show/272596/control-panel-settings.svg', description: "Implemented and tuned PID controllers for precise and stable control of motors, robot joints, and other dynamic systems." },
-          { name: 'Digital Filtering', imageUrl: 'https://www.svgrepo.com/show/433362/filter.svg', description: "Designed and applied digital filters (e.g., Kalman, Butterworth) to reduce noise and extract meaningful signals from sensor data." },
-          { name: 'Telerobotics', imageUrl: 'https://www.svgrepo.com/show/533324/robot-outline.svg', description: "Developed telerobotic systems using 4-channel architectures (position-force mapping) to enable intuitive remote manipulation with haptic feedback." }
+          { name: 'AI Vision', imageUrl: 'https://www.svgrepo.com/show/475107/eye-cyber.svg', description: longLorem },
+          { name: 'Comm Protocols', imageUrl: 'https://www.svgrepo.com/show/375252/protocol.svg', description: longLorem },
+          { name: 'Kinematics', imageUrl: 'https://www.svgrepo.com/show/305263/robot-arm-robotic-technology.svg', description: longLorem },
+          { name: 'PID Control', imageUrl: 'https://www.svgrepo.com/show/272596/control-panel-settings.svg', description: longLorem },
+          { name: 'Kalman Filtering', imageUrl: 'https://www.svgrepo.com/show/433362/filter.svg', description: longLorem },
+          { name: 'Test Automation', imageUrl: 'https://www.svgrepo.com/show/499849/robot-check.svg', description: longLorem },
+          { name: 'Telerobotics', imageUrl: 'https://www.svgrepo.com/show/533324/robot-outline.svg', description: longLorem }
         ] }
     ];
 
@@ -418,7 +436,7 @@
                     <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
                     <div class="project-content">
                         <h4>${project.title}</h4>
-                        <p>${project.description.substring(0, 80)}...</p>
+                        <p>${project.cardDescription}</p>
                     </div>
                 `;
         majorProjectsContainer.appendChild(card);
@@ -539,7 +557,7 @@
 
       // Populate modal
       modalTitle.textContent = itemData.title || itemData.name;
-      modalDescription.textContent = itemData.description;
+      modalDescription.textContent = itemData.modalDescription || itemData.description;
       modalImage.src = itemData.imageUrl;
       modalLink.style.display = itemData.link ? 'inline-block' : 'none';
       if(itemData.link) modalLink.href = itemData.link;
@@ -567,13 +585,15 @@
       modalAnimator.classList.remove('no-transition');
 
       requestAnimationFrame(() => {
-        const finalWidth = Math.min(800, window.innerWidth * 0.9);
+        let finalWidth;
         let finalHeight;
 
         if (itemType === 'major' || itemType === 'small') {
-          finalHeight = Math.min(window.innerHeight * 0.9, 900); // Taller modal for projects
+          finalWidth = Math.min(1280, window.innerWidth * 0.95);
+          finalHeight = Math.min(window.innerHeight * 0.95, 1080);
         } else {
-          finalHeight = Math.min(window.innerHeight * 0.9, 600); // Standard height for skills
+          finalWidth = Math.min(800, window.innerWidth * 0.9);
+          finalHeight = Math.min(window.innerHeight * 0.9, 600);
         }
 
         modalAnimator.style.top = `${(window.innerHeight - finalHeight) / 2}px`;
