@@ -66,13 +66,27 @@
     .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(50px); }
     .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
 
+    @keyframes subtle-pulse {
+      0%   {
+        transform: translateY(0);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05), 0 0 0 rgba(212, 175, 55, 0.4);
+      }
+      50%  {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 22px rgba(0,0,0,0.1), 0 0 20px rgba(212, 175, 55, 0.7);
+      }
+      100% {
+        transform: translateY(0);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05), 0 0 0 rgba(212, 175, 55, 0.4);
+      }
+    }
+
     .major-project-card, .small-project-card, .skill-card {
-      transition: transform 0.4s ease, box-shadow 0.4s ease;
+      transition: transform 0.4s ease-out, box-shadow 0.4s ease-out;
     }
 
     .major-project-card:hover, .small-project-card:hover, .skill-card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 0 15px rgba(212, 175, 55, 0.5);
+      animation: subtle-pulse 2.5s infinite ease-in-out;
     }
 
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
@@ -318,17 +332,17 @@
       { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', link: '#'},
       { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', link: '#'},
       { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 5, title: 'ASL glove', cardDescription: 'Perform 4 function calculation with your hand using BASIC Stamp.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 6, title: 'MATE ROV', cardDescription: 'Underwater drone completing complex tasks as a part of MATE ROV competition.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', link: '#'},
+      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', link: 'https://sites.google.com/ucsc.edu/stockbot/home' },
     ];
 
     const smallProjectsData = [
       { id: 'a', title: 'Sand Table', description: '2r manipulator to create patterns in the sand.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400' },
       { id: 'b', title: 'PONG', description: 'Recreation of PONG with an LED matrix.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400' },
-      { id: 'c', title: 'Stockbot', description: 'Simulation of robot restocking items with optimal path.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop' },
+      { id: 'c', title: 'MATE ROV', description: 'Underwater drone completing complex tasks as a part of MATE ROV competition.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop' },
       { id: 'd', title: 'Automated Dog Feeder', description: 'system that allows dog to get correct portion of food remotely.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400' },
-      { id: 'e', title: 'Project E', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2670&auto=format&fit=crop' },
-      { id: 'f', title: 'Project F', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400' },
+      { id: 'e', title: 'FPGA VGA Game', description: 'simple flappy bird style game implemented on basys 3 FPGA', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop' },
+      { id: 'f', title: 'Mechatronics Competition', description: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400' },
       { id: 'g', title: 'Project G', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400' },
       { id: 'h', title: 'Project H', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400' },
       { id: 'i', title: 'Project I', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400' },
