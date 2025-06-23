@@ -18,6 +18,13 @@
       --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
     }
 
+    /* Keyframe animation for the breathing effect */
+    @keyframes breathe-animation {
+      0% { transform: translateX(0) translateY(0); }
+      50% { transform: translateX(0) translateY(-8px); }
+      100% { transform: translateX(0) translateY(0); }
+    }
+
     /* GLOBAL STYLES */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
@@ -28,9 +35,7 @@
       line-height: 1.7;
       overflow-x: hidden;
     }
-    body.modal-open {
-      overflow: hidden;
-    }
+
     h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; }
     a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
     a:hover { color: var(--primary-color); }
@@ -57,36 +62,37 @@
     #about .about-text { flex-basis: 65%; min-width: 300px; flex-grow: 1; }
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
-    .major-project-card, .small-project-card, .skill-card { cursor: pointer; }
+    /* Base styles for all cards, including their return animation */
+    .major-project-card, .small-project-card, .skill-card {
+      cursor: pointer;
+      opacity: 0; /* Starts transparent for the initial scroll-in */
+      visibility: visible;
+      transition: opacity 0.5s ease-out, transform 0.5s ease, box-shadow 0.4s ease;
+    }
+
+    /* Card state for when the modal is opening/open */
     .project-modal-trigger.animating-out {
       opacity: 0 !important;
-      transition: opacity 0.2s ease;
-    }
-    .major-project-card:nth-child(odd), .small-project-card:nth-child(odd) { transform: translateX(-50px); }
-    .major-project-card:nth-child(even), .small-project-card:nth-child(even) { transform: translateX(50px); }
-    .major-project-card.in-view, .small-project-card.in-view { opacity: 1; transform: translateX(0); }
-
-    @keyframes subtle-pulse {
-      0%   {
-        transform: translateY(0);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05), 0 0 0 rgba(212, 175, 55, 0.4);
-      }
-      50%  {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 22px rgba(0,0,0,0.1), 0 0 20px rgba(212, 175, 55, 0.7);
-      }
-      100% {
-        transform: translateY(0);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05), 0 0 0 rgba(212, 175, 55, 0.4);
-      }
+      transform: scale(0.95) !important;
+      visibility: hidden;
+      /* This transition hides the card after it finishes fading out */
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
     }
 
-    .major-project-card, .small-project-card, .skill-card {
-      transition: transform 0.4s ease-out, box-shadow 0.4s ease-out;
+    .major-project-card:nth-child(odd), .small-project-card:nth-child(odd), .skill-card:nth-child(odd) { transform: translateX(-50px); }
+    .major-project-card:nth-child(even), .small-project-card:nth-child(even), .skill-card:nth-child(even) { transform: translateX(50px); }
+
+    .major-project-card.in-view, .small-project-card.in-view, .skill-card.in-view {
+      opacity: 1;
+      transform: translateX(0);
     }
 
-    .major-project-card:hover, .small-project-card:hover, .skill-card:hover {
-      animation: subtle-pulse 2.5s infinite ease-in-out;
+    /* Applying the breathing animation on hover */
+    .major-project-card:hover,
+    .small-project-card:hover,
+    .skill-card:hover {
+      animation: breathe-animation 2s ease-in-out infinite;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 0 15px rgba(212, 175, 55, 0.5);
     }
 
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
@@ -160,29 +166,55 @@
     .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden; transition: top var(--animation-duration) var(--animation-easing), left var(--animation-duration) var(--animation-easing), width var(--animation-duration) var(--animation-easing), height var(--animation-duration) var(--animation-easing); pointer-events: none; visibility: hidden; }
     .modal-animator.no-transition { transition: none !important; }
     .modal-animator.visible { pointer-events: auto; visibility: visible; }
-    .modal-animator .modal-content { opacity: 0; transition: opacity 0.3s 0.2s ease; }
-    .modal-animator.open .modal-content { opacity: 1; }
-    .modal-animator.open .modal-image-container { opacity: 1; }
+    .modal-animator .modal-content-wrapper { opacity: 0; transition: opacity 0.3s 0.2s ease; }
+    .modal-animator.open .modal-content-wrapper { opacity: 1; }
 
-    .modal-content { width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .modal-content-wrapper {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+
     .modal-image-container {
       width: 100%;
-      height: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #e9e9e9;
-      flex-shrink: 0;
-      opacity: 0;
-      transition: opacity 0.3s 0.2s ease;
+      padding: 50px 35px 0;
     }
+
     .modal-image {
+      width: 100%;
+      height: auto;
+      max-height: 50vh;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .modal-animator.skill-modal .modal-image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f0f0f0;
+      border-radius: 8px;
+      width: calc(100% - 70px);
+      margin: 50px auto 25px;
+      aspect-ratio: 1 / 1;
+      padding: 20px;
+    }
+
+    .modal-animator.skill-modal .modal-image {
       width: auto;
       height: auto;
-      max-width: 80%;
-      max-height: 60%;
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
+      border-radius: 0;
     }
+
 
     .modal-view-button {
       display: inline-block;
@@ -200,21 +232,13 @@
       color: var(--surface-color) !important;
     }
 
-
-    /* Adjustments for project images */
-    .modal-animator.project-modal .modal-image-container {
-      background-color: transparent;
-    }
-    .modal-animator.project-modal .modal-image {
-      width: 100%;
-      height: 100%;
-      max-width: none;
-      max-height: none;
-      object-fit: cover;
+    .modal-close { position: fixed; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2002; color: white; mix-blend-mode: difference;}
+    .modal-animator.skill-modal .modal-close {
+      color: #333;
+      mix-blend-mode: normal;
     }
 
-    .modal-text-content { flex-grow: 1; padding: 25px; overflow-y: auto;}
-    .modal-close { position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2; color: white; mix-blend-mode: difference;}
+    .modal-text-content { padding: 25px 35px; }
     .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
     .modal-text-content p { margin-bottom: 25px; }
 
@@ -227,7 +251,9 @@
       .skills-grid { grid-template-columns: repeat(3, 1fr); }
       header nav a { margin-left: 15px; }
       .section-title { font-size: 2.5rem; }
-      .modal-content { padding: 20px; }
+      .modal-content-wrapper { padding: 20px; }
+      .modal-image-container { padding: 30px 15px 0; }
+      .modal-text-content { padding: 25px 15px; }
       .modal-text-content h2 { font-size: 2rem; }
     }
     @media (max-width: 480px) {
@@ -307,14 +333,16 @@
   <div class="modal-animator">
     <div class="modal-content">
       <button class="modal-close">&times;</button>
-      <div class="modal-image-container">
-        <img src="" alt="" class="modal-image"/>
-      </div>
-      <div class="modal-text-content">
-        <h2 id="modal-title"></h2>
-        <p id="modal-description"></p>
-        <div id="modal-tech-stack"></div>
-        <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
+      <div class="modal-content-wrapper">
+        <div class="modal-image-container">
+          <img src="" alt="" class="modal-image"/>
+        </div>
+        <div class="modal-text-content">
+          <h2 id="modal-title"></h2>
+          <p id="modal-description"></p>
+          <div id="modal-tech-stack"></div>
+          <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
+        </div>
       </div>
     </div>
   </div>
@@ -358,7 +386,8 @@
           { name: 'Google Glass', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Google_Glass_logo.svg/1280px-Google_Glass_logo.svg.png', description: longLorem },
           { name: 'Bambu Lab Printer', imageUrl: 'https://bambulab.com/img/logo.svg', description: longLorem },
           { name: 'Glowforge', imageUrl: 'https://logowik.com/content/uploads/images/glowforge5087.jpg', description: longLorem },
-          { name: 'Oscilloscope', imageUrl: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/oscilloscope-1434947-1211786.png', description: longLorem}
+          { name: 'Oscilloscope', imageUrl: 'https://cdn.iconscout.com/icon/premium/png-256-thumb/oscilloscope-1434947-1211786.png', description: longLorem},
+          { name: 'LED Matrix', imageUrl: 'https://www.svgrepo.com/show/414441/led-matrix.svg', description: longLorem}
         ] },
       { category: 'Languages', items: [
           { name: 'C', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg', description: longLorem },
@@ -390,7 +419,9 @@
           { name: 'Cadence', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Cadence_Design_Systems_logo.svg/2560px-Cadence_Design_Systems_logo.svg.png', description: longLorem },
           { name: 'Webots', imageUrl: 'https://cyberbotics.com/assets/images/webots.svg', description: longLorem },
           { name: 'PSpice', imageUrl: 'https://www.pspice.com/sites/default/files/p_logo.png', description: longLorem },
-          { name: 'AutoCAD', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/autocad/autocad-original.svg', description: longLorem }
+          { name: 'AutoCAD', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/autocad/autocad-original.svg', description: longLorem },
+          { name: 'Android Studio', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/androidstudio/androidstudio-original.svg', description: longLorem },
+          { name: 'Firebase', imageUrl: 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/firebase/firebase-plain.svg', description: longLorem }
         ] },
       { category: 'Sensors', items: [
           { name: 'Force/Torque', imageUrl: 'https://www.svgrepo.com/show/443048/force.svg', description: longLorem },
@@ -423,7 +454,7 @@
     // Modal elements
     const modalBackdrop = document.querySelector('.modal-backdrop');
     const modalAnimator = document.querySelector('.modal-animator');
-    const modalContent = document.querySelector('.modal-content');
+    const modalContentWrapper = document.querySelector('.modal-content-wrapper');
     const modalCloseBtn = document.querySelector('.modal-close');
     const modalImage = document.querySelector('.modal-image');
     const modalImageContainer = document.querySelector('.modal-image-container');
@@ -550,13 +581,11 @@
 
       const cardObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-          }
+          entry.target.classList.toggle('in-view', entry.isIntersecting);
         });
       }, { threshold: 0.1 });
 
-      document.querySelectorAll('.major-project-card, .small-project-card').forEach(card => {
+      document.querySelectorAll('.major-project-card, .small-project-card, .skill-card').forEach(card => {
         cardObserver.observe(card);
       });
     };
@@ -566,6 +595,8 @@
       if (isAnimating) return;
       isAnimating = true;
       lastClickedCard = card;
+
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
 
       const cardRect = card.getBoundingClientRect();
 
@@ -579,11 +610,12 @@
       // Style modal differently for skills vs projects
       if (itemType === 'skill') {
         modalAnimator.classList.remove('project-modal');
+        modalAnimator.classList.add('skill-modal');
       } else {
+        modalAnimator.classList.remove('skill-modal');
         modalAnimator.classList.add('project-modal');
       }
 
-      document.body.classList.add('modal-open');
       modalBackdrop.classList.add('visible');
 
       modalAnimator.classList.add('no-transition');
@@ -603,11 +635,10 @@
         let finalHeight;
 
         if (itemType === 'major' || itemType === 'small') {
-          finalWidth = Math.min(1280, window.innerWidth * 0.95);
-          finalHeight = Math.min(window.innerHeight * 0.95, 1080);
-        } else {
-          finalWidth = Math.min(800, window.innerWidth * 0.9);
-          finalHeight = Math.min(window.innerHeight * 0.9, 600);
+          finalWidth = Math.min(1280, window.innerWidth * 0.9);
+          finalHeight = Math.min(window.innerHeight * 0.9, 1080);
+        } else { // skill
+          finalWidth = finalHeight = Math.min(600, window.innerWidth * 0.85, window.innerHeight * 0.85);
         }
 
         modalAnimator.style.top = `${(window.innerHeight - finalHeight) / 2}px`;
@@ -638,18 +669,23 @@
       modalAnimator.classList.remove('open');
       modalBackdrop.classList.remove('visible');
 
+      const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
+
       setTimeout(() => {
-        cardToClose.classList.remove('animating-out');
+        if(lastClickedCard) {
+          lastClickedCard.classList.remove('animating-out');
+        }
         modalAnimator.classList.remove('visible');
-        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
         isAnimating = false;
         lastClickedCard = null;
-      }, 650);
+      }, animationDurationMs);
     };
 
     const setupModalTriggers = () => {
-      document.querySelectorAll('.project-modal-trigger').forEach(card => {
-        card.addEventListener('click', () => {
+      document.body.addEventListener('click', (e) => {
+        const card = e.target.closest('.project-modal-trigger');
+        if (card) {
           const itemId = card.dataset.itemId;
           const itemType = card.dataset.itemType;
           let itemData;
@@ -669,10 +705,15 @@
           if (itemData) {
             openModal(card, itemData, itemType);
           }
-        });
+        }
       });
 
-      modalBackdrop.addEventListener('click', closeModal);
+
+      modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) {
+          closeModal();
+        }
+      });
       modalCloseBtn.addEventListener('click', closeModal);
       window.addEventListener('keydown', (e) => {
         if(e.key === 'Escape' && modalBackdrop.classList.contains('visible')) {

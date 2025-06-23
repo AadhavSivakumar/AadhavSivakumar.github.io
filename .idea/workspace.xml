@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/tempex.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" afterPath="$PROJECT_DIR$/testfile.html" afterDir="false" />
     </list>
@@ -44,6 +45,7 @@
     &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
     &quot;JavaScript Debug.index.html.executor&quot;: &quot;Run&quot;,
     &quot;JavaScript Debug.resume.html.executor&quot;: &quot;Run&quot;,
+    &quot;JavaScript Debug.tempex.html.executor&quot;: &quot;Run&quot;,
     &quot;JavaScript Debug.testfile.html.executor&quot;: &quot;Run&quot;,
     &quot;Node.js.testreact.jsx.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
@@ -144,7 +146,8 @@
       <workItem from="1749774835100" duration="3683000" />
       <workItem from="1749966041624" duration="11160000" />
       <workItem from="1750099981963" duration="36739000" />
-      <workItem from="1750534343588" duration="2130000" />
+      <workItem from="1750534343588" duration="5214000" />
+      <workItem from="1750697453481" duration="1586000" />
     </task>
     <servers />
   </component>
