@@ -5,8 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="added glowforge">
+      <change afterPath="$PROJECT_DIR$/Images/skills/Arduino.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/Basys3.webp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tamiltest1.html" beforeDir="false" afterPath="$PROJECT_DIR$/tamiltest1.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -163,7 +164,7 @@
       <workItem from="1750099981963" duration="36739000" />
       <workItem from="1750534343588" duration="5214000" />
       <workItem from="1750697453481" duration="1586000" />
-      <workItem from="1750788939580" duration="7740000" />
+      <workItem from="1750788939580" duration="8814000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -213,7 +214,15 @@
       <option name="project" value="LOCAL" />
       <updated>1750800862262</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="added glowforge">
+      <option name="closed" value="true" />
+      <created>1750801994828</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1750801994828</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
