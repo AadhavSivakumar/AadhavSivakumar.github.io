@@ -144,34 +144,34 @@
 
     .skills-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 20px;
+      grid-template-columns: repeat(8, 1fr); /* Default: 8 columns */
+      gap: 15px; /* Adjusted gap for smaller cards */
     }
 
     .skill-card {
       background-color: var(--surface-color);
       border-radius: 10px;
-      padding: 20px 10px;
+      padding: 12px 6px; /* Reduced padding */
       text-align: center;
       box-shadow: 0 5px 15px rgba(0,0,0,0.05);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 180px;
+      height: 140px; /* Reduced height */
     }
 
     .skill-card img {
-      height: 80px;
-      width: 80px;
-      margin-bottom: 15px;
+      height: 50px; /* Reduced image size */
+      width: 50px;  /* Reduced image size */
+      margin-bottom: 10px; /* Adjusted margin */
       object-fit: contain;
     }
 
     .skill-card span {
       font-family: 'Poppins', sans-serif;
       font-weight: 500;
-      font-size: 0.9rem;
+      font-size: 0.8rem; /* Reduced font size */
       line-height: 1.2;
       color: var(--secondary-color);
     }
@@ -298,12 +298,15 @@
 
 
     /* RESPONSIVE DESIGN */
+    @media (max-width: 1200px) { /* New breakpoint for slightly smaller screens */
+      .skills-grid { grid-template-columns: repeat(6, 1fr); }
+    }
     @media (max-width: 1024px) {
-      .skills-grid { grid-template-columns: repeat(4, 1fr); }
+      .skills-grid { grid-template-columns: repeat(5, 1fr); } /* Was 4, now 5 */
       .modal-inline-image { max-width: 50%; margin-right: 15px;}
     }
     @media (max-width: 768px) {
-      .skills-grid { grid-template-columns: repeat(3, 1fr); }
+      .skills-grid { grid-template-columns: repeat(4, 1fr); } /* Was 3, now 4 */
       header nav a { margin-left: 15px; }
       .section-title { font-size: 2.5rem; }
       .modal-content-wrapper { padding: 20px; }
@@ -313,8 +316,11 @@
       #resume-iframe { height: 600px; }
       .modal-inline-image { float: none; max-width: 100%; margin-right: 0; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;}
     }
+    @media (max-width: 600px) { /* New breakpoint for smaller mobile screens */
+      .skills-grid { grid-template-columns: repeat(3, 1fr); }
+    }
     @media (max-width: 480px) {
-      .skills-grid { grid-template-columns: repeat(2, 1fr); }
+      .skills-grid { grid-template-columns: repeat(2, 1fr); } /* Kept at 2 for very small screens */
       #resume-iframe { height: 500px; }
     }
   </style>
