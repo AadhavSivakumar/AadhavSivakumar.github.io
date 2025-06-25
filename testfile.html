@@ -52,15 +52,35 @@
 
     /* SECTION & CARD STYLES */
     section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
+    section#about { /* Reduced padding for the about section */
+      padding: 50px 5% 50px 5%;
+    }
     section.visible { opacity: 1; transform: translateY(0); }
     .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
     #hero { min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
     #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
     #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
-    #about .about-container { display: flex; align-items: center; gap: 50px; flex-wrap: wrap; }
-    #about .about-image { flex-basis: 35%; min-width: 280px; }
-    #about .about-image img { width: 100%; border-radius: 10px; }
-    #about .about-text { flex-basis: 65%; min-width: 300px; flex-grow: 1; }
+
+    .about-card-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      /* padding-top: 20px; /* Removed as section padding is adjusted */
+    }
+    .about-me-card { /* Base styles for the About Me card */
+      max-width: 600px; /* Increased size from 500px */
+      width: 100%;
+      /* Animation properties (opacity, transition) are inherited from .major-project-card */
+      /* Initial transform for animation is set later to override nth-child */
+    }
+    .about-me-card img {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+    }
+
+
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
     /* Base styles for all cards, including their return animation */
@@ -76,17 +96,29 @@
       opacity: 0 !important;
       transform: scale(0.95) !important;
       visibility: hidden;
-      /* This transition hides the card after it finishes fading out */
       transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
     }
 
     .major-project-card:nth-child(odd), .small-project-card:nth-child(odd), .skill-card:nth-child(odd) { transform: translateX(-50px); }
     .major-project-card:nth-child(even), .small-project-card:nth-child(even), .skill-card:nth-child(even) { transform: translateX(50px); }
 
+    /* Specific animation for About Me card - initial state (replaces the old translateX(0) override) */
+    /* This rule is placed after nth-child rules to ensure it overrides them for the .about-me-card */
+    .about-me-card {
+      transform: translateY(30px); /* Initial position from bottom for animation */
+    }
+
+
     .major-project-card.in-view, .small-project-card.in-view, .skill-card.in-view {
       opacity: 1;
       transform: translateX(0);
     }
+    /* Specific in-view state for About Me card, overrides generic translateX(0) */
+    .about-me-card.in-view {
+      opacity: 1; /* Ensure opacity is set */
+      transform: translateY(0); /* Animate to final Y position */
+    }
+
 
     /* Applying the breathing animation on hover */
     .major-project-card:hover,
@@ -154,12 +186,25 @@
       color: var(--secondary-color);
     }
 
+    #contact p, #resume p { /* Shared style for resume and contact paragraph */
+      max-width: 600px;
+      margin: 0 auto 40px;
+      color: var(--secondary-color);
+      text-align: center;
+    }
     #contact { text-align: center; }
-    #contact p { max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); }
     .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 35px; align-items: center; }
     .social-links a { color: var(--secondary-color); transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
     .social-links a:hover { transform: scale(1.25); color: var(--accent-color); }
     footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid #ddd; margin-top: 50px; position: relative; z-index: 10; }
+
+    #resume-iframe { /* ID remains the same, styles apply to embed tag */
+      width: 100%;
+      height: 800px; /* Adjust as needed, or use vh unit like 75vh for responsiveness */
+      border: 1px solid #ddd; /* Optional: adds a light border */
+      border-radius: 8px;
+      margin-top: 20px;
+    }
 
     /* MODAL STYLES */
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
@@ -221,11 +266,11 @@
       display: inline-block;
       padding: 12px 24px;
       background-color: var(--accent-color);
-      color: var(--surface-color);
+      color: var(--surface-color) !important; /* Ensure text is light on dark accent */
       border-radius: 5px;
       font-weight: 600;
       text-align: center;
-      transition: transform 0.3s ease, background-color 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease; /* Added box-shadow transition */
     }
     .modal-view-button:hover {
       transform: scale(1.05);
@@ -241,14 +286,13 @@
 
     .modal-text-content { padding: 25px 35px; }
     .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
-    .modal-text-content p { margin-bottom: 25px; }
+    .modal-text-content p { margin-bottom: 25px; white-space: pre-wrap; } /* Added pre-wrap for newlines */
 
     /* RESPONSIVE DESIGN */
     @media (max-width: 1024px) {
       .skills-grid { grid-template-columns: repeat(4, 1fr); }
     }
     @media (max-width: 768px) {
-      #about .about-container { text-align: center; justify-content: center; }
       .skills-grid { grid-template-columns: repeat(3, 1fr); }
       header nav a { margin-left: 15px; }
       .section-title { font-size: 2.5rem; }
@@ -256,9 +300,11 @@
       .modal-image-container { padding: 30px 15px 0; }
       .modal-text-content { padding: 25px 15px; }
       .modal-text-content h2 { font-size: 2rem; }
+      #resume-iframe { height: 600px; }
     }
     @media (max-width: 480px) {
       .skills-grid { grid-template-columns: repeat(2, 1fr); }
+      #resume-iframe { height: 500px; }
     }
   </style>
 </head>
@@ -273,6 +319,7 @@
     <a href="#about">About</a>
     <a href="#projects">Projects</a>
     <a href="#skills">Skills</a>
+    <a href="#resume">Resume</a>
     <a href="#contact">Contact</a>
   </nav>
 </header>
@@ -284,14 +331,8 @@
   </section>
 
   <section id="about">
-    <div class="about-container">
-      <div class="about-image">
-        <img src="https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG" alt="Aadhav Sivakumar's headshot" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
-      </div>
-      <div class="about-text">
-        <h2 class="section-title" style="text-align: left; margin-bottom: 20px;">About Me</h2>
-        <p>Hello! I'm a passionate and results-driven creative professional with a knack for turning complex problems into beautiful, intuitive designs. Replace this text with your own biography.</p>
-      </div>
+    <div class="about-card-wrapper">
+      <!-- About Me card will be injected here by JavaScript -->
     </div>
   </section>
 
@@ -306,6 +347,12 @@
   <section id="skills">
     <h2 class="section-title">Technical Skills</h2>
     <div id="skills-container"></div>
+  </section>
+
+  <section id="resume">
+    <h2 class="section-title">My Resume</h2>
+    <p>Explore my professional experience, skills, and qualifications in detail. My resume is displayed below.</p>
+    <embed id="resume-iframe" type="application/pdf" title="Aadhav Sivakumar's Resume">
   </section>
 
   <section id="contact">
@@ -351,15 +398,26 @@
 
 
 <script>
-  window.addEventListener('load', () => { // Wait for the whole page to load
+  window.addEventListener('load', () => {
 
-    // --- DATA ---
+    const resumePdfUrl = 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf';
     const longLorem = "This is a placeholder description that should be replaced with meaningful content for each project. It describes the project in more detail than the card itself, outlining the challenge, solution, and technologies used. This detailed view helps users understand the scope and impact of the work presented."
+
+    const aboutMeData = {
+      id: 'about-me-section',
+      type: 'about',
+      cardTitle: 'About Me',
+      cardTeaser: 'A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.',
+      imageUrl: 'https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG',
+      modalTitle: 'Aadhav Sivakumar',
+      modalDescription: "Hello! I'm Aadhav Sivakumar, a passionate Robotics and Embedded Systems Engineer hailing from the Bay Area in California. My journey in engineering started from Dublin High School, through my undergraduate studies at University of California, Santa Cruz, and now to New York, where I am currently a Master's in Mechatronics and Robotics at NYU Tandon. I am driven by the challenge of creating intelligent systems and thrive on developing cutting-edge solutions in the world of robotics and embedded technology. Apart from my engineering interests, I like to play volleyball and go biking through the streets of Brooklyn and Manhattan.\n\n--- (You can expand on the following points to add more detail! Feel free to remove this line and the template points once you've filled them in.) ---\n\n*   **Early Inspirations:** [Describe what sparked your interest in engineering/robotics. E.g., \"My fascination with robotics began when I [mention a specific event, project, or observation]...\" or \"I was always drawn to understanding how things work, which naturally led me to...\"]\n\n*   **Key Strengths & Approach:** [Mention 2-3 personal strengths or your working style. E.g., \"I consider myself a [diligent problem-solver / creative innovator / collaborative team-player] who approaches challenges with [enthusiasm / a methodical mindset / a focus on practical solutions]. I believe in the power of [continuous learning / interdisciplinary collaboration / meticulous attention to detail] to achieve impactful results.\"]\n\n*   **Specific Passions within Engineering:** [Detail specific areas that excite you. E.g., \"Within the vast field of robotics, I'm particularly drawn to [autonomous navigation / human-robot interaction / AI-driven control systems / medical robotics / sustainable technology solutions]. I find the potential for [specific application or impact] incredibly motivating.\"]\n\n*   **Career Aspirations:** [What kind of role or impact are you seeking? E.g., \"Looking ahead, I aspire to contribute to [a specific industry or type of project, e.g., developing next-generation assistive devices / innovative solutions for sustainable energy / cutting-edge autonomous systems]. My goal is to [your broader aim, e.g., leverage my skills to make a tangible positive impact / become a leader in the field of mechatronic design].\"]\n\n*   **Highlight Experience (Optional):** [Briefly mention a significant project or learning experience not detailed elsewhere. E.g., \"A particularly formative experience was [briefly describe project/experience], which taught me the importance of [key takeaway, e.g., a specific skill, teamwork, resilience].\"]\n\n*   **More Hobbies & Interests:** [Add any other hobbies or interests, or elaborate on existing ones. E.g., \"Beyond volleyball and biking, I also enjoy [Hobby 1, e.g., reading sci-fi novels], [Hobby 2, e.g., learning new programming languages in my spare time], and [Interest, e.g., exploring historical technology].\"]\n\n*   **Personal Philosophy (Optional):** [Share a guiding principle if you like. E.g., \"I'm guided by the belief that [your core belief, e.g., technology should be used to empower and improve lives / continuous innovation is key to solving complex problems]. This philosophy shapes my approach to both my work and personal development.\"]",
+      link: null
+    };
 
     const majorProjectsData = [
       { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
       { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 3, title: 'Glass-2-Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', link: '#'},
+      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', link: '#'},
       { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
       { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', link: '#'},
       { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', link: 'https://sites.google.com/ucsc.edu/stockbot/home' },
@@ -417,14 +475,14 @@
           { name: 'Jetson Nano', imageUrl: baseSkillImagePath + 'jetsonnano.jpg', description: 'NVIDIA Jetson Nano is a small, powerful computer designed to bring accelerated AI computing to embedded applications. It\'s capable of running multiple neural networks in parallel for tasks like image classification, object detection, and speech processing.' }
         ] },
       { category: 'Software', items: [
-          { name: 'SolidWorks', imageUrl: baseSkillImagePath + 'SOLIDWORKS-Logo.webp', description: 'SolidWorks is a solid modeling computer-aided design (CAD) and computer-aided engineering (CAE) software. It is widely used by mechanical engineers for designing, simulating, and manufacturing products.' },
+          { name: 'SolidWorks', imageUrl: baseSkillImagePath + 'SOLIDWORKS.webp', description: 'SolidWorks is a solid modeling computer-aided design (CAD) and computer-aided engineering (CAE) software. It is widely used by mechanical engineers for designing, simulating, and manufacturing products.' },
           { name: 'Altium Designer', imageUrl: baseSkillImagePath + 'altium-designer.png', description: 'Altium Designer is an electronic design automation software package for printed circuit board (PCB), FPGA and embedded software design. It provides a unified environment for schematic capture, PCB layout, and design data management.' },
           { name: 'Autodesk EAGLE', imageUrl: baseSkillImagePath + 'EAGLE.jpg', description: 'Autodesk EAGLE (Easily Applicable Graphical Layout Editor) is a scriptable electronic design automation (EDA) application with schematic capture, printed circuit board (PCB) layout, auto-router and computer-aided manufacturing (CAM) features.' },
           { name: 'Fusion 360', imageUrl: baseSkillImagePath + 'fusion360.png', description: 'Autodesk Fusion 360 is a cloud-based 3D CAD, CAM, CAE, and PCB software platform for product design and manufacturing. It combines industrial and mechanical design, simulation, collaboration, and machining in a single package.' },
           { name: 'ORcad x Capture', imageUrl: baseSkillImagePath + 'OrCADCapture.webp', description: 'Cadence Design Systems is a leading provider of electronic design automation (EDA) tools, software, and intellectual property (IP). Their tools are used for designing integrated circuits, systems on chips (SoCs), and printed circuit boards.' },
           { name: 'Webots', imageUrl: baseSkillImagePath + 'webots.png', description: 'Webots is an open-source robot simulator that provides a complete development environment to model, program and simulate robots. It offers a wide range of robot models, sensors, and actuators, and supports multiple programming languages.' },
           { name: 'Pspice/LTspice', imageUrl: baseSkillImagePath + 'LTspice.png', description: 'PSpice (Personal Simulation Program with Integrated Circuit Emphasis) is a SPICE-based analog circuit and digital logic simulation program. It is used for verifying circuit designs and predicting circuit behavior before manufacturing.' },
-          { name: 'AutoCAD', imageUrl: baseSkillImagePath + 'autocad.jpg', description: 'AutoCAD is a commercial computer-aided design (CAD) and drafting software application. Developed and marketed by Autodesk, AutoCAD was first released in December 1982 as a desktop app running on microcomputers with internal graphics controllers.' },
+          { name: 'AutoCAD', imageUrl: baseSkillImagePath + 'autocad.png', description: 'AutoCAD is a commercial computer-aided design (CAD) and drafting software application. Developed and marketed by Autodesk, AutoCAD was first released in December 1982 as a desktop app running on microcomputers with internal graphics controllers.' },
           { name: 'Android Studio', imageUrl: baseSkillImagePath + 'AndroidStudio.png', description: 'Android Studio is the official integrated development environment (IDE) for Android app development. It is built on JetBrains\' IntelliJ IDEA software and designed specifically for Android development, providing tools for coding, debugging, testing, and packaging apps.' },
           { name: 'Firebase', imageUrl: baseSkillImagePath + 'firebase.png', description: 'Firebase is a comprehensive mobile and web application development platform by Google. It provides a suite of tools and services, including real-time databases, authentication, cloud functions, hosting, and analytics, to help developers build and scale apps quickly.' }
         ] },
@@ -448,16 +506,17 @@
         ] }
     ];
 
-    // --- DOM ELEMENTS ---
     const header = document.querySelector('header');
     const leftObject = document.querySelector('.left-object');
     const rightObject = document.querySelector('.right-object');
     const sections = document.querySelectorAll('section');
+    const aboutCardWrapper = document.querySelector('#about .about-card-wrapper');
     const majorProjectsContainer = document.getElementById('major-projects-container');
     const smallProjectsContainer = document.getElementById('small-projects-container');
     const skillsContainer = document.getElementById('skills-container');
+    const resumeIframe = document.getElementById('resume-iframe');
 
-    // Modal elements
+
     const modalBackdrop = document.querySelector('.modal-backdrop');
     const modalAnimator = document.querySelector('.modal-animator');
     const modalContentWrapper = document.querySelector('.modal-content-wrapper');
@@ -470,52 +529,68 @@
     const modalTechStack = document.getElementById('modal-tech-stack');
 
 
-    // --- STATE ---
     let isAnimating = false;
     let lastClickedCard = null;
 
-    // --- FUNCTIONS ---
 
-    // Populate dynamic content
+    const populateAboutMeCard = () => {
+      if (!aboutCardWrapper) return;
+
+      const card = document.createElement('div');
+      card.className = 'major-project-card project-modal-trigger about-me-card';
+      card.dataset.itemId = aboutMeData.id;
+      card.dataset.itemType = aboutMeData.type;
+
+      card.innerHTML = `
+        <img src="${aboutMeData.imageUrl}" alt="Aadhav Sivakumar" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+        <div class="project-content">
+            <h4>${aboutMeData.cardTitle}</h4>
+            <p>${aboutMeData.cardTeaser}</p>
+        </div>
+      `;
+      aboutCardWrapper.appendChild(card);
+    };
+
+
     const populateProjects = () => {
-      majorProjectsData.forEach((project, index) => {
+      majorProjectsData.forEach((project) => {
         const card = document.createElement('div');
         card.className = 'major-project-card project-modal-trigger';
         card.dataset.itemId = project.id;
         card.dataset.itemType = 'major';
         card.innerHTML = `
-                    <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
-                    <div class="project-content">
-                        <h4>${project.title}</h4>
-                        <p>${project.cardDescription}</p>
-                    </div>
-                `;
+          <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+          <div class="project-content">
+              <h4>${project.title}</h4>
+              <p>${project.cardDescription}</p>
+          </div>
+        `;
         majorProjectsContainer.appendChild(card);
       });
 
-      smallProjectsData.forEach((project, index) => {
+      smallProjectsData.forEach((project) => {
         const card = document.createElement('div');
         card.className = 'small-project-card project-modal-trigger';
         card.dataset.itemId = project.id;
         card.dataset.itemType = 'small';
         card.innerHTML = `
-                    <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
-                    <div class="small-project-content">
-                        <h4>${project.title}</h4>
-                        <p>${project.description}</p>
-                    </div>
-                `;
+          <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
+          <div class="small-project-content">
+              <h4>${project.title}</h4>
+              <p>${project.description}</p>
+          </div>
+        `;
         smallProjectsContainer.appendChild(card);
       });
     };
 
     const populateSkills = () => {
-      skillsContainer.innerHTML = ''; // Clear previous content
+      skillsContainer.innerHTML = '';
       skillsData.forEach(skillGroup => {
-        const categoryTitle = document.createElement('h3');
-        categoryTitle.className = 'skill-category-title';
-        categoryTitle.textContent = skillGroup.category;
-        skillsContainer.appendChild(categoryTitle);
+        const categoryTitleElement = document.createElement('h3');
+        categoryTitleElement.className = 'skill-category-title';
+        categoryTitleElement.textContent = skillGroup.category;
+        skillsContainer.appendChild(categoryTitleElement);
 
         const grid = document.createElement('div');
         grid.className = 'skills-grid';
@@ -547,7 +622,6 @@
       });
     };
 
-    // Animations
     const handleScrollAnimations = () => {
       const scrollY = window.scrollY;
       const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
@@ -596,25 +670,26 @@
       });
     };
 
-    // Modal Logic
     const openModal = (card, itemData, itemType) => {
       if (isAnimating) return;
       isAnimating = true;
       lastClickedCard = card;
 
-      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      document.body.style.overflow = 'hidden';
 
       const cardRect = card.getBoundingClientRect();
 
-      // Populate modal
-      modalTitle.textContent = itemData.title || itemData.name;
-      // Use itemData.description for skills, itemData.modalDescription (or description as fallback) for projects
+      modalTitle.textContent = itemData.title || itemData.name || itemData.modalTitle;
       modalDescription.textContent = (itemType === 'skill') ? itemData.description : (itemData.modalDescription || itemData.description);
       modalImage.src = itemData.imageUrl;
-      modalLink.style.display = itemData.link ? 'inline-block' : 'none';
-      if(itemData.link) modalLink.href = itemData.link;
+      modalImage.alt = itemData.title || itemData.name || itemData.modalTitle;
+      modalImage.onerror = function() {
+        this.onerror=null;
+        this.src='https://placehold.co/800x600/F7F5F2/BFA181?text=Image+Not+Found';
+      };
 
-      // Style modal differently for skills vs projects
+      modalTechStack.innerHTML = '';
+
       if (itemType === 'skill') {
         modalAnimator.classList.remove('project-modal');
         modalAnimator.classList.add('skill-modal');
@@ -622,6 +697,9 @@
         modalAnimator.classList.remove('skill-modal');
         modalAnimator.classList.add('project-modal');
       }
+
+      modalLink.style.display = itemData.link ? 'inline-block' : 'none';
+      if(itemData.link) modalLink.href = itemData.link;
 
       modalBackdrop.classList.add('visible');
 
@@ -641,10 +719,10 @@
         let finalWidth;
         let finalHeight;
 
-        if (itemType === 'major' || itemType === 'small') {
+        if (itemType === 'major' || itemType === 'small' || itemType === 'about') {
           finalWidth = Math.min(1280, window.innerWidth * 0.9);
           finalHeight = Math.min(window.innerHeight * 0.9, 1080);
-        } else { // skill
+        } else {
           finalWidth = finalHeight = Math.min(600, window.innerWidth * 0.85, window.innerHeight * 0.85);
         }
 
@@ -707,6 +785,8 @@
             if (skillCategory) {
               itemData = skillCategory.items.find(i => i.name === itemId);
             }
+          } else if (itemType === 'about') {
+            itemData = aboutMeData;
           }
 
           if (itemData) {
@@ -730,7 +810,11 @@
     };
 
 
-    // --- INITIALIZATION ---
+    if (resumeIframe) {
+      resumeIframe.src = resumePdfUrl;
+    }
+
+    populateAboutMeCard();
     populateProjects();
     populateSkills();
 
