@@ -5,6 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="some more skills images">
+      <change afterPath="$PROJECT_DIR$/Images/skills/AndroidStudio.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/EAGLE.jpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/LTspice.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/OrCADCapture.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/SOLIDWORKS-Logo.webp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/altium-designer.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/autocad.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/firebase.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/fusion360.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Images/skills/webots.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" afterPath="$PROJECT_DIR$/testfile.html" afterDir="false" />
     </list>
@@ -27,18 +37,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "AadhavSivakumar"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;AadhavSivakumar&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git",
-    "accountId": "9800f11d-f0eb-404e-b48a-88c77ef3f55d"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git&quot;,
+    &quot;accountId&quot;: &quot;9800f11d-f0eb-404e-b48a-88c77ef3f55d&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -73,6 +83,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -82,14 +93,14 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\Images\skills" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\ESP32" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills\ROS.png" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\legacy" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills and tools" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="JavaScript Debug.index.html">
     <configuration name="index.html" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/AadhavSivakumar.github.io/index.html" useBuiltInWebServerPort="true">
       <method v="2" />
     </configuration>
