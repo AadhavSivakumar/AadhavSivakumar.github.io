@@ -199,10 +199,17 @@
     /* MODAL STYLES */
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
     .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
-    .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden; transition: top var(--animation-duration) var(--animation-easing), left var(--animation-duration) var(--animation-easing), width var(--animation-duration) var(--animation-easing), height var(--animation-duration) var(--animation-easing); pointer-events: none; visibility: hidden; }
+    .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden;
+      transition: top var(--animation-duration) var(--animation-easing),
+      left var(--animation-duration) var(--animation-easing),
+      width var(--animation-duration) var(--animation-easing),
+      height var(--animation-duration) var(--animation-easing),
+      opacity var(--animation-duration) var(--animation-easing); /* Added opacity transition */
+      pointer-events: none; visibility: hidden; opacity: 0; /* Start transparent for all */
+    }
     .modal-animator.no-transition { transition: none !important; }
-    .modal-animator.visible { pointer-events: auto; visibility: visible; }
-    .modal-animator .modal-content-wrapper { opacity: 0; transition: opacity 0.3s 0.2s ease; }
+    .modal-animator.visible { pointer-events: auto; visibility: visible; opacity: 1; /* Target opacity for visible state */ }
+    .modal-animator .modal-content-wrapper { opacity: 0; transition: opacity 0.3s 0.2s ease; } /* Content fade-in after modal shell animation */
     .modal-animator.open .modal-content-wrapper { opacity: 1; }
 
     .modal-content {
@@ -261,6 +268,7 @@
       font-weight: 600;
       text-align: center;
       transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+      margin-top: 15px; /* Added margin for spacing */
     }
     .modal-view-button:hover {
       transform: scale(1.05);
@@ -276,51 +284,60 @@
 
     .modal-text-content { padding: 25px 35px; }
     .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
-    .modal-text-content p { margin-bottom: 25px; white-space: pre-wrap; }
+    .modal-text-content p#modal-description { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7;}
 
-    .modal-inline-image {
-      float: left;
-      margin-right: 20px;
-      margin-bottom: 10px;
-      margin-top: 5px;
-      max-width: 40%;
+    /* Styles for dynamically added content */
+    .modal-dynamic-text {
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+      line-height: 1.7;
+    }
+    .modal-dynamic-image {
+      max-width: 100%;
       height: auto;
       border-radius: 8px;
+      margin: 20px auto; /* Centered block image */
+      display: block;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .modal-text-content p.modal-additional-text {
-      white-space: pre-wrap;
-      margin-bottom: 25px;
+    .modal-dynamic-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: var(--accent-color);
+      color: var(--surface-color) !important;
+      border-radius: 5px;
+      font-weight: 600;
+      text-align: center;
+      margin: 10px 5px 15px 0;
+      transition: transform 0.3s ease, background-color 0.3s ease;
     }
-    .modal-text-content p.modal-additional-text.clear-float {
-      clear: both; /* To ensure this paragraph starts below the floated image */
+    .modal-dynamic-button:hover {
+      transform: scale(1.05);
+      background-color: var(--primary-color);
     }
-
 
     /* RESPONSIVE DESIGN */
-    @media (max-width: 1200px) { /* New breakpoint for slightly smaller screens */
+    @media (max-width: 1200px) {
       .skills-grid { grid-template-columns: repeat(6, 1fr); }
     }
     @media (max-width: 1024px) {
-      .skills-grid { grid-template-columns: repeat(5, 1fr); } /* Was 4, now 5 */
-      .modal-inline-image { max-width: 50%; margin-right: 15px;}
+      .skills-grid { grid-template-columns: repeat(5, 1fr); }
     }
     @media (max-width: 768px) {
-      .skills-grid { grid-template-columns: repeat(4, 1fr); } /* Was 3, now 4 */
+      .skills-grid { grid-template-columns: repeat(4, 1fr); }
       header nav a { margin-left: 15px; }
       .section-title { font-size: 2.5rem; }
-      .modal-content-wrapper { padding: 20px; }
+      .modal-content-wrapper { padding: 20px; } /* Applies to scroll wrapper */
       .modal-image-container { padding: 30px 15px 0; }
-      .modal-text-content { padding: 25px 15px; }
+      .modal-text-content { padding: 25px 15px; } /* Main text padding */
       .modal-text-content h2 { font-size: 2rem; }
       #resume-iframe { height: 600px; }
-      .modal-inline-image { float: none; max-width: 100%; margin-right: 0; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;}
     }
-    @media (max-width: 600px) { /* New breakpoint for smaller mobile screens */
+    @media (max-width: 600px) {
       .skills-grid { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 480px) {
-      .skills-grid { grid-template-columns: repeat(2, 1fr); } /* Kept at 2 for very small screens */
+      .skills-grid { grid-template-columns: repeat(2, 1fr); }
       #resume-iframe { height: 500px; }
     }
   </style>
@@ -404,8 +421,8 @@
         </div>
         <div class="modal-text-content">
           <h2 id="modal-title"></h2>
-          <p id="modal-description"></p>
-          <!-- Dynamically added elements for 'About Me' will be inserted here by JS -->
+          <p id="modal-description"></p> <!-- Used for items NOT using modalContent (e.g. skills) -->
+          <!-- Dynamic content for 'About Me' and projects will be inserted here before #modal-tech-stack -->
           <div id="modal-tech-stack"></div>
           <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
         </div>
@@ -428,35 +445,37 @@
       cardTeaser: 'A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.',
       imageUrl: 'https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG',
       modalTitle: 'Aadhav Sivakumar',
-      modalText1: "Hello! I'm Aadhav Sivakumar, a passionate Robotics and Embedded Systems Engineer hailing from the Bay Area in California. My journey in engineering started from Dublin High School, through my undergraduate studies at University of California, Santa Cruz, and now to New York, where I am currently a Master's in Mechatronics and Robotics at NYU Tandon. I am driven by the challenge of creating intelligent systems and thrive on developing cutting-edge solutions in the world of robotics and embedded technology. Apart from my engineering interests, I like to play volleyball and go biking through the streets of Brooklyn and Manhattan.",
-      modalImage1: 'https://placehold.co/400x300/e0e0e0/757575?text=My+Inline+Image', // Placeholder for inline image
-      modalText2: '[This is the second paragraph of my story. It can elaborate on my journey, specific interests, or anecdotes. This text should wrap around the inline image if it is floated. For example, I could talk about a pivotal project or a learning experience that shaped my career path.]',
-      modalText3: '[This is the third paragraph, perhaps for future goals, concluding thoughts, or another distinct aspect of my personality or professional outlook. This text will appear after the first paragraph, the inline image, and the second paragraph.]',
-      link: null
+      modalContent: [
+        { type: 'text', value: "Hello! I'm Aadhav Sivakumar, a passionate Robotics and Embedded Systems Engineer hailing from the Bay Area in California. My journey in engineering started from Dublin High School, through my undergraduate studies at University of California, Santa Cruz, and now to New York, where I am currently a Master's in Mechatronics and Robotics at NYU Tandon." },
+        { type: 'image', value: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=60', alt: 'My desk setup' },
+        { type: 'text', value: "I am driven by the challenge of creating intelligent systems and thrive on developing cutting-edge solutions in the world of robotics and embedded technology. Apart from my engineering interests, I like to play volleyball and go biking through the streets of Brooklyn and Manhattan." },
+        { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
+        { type: 'text', value: "Feel free to explore my projects or reach out if you'd like to collaborate!" }
+      ]
     };
 
     const majorProjectsData = [
-      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', link: '#'},
-      { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', link: '#'},
-      { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', description: longLorem, imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', link: 'https://sites.google.com/ucsc.edu/stockbot/home' },
+      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
     ];
 
     const smallProjectsData = [
-      { id: 'a', title: 'Sand Table', description: '2r manipulator to create patterns in the sand.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400' },
-      { id: 'b', title: 'PONG', description: 'Recreation of PONG with an LED matrix.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400' },
-      { id: 'c', title: 'MATE ROV', description: 'Underwater drone completing complex tasks as a part of MATE ROV competition.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop' },
-      { id: 'd', title: 'Automated Dog Feeder', description: 'system that allows dog to get correct portion of food remotely.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400' },
-      { id: 'e', title: 'FPGA VGA Game', description: 'simple flappy bird style game implemented on basys 3 FPGA', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop' },
-      { id: 'f', title: 'Mechatronics Competition', description: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400' },
-      { id: 'g', title: 'Project G', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400' },
-      { id: 'h', title: 'Project H', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400' },
-      { id: 'i', title: 'Project I', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400' },
-      { id: 'j', title: 'Project J', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1596726805581-8072ee427e41?w=400' },
-      { id: 'k', title: 'Project K', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?w=400' },
-      { id: 'l', title: 'Project L', description: 'A short description for this small but cool project.', modalDescription: longLorem, imageUrl: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400' },
+      { id: 'a', title: 'Sand Table', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400', modalContent: [{type: 'text', value: '2r manipulator to create patterns in the sand.'}] },
+      { id: 'b', title: 'PONG', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400', modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
+      { id: 'c', title: 'MATE ROV', imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', modalContent: [{type: 'text', value: 'Underwater drone completing complex tasks as a part of MATE ROV competition.'}] },
+      { id: 'd', title: 'Automated Dog Feeder', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400', modalContent: [{type: 'text', value: 'system that allows dog to get correct portion of food remotely.'}] },
+      { id: 'e', title: 'FPGA VGA Game', imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop', modalContent: [{type: 'text', value: 'simple flappy bird style game implemented on basys 3 FPGA'}] },
+      { id: 'f', title: 'Mechatronics Competition', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400', modalContent: [{type: 'text', value: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class'}] },
+      { id: 'g', title: 'Project G', imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400', modalContent: [{type: 'text', value: 'A short description for this small but cool project.'}] },
+      { id: 'h', title: 'Project H', imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400', modalContent: [{type: 'text', value: 'A short description for this small but cool project.'}] },
+      { id: 'i', title: 'Project I', imageUrl: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400', modalContent: [{type: 'text', value: 'A short description for this small but cool project.'}] },
+      { id: 'j', title: 'Project J', imageUrl: 'https://images.unsplash.com/photo-1596726805581-8072ee427e41?w=400', modalContent: [{type: 'text', value: 'A short description for this small but cool project.'}] },
+      { id: 'k', title: 'Project K', imageUrl: 'https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?w=400', modalContent: [{type: 'text', value: 'A short description for this small but cool project.'}] },
+      { id: 'l', title: 'Project L', imageUrl: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400', modalContent: [{type: 'text', value: 'A short description for this small but cool project.'}] },
     ];
 
     const baseSkillImagePath = 'https://aadhavsivakumar.github.io/Images/skills/';
@@ -540,13 +559,11 @@
 
     const modalBackdrop = document.querySelector('.modal-backdrop');
     const modalAnimator = document.querySelector('.modal-animator');
-    const modalContentWrapper = document.querySelector('.modal-content-wrapper'); // Not directly used for content placement, but for scrolling
-    const modalTextContentElement = document.querySelector('.modal-text-content'); // Parent for text, inline img
+    const modalTextContentElement = document.querySelector('.modal-text-content');
     const modalCloseBtn = document.querySelector('.modal-close');
-    const modalImage = document.querySelector('.modal-image'); // Main top image
-    // modalImageContainer is used for the main top image
+    const modalImage = document.querySelector('.modal-image');
     const modalTitle = document.getElementById('modal-title');
-    const modalDescription = document.getElementById('modal-description'); // Will hold modalText1 for 'about'
+    const modalDescription = document.getElementById('modal-description');
     const modalLink = document.getElementById('modal-link');
     const modalTechStack = document.getElementById('modal-tech-stack');
 
@@ -595,11 +612,18 @@
         card.className = 'small-project-card project-modal-trigger';
         card.dataset.itemId = project.id;
         card.dataset.itemType = 'small';
+
+        // Small projects use the first text item from modalContent for card description if available
+        let cardDesc = 'A cool small project.';
+        if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
+          cardDesc = project.modalContent[0].value.substring(0, 100) + (project.modalContent[0].value.length > 100 ? '...' : '');
+        }
+
         card.innerHTML = `
           <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
           <div class="small-project-content">
               <h4>${project.title}</h4>
-              <p>${project.description}</p>
+              <p>${cardDesc}</p>
           </div>
         `;
         smallProjectsContainer.appendChild(card);
@@ -699,15 +723,12 @@
 
       document.body.style.overflow = 'hidden';
 
-      // Clear previously added dynamic 'About Me' elements
-      const existingInlineImage = modalTextContentElement.querySelector('.modal-inline-image');
-      if (existingInlineImage) existingInlineImage.remove();
-      modalTextContentElement.querySelectorAll('p.modal-additional-text').forEach(el => el.remove());
-
-      const cardRect = card.getBoundingClientRect();
+      modalTextContentElement.querySelectorAll('.modal-dynamic-text, .modal-dynamic-image, .modal-dynamic-button').forEach(el => el.remove());
+      modalDescription.textContent = '';
+      modalDescription.style.display = 'none';
+      modalTechStack.innerHTML = '';
 
       modalTitle.textContent = itemData.title || itemData.name || itemData.modalTitle;
-
       modalImage.src = itemData.imageUrl;
       modalImage.alt = itemData.title || itemData.name || itemData.modalTitle;
       modalImage.onerror = function() {
@@ -715,46 +736,48 @@
         this.src='https://placehold.co/800x600/F7F5F2/BFA181?text=Image+Not+Found';
       };
 
-      modalTechStack.innerHTML = '';
+      let hasCustomButtons = false;
+      let rootLink = itemData.link;
 
-      if (itemType === 'about') {
-        modalDescription.textContent = itemData.modalText1 || '';
-        modalDescription.style.display = itemData.modalText1 ? 'block' : 'none';
+      if (itemData.modalContent && Array.isArray(itemData.modalContent)) {
+        const insertionPoint = modalTechStack;
 
-        let lastAppendedElement = modalDescription; // Keep track of where to insert next
+        itemData.modalContent.forEach(contentItem => {
+          let el;
+          if (contentItem.type === 'text') {
+            el = document.createElement('p');
+            el.className = 'modal-dynamic-text';
+            el.textContent = contentItem.value;
+          } else if (contentItem.type === 'image') {
+            el = document.createElement('img');
+            el.src = contentItem.value;
+            el.alt = contentItem.alt || 'Modal content image';
+            el.className = 'modal-dynamic-image';
+            el.onerror = function() { this.src='https://placehold.co/600x400/cccccc/333333?text=Img+Error'; this.alt='Error loading image'; };
+          } else if (contentItem.type === 'button') {
+            el = document.createElement('a');
+            el.href = contentItem.link;
+            el.textContent = contentItem.text;
+            el.className = 'modal-dynamic-button';
+            el.target = '_blank';
+            el.rel = 'noopener noreferrer';
+            hasCustomButtons = true;
+          }
 
-        if (itemData.modalImage1) {
-          const inlineImg = document.createElement('img');
-          inlineImg.src = itemData.modalImage1;
-          inlineImg.alt = "Profile details";
-          inlineImg.className = 'modal-inline-image';
-          inlineImg.onerror = function() {
-            this.onerror=null;
-            this.src='https://placehold.co/300x200/cccccc/333333?text=Img+Error';
-          };
-          lastAppendedElement.insertAdjacentElement('afterend', inlineImg);
-          lastAppendedElement = inlineImg;
-        }
-        if (itemData.modalText2) {
-          const p2 = document.createElement('p');
-          p2.className = 'modal-additional-text';
-          p2.textContent = itemData.modalText2;
-          lastAppendedElement.insertAdjacentElement('afterend', p2);
-          lastAppendedElement = p2;
-        }
-        if (itemData.modalText3) {
-          const p3 = document.createElement('p');
-          // Add clear-float if an inline image was added, to ensure this paragraph starts below it.
-          p3.className = itemData.modalImage1 ? 'modal-additional-text clear-float' : 'modal-additional-text';
-          p3.textContent = itemData.modalText3;
-          lastAppendedElement.insertAdjacentElement('afterend', p3);
-        }
-      } else if (itemType === 'skill') {
+          if (el) {
+            modalTextContentElement.insertBefore(el, insertionPoint);
+          }
+        });
+      } else {
         modalDescription.textContent = itemData.description || '';
-        modalDescription.style.display = itemData.description ? 'block' : 'none';
-      } else { // major or small projects
-        modalDescription.textContent = itemData.description || itemData.modalDescription || '';
-        modalDescription.style.display = (itemData.description || itemData.modalDescription) ? 'block' : 'none';
+        modalDescription.style.display = modalDescription.textContent ? 'block' : 'none';
+      }
+
+      if (hasCustomButtons || !rootLink) {
+        modalLink.style.display = 'none';
+      } else {
+        modalLink.style.display = 'inline-block';
+        modalLink.href = rootLink;
       }
 
       if (itemType === 'skill') {
@@ -765,36 +788,38 @@
         modalAnimator.classList.add('project-modal');
       }
 
-      modalLink.style.display = itemData.link ? 'inline-block' : 'none';
-      if(itemData.link) modalLink.href = itemData.link;
-
       modalBackdrop.classList.add('visible');
 
+      const cardRect = card.getBoundingClientRect();
+      modalAnimator.classList.add('visible');
+      if (lastClickedCard) lastClickedCard.classList.add('animating-out');
+
+      let finalWidth, finalHeight, finalTop, finalLeft;
+
+      if (itemType === 'skill') {
+        finalWidth = finalHeight = Math.min(600, window.innerWidth * 0.85, window.innerHeight * 0.85);
+        finalTop = (window.innerHeight - finalHeight) / 2;
+        finalLeft = (window.innerWidth - finalWidth) / 2;
+      } else { // 'about' and 'project' modals (expand from card)
+        finalWidth = Math.min(1280, window.innerWidth * 0.9);
+        finalHeight = Math.min(window.innerHeight * 0.9, 1080);
+        finalTop = (window.innerHeight - finalHeight) / 2;
+        finalLeft = (window.innerWidth - finalWidth) / 2;
+      }
+
+      // Set initial position and size to the card's for all types that expand from card
       modalAnimator.classList.add('no-transition');
       modalAnimator.style.top = `${cardRect.top}px`;
       modalAnimator.style.left = `${cardRect.left}px`;
       modalAnimator.style.width = `${cardRect.width}px`;
       modalAnimator.style.height = `${cardRect.height}px`;
 
-      modalAnimator.classList.add('visible');
-      card.classList.add('animating-out');
-
       void modalAnimator.offsetHeight;
       modalAnimator.classList.remove('no-transition');
 
       requestAnimationFrame(() => {
-        let finalWidth;
-        let finalHeight;
-
-        if (itemType === 'major' || itemType === 'small' || itemType === 'about') {
-          finalWidth = Math.min(1280, window.innerWidth * 0.9);
-          finalHeight = Math.min(window.innerHeight * 0.9, 1080);
-        } else {
-          finalWidth = finalHeight = Math.min(600, window.innerWidth * 0.85, window.innerHeight * 0.85);
-        }
-
-        modalAnimator.style.top = `${(window.innerHeight - finalHeight) / 2}px`;
-        modalAnimator.style.left = `${(window.innerWidth - finalWidth) / 2}px`;
+        modalAnimator.style.top = `${finalTop}px`;
+        modalAnimator.style.left = `${finalLeft}px`;
         modalAnimator.style.width = `${finalWidth}px`;
         modalAnimator.style.height = `${finalHeight}px`;
         modalAnimator.classList.add('open');
@@ -811,8 +836,10 @@
       isAnimating = true;
 
       const cardToClose = lastClickedCard;
-      const cardRect = cardToClose.getBoundingClientRect();
+      // const itemTypeOfClosedModal = cardToClose.dataset.itemType; // Not needed for differentiating close animation anymore
 
+      // All modals (about, project, skill) now close by shrinking back to their card
+      const cardRect = cardToClose.getBoundingClientRect();
       modalAnimator.style.top = `${cardRect.top}px`;
       modalAnimator.style.left = `${cardRect.left}px`;
       modalAnimator.style.width = `${cardRect.width}px`;
@@ -820,6 +847,8 @@
 
       modalAnimator.classList.remove('open');
       modalBackdrop.classList.remove('visible');
+      modalAnimator.classList.remove('visible');
+
 
       const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
 
@@ -827,14 +856,11 @@
         if(lastClickedCard) {
           lastClickedCard.classList.remove('animating-out');
         }
-        modalAnimator.classList.remove('visible');
         document.body.style.overflow = '';
 
-        // Also clear dynamic 'About Me' content upon close
-        const existingInlineImage = modalTextContentElement.querySelector('.modal-inline-image');
-        if (existingInlineImage) existingInlineImage.remove();
-        modalTextContentElement.querySelectorAll('p.modal-additional-text').forEach(el => el.remove());
-        modalDescription.textContent = ''; // Clear main description too
+        modalTextContentElement.querySelectorAll('.modal-dynamic-text, .modal-dynamic-image, .modal-dynamic-button').forEach(el => el.remove());
+        modalDescription.textContent = '';
+        modalDescription.style.display = 'none';
 
         isAnimating = false;
         lastClickedCard = null;
