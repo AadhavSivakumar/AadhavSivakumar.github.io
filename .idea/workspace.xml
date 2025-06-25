@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="moved resume">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="changed about me modal">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" afterPath="$PROJECT_DIR$/testfile.html" afterDir="false" />
     </list>
@@ -312,7 +312,15 @@
       <option name="project" value="LOCAL" />
       <updated>1750837448056</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="changed about me modal">
+      <option name="closed" value="true" />
+      <created>1750879666752</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1750879666752</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -327,6 +335,7 @@
     <MESSAGE value="some more skills images" />
     <MESSAGE value="software images updated" />
     <MESSAGE value="moved resume" />
-    <option name="LAST_COMMIT_MESSAGE" value="moved resume" />
+    <MESSAGE value="changed about me modal" />
+    <option name="LAST_COMMIT_MESSAGE" value="changed about me modal" />
   </component>
 </project>

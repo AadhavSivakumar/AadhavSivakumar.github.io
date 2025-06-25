@@ -65,13 +65,10 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      /* padding-top: 20px; /* Removed as section padding is adjusted */
     }
-    .about-me-card { /* Base styles for the About Me card */
-      max-width: 600px; /* Increased size from 500px */
+    .about-me-card {
+      max-width: 600px;
       width: 100%;
-      /* Animation properties (opacity, transition) are inherited from .major-project-card */
-      /* Initial transform for animation is set later to override nth-child */
     }
     .about-me-card img {
       width: 100%;
@@ -83,15 +80,13 @@
 
     #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
 
-    /* Base styles for all cards, including their return animation */
     .major-project-card, .small-project-card, .skill-card {
       cursor: pointer;
-      opacity: 0; /* Starts transparent for the initial scroll-in */
+      opacity: 0;
       visibility: visible;
       transition: opacity 0.5s ease-out, transform 0.5s ease, box-shadow 0.4s ease;
     }
 
-    /* Card state for when the modal is opening/open */
     .project-modal-trigger.animating-out {
       opacity: 0 !important;
       transform: scale(0.95) !important;
@@ -102,10 +97,8 @@
     .major-project-card:nth-child(odd), .small-project-card:nth-child(odd), .skill-card:nth-child(odd) { transform: translateX(-50px); }
     .major-project-card:nth-child(even), .small-project-card:nth-child(even), .skill-card:nth-child(even) { transform: translateX(50px); }
 
-    /* Specific animation for About Me card - initial state (replaces the old translateX(0) override) */
-    /* This rule is placed after nth-child rules to ensure it overrides them for the .about-me-card */
     .about-me-card {
-      transform: translateY(30px); /* Initial position from bottom for animation */
+      transform: translateY(30px);
     }
 
 
@@ -113,14 +106,12 @@
       opacity: 1;
       transform: translateX(0);
     }
-    /* Specific in-view state for About Me card, overrides generic translateX(0) */
     .about-me-card.in-view {
-      opacity: 1; /* Ensure opacity is set */
-      transform: translateY(0); /* Animate to final Y position */
+      opacity: 1;
+      transform: translateY(0);
     }
 
 
-    /* Applying the breathing animation on hover */
     .major-project-card:hover,
     .small-project-card:hover,
     .skill-card:hover {
@@ -141,7 +132,6 @@
     .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
     .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); }
 
-    /* SKILLS, CONTACT & FOOTER */
     .skill-category-title {
       font-size: 1.8rem;
       margin-top: 60px;
@@ -186,7 +176,7 @@
       color: var(--secondary-color);
     }
 
-    #contact p, #resume p { /* Shared style for resume and contact paragraph */
+    #contact p, #resume p {
       max-width: 600px;
       margin: 0 auto 40px;
       color: var(--secondary-color);
@@ -198,10 +188,10 @@
     .social-links a:hover { transform: scale(1.25); color: var(--accent-color); }
     footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid #ddd; margin-top: 50px; position: relative; z-index: 10; }
 
-    #resume-iframe { /* ID remains the same, styles apply to embed tag */
+    #resume-iframe {
       width: 100%;
-      height: 800px; /* Adjust as needed, or use vh unit like 75vh for responsiveness */
-      border: 1px solid #ddd; /* Optional: adds a light border */
+      height: 800px;
+      border: 1px solid #ddd;
       border-radius: 8px;
       margin-top: 20px;
     }
@@ -266,11 +256,11 @@
       display: inline-block;
       padding: 12px 24px;
       background-color: var(--accent-color);
-      color: var(--surface-color) !important; /* Ensure text is light on dark accent */
+      color: var(--surface-color) !important;
       border-radius: 5px;
       font-weight: 600;
       text-align: center;
-      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease; /* Added box-shadow transition */
+      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
     }
     .modal-view-button:hover {
       transform: scale(1.05);
@@ -286,11 +276,31 @@
 
     .modal-text-content { padding: 25px 35px; }
     .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
-    .modal-text-content p { margin-bottom: 25px; white-space: pre-wrap; } /* Added pre-wrap for newlines */
+    .modal-text-content p { margin-bottom: 25px; white-space: pre-wrap; }
+
+    .modal-inline-image {
+      float: left;
+      margin-right: 20px;
+      margin-bottom: 10px;
+      margin-top: 5px;
+      max-width: 40%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .modal-text-content p.modal-additional-text {
+      white-space: pre-wrap;
+      margin-bottom: 25px;
+    }
+    .modal-text-content p.modal-additional-text.clear-float {
+      clear: both; /* To ensure this paragraph starts below the floated image */
+    }
+
 
     /* RESPONSIVE DESIGN */
     @media (max-width: 1024px) {
       .skills-grid { grid-template-columns: repeat(4, 1fr); }
+      .modal-inline-image { max-width: 50%; margin-right: 15px;}
     }
     @media (max-width: 768px) {
       .skills-grid { grid-template-columns: repeat(3, 1fr); }
@@ -301,6 +311,7 @@
       .modal-text-content { padding: 25px 15px; }
       .modal-text-content h2 { font-size: 2rem; }
       #resume-iframe { height: 600px; }
+      .modal-inline-image { float: none; max-width: 100%; margin-right: 0; margin-bottom: 15px; display: block; margin-left: auto; margin-right: auto;}
     }
     @media (max-width: 480px) {
       .skills-grid { grid-template-columns: repeat(2, 1fr); }
@@ -388,6 +399,7 @@
         <div class="modal-text-content">
           <h2 id="modal-title"></h2>
           <p id="modal-description"></p>
+          <!-- Dynamically added elements for 'About Me' will be inserted here by JS -->
           <div id="modal-tech-stack"></div>
           <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
         </div>
@@ -410,7 +422,10 @@
       cardTeaser: 'A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.',
       imageUrl: 'https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG',
       modalTitle: 'Aadhav Sivakumar',
-      modalDescription: "Hello! I'm Aadhav Sivakumar, a passionate Robotics and Embedded Systems Engineer hailing from the Bay Area in California. My journey in engineering started from Dublin High School, through my undergraduate studies at University of California, Santa Cruz, and now to New York, where I am currently a Master's in Mechatronics and Robotics at NYU Tandon. I am driven by the challenge of creating intelligent systems and thrive on developing cutting-edge solutions in the world of robotics and embedded technology. Apart from my engineering interests, I like to play volleyball and go biking through the streets of Brooklyn and Manhattan.\n\n--- (You can expand on the following points to add more detail! Feel free to remove this line and the template points once you've filled them in.) ---\n\n*   **Early Inspirations:** [Describe what sparked your interest in engineering/robotics. E.g., \"My fascination with robotics began when I [mention a specific event, project, or observation]...\" or \"I was always drawn to understanding how things work, which naturally led me to...\"]\n\n*   **Key Strengths & Approach:** [Mention 2-3 personal strengths or your working style. E.g., \"I consider myself a [diligent problem-solver / creative innovator / collaborative team-player] who approaches challenges with [enthusiasm / a methodical mindset / a focus on practical solutions]. I believe in the power of [continuous learning / interdisciplinary collaboration / meticulous attention to detail] to achieve impactful results.\"]\n\n*   **Specific Passions within Engineering:** [Detail specific areas that excite you. E.g., \"Within the vast field of robotics, I'm particularly drawn to [autonomous navigation / human-robot interaction / AI-driven control systems / medical robotics / sustainable technology solutions]. I find the potential for [specific application or impact] incredibly motivating.\"]\n\n*   **Career Aspirations:** [What kind of role or impact are you seeking? E.g., \"Looking ahead, I aspire to contribute to [a specific industry or type of project, e.g., developing next-generation assistive devices / innovative solutions for sustainable energy / cutting-edge autonomous systems]. My goal is to [your broader aim, e.g., leverage my skills to make a tangible positive impact / become a leader in the field of mechatronic design].\"]\n\n*   **Highlight Experience (Optional):** [Briefly mention a significant project or learning experience not detailed elsewhere. E.g., \"A particularly formative experience was [briefly describe project/experience], which taught me the importance of [key takeaway, e.g., a specific skill, teamwork, resilience].\"]\n\n*   **More Hobbies & Interests:** [Add any other hobbies or interests, or elaborate on existing ones. E.g., \"Beyond volleyball and biking, I also enjoy [Hobby 1, e.g., reading sci-fi novels], [Hobby 2, e.g., learning new programming languages in my spare time], and [Interest, e.g., exploring historical technology].\"]\n\n*   **Personal Philosophy (Optional):** [Share a guiding principle if you like. E.g., \"I'm guided by the belief that [your core belief, e.g., technology should be used to empower and improve lives / continuous innovation is key to solving complex problems]. This philosophy shapes my approach to both my work and personal development.\"]",
+      modalText1: "Hello! I'm Aadhav Sivakumar, a passionate Robotics and Embedded Systems Engineer hailing from the Bay Area in California. My journey in engineering started from Dublin High School, through my undergraduate studies at University of California, Santa Cruz, and now to New York, where I am currently a Master's in Mechatronics and Robotics at NYU Tandon. I am driven by the challenge of creating intelligent systems and thrive on developing cutting-edge solutions in the world of robotics and embedded technology. Apart from my engineering interests, I like to play volleyball and go biking through the streets of Brooklyn and Manhattan.",
+      modalImage1: 'https://placehold.co/400x300/e0e0e0/757575?text=My+Inline+Image', // Placeholder for inline image
+      modalText2: '[This is the second paragraph of my story. It can elaborate on my journey, specific interests, or anecdotes. This text should wrap around the inline image if it is floated. For example, I could talk about a pivotal project or a learning experience that shaped my career path.]',
+      modalText3: '[This is the third paragraph, perhaps for future goals, concluding thoughts, or another distinct aspect of my personality or professional outlook. This text will appear after the first paragraph, the inline image, and the second paragraph.]',
       link: null
     };
 
@@ -519,12 +534,13 @@
 
     const modalBackdrop = document.querySelector('.modal-backdrop');
     const modalAnimator = document.querySelector('.modal-animator');
-    const modalContentWrapper = document.querySelector('.modal-content-wrapper');
+    const modalContentWrapper = document.querySelector('.modal-content-wrapper'); // Not directly used for content placement, but for scrolling
+    const modalTextContentElement = document.querySelector('.modal-text-content'); // Parent for text, inline img
     const modalCloseBtn = document.querySelector('.modal-close');
-    const modalImage = document.querySelector('.modal-image');
-    const modalImageContainer = document.querySelector('.modal-image-container');
+    const modalImage = document.querySelector('.modal-image'); // Main top image
+    // modalImageContainer is used for the main top image
     const modalTitle = document.getElementById('modal-title');
-    const modalDescription = document.getElementById('modal-description');
+    const modalDescription = document.getElementById('modal-description'); // Will hold modalText1 for 'about'
     const modalLink = document.getElementById('modal-link');
     const modalTechStack = document.getElementById('modal-tech-stack');
 
@@ -677,10 +693,15 @@
 
       document.body.style.overflow = 'hidden';
 
+      // Clear previously added dynamic 'About Me' elements
+      const existingInlineImage = modalTextContentElement.querySelector('.modal-inline-image');
+      if (existingInlineImage) existingInlineImage.remove();
+      modalTextContentElement.querySelectorAll('p.modal-additional-text').forEach(el => el.remove());
+
       const cardRect = card.getBoundingClientRect();
 
       modalTitle.textContent = itemData.title || itemData.name || itemData.modalTitle;
-      modalDescription.textContent = (itemType === 'skill') ? itemData.description : (itemData.modalDescription || itemData.description);
+
       modalImage.src = itemData.imageUrl;
       modalImage.alt = itemData.title || itemData.name || itemData.modalTitle;
       modalImage.onerror = function() {
@@ -689,6 +710,46 @@
       };
 
       modalTechStack.innerHTML = '';
+
+      if (itemType === 'about') {
+        modalDescription.textContent = itemData.modalText1 || '';
+        modalDescription.style.display = itemData.modalText1 ? 'block' : 'none';
+
+        let lastAppendedElement = modalDescription; // Keep track of where to insert next
+
+        if (itemData.modalImage1) {
+          const inlineImg = document.createElement('img');
+          inlineImg.src = itemData.modalImage1;
+          inlineImg.alt = "Profile details";
+          inlineImg.className = 'modal-inline-image';
+          inlineImg.onerror = function() {
+            this.onerror=null;
+            this.src='https://placehold.co/300x200/cccccc/333333?text=Img+Error';
+          };
+          lastAppendedElement.insertAdjacentElement('afterend', inlineImg);
+          lastAppendedElement = inlineImg;
+        }
+        if (itemData.modalText2) {
+          const p2 = document.createElement('p');
+          p2.className = 'modal-additional-text';
+          p2.textContent = itemData.modalText2;
+          lastAppendedElement.insertAdjacentElement('afterend', p2);
+          lastAppendedElement = p2;
+        }
+        if (itemData.modalText3) {
+          const p3 = document.createElement('p');
+          // Add clear-float if an inline image was added, to ensure this paragraph starts below it.
+          p3.className = itemData.modalImage1 ? 'modal-additional-text clear-float' : 'modal-additional-text';
+          p3.textContent = itemData.modalText3;
+          lastAppendedElement.insertAdjacentElement('afterend', p3);
+        }
+      } else if (itemType === 'skill') {
+        modalDescription.textContent = itemData.description || '';
+        modalDescription.style.display = itemData.description ? 'block' : 'none';
+      } else { // major or small projects
+        modalDescription.textContent = itemData.description || itemData.modalDescription || '';
+        modalDescription.style.display = (itemData.description || itemData.modalDescription) ? 'block' : 'none';
+      }
 
       if (itemType === 'skill') {
         modalAnimator.classList.remove('project-modal');
@@ -762,8 +823,16 @@
         }
         modalAnimator.classList.remove('visible');
         document.body.style.overflow = '';
+
+        // Also clear dynamic 'About Me' content upon close
+        const existingInlineImage = modalTextContentElement.querySelector('.modal-inline-image');
+        if (existingInlineImage) existingInlineImage.remove();
+        modalTextContentElement.querySelectorAll('p.modal-additional-text').forEach(el => el.remove());
+        modalDescription.textContent = ''; // Clear main description too
+
         isAnimating = false;
         lastClickedCard = null;
+
       }, animationDurationMs);
     };
 
