@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="some more skills images">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="change sizing" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -26,18 +24,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "AadhavSivakumar"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;AadhavSivakumar&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git",
-    "accountId": "9800f11d-f0eb-404e-b48a-88c77ef3f55d"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git&quot;,
+    &quot;accountId&quot;: &quot;9800f11d-f0eb-404e-b48a-88c77ef3f55d&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -66,26 +64,28 @@
     "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/hiaad/OneDrive/Documents/GitHub/AadhavSivakumar.github.io",
+    "last_opened_file_path": "C:/Users/hiaad/OneDrive/Desktop/Staging area/AadhavSivakumar.github.io/Images/Resume",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\Images\Resume" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io" />
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io" />
+      <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\Images\skills" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\ESP32" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills\ROS.png" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\legacy" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills and tools" />
     </key>
   </component>
   <component name="RunManager">
@@ -163,7 +163,7 @@
       <workItem from="1750099981963" duration="36739000" />
       <workItem from="1750534343588" duration="5214000" />
       <workItem from="1750697453481" duration="1586000" />
-      <workItem from="1750788939580" duration="13748000" />
+      <workItem from="1750788939580" duration="12625000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -285,15 +285,55 @@
       <option name="project" value="LOCAL" />
       <updated>1750822598942</updated>
     </task>
-    <task id="LOCAL-00016" summary="some more skills images">
+    <task id="LOCAL-00016" summary="software images updated">
       <option name="closed" value="true" />
-      <created>1750825088741</created>
+      <created>1750836142207</created>
       <option name="number" value="00016" />
       <option name="presentableId" value="LOCAL-00016" />
       <option name="project" value="LOCAL" />
-      <updated>1750825088741</updated>
+      <updated>1750836142207</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="software images updated">
+      <option name="closed" value="true" />
+      <created>1750837319571</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1750837319571</updated>
+    </task>
+    <task id="LOCAL-00018" summary="moved resume">
+      <option name="closed" value="true" />
+      <created>1750837448056</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1750837448056</updated>
+    </task>
+    <task id="LOCAL-00019" summary="changed about me modal">
+      <option name="closed" value="true" />
+      <created>1750879666752</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1750879666752</updated>
+    </task>
+    <task id="LOCAL-00020" summary="changed about me modal">
+      <option name="closed" value="true" />
+      <created>1750880464045</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1750880464045</updated>
+    </task>
+    <task id="LOCAL-00021" summary="change sizing">
+      <option name="closed" value="true" />
+      <created>1750880753708</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1750880753708</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -306,6 +346,10 @@
     <MESSAGE value="more image changes" />
     <MESSAGE value="images" />
     <MESSAGE value="some more skills images" />
-    <option name="LAST_COMMIT_MESSAGE" value="some more skills images" />
+    <MESSAGE value="software images updated" />
+    <MESSAGE value="moved resume" />
+    <MESSAGE value="changed about me modal" />
+    <MESSAGE value="change sizing" />
+    <option name="LAST_COMMIT_MESSAGE" value="change sizing" />
   </component>
 </project>
