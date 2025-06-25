@@ -4,20 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="some more skills images">
-      <change afterPath="$PROJECT_DIR$/Images/skills/AndroidStudio.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/EAGLE.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/LTspice.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/OrCADCapture.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/SOLIDWORKS-Logo.webp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/altium-designer.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/autocad.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/firebase.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/fusion360.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Images/skills/webots.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" afterPath="$PROJECT_DIR$/testfile.html" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="software images updated" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -297,7 +284,15 @@
       <option name="project" value="LOCAL" />
       <updated>1750822598942</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="software images updated">
+      <option name="closed" value="true" />
+      <created>1750836142207</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1750836142207</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -310,6 +305,7 @@
     <MESSAGE value="more image changes" />
     <MESSAGE value="images" />
     <MESSAGE value="some more skills images" />
-    <option name="LAST_COMMIT_MESSAGE" value="some more skills images" />
+    <MESSAGE value="software images updated" />
+    <option name="LAST_COMMIT_MESSAGE" value="software images updated" />
   </component>
 </project>
