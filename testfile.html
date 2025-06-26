@@ -70,13 +70,13 @@
       width: 50px;
       height: calc(50px * 0.866);
       clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-      left: 10vw;
+      left: 2vw;
       top: 85vh;
     }
     .right-object {
       width: 40px;
       height: 40px;
-      right: 8vw;
+      right: 1vw;
       top: 0;
       transform: translateY(-100%);
     }
@@ -121,8 +121,8 @@
 
     /* SVG Sine Wave Animation Styles */
     .svg-sine-wave-container {
-      width: 150px;
-      height: 220px;
+      width: 200px;
+      height: 280px;
       position: relative;
       flex-shrink: 0;
       overflow: hidden;
@@ -144,27 +144,28 @@
     }
     .svg-sine-wave-container svg path {
       stroke: var(--accent-color);
-      stroke-width: 1.5px;
+      stroke-width: 2px;
       fill: none;
       transition: stroke 0.3s ease;
-      animation-duration: 6s; /* Slower animation */
+      animation-duration: 5s; /* Slower animation */
       animation-timing-function: linear;
       animation-iteration-count: infinite;
     }
     .svg-sine-wave-container.left-wave svg path {
-      animation-name: scrollWaveLeft;
+      animation-name: move-left; /* Waves move outwards, to the left */
     }
     .svg-sine-wave-container.right-wave svg path {
-      animation-name: scrollWaveRight;
+      animation-name: move-right; /* Waves move outwards, to the right */
     }
 
-    @keyframes scrollWaveRight { /* For right container, waves move LTR */
-      0% { transform: translateX(0); }
-      100% { transform: translateX(calc(-100% + 150px)); } /* Scroll one full pattern width (path width - svg viewport width)*/
+    @keyframes move-left {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-200px); } /* Scroll by 2 wave cycles for a seamless loop */
     }
-    @keyframes scrollWaveLeft { /* For left container, waves move RTL */
-      0% { transform: translateX(calc(-100% + 150px)); }
-      100% { transform: translateX(0); }
+
+    @keyframes move-right {
+      from { transform: translateX(-200px); }
+      to   { transform: translateX(0); }
     }
 
     .about-me-card {
@@ -259,6 +260,27 @@
       border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
       transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
+    .project-tag.status-completed {
+      background-color: color-mix(in srgb, #28a745 20%, var(--surface-color));
+      color: color-mix(in srgb, #28a745 90%, var(--primary-color));
+      border-color: color-mix(in srgb, #28a745 40%, transparent);
+    }
+    .project-tag.status-in-progress {
+      background-color: color-mix(in srgb, #fd7e14 20%, var(--surface-color));
+      color: color-mix(in srgb, #fd7e14 95%, var(--primary-color));
+      border-color: color-mix(in srgb, #fd7e14 40%, transparent);
+    }
+    html[data-theme="dark"] .project-tag.status-completed {
+      background-color: color-mix(in srgb, #28a745 30%, var(--surface-color));
+      color: #d1f7d9;
+      border-color: color-mix(in srgb, #28a745 50%, transparent);
+    }
+    html[data-theme="dark"] .project-tag.status-in-progress {
+      background-color: color-mix(in srgb, #fd7e14 30%, var(--surface-color));
+      color: #ffe8d6;
+      border-color: color-mix(in srgb, #fd7e14 50%, transparent);
+    }
+
 
     .skill-groups-grid {
       display: grid;
@@ -292,7 +314,7 @@
       filter: var(--skill-image-filter-resting-dark);
     }
     .skill-group-card:hover .skill-group-card-image {
-      filter: drop-shadow(0 0 6px var(--accent-color)) drop-shadow(0 0 12px color-mix(in srgb, var(--accent-color) 70%, transparent));
+      filter: grayscale(100%) sepia(90%) hue-rotate(315deg) saturate(500%) brightness(1.1);
     }
     .skill-group-card-title {
       font-family: 'Playfair Display', serif;
@@ -612,23 +634,23 @@
     };
 
     const majorProjectsData = [
-      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', tags: ['Drone', 'C++', 'ROS', 'Pixhawk', 'Agriculture'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', tags: ['Wearable', 'Sensors', 'Bluetooth', 'Python', 'AI'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', tags: ['AR', 'Robotics', 'AI Vision', 'Python', 'ROS'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', tags:['Robotics', 'AI Vision', 'Franka Panda', 'ROS'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', tags: ['Sensors', 'Soft Robotics', 'PCB Design', 'C'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', tags:['Simulation', 'Robotics', 'Path Planning', 'Python'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
+      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', tags: ['Drone', 'C++', 'ROS', 'Pixhawk', 'Agriculture'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', tags: ['Wearable', 'Sensors', 'Bluetooth', 'Python', 'AI'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', tags: ['AR', 'Robotics', 'AI Vision', 'Python', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', tags:['Robotics', 'AI Vision', 'Franka Panda', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', tags: ['Sensors', 'Soft Robotics', 'PCB Design', 'C'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', tags:['Simulation', 'Robotics', 'Path Planning', 'Python'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
     ];
 
     const smallProjectsData = [
-      { id: 'a', title: 'Sand Table', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400', tags: ['Robotics', 'Arduino', 'Mechanics'], modalContent: [{type: 'text', value: '2R manipulator to create patterns in the sand.'}] },
-      { id: 'b', title: 'PONG', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400', tags: ['FPGA', 'Verilog', 'Game Dev'], modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
-      { id: 'c', title: 'MATE ROV', imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', tags: ['ROV', 'Underwater', 'Competition'], modalContent: [{type: 'text', value: 'Underwater drone completing complex tasks as a part of MATE ROV competition.'}] },
-      { id: 'd', title: 'Automated Dog Feeder', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400', tags: ['IoT', 'ESP32', 'Embedded C'], modalContent: [{type: 'text', value: 'System that allows dog to get correct portion of food remotely.'}] },
-      { id: 'e', title: 'FPGA VGA Game', imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop', tags: ['FPGA', 'Verilog', 'VGA'], modalContent: [{type: 'text', value: 'Simple flappy bird style game implemented on Basys 3 FPGA.'}] },
-      { id: 'f', title: 'Mechatronics Competition', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400', tags: ['Robotics', 'Competition', 'Arduino'], modalContent: [{type: 'text', value: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class.'}] },
-      { id: 'g', title: 'Chess GUI', imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400', tags: ['Python', 'GUI', 'Pygame'], modalContent: [{type: 'text', value: 'A GUI for playing chess against an AI or another player.'}] },
-      { id: 'h', title: 'Portfolio Website', imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400', tags: ['HTML', 'CSS', 'JavaScript'], modalContent: [{type: 'text', value: 'This very website you are looking at!'}] },
+      { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: 'https://images.unsplash.com/photo-1612634093399-120155da5060?w=400', tags: ['Robotics', 'Python', 'CV', 'Arduino'], status: 'In Progress', modalContent: [{type: 'text', value: 'A robot arm controlled via computer vision to interact with objects on a desktop.'}] },
+      { id: 'h', title: '3d Fruit Ninja Simulation', imageUrl: 'https://images.unsplash.com/photo-1635805737451-426990365853?w=400', tags: ['Simulation', 'Python', 'Pygame', '3D'], status: 'In Progress', modalContent: [{type: 'text', value: 'A simulation of the popular game Fruit Ninja in a 3D environment using Python.'}] },
+      { id: 'a', title: 'Sand Table', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400', tags: ['Robotics', 'Arduino', 'Mechanics'], status: 'Completed', modalContent: [{type: 'text', value: '2R manipulator to create patterns in the sand.'}] },
+      { id: 'b', title: 'PONG', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400', tags: ['FPGA', 'Verilog', 'Game Dev'], status: 'Completed', modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
+      { id: 'c', title: 'MATE ROV', imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', tags: ['ROV', 'Underwater', 'Competition'], status: 'Completed', modalContent: [{type: 'text', value: 'Underwater drone completing complex tasks as a part of MATE ROV competition.'}] },
+      { id: 'd', title: 'Automated Dog Feeder', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400', tags: ['IoT', 'ESP32', 'Embedded C'], status: 'Completed', modalContent: [{type: 'text', value: 'System that allows dog to get correct portion of food remotely.'}] },
+      { id: 'e', title: 'FPGA VGA Game', imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop', tags: ['FPGA', 'Verilog', 'VGA'], status: 'Completed', modalContent: [{type: 'text', value: 'Simple flappy bird style game implemented on Basys 3 FPGA.'}] },
+      { id: 'f', title: 'Mechatronics Competition', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400', tags: ['Robotics', 'Competition', 'Arduino'], status: 'Completed', modalContent: [{type: 'text', value: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class.'}] },
     ];
 
     const baseSkillImagePath = 'https://aadhavsivakumar.github.io/Images/skills/';
@@ -758,6 +780,7 @@
 
     let isAnimating = false;
     let lastClickedCard = null;
+    let lastCardRect = null;
     let cardObserver;
 
 
@@ -806,14 +829,12 @@
       aboutCardWrapper.innerHTML = '';
 
       const SVG_NS = "http://www.w3.org/2000/svg";
-      const CONTAINER_WIDTH = 150; // Width of the SVG container
-      const CONTAINER_HEIGHT = 220; // Height of the SVG container
+      const CONTAINER_WIDTH = 200;
+      const CONTAINER_HEIGHT = 280;
       const NUM_PARALLEL_WAVES = 5;
-      const WAVE_AMPLITUDE = 8; // Amplitude of one wave
-      const VERTICAL_SPACING = 35; // Vertical spacing between centers of waves
-      const WAVE_CYCLE_WIDTH = 80; // Width of one full sine cycle
-      // PATH needs to be wide enough for two full patterns to ensure seamless looping.
-      // If VIEWPORT is CONTAINER_WIDTH, and we scroll by CONTAINER_WIDTH, PATH must be 2 * CONTAINER_WIDTH.
+      const WAVE_AMPLITUDE = 18;
+      const VERTICAL_SPACING = 55;
+      const WAVE_CYCLE_WIDTH = 100;
       const PATH_TOTAL_WIDTH = CONTAINER_WIDTH * 2;
 
       const createSvgWaveContainer = (isLeftWave) => {
@@ -829,8 +850,6 @@
           let d = "";
           const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_PARALLEL_WAVES - 1) / 2) * VERTICAL_SPACING;
 
-          // Draw a path consisting of multiple sine wave cycles
-          // The path should extend for PATH_TOTAL_WIDTH
           d = `M 0 ${startY}`;
           for (let xPos = 0; xPos < PATH_TOTAL_WIDTH; xPos += WAVE_CYCLE_WIDTH) {
             d += ` q ${WAVE_CYCLE_WIDTH/4} ${-WAVE_AMPLITUDE} ${WAVE_CYCLE_WIDTH/2} 0`;
@@ -869,61 +888,65 @@
 
 
     const populateProjects = () => {
-      majorProjectsData.forEach((project) => {
-        const card = document.createElement('div');
-        card.className = 'major-project-card project-modal-trigger';
-        card.dataset.itemId = project.id;
-        card.dataset.itemType = 'major';
+      [majorProjectsData, smallProjectsData].forEach((projectList, index) => {
+        const container = index === 0 ? majorProjectsContainer : smallProjectsContainer;
+        if (!container) return;
 
-        let tagsHtml = '';
-        if (project.tags && project.tags.length > 0) {
-          tagsHtml = '<div class="project-tags-container">';
-          project.tags.forEach(tag => {
-            tagsHtml += `<span class="project-tag">${tag}</span>`;
-          });
-          tagsHtml += '</div>';
-        }
+        projectList.forEach((project) => {
+          const isMajor = index === 0;
+          const card = document.createElement('div');
+          card.className = `${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`;
+          card.dataset.itemId = project.id;
+          card.dataset.itemType = isMajor ? 'major' : 'small';
 
-        card.innerHTML = `
-          <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
-          <div class="project-content">
-              <h4>${project.title}</h4>
-              <p>${project.cardDescription}</p>
-              ${tagsHtml}
-          </div>`;
-        majorProjectsContainer.appendChild(card);
-        if (cardObserver) cardObserver.observe(card);
-      });
+          let techTagsHtml = '';
+          if (project.tags && project.tags.length > 0) {
+            techTagsHtml = '<div class="project-tags-container">';
+            const tagsToShow = isMajor ? project.tags : project.tags.slice(0, 3);
+            tagsToShow.forEach(tag => {
+              techTagsHtml += `<span class="project-tag">${tag}</span>`;
+            });
+            if (!isMajor && project.tags.length > 3) {
+              techTagsHtml += `<span class="project-tag">...</span>`;
+            }
+            techTagsHtml += '</div>';
+          }
 
-      smallProjectsData.slice(0, 8).forEach((project) => {
-        const card = document.createElement('div');
-        card.className = 'small-project-card project-modal-trigger';
-        card.dataset.itemId = project.id;
-        card.dataset.itemType = 'small';
-        let cardDesc = 'A cool small project.';
-        if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
-          cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
-        }
+          let statusTagHtml = '';
+          if (project.status) {
+            const statusClass = project.status.toLowerCase().replace(' ', '-');
+            statusTagHtml = `<div class="project-tags-container">
+                    <span class="project-tag status-${statusClass}">${project.status}</span>
+                </div>`;
+          }
 
-        let tagsHtml = '';
-        if (project.tags && project.tags.length > 0) {
-          tagsHtml = '<div class="project-tags-container">';
-          project.tags.slice(0, 3).forEach(tag => {
-            tagsHtml += `<span class="project-tag">${tag}</span>`;
-          });
-          if (project.tags.length > 3) tagsHtml += `<span class="project-tag">...</span>`;
-          tagsHtml += '</div>';
-        }
+          if (isMajor) {
+            card.innerHTML = `
+                    <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+                    <div class="project-content">
+                        <h4>${project.title}</h4>
+                        <p>${project.cardDescription}</p>
+                        ${techTagsHtml}
+                        ${statusTagHtml}
+                    </div>`;
+          } else {
+            let cardDesc = 'A cool small project.';
+            if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
+              cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
+            }
+            card.innerHTML = `
+                    <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
+                    <div class="small-project-content">
+                        <h4>${project.title}</h4>
+                        <p>${cardDesc}</p>
+                        ${techTagsHtml}
+                        ${statusTagHtml}
+                    </div>`;
+          }
 
-        card.innerHTML = `
-          <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
-          <div class="small-project-content">
-              <h4>${project.title}</h4>
-              <p>${cardDesc}</p>
-              ${tagsHtml}
-          </div>`;
-        smallProjectsContainer.appendChild(card);
-        if (cardObserver) cardObserver.observe(card);
+          container.appendChild(card);
+          if (cardObserver) cardObserver.observe(card);
+        });
       });
     };
 
@@ -1131,6 +1154,7 @@
 
       modalBackdrop.classList.add('visible');
       const cardRect = card.getBoundingClientRect();
+      lastCardRect = cardRect; // Cache the card's position and size
       modalAnimator.classList.add('visible');
       if (lastClickedCard) lastClickedCard.classList.add('animating-out');
 
@@ -1161,20 +1185,33 @@
     };
 
     const closeModal = () => {
-      if (isAnimating || !lastClickedCard) return;
+      if (isAnimating || !lastClickedCard || !lastCardRect) return;
       isAnimating = true;
-      const cardRect = lastClickedCard.getBoundingClientRect();
-      modalAnimator.style.top = `${cardRect.top}px`;
-      modalAnimator.style.left = `${cardRect.left}px`;
-      modalAnimator.style.width = `${cardRect.width}px`;
-      modalAnimator.style.height = `${cardRect.height}px`;
+
+      // Animate the modal content and backdrop fading out
       modalAnimator.classList.remove('open');
       modalBackdrop.classList.remove('visible');
-      modalAnimator.classList.remove('visible');
+
+      // Set the target position for the modal to shrink back to
+      modalAnimator.style.top = `${lastCardRect.top}px`;
+      modalAnimator.style.left = `${lastCardRect.left}px`;
+      modalAnimator.style.width = `${lastCardRect.width}px`;
+      modalAnimator.style.height = `${lastCardRect.height}px`;
+
+      // Animate opacity to 0. We can't just remove the 'visible' class, as that
+      // would also apply 'visibility: hidden' instantly, killing the animation.
+      // Instead, we leave '.visible' on for the animation's duration and override opacity.
+      modalAnimator.style.opacity = '0';
 
       const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
       setTimeout(() => {
-        if(lastClickedCard) lastClickedCard.classList.remove('animating-out');
+        // After the animation, hide the element properly and reset its state for next time.
+        modalAnimator.classList.remove('visible');
+        modalAnimator.style.opacity = ''; // Clear inline style
+
+        if (lastClickedCard) {
+          lastClickedCard.classList.remove('animating-out');
+        }
         document.body.style.overflow = '';
         modalDynamicContentArea.innerHTML = '';
         modalDescription.textContent = '';
@@ -1182,6 +1219,7 @@
         modalLink.style.display = 'none';
         isAnimating = false;
         lastClickedCard = null;
+        lastCardRect = null;
       }, animationDurationMs);
     };
 
