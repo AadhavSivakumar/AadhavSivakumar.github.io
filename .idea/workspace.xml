@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="fixed skill image hover">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="millet img" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -367,7 +365,15 @@
       <option name="project" value="LOCAL" />
       <updated>1750979388262</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="millet img">
+      <option name="closed" value="true" />
+      <created>1750980952905</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1750980952905</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -387,6 +393,7 @@
     <MESSAGE value="static waves" />
     <MESSAGE value="wave updates" />
     <MESSAGE value="fixed skill image hover" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed skill image hover" />
+    <MESSAGE value="millet img" />
+    <option name="LAST_COMMIT_MESSAGE" value="millet img" />
   </component>
 </project>
