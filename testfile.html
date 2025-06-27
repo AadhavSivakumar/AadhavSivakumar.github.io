@@ -234,10 +234,10 @@
     .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); overflow: hidden; }
     .small-project-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
 
-    /* Styles for GIFs to ensure they display correctly */
+    /* Styles for GIFs on project cards */
     .major-project-card img.is-gif,
     .small-project-card img.is-gif {
-      object-fit: contain; /* Ensures the entire GIF is visible */
+      /* The object-fit: cover is inherited from the default img style, making it fill the space. */
       background-color: #e9e9e9; /* A neutral background for transparent GIFs */
     }
     html[data-theme="dark"] .major-project-card img.is-gif,
@@ -666,7 +666,7 @@
       { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
       { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', tags: ['Python', 'AI Vision', 'ESP32/8266', 'Comm Protocols'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
       { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', tags: ['Google Glass', 'AI Vision', 'Python', 'ROS', 'Telerobotics'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Project Documentation PDF'}, {type: 'button', text: 'View on GitHub', link: '#'}] },
-      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', tags:['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: baseProjectImagePath + 'smartsort.gif', tags:['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
       { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', tags: ['C', 'Altium Designer', 'Flex Sensor', 'Piezoelectric'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
       { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', imageUrl: baseProjectImagePath + 'stockbot.gif', tags:['Python', 'Webots', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
     ];
