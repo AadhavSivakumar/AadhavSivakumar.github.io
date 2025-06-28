@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,16 +14,12 @@
       --icon-resting-color: #555555;
       --background-color: #F7F5F2;
       --surface-color: #FFFFFF;
-      --accent-color: #BFA181;
+      --accent-color: #C5A35C;
       --border-color: #ddd;
       --animation-duration: 0.65s;
       --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
-      --tag-bg-color: color-mix(in srgb, var(--accent-color) 15%, var(--surface-color));
-      --tag-text-color: color-mix(in srgb, var(--accent-color) 80%, var(--primary-color));
       --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 8%, transparent);
       --shadow-color-accent: color-mix(in srgb, var(--accent-color) 50%, transparent);
-      --skill-image-filter-resting-light: grayscale(100%) brightness(0%); /* Black */
-      --skill-image-filter-resting-dark: grayscale(100%) brightness(0%) invert(1); /* White */
     }
 
     html[data-theme="dark"] {
@@ -33,10 +28,8 @@
       --icon-resting-color: #a0a0a0;
       --background-color: #121212;
       --surface-color: #1e1e1e;
-      --accent-color: #cfae82;
+      --accent-color: #D4B47C;
       --border-color: #444;
-      --tag-bg-color: color-mix(in srgb, var(--accent-color) 25%, var(--surface-color));
-      --tag-text-color: var(--primary-color);
       --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
       --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
     }
@@ -70,13 +63,13 @@
       width: 50px;
       height: calc(50px * 0.866);
       clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-      left: 10vw;
+      left: 2vw;
       top: 85vh;
     }
     .right-object {
       width: 40px;
       height: 40px;
-      right: 8vw;
+      right: 1vw;
       top: 0;
       transform: translateY(-100%);
     }
@@ -121,8 +114,8 @@
 
     /* SVG Sine Wave Animation Styles */
     .svg-sine-wave-container {
-      width: 150px;
-      height: 220px;
+      width: 200px;
+      height: 280px;
       position: relative;
       flex-shrink: 0;
       overflow: hidden;
@@ -144,27 +137,28 @@
     }
     .svg-sine-wave-container svg path {
       stroke: var(--accent-color);
-      stroke-width: 1.5px;
+      stroke-width: 2px;
       fill: none;
       transition: stroke 0.3s ease;
-      animation-duration: 6s; /* Slower animation */
+      animation-duration: 5s; /* Slower animation */
       animation-timing-function: linear;
       animation-iteration-count: infinite;
     }
     .svg-sine-wave-container.left-wave svg path {
-      animation-name: scrollWaveLeft;
+      animation-name: move-left; /* Waves move outwards, to the left */
     }
     .svg-sine-wave-container.right-wave svg path {
-      animation-name: scrollWaveRight;
+      animation-name: move-right; /* Waves move outwards, to the right */
     }
 
-    @keyframes scrollWaveRight { /* For right container, waves move LTR */
-      0% { transform: translateX(0); }
-      100% { transform: translateX(calc(-100% + 150px)); } /* Scroll one full pattern width (path width - svg viewport width)*/
+    @keyframes move-left {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-200px); } /* Scroll by 2 wave cycles for a seamless loop */
     }
-    @keyframes scrollWaveLeft { /* For left container, waves move RTL */
-      0% { transform: translateX(calc(-100% + 150px)); }
-      100% { transform: translateX(0); }
+
+    @keyframes move-right {
+      from { transform: translateX(-200px); }
+      to   { transform: translateX(0); }
     }
 
     .about-me-card {
@@ -239,6 +233,18 @@
     .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
     .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); overflow: hidden; }
     .small-project-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
+
+    /* Styles for GIFs on project cards */
+    .major-project-card img.is-gif,
+    .small-project-card img.is-gif {
+      /* The object-fit: cover is inherited from the default img style, making it fill the space. */
+      background-color: #e9e9e9; /* A neutral background for transparent GIFs */
+    }
+    html[data-theme="dark"] .major-project-card img.is-gif,
+    html[data-theme="dark"] .small-project-card img.is-gif {
+      background-color: #2a2a2a; /* A darker neutral bg for dark mode */
+    }
+
     .small-project-content { padding: 15px; }
     .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
     .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); margin-bottom: 8px; }
@@ -246,18 +252,50 @@
     .project-tags-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 15px;
     }
     .project-tag {
-      background-color: var(--tag-bg-color);
-      color: var(--tag-text-color);
-      padding: 3px 10px;
+      background: linear-gradient(145deg, #a98642, #f9e099 50%, #b8914c);
+      color: #4B380C;
+      font-weight: 600;
+      padding: 4px 12px;
       border-radius: 12px;
       font-size: 0.7rem;
+      border: 1px solid #8c6d31;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0,0,0,0.1);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+    html[data-theme="dark"] .project-tag:not(.status-completed):not(.status-in-progress) {
+      background: linear-gradient(145deg, #b8914c, #ffeeb3 50%, #c49f5f);
+      border-color: #a08244;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .project-status-container {
+      margin-top: 12px;
+    }
+
+    /* Flat, vibrant status tags overriding the shiny default */
+    .project-tag.status-completed,
+    .project-tag.status-in-progress {
+      background-image: none;
+      border: none;
+      text-shadow: none;
+      box-shadow: none;
+      color: #4B380C; /* Consistent dark text for status tags */
       font-weight: 500;
-      border: 1px solid color-mix(in srgb, var(--accent-color) 40%, transparent);
-      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Pastel green tag for 'Completed' status, consistent in light/dark modes */
+    .project-tag.status-completed {
+      background-color: #a7e0a7;
+    }
+
+    /* Pastel orange tag for 'In Progress' status, consistent in light/dark modes */
+    .project-tag.status-in-progress {
+      background-color: #ffd79b;
     }
 
     .skill-groups-grid {
@@ -279,20 +317,32 @@
       justify-content: flex-start;
       position: relative;
     }
+    .skill-group-card-image-wrapper {
+      position: relative;
+      margin-bottom: 15px;
+      line-height: 0;
+    }
     .skill-group-card-image {
       width: 80px;
       height: 80px;
-      object-fit: contain;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      filter: var(--skill-image-filter-resting-light);
-      transition: filter 0.3s ease-in-out;
+      background-color: var(--accent-color);
+      -webkit-mask-size: contain;
+      mask-size: contain;
+      -webkit-mask-position: center;
+      mask-position: center;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      /* Resting state (light mode): muted gray. Define all filters for smooth transition. */
+      filter: grayscale(1) opacity(1) brightness(1) contrast(0);
+      transition: filter 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     html[data-theme="dark"] .skill-group-card-image {
-      filter: var(--skill-image-filter-resting-dark);
+      /* Resting state (dark mode): lighter gray, more visible */
+      filter: grayscale(1) opacity(1) brightness(1) contrast(0);
     }
     .skill-group-card:hover .skill-group-card-image {
-      filter: drop-shadow(0 0 6px var(--accent-color)) drop-shadow(0 0 12px color-mix(in srgb, var(--accent-color) 70%, transparent));
+      /* Hover state (both modes): reveal the full gold color. Reset brightness. */
+      filter: grayscale(0) opacity(1) brightness(1) contrast(1);
     }
     .skill-group-card-title {
       font-family: 'Playfair Display', serif;
@@ -300,25 +350,12 @@
       margin-bottom: 10px;
       color: var(--primary-color);
     }
-    .skill-group-card-skills-list {
-      list-style: none;
-      padding: 0;
-      margin-top: 8px;
-      font-size: 0.8rem;
-      color: var(--secondary-color);
-      line-height: 1.5;
-      width: 100%;
-      column-count: 2;
-      column-gap: 20px;
-      text-align: left;
-    }
-    .skill-group-card-skills-list li {
-      margin-bottom: 4px;
-      display: inline-block;
-      width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .skill-group-card-tags-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      margin-top: 15px;
+      justify-content: center;
     }
     .skill-group-more-info {
       position: absolute;
@@ -384,6 +421,11 @@
     footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 50px; position: relative; z-index: 10; transition: border-color 0.3s ease, color 0.3s ease;}
 
     #resume-iframe { width: 100%; height: 800px; border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px; transition: border-color 0.3s ease; }
+
+    /* Invert resume colors in dark mode for readability */
+    html[data-theme="dark"] #resume-iframe {
+      filter: invert(1) hue-rotate(180deg);
+    }
 
     /* MODAL STYLES */
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
@@ -453,6 +495,15 @@
       text-align: center; margin: 10px 5px 15px 0;
       transition: transform 0.3s ease, background-color 0.3s ease;
     }
+    .modal-dynamic-embed {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      margin: 20px 0;
+      box-shadow: 0 4px 12px var(--shadow-color-ambient);
+      background-color: var(--background-color);
+    }
     html[data-theme="dark"] .modal-dynamic-button {
       color: var(--background-color) !important;
     }
@@ -484,7 +535,6 @@
       .modal-text-content { padding: 25px 15px; }
       .modal-text-content h2 { font-size: 2rem; }
       #resume-iframe { height: 600px; }
-      .skill-group-card-skills-list { column-count: 1; text-align: center;}
     }
     @media (max-width: 480px) {
       header nav a { margin-left: 10px; font-size: 0.9rem;}
@@ -492,7 +542,7 @@
       #resume-iframe { height: 500px; }
       .skill-group-item { flex-direction: column; align-items: center; text-align: center; }
       .skill-group-item-image { margin-bottom: 10px; }
-      .project-tags-container { justify-content: center; }
+      .project-tags-container, .project-status-container { justify-content: center; display: flex; }
     }
   </style>
 </head>
@@ -610,37 +660,36 @@
         { type: 'text', value: "Feel free to explore my projects or reach out if you'd like to collaborate!" }
       ]
     };
-
+    const baseProjectImagePath = 'https://aadhavsivakumar.github.io/Images/projects/';
     const majorProjectsData = [
-      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: 'https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2564&auto=format&fit=crop', tags: ['Drone', 'C++', 'ROS', 'Pixhawk', 'Agriculture'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 2, title: 'SoleGait', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', tags: ['Wearable', 'Sensors', 'Bluetooth', 'Python', 'AI'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 3, title: 'Glass2Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', tags: ['AR', 'Robotics', 'AI Vision', 'Python', 'ROS'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?q=80&w=2670&auto=format&fit=crop', tags:['Robotics', 'AI Vision', 'Franka Panda', 'ROS'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', tags: ['Sensors', 'Soft Robotics', 'PCB Design', 'C'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 6, title: 'Stockbot', cardDescription: 'Simulation of robot restocking items with optimal path.', imageUrl: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=2669&auto=format&fit=crop', tags:['Simulation', 'Robotics', 'Path Planning', 'Python'], modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
+      { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?q=80&w=2670&auto=format&fit=crop', tags: ['Python', 'AI Vision', 'ESP32/8266', 'Comm Protocols'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 3, title: 'Glass-2-Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop', tags: ['Google Glass', 'AI Vision', 'Python', 'ROS', 'Telerobotics'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Project Documentation PDF'}, {type: 'button', text: 'View on GitHub', link: '#'}] },
+      { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: baseProjectImagePath + 'smartsort.gif', tags:['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: 'https://images.unsplash.com/photo-1624329929555-531e27874411?q=80&w=2670&auto=format&fit=crop', tags: ['C', 'Altium Designer', 'Flex Sensor', 'Piezoelectric'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'Simulation of robot restocking items with optimal path.', imageUrl: baseProjectImagePath + 'stockbot.gif', tags:['Python', 'Webots', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
     ];
 
     const smallProjectsData = [
-      { id: 'a', title: 'Sand Table', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400', tags: ['Robotics', 'Arduino', 'Mechanics'], modalContent: [{type: 'text', value: '2R manipulator to create patterns in the sand.'}] },
-      { id: 'b', title: 'PONG', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400', tags: ['FPGA', 'Verilog', 'Game Dev'], modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
-      { id: 'c', title: 'MATE ROV', imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', tags: ['ROV', 'Underwater', 'Competition'], modalContent: [{type: 'text', value: 'Underwater drone completing complex tasks as a part of MATE ROV competition.'}] },
-      { id: 'd', title: 'Automated Dog Feeder', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400', tags: ['IoT', 'ESP32', 'Embedded C'], modalContent: [{type: 'text', value: 'System that allows dog to get correct portion of food remotely.'}] },
-      { id: 'e', title: 'FPGA VGA Game', imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop', tags: ['FPGA', 'Verilog', 'VGA'], modalContent: [{type: 'text', value: 'Simple flappy bird style game implemented on Basys 3 FPGA.'}] },
-      { id: 'f', title: 'Mechatronics Competition', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400', tags: ['Robotics', 'Competition', 'Arduino'], modalContent: [{type: 'text', value: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class.'}] },
-      { id: 'g', title: 'Chess GUI', imageUrl: 'https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?w=400', tags: ['Python', 'GUI', 'Pygame'], modalContent: [{type: 'text', value: 'A GUI for playing chess against an AI or another player.'}] },
-      { id: 'h', title: 'Portfolio Website', imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400', tags: ['HTML', 'CSS', 'JavaScript'], modalContent: [{type: 'text', value: 'This very website you are looking at!'}] },
+      { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: 'https://images.unsplash.com/photo-1612634093399-120155da5060?w=400', tags: ['Python', 'AI Vision', 'Arduino'], status: 'In Progress', modalContent: [{type: 'text', value: 'A robot arm controlled via computer vision to interact with objects on a desktop.'}] },
+      { id: 'h', title: '3d Fruit Ninja Simulation', imageUrl: 'https://images.unsplash.com/photo-1635805737451-426990365853?w=400', tags: ['Python', 'JavaScript', 'HTML5'], status: 'In Progress', modalContent: [{type: 'text', value: 'A simulation of the popular game Fruit Ninja in a 3D environment using Python.'}] },
+      { id: 'a', title: 'Sand Table', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400', tags: ['Arduino', 'C++', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: '2R manipulator to create patterns in the sand.'}] },
+      { id: 'b', title: 'PONG', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
+      { id: 'c', title: 'MATE ROV', imageUrl: 'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?q=80&w=2672&auto=format&fit=crop', tags: ['C++', 'Arduino', 'Ultrasonic'], status: 'Completed', modalContent: [{type: 'text', value: 'Underwater drone completing complex tasks as a part of MATE ROV competition.'}] },
+      { id: 'd', title: 'Automated Dog Feeder', imageUrl: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=400', tags: ['C', 'ESP32/8266', 'Firebase'], status: 'Completed', modalContent: [{type: 'text', value: 'System that allows dog to get correct portion of food remotely.'}] },
+      { id: 'e', title: 'FPGA VGA Game', imageUrl: 'https://images.unsplash.com/photo-1579882392322-8173d15517e3?q=80&w=2670&auto=format&fit=crop', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{type: 'text', value: 'Simple flappy bird style game implemented on Basys 3 FPGA.'}] },
+      { id: 'f', title: 'Mechatronics Competition', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726a?w=400', tags: ['Arduino', 'C++', 'PID Control'], status: 'Completed', modalContent: [{type: 'text', value: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class.'}] },
     ];
 
     const baseSkillImagePath = 'https://aadhavsivakumar.github.io/Images/skills/';
     const deviconsBaseUrl = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/';
-    const placeholderSkillGroupImage = 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
 
 
     const skillGroupsData = [
       {
         id: 'programming-software',
         title: 'Programming & Software Development',
-        cardImageUrl: 'https://api.iconify.design/mdi/code-braces-box.svg?color=%23BFA181&width=80&height=80',
+        cardImageUrl: 'https://api.iconify.design/mdi/code-braces-box.svg',
         items: [
           { name: 'C', imageUrl: deviconsBaseUrl + 'c/c-original.svg', description: 'A powerful, general-purpose language for system programming, embedded systems, and performance-critical applications.' },
           { name: 'C++', imageUrl: deviconsBaseUrl + 'cplusplus/cplusplus-original.svg', description: 'An extension of C with object-oriented features, used in game engines, OS, and complex software.' },
@@ -659,7 +708,7 @@
       {
         id: 'robotics-control',
         title: 'Robotics & Control Systems',
-        cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg?color=%23BFA181&width=80&height=80',
+        cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
         items: [
           { name: 'Franka Emika Robot', imageUrl: baseSkillImagePath + 'Franka-Emika-Panda-robot.png', description: 'Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors.' },
           { name: 'Pixhawk 6x', imageUrl: baseSkillImagePath + 'pixhawk.png', description: 'Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard.' },
@@ -673,7 +722,7 @@
       {
         id: 'electronics-embedded',
         title: 'Electronics & Embedded Systems',
-        cardImageUrl: 'https://api.iconify.design/mdi/chip.svg?color=%23BFA181&width=80&height=80',
+        cardImageUrl: 'https://api.iconify.design/mdi/chip.svg',
         items: [
           { name: 'NI DAQ', imageUrl: baseSkillImagePath + 'NIDAQ.jpg', description: 'National Instruments hardware for measuring electrical/physical phenomena and converting to digital data.' },
           { name: 'Oscilloscope', imageUrl: baseSkillImagePath + 'oscilloscope.jpg', description: 'Instrument for observing varying signal voltages, crucial for debugging electronic circuits.' },
@@ -696,7 +745,7 @@
       {
         id: 'ai-ml-data',
         title: 'AI, Machine Learning & Data',
-        cardImageUrl: 'https://api.iconify.design/mdi/brain.svg?color=%23BFA181&width=80&height=80',
+        cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
         items: [
           { name: 'AI Vision', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg?color=var(--icon-resting-color)', description: 'Enabling computers to "see" and interpret visual information like images and videos.' },
           { name: 'Gen AI API', imageUrl: 'https://api.iconify.design/mdi/robot-confused-outline.svg?color=var(--icon-resting-color)', description: 'Using Generative AI APIs (ChatGPT, Gemini, Claude) for content generation, chatbots, etc.' },
@@ -706,8 +755,8 @@
       },
       {
         id: 'design-fabrication',
-        title: 'Mechanical Design & Fabrication',
-        cardImageUrl: 'https://api.iconify.design/mdi/printer-3d-nozzle-outline.svg?color=%23BFA181&width=80&height=80',
+        title: 'Design & Fabrication',
+        cardImageUrl: 'https://api.iconify.design/mdi/printer-3d-nozzle-outline.svg',
         items: [
           { name: 'Google Glass', imageUrl: baseSkillImagePath + 'googleglass.jpg', description: 'Optical head-mounted display for hands-free info access and AR applications.' },
           { name: 'Bambu Lab Printer', imageUrl: baseSkillImagePath + 'bambu.webp', description: 'High-speed 3D printers with multi-material support (AMS) and advanced features.' },
@@ -720,7 +769,7 @@
       {
         id: 'sensors-tools',
         title: 'Sensors & Specialized Tools',
-        cardImageUrl: 'https://api.iconify.design/mdi/leak.svg?color=%23BFA181&width=80&height=80',
+        cardImageUrl: 'https://api.iconify.design/mdi/leak.svg',
         items: [
           { name: 'ATI Multi-Axis Force/Torque', imageUrl: baseSkillImagePath + 'ati_force_torque.svg', description: 'Measures all six components of force/torque for robotics, haptics, product testing.' },
           { name: 'IMU', imageUrl: baseSkillImagePath + 'imu.svg', description: 'Measures body\'s specific force, angular rate, and orientation using accelerometers/gyroscopes.' },
@@ -758,6 +807,7 @@
 
     let isAnimating = false;
     let lastClickedCard = null;
+    let lastCardRect = null;
     let cardObserver;
 
 
@@ -806,14 +856,12 @@
       aboutCardWrapper.innerHTML = '';
 
       const SVG_NS = "http://www.w3.org/2000/svg";
-      const CONTAINER_WIDTH = 150; // Width of the SVG container
-      const CONTAINER_HEIGHT = 220; // Height of the SVG container
+      const CONTAINER_WIDTH = 200;
+      const CONTAINER_HEIGHT = 280;
       const NUM_PARALLEL_WAVES = 5;
-      const WAVE_AMPLITUDE = 8; // Amplitude of one wave
-      const VERTICAL_SPACING = 35; // Vertical spacing between centers of waves
-      const WAVE_CYCLE_WIDTH = 80; // Width of one full sine cycle
-      // PATH needs to be wide enough for two full patterns to ensure seamless looping.
-      // If VIEWPORT is CONTAINER_WIDTH, and we scroll by CONTAINER_WIDTH, PATH must be 2 * CONTAINER_WIDTH.
+      const WAVE_AMPLITUDE = 18;
+      const VERTICAL_SPACING = 55;
+      const WAVE_CYCLE_WIDTH = 100;
       const PATH_TOTAL_WIDTH = CONTAINER_WIDTH * 2;
 
       const createSvgWaveContainer = (isLeftWave) => {
@@ -829,8 +877,6 @@
           let d = "";
           const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_PARALLEL_WAVES - 1) / 2) * VERTICAL_SPACING;
 
-          // Draw a path consisting of multiple sine wave cycles
-          // The path should extend for PATH_TOTAL_WIDTH
           d = `M 0 ${startY}`;
           for (let xPos = 0; xPos < PATH_TOTAL_WIDTH; xPos += WAVE_CYCLE_WIDTH) {
             d += ` q ${WAVE_CYCLE_WIDTH/4} ${-WAVE_AMPLITUDE} ${WAVE_CYCLE_WIDTH/2} 0`;
@@ -869,68 +915,77 @@
 
 
     const populateProjects = () => {
-      majorProjectsData.forEach((project) => {
-        const card = document.createElement('div');
-        card.className = 'major-project-card project-modal-trigger';
-        card.dataset.itemId = project.id;
-        card.dataset.itemType = 'major';
+      [majorProjectsData, smallProjectsData].forEach((projectList, index) => {
+        const container = index === 0 ? majorProjectsContainer : smallProjectsContainer;
+        if (!container) return;
 
-        let tagsHtml = '';
-        if (project.tags && project.tags.length > 0) {
-          tagsHtml = '<div class="project-tags-container">';
-          project.tags.forEach(tag => {
-            tagsHtml += `<span class="project-tag">${tag}</span>`;
-          });
-          tagsHtml += '</div>';
-        }
+        projectList.forEach((project) => {
+          const isMajor = index === 0;
+          const card = document.createElement('div');
+          card.className = `${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`;
+          card.dataset.itemId = project.id;
+          card.dataset.itemType = isMajor ? 'major' : 'small';
 
-        card.innerHTML = `
-          <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
-          <div class="project-content">
-              <h4>${project.title}</h4>
-              <p>${project.cardDescription}</p>
-              ${tagsHtml}
-          </div>`;
-        majorProjectsContainer.appendChild(card);
-        if (cardObserver) cardObserver.observe(card);
-      });
+          // Check for GIF to apply special styling
+          const isGif = project.imageUrl && project.imageUrl.toLowerCase().endsWith('.gif');
+          const imageClass = isGif ? 'is-gif' : '';
 
-      smallProjectsData.slice(0, 8).forEach((project) => {
-        const card = document.createElement('div');
-        card.className = 'small-project-card project-modal-trigger';
-        card.dataset.itemId = project.id;
-        card.dataset.itemType = 'small';
-        let cardDesc = 'A cool small project.';
-        if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
-          cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
-        }
+          // Tech Tags
+          let techTagsHtml = '';
+          if (project.tags && project.tags.length > 0) {
+            techTagsHtml = '<div class="project-tags-container">';
+            const tagsToShow = isMajor ? project.tags : project.tags.slice(0, 3);
+            tagsToShow.forEach(tag => {
+              techTagsHtml += `<span class="project-tag">${tag}</span>`;
+            });
+            if (!isMajor && project.tags.length > 3) {
+              techTagsHtml += `<span class="project-tag">...</span>`;
+            }
+            techTagsHtml += '</div>';
+          }
 
-        let tagsHtml = '';
-        if (project.tags && project.tags.length > 0) {
-          tagsHtml = '<div class="project-tags-container">';
-          project.tags.slice(0, 3).forEach(tag => {
-            tagsHtml += `<span class="project-tag">${tag}</span>`;
-          });
-          if (project.tags.length > 3) tagsHtml += `<span class="project-tag">...</span>`;
-          tagsHtml += '</div>';
-        }
+          // Status Tag
+          let statusTagHtml = '';
+          if (project.status) {
+            statusTagHtml = '<div class="project-status-container">';
+            const statusClass = project.status.toLowerCase().replace(/ /g, '-');
+            statusTagHtml += `<span class="project-tag status-${statusClass}">${project.status}</span>`;
+            statusTagHtml += '</div>';
+          }
 
-        card.innerHTML = `
-          <img src="${project.imageUrl}" alt="${project.title}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
-          <div class="small-project-content">
-              <h4>${project.title}</h4>
-              <p>${cardDesc}</p>
-              ${tagsHtml}
-          </div>`;
-        smallProjectsContainer.appendChild(card);
-        if (cardObserver) cardObserver.observe(card);
+          if (isMajor) {
+            card.innerHTML = `
+                        <img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+                        <div class="project-content">
+                            <h4>${project.title}</h4>
+                            <p>${project.cardDescription}</p>
+                            ${techTagsHtml}
+                            ${statusTagHtml}
+                        </div>`;
+          } else {
+            let cardDesc = 'A cool small project.';
+            if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
+              cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
+            }
+            card.innerHTML = `
+                        <img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
+                        <div class="small-project-content">
+                            <h4>${project.title}</h4>
+                            <p>${cardDesc}</p>
+                            ${techTagsHtml}
+                            ${statusTagHtml}
+                        </div>`;
+          }
+
+          container.appendChild(card);
+          if (cardObserver) cardObserver.observe(card);
+        });
       });
     };
 
     const populateSkillGroups = () => {
       if (!skillGroupsContainer) return;
       skillGroupsContainer.innerHTML = '';
-      const currentAccentHex = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim().replace('#', '');
 
       skillGroupsData.forEach(group => {
         const card = document.createElement('div');
@@ -938,29 +993,24 @@
         card.dataset.itemId = group.id;
         card.dataset.itemType = 'skill-group';
 
-        let skillsListHtml = '<ul class="skill-group-card-skills-list">';
+        let skillsListHtml = '<div class="skill-group-card-tags-container">';
         const MAX_SKILLS_ON_CARD = 8;
         group.items.slice(0, MAX_SKILLS_ON_CARD).forEach(skill => {
-          skillsListHtml += `<li>${skill.name}</li>`;
+          skillsListHtml += `<span class="project-tag">${skill.name}</span>`;
         });
-        skillsListHtml += '</ul>';
+        skillsListHtml += '</div>';
 
         let moreInfoHtml = '';
         if (group.items.length > MAX_SKILLS_ON_CARD) {
           moreInfoHtml = `<p class="skill-group-more-info">...and ${group.items.length - MAX_SKILLS_ON_CARD} more</p>`;
         }
 
-        let cardImageSrc = group.cardImageUrl || placeholderSkillGroupImage;
-        if (cardImageSrc.includes('iconify.design')) {
-          if (cardImageSrc.includes('color=')) {
-            cardImageSrc = cardImageSrc.replace(/color=[^&]+/, `color=${currentAccentHex}`);
-          } else {
-            cardImageSrc += (cardImageSrc.includes('?') ? '&' : '?') + `color=${currentAccentHex}`;
-          }
-        }
+        const cardImageSrc = group.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
 
         card.innerHTML = `
-                <img src="${cardImageSrc}" alt="${group.title}" class="skill-group-card-image" onerror="this.onerror=null;this.src='${placeholderSkillGroupImage}';">
+                <div class="skill-group-card-image-wrapper">
+                  <div role="img" aria-label="${group.title} icon" class="skill-group-card-image" style="-webkit-mask-image: url(${cardImageSrc}); mask-image: url(${cardImageSrc});"></div>
+                </div>
                 <h4 class="skill-group-card-title">${group.title}</h4>
                 ${skillsListHtml}
                 ${moreInfoHtml}
@@ -1037,15 +1087,8 @@
       modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal');
       if (itemType === 'skill-group') {
         modalAnimator.classList.add('skill-group-modal');
-        let groupCardImageSrc = itemData.cardImageUrl || placeholderSkillGroupImage;
-        const currentAccentHexModal = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim().replace('#', '');
-        if (groupCardImageSrc.includes('iconify.design')) {
-          if (groupCardImageSrc.includes('color=')) {
-            groupCardImageSrc = groupCardImageSrc.replace(/color=[^&]+/, `color=${currentAccentHexModal}`);
-          } else {
-            groupCardImageSrc += (groupCardImageSrc.includes('?') ? '&' : '?') + `color=${currentAccentHexModal}`;
-          }
-        }
+        let groupCardImageSrc = itemData.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
+
         modalImage.src = groupCardImageSrc;
         modalImage.alt = itemData.title;
         modalImageContainer.style.display = itemData.cardImageUrl ? 'block' : 'none';
@@ -1057,11 +1100,11 @@
           itemEl.className = 'skill-group-item';
           let skillItemImageSrc = skillItem.imageUrl;
           if (skillItemImageSrc.includes('iconify.design')) {
-            if (skillItemImageSrc.includes('color=var(--icon-resting-color)')) {
-              const iconRestingColorValue = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#','');
-              skillItemImageSrc = skillItemImageSrc.replace('color=var(--icon-resting-color)', `color=${iconRestingColorValue}`);
-            } else if (!skillItemImageSrc.match(/color=([a-f0-9]{3,6}|var\(--accent-color\)|var\(--primary-color\)|var\(--secondary-color\))/i) && !skillItemImageSrc.includes('?color') && !skillItemImageSrc.includes('&color')) {
-              skillItemImageSrc += (skillItemImageSrc.includes('?') ? '&' : '?') + `color=${currentAccentHexModal}`;
+            const iconRestingColorValue = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#','');
+            if (skillItemImageSrc.includes('?')) {
+              skillItemImageSrc += `&color=${iconRestingColorValue}`;
+            } else {
+              skillItemImageSrc += `?color=${iconRestingColorValue}`;
             }
           }
 
@@ -1106,6 +1149,14 @@
               el.target = '_blank';
               el.rel = 'noopener noreferrer';
               hasCustomButtons = true;
+            } else if (contentItem.type === 'embed') {
+              el = document.createElement('iframe');
+              el.src = contentItem.value;
+              el.title = contentItem.title || 'Embedded Content';
+              el.className = 'modal-dynamic-embed';
+              el.setAttribute('frameborder', '0');
+              el.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+              el.setAttribute('allowfullscreen', '');
             }
             if (el) modalDynamicContentArea.appendChild(el);
           });
@@ -1131,6 +1182,7 @@
 
       modalBackdrop.classList.add('visible');
       const cardRect = card.getBoundingClientRect();
+      lastCardRect = cardRect; // Cache the card's position and size
       modalAnimator.classList.add('visible');
       if (lastClickedCard) lastClickedCard.classList.add('animating-out');
 
@@ -1161,20 +1213,33 @@
     };
 
     const closeModal = () => {
-      if (isAnimating || !lastClickedCard) return;
+      if (isAnimating || !lastClickedCard || !lastCardRect) return;
       isAnimating = true;
-      const cardRect = lastClickedCard.getBoundingClientRect();
-      modalAnimator.style.top = `${cardRect.top}px`;
-      modalAnimator.style.left = `${cardRect.left}px`;
-      modalAnimator.style.width = `${cardRect.width}px`;
-      modalAnimator.style.height = `${cardRect.height}px`;
+
+      // Animate the modal content and backdrop fading out
       modalAnimator.classList.remove('open');
       modalBackdrop.classList.remove('visible');
-      modalAnimator.classList.remove('visible');
+
+      // Set the target position for the modal to shrink back to
+      modalAnimator.style.top = `${lastCardRect.top}px`;
+      modalAnimator.style.left = `${lastCardRect.left}px`;
+      modalAnimator.style.width = `${lastCardRect.width}px`;
+      modalAnimator.style.height = `${lastCardRect.height}px`;
+
+      // Animate opacity to 0. We can't just remove the 'visible' class, as that
+      // would also apply 'visibility: hidden' instantly, killing the animation.
+      // Instead, we leave '.visible' on for the animation's duration and override opacity.
+      modalAnimator.style.opacity = '0';
 
       const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
       setTimeout(() => {
-        if(lastClickedCard) lastClickedCard.classList.remove('animating-out');
+        // After the animation, hide the element properly and reset its state for next time.
+        modalAnimator.classList.remove('visible');
+        modalAnimator.style.opacity = ''; // Clear inline style
+
+        if (lastClickedCard) {
+          lastClickedCard.classList.remove('animating-out');
+        }
         document.body.style.overflow = '';
         modalDynamicContentArea.innerHTML = '';
         modalDescription.textContent = '';
@@ -1182,6 +1247,7 @@
         modalLink.style.display = 'none';
         isAnimating = false;
         lastClickedCard = null;
+        lastCardRect = null;
       }, animationDurationMs);
     };
 
@@ -1218,6 +1284,8 @@
       if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
       scrollRaf = window.requestAnimationFrame(handleScrollAnimations);
     }, { passive: true });
+
+
 
     setupModalTriggers();
   });
