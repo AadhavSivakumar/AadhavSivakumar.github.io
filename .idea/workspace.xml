@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="static waves">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" afterPath="$PROJECT_DIR$/testfile.html" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="in progress and completed" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -91,7 +88,7 @@
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\skills\ROS.png" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="JavaScript Debug.index.html">
     <configuration name="index.html" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/AadhavSivakumar.github.io/index.html" useBuiltInWebServerPort="true">
       <method v="2" />
     </configuration>
@@ -168,6 +165,7 @@
       <workItem from="1750697453481" duration="1586000" />
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
+      <workItem from="1751096642993" duration="214000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -361,7 +359,15 @@
       <option name="project" value="LOCAL" />
       <updated>1750962876447</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="in progress and completed">
+      <option name="closed" value="true" />
+      <created>1751125356915</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1751125356915</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -379,6 +385,7 @@
     <MESSAGE value="change sizing" />
     <MESSAGE value="some more skills images" />
     <MESSAGE value="static waves" />
-    <option name="LAST_COMMIT_MESSAGE" value="static waves" />
+    <MESSAGE value="in progress and completed" />
+    <option name="LAST_COMMIT_MESSAGE" value="in progress and completed" />
   </component>
 </project>
