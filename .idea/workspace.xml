@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="MAJOR new testfile made as index">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="added tag cloud">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -180,7 +179,7 @@
       <workItem from="1750697453481" duration="1586000" />
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
-      <workItem from="1751096642993" duration="9804000" />
+      <workItem from="1751096642993" duration="10822000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -406,7 +405,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751426819837</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="added tag cloud">
+      <option name="closed" value="true" />
+      <created>1751568865398</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1751568865398</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -427,6 +434,7 @@
     <MESSAGE value="in progress and completed" />
     <MESSAGE value="cleanup" />
     <MESSAGE value="MAJOR new testfile made as index" />
-    <option name="LAST_COMMIT_MESSAGE" value="MAJOR new testfile made as index" />
+    <MESSAGE value="added tag cloud" />
+    <option name="LAST_COMMIT_MESSAGE" value="added tag cloud" />
   </component>
 </project>
