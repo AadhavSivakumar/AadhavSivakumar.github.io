@@ -4,32 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="cleanup">
-      <change afterPath="$PROJECT_DIR$/legacy/old_index.html" afterDir="false" />
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="MAJOR new testfile made as index">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Home/boyscouts.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Home/boyscouts.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Home/robotics.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Home/robotics.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Home/school.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Home/school.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Home/volunteering.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Home/volunteering.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/Bluej.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/Bluej.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/Handaid.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/Handaid.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/PCB.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/PCB.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/SevenSegment.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/SevenSegment.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/Solar.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/Solar.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/Wattergen.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/Wattergen.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/Ziplockz.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/Ziplockz.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/greenfoot.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/greenfoot.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/image.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/image.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/rocket.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/rocket.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/Projects/scratch.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/Projects/scratch.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/aboutme.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/aboutme.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/contact.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/contact.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/legacyindex.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/legacyindex.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/resume.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/resume.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/legacy/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/temp.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/projects.html" beforeDir="false" afterPath="$PROJECT_DIR$/projects.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/testfile.html" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -203,7 +180,7 @@
       <workItem from="1750697453481" duration="1586000" />
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
-      <workItem from="1751096642993" duration="4804000" />
+      <workItem from="1751096642993" duration="9804000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -421,7 +398,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751426648400</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="MAJOR new testfile made as index">
+      <option name="closed" value="true" />
+      <created>1751426819837</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1751426819837</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -441,6 +426,7 @@
     <MESSAGE value="static waves" />
     <MESSAGE value="in progress and completed" />
     <MESSAGE value="cleanup" />
-    <option name="LAST_COMMIT_MESSAGE" value="cleanup" />
+    <MESSAGE value="MAJOR new testfile made as index" />
+    <option name="LAST_COMMIT_MESSAGE" value="MAJOR new testfile made as index" />
   </component>
 </project>
