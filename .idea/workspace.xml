@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="added tag cloud">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="removed tag cloud">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -179,7 +179,7 @@
       <workItem from="1750697453481" duration="1586000" />
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
-      <workItem from="1751096642993" duration="10822000" />
+      <workItem from="1751096642993" duration="13664000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -413,7 +413,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751568865398</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="removed tag cloud">
+      <option name="closed" value="true" />
+      <created>1751581225717</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1751581225717</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -435,6 +443,7 @@
     <MESSAGE value="cleanup" />
     <MESSAGE value="MAJOR new testfile made as index" />
     <MESSAGE value="added tag cloud" />
-    <option name="LAST_COMMIT_MESSAGE" value="added tag cloud" />
+    <MESSAGE value="removed tag cloud" />
+    <option name="LAST_COMMIT_MESSAGE" value="removed tag cloud" />
   </component>
 </project>
