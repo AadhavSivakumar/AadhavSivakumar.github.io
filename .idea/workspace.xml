@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="changed wave animation again">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="rename to projectcovers in index">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -180,7 +180,7 @@
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
       <workItem from="1751096642993" duration="16446000" />
-      <workItem from="1751727661502" duration="3800000" />
+      <workItem from="1751727661502" duration="5770000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -462,7 +462,23 @@
       <option name="project" value="LOCAL" />
       <updated>1751735351151</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="rename to projectcovers">
+      <option name="closed" value="true" />
+      <created>1751737292409</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1751737292409</updated>
+    </task>
+    <task id="LOCAL-00037" summary="rename to projectcovers in index">
+      <option name="closed" value="true" />
+      <created>1751737321909</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1751737321909</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -489,6 +505,8 @@
     <MESSAGE value="project millet img for all" />
     <MESSAGE value="changed wave animation" />
     <MESSAGE value="changed wave animation again" />
-    <option name="LAST_COMMIT_MESSAGE" value="changed wave animation again" />
+    <MESSAGE value="rename to projectcovers" />
+    <MESSAGE value="rename to projectcovers in index" />
+    <option name="LAST_COMMIT_MESSAGE" value="rename to projectcovers in index" />
   </component>
 </project>
