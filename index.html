@@ -856,11 +856,11 @@
       aboutCardWrapper.innerHTML = '';
 
       const SVG_NS = "http://www.w3.org/2000/svg";
-      const CONTAINER_WIDTH = 200;
+      const CONTAINER_WIDTH = 300;
       const CONTAINER_HEIGHT = 420;
-      const NUM_PARALLEL_WAVES = 40;
-      const WAVE_AMPLITUDE = 10;
-      const VERTICAL_SPACING = 10;
+      const NUM_PARALLEL_WAVES = 50;
+      const WAVE_AMPLITUDE = 12;
+      const VERTICAL_SPACING = 12;
       const WAVE_CYCLE_WIDTH = 100;
       const PATH_TOTAL_WIDTH = CONTAINER_WIDTH * 2;
 
@@ -885,7 +885,7 @@
           path.setAttribute('d', d);
 
           const animationDuration = 3; // From CSS: animation-duration: 5s;
-          const phaseShiftDegrees = 15; // A slight offset
+          const phaseShiftDegrees = 12; // A slight offset
           const delay = (i * phaseShiftDegrees / 360) * animationDuration;
           path.style.animationDelay = `-${delay}s`;
 
