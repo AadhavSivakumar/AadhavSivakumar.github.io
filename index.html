@@ -115,7 +115,7 @@
     /* SVG Sine Wave Animation Styles */
     .svg-sine-wave-container {
       width: 200px;
-      height: 280px;
+      height: 420px;
       position: relative;
       flex-shrink: 0;
       overflow: hidden;
@@ -566,7 +566,7 @@
 <main>
   <section id="hero" class="visible">
     <h1>Aadhav Sivakumar</h1>
-    <p>Robotics and Embedded Systems Engineer</p>
+    <p>Robotics Engineer Specializing in Embedded AI and Autonomous Systems</p>
   </section>
 
   <section id="about">
@@ -857,10 +857,10 @@
 
       const SVG_NS = "http://www.w3.org/2000/svg";
       const CONTAINER_WIDTH = 200;
-      const CONTAINER_HEIGHT = 280;
-      const NUM_PARALLEL_WAVES = 5;
-      const WAVE_AMPLITUDE = 18;
-      const VERTICAL_SPACING = 55;
+      const CONTAINER_HEIGHT = 420;
+      const NUM_PARALLEL_WAVES = 40;
+      const WAVE_AMPLITUDE = 10;
+      const VERTICAL_SPACING = 10;
       const WAVE_CYCLE_WIDTH = 100;
       const PATH_TOTAL_WIDTH = CONTAINER_WIDTH * 2;
 
@@ -872,7 +872,7 @@
         svg.setAttribute('viewBox', `0 0 ${CONTAINER_WIDTH} ${CONTAINER_HEIGHT}`);
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-        for (let i = 0; i < NUM_PARALLEL_WAVES; i++) {
+        for (let i = 1; i < NUM_PARALLEL_WAVES - 1; i++) {
           const path = document.createElementNS(SVG_NS, "path");
           let d = "";
           const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_PARALLEL_WAVES - 1) / 2) * VERTICAL_SPACING;
@@ -883,6 +883,12 @@
             d += ` t ${WAVE_CYCLE_WIDTH/2} 0`;
           }
           path.setAttribute('d', d);
+
+          const animationDuration = 3; // From CSS: animation-duration: 5s;
+          const phaseShiftDegrees = 15; // A slight offset
+          const delay = (i * phaseShiftDegrees / 360) * animationDuration;
+          path.style.animationDelay = `-${delay}s`;
+
           svg.appendChild(path);
         }
         container.appendChild(svg);

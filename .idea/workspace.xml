@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="changed tags" />
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="project millet img for all">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -177,7 +180,8 @@
       <workItem from="1750697453481" duration="1586000" />
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
-      <workItem from="1751096642993" duration="15369000" />
+      <workItem from="1751096642993" duration="16446000" />
+      <workItem from="1751727661502" duration="2201000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -435,7 +439,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751659568124</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="project millet img for all">
+      <option name="closed" value="true" />
+      <created>1751660972115</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1751660972115</updated>
+    </task>
+    <option name="localTasksCounter" value="34" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -459,6 +471,7 @@
     <MESSAGE value="added tag cloud" />
     <MESSAGE value="removed tag cloud" />
     <MESSAGE value="changed tags" />
-    <option name="LAST_COMMIT_MESSAGE" value="changed tags" />
+    <MESSAGE value="project millet img for all" />
+    <option name="LAST_COMMIT_MESSAGE" value="project millet img for all" />
   </component>
 </project>
