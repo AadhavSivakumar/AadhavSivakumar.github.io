@@ -215,7 +215,7 @@
 
     .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
     .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
-    .major-project-card img { width: 100%; height: 300px; object-fit: cover; }
+    .major-project-card img, .major-project-card video { width: 100%; height: 300px; object-fit: cover; }
 
     .major-projects-grid .major-project-card .project-content {
       padding: 25px;
@@ -232,7 +232,7 @@
 
     .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
     .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); overflow: hidden; }
-    .small-project-card img { width: 100%; height: 150px; object-fit: cover; display: block; }
+    .small-project-card img, .small-project-card video { width: 100%; height: 150px; object-fit: cover; display: block; }
 
     /* Styles for GIFs on project cards */
     .major-project-card img.is-gif,
@@ -624,7 +624,7 @@
       <button class="modal-close">&times;</button>
       <div class="modal-content-wrapper">
         <div class="modal-image-container">
-          <img src="" alt="" class="modal-image"/>
+          <!-- Media (img/video) will be injected here by JS -->
         </div>
         <div class="modal-text-content">
           <h2 id="modal-title"></h2>
@@ -663,7 +663,7 @@
     const baseProjectImagePath = 'https://aadhavsivakumar.github.io/Images/projectcovers/';
     const majorProjectsData = [
       { id: 1, title: 'Project Millet', cardDescription: 'Agricultural drone for spraying trees with water and pesticides.', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
-      { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: baseProjectImagePath+'SoleGaitHQ.gif', tags: ['Python', 'AI Vision', 'ESP32/8266', 'Comm Protocols'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
+      { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Smart sensor placed in shoe for advanced gait analysis.', imageUrl: baseProjectImagePath+'IMG_3239.mp4', tags: ['Python', 'AI Vision', 'ESP32/8266', 'Comm Protocols'], status: 'In Progress', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
       { id: 3, title: 'Glass-2-Bot', cardDescription: 'Human mounted AI vision for remote object manipulation.', imageUrl: baseProjectImagePath+'glass2bot.gif', tags: ['Google Glass', 'AI Vision', 'Python', 'Telerobotics'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Project Documentation PDF'}, {type: 'button', text: 'View on GitHub', link: '#'}] },
       { id: 4, title: 'SMART compost sorting', cardDescription: 'A Franka Panda and depth camera used to filter compost stream.', imageUrl: baseProjectImagePath + 'smartsort.gif', tags:['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
       { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Soft robotics sensor on a flexible PCB to determine amount and sheering direction of gripping force.', imageUrl: baseProjectImagePath+'tacmanipHQ.gif', tags: ['C', 'Altium Designer', 'Flex Sensor'], status: 'Completed', modalContent: [{type: 'text', value: longLorem}, {type: 'button', text: 'View Project', link: '#'}] },
@@ -674,9 +674,9 @@
       { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['Python', 'AI Vision', 'Raspberry Pi'], status: 'In Progress', modalContent: [{type: 'text', value: 'A robot arm controlled via computer vision to interact with objects on a desktop.'}] },
       { id: 'h', title: '3d Fruit Ninja Simulation', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['Python'], status: 'In Progress', modalContent: [{type: 'text', value: 'A simulation of the popular game Fruit Ninja in a 3D environment using Python.'}] },
       { id: 'a', title: 'Sand Table', imageUrl: baseProjectImagePath+'2rplanarstraight.gif', tags: ['Parallax Propeller', 'C++', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: '2R manipulator to create patterns in the sand.'}] },
-      { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['Arduino', 'LED matrix'], status: 'Completed', modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
+      { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath+'PONG.mp4', tags: ['Arduino', 'LED matrix'], status: 'Completed', modalContent: [{type: 'text', value: 'Recreation of PONG with an LED matrix.'}] },
       { id: 'c', title: 'MATE ROV', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C++', 'EAGLE', 'Ultrasonic'], status: 'Completed', modalContent: [{type: 'text', value: 'Underwater drone completing complex tasks as a part of MATE ROV competition.'}] },
-      { id: 'd', title: 'Automated Dog Feeder', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C', 'Raspberry Pi', 'Firebase'], status: 'Completed', modalContent: [{type: 'text', value: 'System that allows dog to get correct portion of food remotely.'}, {type: 'button', text: 'View on Instructables', link: 'https://www.instructables.com/Internet-Enabled-Raspberry-Pi-Pet-Feeder/'}] },
+      { id: 'd', title: 'Automated Dog Feeder', imageUrl: baseProjectImagePath+'dogfeeder.webp', tags: ['C', 'Raspberry Pi', 'Firebase'], status: 'Completed', modalContent: [{type: 'text', value: 'System that allows dog to get correct portion of food remotely.'}, {type: 'button', text: 'View on Instructables', link: 'https://www.instructables.com/Internet-Enabled-Raspberry-Pi-Pet-Feeder/'}] },
       { id: 'e', title: 'FPGA VGA Game', imageUrl: baseProjectImagePath+'fpgaVGA.png', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{type: 'text', value: 'Simple flappy bird style game implemented on Basys 3 FPGA.'}] },
       { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['STM32', 'C++', 'PID Control'], status: 'Completed', modalContent: [{type: 'text', value: 'Robot that competes in a ping pong shooting tournament as part of mechatronics class.'}] },
     ];
@@ -798,7 +798,6 @@
     const modalBackdrop = document.querySelector('.modal-backdrop');
     const modalAnimator = document.querySelector('.modal-animator');
     const modalCloseBtn = document.querySelector('.modal-close');
-    const modalImage = document.querySelector('.modal-image');
     const modalImageContainer = document.querySelector('.modal-image-container');
     const modalTitle = document.getElementById('modal-title');
     const modalDescription = document.getElementById('modal-description');
@@ -858,7 +857,9 @@
       const SVG_NS = "http://www.w3.org/2000/svg";
       const CONTAINER_WIDTH = 300;
       const CONTAINER_HEIGHT = 420;
-      const NUM_PARALLEL_WAVES = 50;
+      // To change the number of waves, adjust this value.
+      // The number of visible waves will be NUM_TOTAL_WAVES_PER_SIDE - 2 (to account for clipped top/bottom edges).
+      const NUM_TOTAL_WAVES_PER_SIDE = 50; // Results in 25 visible waves.
       const WAVE_AMPLITUDE = 12;
       const VERTICAL_SPACING = 12;
       const WAVE_CYCLE_WIDTH = 100;
@@ -872,10 +873,10 @@
         svg.setAttribute('viewBox', `0 0 ${CONTAINER_WIDTH} ${CONTAINER_HEIGHT}`);
         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-        for (let i = 1; i < NUM_PARALLEL_WAVES - 1; i++) {
+        for (let i = 1; i < NUM_TOTAL_WAVES_PER_SIDE - 1; i++) {
           const path = document.createElementNS(SVG_NS, "path");
           let d = "";
-          const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_PARALLEL_WAVES - 1) / 2) * VERTICAL_SPACING;
+          const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_TOTAL_WAVES_PER_SIDE - 1) / 2) * VERTICAL_SPACING;
 
           d = `M 0 ${startY}`;
           for (let xPos = 0; xPos < PATH_TOTAL_WIDTH; xPos += WAVE_CYCLE_WIDTH) {
@@ -932,9 +933,20 @@
           card.dataset.itemId = project.id;
           card.dataset.itemType = isMajor ? 'major' : 'small';
 
-          // Check for GIF to apply special styling
-          const isGif = project.imageUrl && project.imageUrl.toLowerCase().endsWith('.gif');
+          const isMp4 = project.imageUrl && project.imageUrl.toLowerCase().endsWith('.mp4');
+          const isGif = !isMp4 && project.imageUrl && project.imageUrl.toLowerCase().endsWith('.gif');
           const imageClass = isGif ? 'is-gif' : '';
+
+          const placeholder = isMajor ?
+                  'https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found' :
+                  'https://placehold.co/400x400/F7F5F2/BFA181?text=Image';
+
+          let mediaHtml = '';
+          if (isMp4) {
+            mediaHtml = `<video src="${project.imageUrl}" autoplay loop muted playsinline></video>`;
+          } else {
+            mediaHtml = `<img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='${placeholder}';">`;
+          }
 
           // Tech Tags
           let techTagsHtml = '';
@@ -961,7 +973,7 @@
 
           if (isMajor) {
             card.innerHTML = `
-                        <img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found';">
+                        ${mediaHtml}
                         <div class="project-content">
                             <h4>${project.title}</h4>
                             <p>${project.cardDescription}</p>
@@ -974,7 +986,7 @@
               cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
             }
             card.innerHTML = `
-                        <img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='https://placehold.co/400x400/F7F5F2/BFA181?text=Image';">
+                        ${mediaHtml}
                         <div class="small-project-content">
                             <h4>${project.title}</h4>
                             <p>${cardDesc}</p>
@@ -1087,6 +1099,7 @@
       modalDescription.textContent = '';
       modalDescription.style.display = 'none';
       modalLink.style.display = 'none';
+      modalImageContainer.innerHTML = ''; // Clear previous media content
 
       modalTitle.textContent = itemData.title || itemData.modalTitle || itemData.name;
 
@@ -1095,8 +1108,15 @@
         modalAnimator.classList.add('skill-group-modal');
         let groupCardImageSrc = itemData.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
 
-        modalImage.src = groupCardImageSrc;
-        modalImage.alt = itemData.title;
+        const img = document.createElement('img');
+        img.src = groupCardImageSrc;
+        img.alt = itemData.title;
+        img.className = 'modal-image';
+        img.onerror = function() {
+          this.onerror=null;
+          this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
+        };
+        modalImageContainer.appendChild(img);
         modalImageContainer.style.display = itemData.cardImageUrl ? 'block' : 'none';
 
         const itemsContainer = document.createElement('div');
@@ -1127,8 +1147,31 @@
 
       } else if (itemType === 'about' || itemType === 'major' || itemType === 'small') {
         modalAnimator.classList.add('project-modal');
-        modalImage.src = itemData.imageUrl;
-        modalImage.alt = itemData.title || itemData.modalTitle;
+
+        const isMp4 = itemData.imageUrl && itemData.imageUrl.toLowerCase().endsWith('.mp4');
+        if (isMp4) {
+          const video = document.createElement('video');
+          video.src = itemData.imageUrl;
+          video.className = 'modal-image';
+          video.controls = true;
+          video.autoplay = true;
+          video.loop = true;
+          video.muted = false;
+          video.onerror = () => {
+            modalImageContainer.innerHTML = '<p style="color: var(--primary-color); text-align: center; padding: 20px;">Error loading video.</p>';
+          };
+          modalImageContainer.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = itemData.imageUrl;
+          img.alt = itemData.title || itemData.modalTitle;
+          img.className = 'modal-image';
+          img.onerror = function() {
+            this.onerror=null;
+            this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
+          };
+          modalImageContainer.appendChild(img);
+        }
         modalImageContainer.style.display = 'block';
 
         let hasCustomButtons = false;
@@ -1180,11 +1223,6 @@
         modalDescription.textContent = itemData.description || '';
         modalDescription.style.display = modalDescription.textContent ? 'block' : 'none';
       }
-
-      modalImage.onerror = function() {
-        this.onerror=null;
-        this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
-      };
 
       modalBackdrop.classList.add('visible');
       const cardRect = card.getBoundingClientRect();
