@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="Added dogfeeder image">
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_6_28_2025_8_43_AM_[Default_Changelist]/shelved.patch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="Added dogfeeder image" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -181,7 +178,7 @@
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
       <workItem from="1751096642993" duration="16446000" />
-      <workItem from="1751727661502" duration="12446000" />
+      <workItem from="1751727661502" duration="13127000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -551,7 +548,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751812356667</updated>
     </task>
-    <option name="localTasksCounter" value="47" />
+    <task id="LOCAL-00047" summary="Added dogfeeder image">
+      <option name="closed" value="true" />
+      <created>1751816261118</created>
+      <option name="number" value="00047" />
+      <option name="presentableId" value="LOCAL-00047" />
+      <option name="project" value="LOCAL" />
+      <updated>1751816261118</updated>
+    </task>
+    <option name="localTasksCounter" value="48" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
