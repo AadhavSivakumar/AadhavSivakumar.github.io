@@ -4,7 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="pong video">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="Added dogfeeder image">
+      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_6_28_2025_8_43_AM_[Default_Changelist]/shelved.patch" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -180,7 +181,7 @@
       <workItem from="1750788939580" duration="12625000" />
       <workItem from="1751082385173" duration="761000" />
       <workItem from="1751096642993" duration="16446000" />
-      <workItem from="1751727661502" duration="11163000" />
+      <workItem from="1751727661502" duration="12446000" />
     </task>
     <task id="LOCAL-00001" summary="change image loc">
       <option name="closed" value="true" />
@@ -534,7 +535,23 @@
       <option name="project" value="LOCAL" />
       <updated>1751778962950</updated>
     </task>
-    <option name="localTasksCounter" value="45" />
+    <task id="LOCAL-00045" summary="Added dogfeeder image">
+      <option name="closed" value="true" />
+      <created>1751812291279</created>
+      <option name="number" value="00045" />
+      <option name="presentableId" value="LOCAL-00045" />
+      <option name="project" value="LOCAL" />
+      <updated>1751812291279</updated>
+    </task>
+    <task id="LOCAL-00046" summary="Added dogfeeder image">
+      <option name="closed" value="true" />
+      <created>1751812356667</created>
+      <option name="number" value="00046" />
+      <option name="presentableId" value="LOCAL-00046" />
+      <option name="project" value="LOCAL" />
+      <updated>1751812356667</updated>
+    </task>
+    <option name="localTasksCounter" value="47" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -552,7 +569,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="added glowforge" />
     <MESSAGE value="some image changes" />
     <MESSAGE value="more image changes" />
     <MESSAGE value="images" />
@@ -577,6 +593,7 @@
     <MESSAGE value="changed 2rplanar gif" />
     <MESSAGE value="mp4 test" />
     <MESSAGE value="pong video" />
-    <option name="LAST_COMMIT_MESSAGE" value="pong video" />
+    <MESSAGE value="Added dogfeeder image" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added dogfeeder image" />
   </component>
 </project>
