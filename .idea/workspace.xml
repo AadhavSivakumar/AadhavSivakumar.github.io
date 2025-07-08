@@ -181,15 +181,7 @@
       <workItem from="1751082385173" duration="761000" />
       <workItem from="1751096642993" duration="16446000" />
       <workItem from="1751727661502" duration="14035000" />
-      <workItem from="1751834519148" duration="6643000" />
-    </task>
-    <task id="LOCAL-00005" summary="added glowforge">
-      <option name="closed" value="true" />
-      <created>1750800788161</created>
-      <option name="number" value="00005" />
-      <option name="presentableId" value="LOCAL-00005" />
-      <option name="project" value="LOCAL" />
-      <updated>1750800788163</updated>
+      <workItem from="1751834519148" duration="8210000" />
     </task>
     <task id="LOCAL-00006" summary="added glowforge">
       <option name="closed" value="true" />
@@ -575,7 +567,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751853907344</updated>
     </task>
-    <option name="localTasksCounter" value="54" />
+    <task id="LOCAL-00054" summary="currentizing">
+      <option name="closed" value="true" />
+      <created>1751934088130</created>
+      <option name="number" value="00054" />
+      <option name="presentableId" value="LOCAL-00054" />
+      <option name="project" value="LOCAL" />
+      <updated>1751934088130</updated>
+    </task>
+    <option name="localTasksCounter" value="55" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
