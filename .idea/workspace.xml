@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="all project covers" />
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="currentizing">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -179,15 +181,7 @@
       <workItem from="1751082385173" duration="761000" />
       <workItem from="1751096642993" duration="16446000" />
       <workItem from="1751727661502" duration="14035000" />
-      <workItem from="1751834519148" duration="3620000" />
-    </task>
-    <task id="LOCAL-00004" summary="added glowforge">
-      <option name="closed" value="true" />
-      <created>1750797623300</created>
-      <option name="number" value="00004" />
-      <option name="presentableId" value="LOCAL-00004" />
-      <option name="project" value="LOCAL" />
-      <updated>1750797623300</updated>
+      <workItem from="1751834519148" duration="6643000" />
     </task>
     <task id="LOCAL-00005" summary="added glowforge">
       <option name="closed" value="true" />
@@ -573,7 +567,15 @@
       <option name="project" value="LOCAL" />
       <updated>1751843499117</updated>
     </task>
-    <option name="localTasksCounter" value="53" />
+    <task id="LOCAL-00053" summary="currentizing">
+      <option name="closed" value="true" />
+      <created>1751853907344</created>
+      <option name="number" value="00053" />
+      <option name="presentableId" value="LOCAL-00053" />
+      <option name="project" value="LOCAL" />
+      <updated>1751853907344</updated>
+    </task>
+    <option name="localTasksCounter" value="54" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -591,7 +593,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="changed about me modal" />
     <MESSAGE value="change sizing" />
     <MESSAGE value="some more skills images" />
     <MESSAGE value="static waves" />
@@ -616,6 +617,7 @@
     <MESSAGE value="fruit ninja mp4" />
     <MESSAGE value="mech comp mp4" />
     <MESSAGE value="all project covers" />
-    <option name="LAST_COMMIT_MESSAGE" value="all project covers" />
+    <MESSAGE value="currentizing" />
+    <option name="LAST_COMMIT_MESSAGE" value="currentizing" />
   </component>
 </project>
