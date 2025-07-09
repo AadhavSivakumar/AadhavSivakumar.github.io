@@ -1070,6 +1070,12 @@
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible');
+
+            // Lazy load the resume PDF when its section is visible to prevent focus-stealing on page load
+            if (entry.target.id === 'resume' && resumeIframe && !resumeIframe.src) {
+              resumeIframe.src = resumePdfUrl;
+            }
+
             sectionObserver.unobserve(entry.target);
           }
         });
@@ -1316,13 +1322,11 @@
       window.addEventListener('keydown', (e) => { if(e.key === 'Escape' && modalBackdrop.classList.contains('visible')) closeModal(); });
     };
 
-    if (resumeIframe) resumeIframe.src = resumePdfUrl;
-
     setupIntersectionObservers();
     initTheme();
     populateAboutMeCard();
     populateProjects();
-    populateSkillGroups(); // This was missing, I added it back in.
+    populateSkillGroups();
 
     let scrollRaf;
     window.addEventListener('scroll', () => {
@@ -1330,9 +1334,8 @@
       scrollRaf = window.requestAnimationFrame(handleScrollAnimations);
     }, { passive: true });
 
-
-
     setupModalTriggers();
+
   });
 </script>
 </body>
