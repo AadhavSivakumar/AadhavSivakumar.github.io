@@ -603,10 +603,8 @@
 
   <section id="resume">
     <h2 class="section-title">My Résumé</h2>
-    <p>Explore my professional experience, skills, and qualifications in detail. Click the button below to view my résumé.</p>
-    <div id="resume-placeholder" style="text-align: center;">
-      <button id="load-resume-btn" class="modal-view-button">View Résumé</button>
-    </div>
+    <p>Explore my professional experience, skills, and qualifications in detail. The document is embedded below for your convenience.</p>
+    <iframe id="resume-iframe" title="Aadhav Sivakumar's Resume" src="https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf" loading="lazy"></iframe>
   </section>
 
   <section id="contact">
@@ -634,7 +632,7 @@
 <div class="modal-backdrop">
   <div class="modal-animator">
     <div class="modal-content">
-      <button class="modal-close">&times;</button>
+      <button class="modal-close" aria-label="Close modal">&times;</button>
       <div class="modal-content-wrapper">
         <div class="modal-image-container">
           <!-- Media (img/video) will be injected here by JS -->
@@ -654,8 +652,6 @@
 
 <script>
   window.addEventListener('load', () => {
-
-    const resumePdfUrl = 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf';
 
     const aboutMeData = {
       id: 'about-me-section',
@@ -1058,7 +1054,7 @@
 
       if (rightObject) {
         const arrowIcon = rightObject.querySelector('svg');
-        const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
+        const squareTravelDistance = window.innerHeight;
         const squareY = scrollPercent * squareTravelDistance;
         const squareRotation = scrollPercent * 360;
         rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
@@ -1106,36 +1102,6 @@
 
       // Note: The about-me-card is now observed within populateAboutMeCard
       // Other cards are observed when populated in their respective functions.
-    };
-
-    const setupResumeLoader = () => {
-      const resumePlaceholder = document.getElementById('resume-placeholder');
-      if (!resumePlaceholder) return;
-
-      const loadBtn = document.getElementById('load-resume-btn');
-      if (!loadBtn) return;
-
-      loadBtn.addEventListener('click', () => {
-        resumePlaceholder.innerHTML = '<p>Loading Résumé...</p>';
-
-        const iframe = document.createElement('iframe');
-        iframe.id = 'resume-iframe';
-        iframe.title = "Aadhav Sivakumar's Resume";
-
-        iframe.onload = () => {
-          resumePlaceholder.replaceWith(iframe);
-        };
-
-        iframe.onerror = () => {
-          const newPlaceholder = document.createElement('div');
-          newPlaceholder.id = 'resume-placeholder';
-          newPlaceholder.style.textAlign = 'center';
-          newPlaceholder.innerHTML = '<p style="margin-top: 20px;">Sorry, the résumé could not be loaded.</p>';
-          resumePlaceholder.replaceWith(newPlaceholder);
-        };
-
-        iframe.src = resumePdfUrl;
-      }, { once: true });
     };
 
     const openModal = (card, itemData, itemType) => {
@@ -1374,10 +1340,18 @@
         scrollDownBtn.addEventListener('click', () => {
           const currentScrollY = window.scrollY;
           const buffer = 2;
-          const nextSection = pageSections.find(section => section.offsetTop > currentScrollY + buffer);
+          let nextSection = pageSections.find(section => section.offsetTop > currentScrollY + buffer);
+
+          // If the next natural section is 'about', skip it and go to 'projects' instead.
+          // This primarily affects the first scroll from the top ('hero' section).
+          if (nextSection && nextSection.id === 'about') {
+            nextSection = document.getElementById('projects');
+          }
+
           if (nextSection) {
             nextSection.scrollIntoView({ behavior: 'smooth' });
           } else {
+            // If no next section, scroll to footer
             document.querySelector('footer').scrollIntoView({ behavior: 'smooth' });
           }
         });
@@ -1403,7 +1377,6 @@
     populateAboutMeCard();
     populateProjects();
     populateSkillGroups();
-    setupResumeLoader();
 
     let scrollRaf;
     window.addEventListener('scroll', () => {
