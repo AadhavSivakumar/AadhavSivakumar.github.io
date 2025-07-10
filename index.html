@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -59,11 +60,14 @@
     a:hover { color: var(--primary-color); }
 
     /* ANIMATED OBJECTS & HEADER */
-    .animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 1; transition: transform 0.1s linear, background-color 0.3s ease; will-change: transform; }
+    .animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 100; transition: transform 0.1s linear, background-color 0.3s ease, opacity 0.3s ease; will-change: transform; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+    .animated-object:hover {
+      opacity: 0.9;
+    }
     .left-object {
       width: 50px;
       height: calc(50px * 0.866);
-      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
       left: 2vw;
       top: 85vh;
     }
@@ -467,6 +471,8 @@
       color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
       text-align: center; transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
       margin-top: 15px;
+      border: none;
+      cursor: pointer;
     }
     html[data-theme="dark"] .modal-view-button {
       color: var(--background-color) !important;
@@ -549,8 +555,12 @@
 </head>
 <body>
 
-<div class="animated-object left-object"></div>
-<div class="animated-object right-object"></div>
+<div id="scroll-down-btn" class="animated-object left-object" title="Next Section" aria-label="Scroll to next section">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"></polyline></svg>
+</div>
+<div id="scroll-up-btn" class="animated-object right-object" title="Previous Section" aria-label="Scroll to previous section">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 15 12 10 17 15"></polyline></svg>
+</div>
 
 <header>
   <div class="logo"><a href="#hero">AS.</a></div>
@@ -593,8 +603,10 @@
 
   <section id="resume">
     <h2 class="section-title">My Résumé</h2>
-    <p>Explore my professional experience, skills, and qualifications in detail. My résumé is displayed below.</p>
-    <embed id="resume-iframe" type="application/pdf" title="Aadhav Sivakumar's Resume">
+    <p>Explore my professional experience, skills, and qualifications in detail. Click the button below to view my résumé.</p>
+    <div id="resume-placeholder" style="text-align: center;">
+      <button id="load-resume-btn" class="modal-view-button">View Résumé</button>
+    </div>
   </section>
 
   <section id="contact">
@@ -787,12 +799,11 @@
     const header = document.querySelector('header');
     const leftObject = document.querySelector('.left-object');
     const rightObject = document.querySelector('.right-object');
-    const sections = document.querySelectorAll('section');
+    const sections = document.querySelectorAll('main > section');
     const aboutCardWrapper = document.querySelector('#about .about-card-wrapper');
     const majorProjectsContainer = document.getElementById('major-projects-container');
     const smallProjectsContainer = document.getElementById('small-projects-container');
     const skillGroupsContainer = document.getElementById('skill-groups-container');
-    const resumeIframe = document.getElementById('resume-iframe');
     const themeToggleButton = document.getElementById('theme-toggle');
 
     const modalBackdrop = document.querySelector('.modal-backdrop');
@@ -1046,12 +1057,17 @@
       header.classList.toggle('scrolled', scrollY > 50);
 
       if (rightObject) {
+        const arrowIcon = rightObject.querySelector('svg');
         const squareTravelDistance = window.innerHeight + rightObject.offsetHeight;
         const squareY = scrollPercent * squareTravelDistance;
         const squareRotation = scrollPercent * 360;
         rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
+        if (arrowIcon) {
+          arrowIcon.style.transform = `rotate(${-squareRotation}deg)`;
+        }
       }
       if (leftObject) {
+        const arrowIcon = leftObject.querySelector('svg');
         const initialTopVh = 85;
         const initialTopPx = window.innerHeight * (initialTopVh / 100);
         const objectHeight = leftObject.offsetHeight;
@@ -1062,6 +1078,9 @@
         const triangleRotation = scrollPercent * 720;
 
         leftObject.style.transform = `translateY(${triangleY}px) rotate(${triangleRotation}deg)`;
+        if (arrowIcon) {
+          arrowIcon.style.transform = `rotate(${-triangleRotation}deg)`;
+        }
       }
     };
 
@@ -1070,12 +1089,6 @@
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             entry.target.classList.add('visible');
-
-            // Lazy load the resume PDF when its section is visible to prevent focus-stealing on page load
-            if (entry.target.id === 'resume' && resumeIframe && !resumeIframe.src) {
-              resumeIframe.src = resumePdfUrl;
-            }
-
             sectionObserver.unobserve(entry.target);
           }
         });
@@ -1093,6 +1106,36 @@
 
       // Note: The about-me-card is now observed within populateAboutMeCard
       // Other cards are observed when populated in their respective functions.
+    };
+
+    const setupResumeLoader = () => {
+      const resumePlaceholder = document.getElementById('resume-placeholder');
+      if (!resumePlaceholder) return;
+
+      const loadBtn = document.getElementById('load-resume-btn');
+      if (!loadBtn) return;
+
+      loadBtn.addEventListener('click', () => {
+        resumePlaceholder.innerHTML = '<p>Loading Résumé...</p>';
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'resume-iframe';
+        iframe.title = "Aadhav Sivakumar's Resume";
+
+        iframe.onload = () => {
+          resumePlaceholder.replaceWith(iframe);
+        };
+
+        iframe.onerror = () => {
+          const newPlaceholder = document.createElement('div');
+          newPlaceholder.id = 'resume-placeholder';
+          newPlaceholder.style.textAlign = 'center';
+          newPlaceholder.innerHTML = '<p style="margin-top: 20px;">Sorry, the résumé could not be loaded.</p>';
+          resumePlaceholder.replaceWith(newPlaceholder);
+        };
+
+        iframe.src = resumePdfUrl;
+      }, { once: true });
     };
 
     const openModal = (card, itemData, itemType) => {
@@ -1322,11 +1365,45 @@
       window.addEventListener('keydown', (e) => { if(e.key === 'Escape' && modalBackdrop.classList.contains('visible')) closeModal(); });
     };
 
+    const setupScrollControls = () => {
+      const scrollUpBtn = document.getElementById('scroll-up-btn');
+      const scrollDownBtn = document.getElementById('scroll-down-btn');
+      const pageSections = Array.from(document.querySelectorAll('main > section'));
+
+      if (scrollDownBtn) {
+        scrollDownBtn.addEventListener('click', () => {
+          const currentScrollY = window.scrollY;
+          const buffer = 2;
+          const nextSection = pageSections.find(section => section.offsetTop > currentScrollY + buffer);
+          if (nextSection) {
+            nextSection.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            document.querySelector('footer').scrollIntoView({ behavior: 'smooth' });
+          }
+        });
+      }
+
+      if (scrollUpBtn) {
+        scrollUpBtn.addEventListener('click', () => {
+          const currentScrollY = window.scrollY;
+          const buffer = 2;
+          const prevSections = pageSections.filter(section => section.offsetTop < currentScrollY - buffer);
+          if (prevSections.length > 0) {
+            const prevSection = prevSections[prevSections.length - 1];
+            prevSection.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        });
+      }
+    };
+
     setupIntersectionObservers();
     initTheme();
     populateAboutMeCard();
     populateProjects();
     populateSkillGroups();
+    setupResumeLoader();
 
     let scrollRaf;
     window.addEventListener('scroll', () => {
@@ -1335,6 +1412,7 @@
     }, { passive: true });
 
     setupModalTriggers();
+    setupScrollControls();
 
   });
 </script>
