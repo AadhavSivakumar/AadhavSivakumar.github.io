@@ -425,12 +425,6 @@
     .social-links a:hover { transform: scale(1.25); color: var(--accent-color); }
     footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 50px; position: relative; z-index: 10; transition: border-color 0.3s ease, color 0.3s ease;}
 
-    #resume-iframe { width: 100%; height: 800px; border: 1px solid var(--border-color); border-radius: 8px; margin-top: 20px; transition: border-color 0.3s ease; }
-
-    /* Invert resume colors in dark mode for readability */
-    html[data-theme="dark"] #resume-iframe {
-      filter: invert(1) hue-rotate(180deg);
-    }
 
     /* MODAL STYLES */
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
@@ -461,7 +455,8 @@
       max-height: 200px;
       object-fit: contain;
     }
-    .modal-animator.skill-modal .modal-image-container {
+    .modal-animator.skill-modal .modal-image-container,
+    .modal-animator.resume-modal .modal-image-container {
       display: none;
     }
 
@@ -486,13 +481,19 @@
 
     .modal-close { position: fixed; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2002; color: white; mix-blend-mode: difference; transition: color 0.3s ease; }
     .modal-animator.skill-group-modal .modal-close,
-    .modal-animator.skill-modal .modal-close {
+    .modal-animator.skill-modal .modal-close,
+    .modal-animator.resume-modal .modal-close {
       color: var(--primary-color); mix-blend-mode: normal;
     }
 
     .modal-text-content { padding: 25px 35px; }
     .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
     .modal-text-content p#modal-description { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7;}
+
+    .modal-animator.resume-modal .modal-text-content { padding: 15px; height: 100%; box-sizing: border-box; }
+    .modal-animator.resume-modal #modal-dynamic-content-area,
+    .modal-animator.resume-modal .modal-dynamic-embed { height: 100%; }
+    html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180deg); }
 
     .modal-dynamic-text { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7; }
     .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
@@ -541,12 +542,10 @@
       .modal-image-container { padding: 30px 15px 0; }
       .modal-text-content { padding: 25px 15px; }
       .modal-text-content h2 { font-size: 2rem; }
-      #resume-iframe { height: 600px; }
     }
     @media (max-width: 480px) {
       header nav a { margin-left: 10px; font-size: 0.9rem;}
       #theme-toggle { margin-left: 10px; font-size: 1.2rem; }
-      #resume-iframe { height: 500px; }
       .skill-group-item { flex-direction: column; align-items: center; text-align: center; }
       .skill-group-item-image { margin-bottom: 10px; }
       .project-tags-container, .project-status-container { justify-content: center; display: flex; }
@@ -603,8 +602,10 @@
 
   <section id="resume">
     <h2 class="section-title">My Résumé</h2>
-    <p>Explore my professional experience, skills, and qualifications in detail. The document is embedded below for your convenience.</p>
-    <iframe id="resume-iframe" title="Aadhav Sivakumar's Resume" src="https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf" loading="lazy"></iframe>
+    <p>Explore my professional experience, skills, and qualifications in detail. Click the card below to view my resume.</p>
+    <div id="resume-card-container" class="major-projects-grid" style="max-width: 410px; margin: 40px auto 0;">
+      <!-- Resume card will be injected here by JS -->
+    </div>
   </section>
 
   <section id="contact">
@@ -652,6 +653,11 @@
 
 <script>
   window.addEventListener('load', () => {
+    // Prevent browser from restoring scroll position and force to top
+    if (history.scrollRestoration) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
 
     const aboutMeData = {
       id: 'about-me-section',
@@ -688,6 +694,18 @@
       { id: 'e', title: 'FPGA VGA Game', imageUrl: baseProjectImagePath+'fpgaVGA.png', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{type: 'text', value: "Developed a 'Flappy Bird' style game on a Basys 3 FPGA using Verilog. This project involved designing digital logic circuits from the ground up to handle game state, player input, and VGA signal generation."}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
       { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath+'mechcomp.mp4', tags: ['STM32', 'C++', 'PID Control'], status: 'Completed', modalContent: [{type: 'text', value: 'Built and programmed an autonomous robot on an STM32 platform for a mechatronics competition. Implemented C++ and fine-tuned PID control algorithms to achieve precise targeting and win a ping pong ball shooting tournament.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
     ];
+
+    const resumeData = {
+      id: 'resume-card',
+      type: 'resume',
+      title: 'View My Résumé',
+      cardDescription: 'An up-to-date overview of my professional journey, technical skills, and key projects. Click to open the PDF.',
+      imageUrl: 'https://placehold.co/600x400/F7F5F2/BFA181?text=View+R%C3%A9sum%C3%A9',
+      modalTitle: 'My Résumé',
+      modalContent: [
+        { type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Aadhav Sivakumar\'s Resume' }
+      ]
+    };
 
     const baseSkillImagePath = 'https://aadhavsivakumar.github.io/Images/skills/';
     const deviconsBaseUrl = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/';
@@ -799,6 +817,7 @@
     const aboutCardWrapper = document.querySelector('#about .about-card-wrapper');
     const majorProjectsContainer = document.getElementById('major-projects-container');
     const smallProjectsContainer = document.getElementById('small-projects-container');
+    const resumeCardContainer = document.getElementById('resume-card-container');
     const skillGroupsContainer = document.getElementById('skill-groups-container');
     const themeToggleButton = document.getElementById('theme-toggle');
 
@@ -1008,6 +1027,28 @@
       });
     };
 
+    const populateResumeCard = () => {
+      if (!resumeCardContainer) return;
+
+      const card = document.createElement('div');
+      card.className = 'major-project-card project-modal-trigger';
+      card.dataset.itemId = resumeData.id;
+      card.dataset.itemType = resumeData.type;
+
+      const placeholder = 'https://placehold.co/600x400/F7F5F2/BFA181?text=R%C3%A9sum%C3%A9';
+      const mediaHtml = `<img src="${resumeData.imageUrl}" alt="${resumeData.title}" onerror="this.onerror=null;this.src='${placeholder}';">`;
+
+      card.innerHTML = `
+            ${mediaHtml}
+            <div class="project-content">
+                <h4>${resumeData.title}</h4>
+                <p>${resumeData.cardDescription}</p>
+            </div>`;
+
+      resumeCardContainer.appendChild(card);
+      if (cardObserver) cardObserver.observe(card);
+    };
+
     const populateSkillGroups = () => {
       if (!skillGroupsContainer) return;
       skillGroupsContainer.innerHTML = '';
@@ -1118,7 +1159,7 @@
 
       modalTitle.textContent = itemData.title || itemData.modalTitle || itemData.name;
 
-      modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal');
+      modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal', 'resume-modal');
       if (itemType === 'skill-group') {
         modalAnimator.classList.add('skill-group-modal');
         let groupCardImageSrc = itemData.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
@@ -1160,34 +1201,39 @@
         });
         modalDynamicContentArea.appendChild(itemsContainer);
 
-      } else if (itemType === 'about' || itemType === 'major' || itemType === 'small') {
-        modalAnimator.classList.add('project-modal');
+      } else if (itemType === 'about' || itemType === 'major' || itemType === 'small' || itemType === 'resume') {
 
-        const isMp4 = itemData.imageUrl && itemData.imageUrl.toLowerCase().endsWith('.mp4');
-        if (isMp4) {
-          const video = document.createElement('video');
-          video.src = itemData.imageUrl;
-          video.className = 'modal-image';
-          video.controls = true;
-          video.autoplay = true;
-          video.loop = true;
-          video.muted = false;
-          video.onerror = () => {
-            modalImageContainer.innerHTML = '<p style="color: var(--primary-color); text-align: center; padding: 20px;">Error loading video.</p>';
-          };
-          modalImageContainer.appendChild(video);
+        if (itemType === 'resume') {
+          modalAnimator.classList.add('resume-modal');
+          modalImageContainer.style.display = 'none';
         } else {
-          const img = document.createElement('img');
-          img.src = itemData.imageUrl;
-          img.alt = itemData.title || itemData.modalTitle;
-          img.className = 'modal-image';
-          img.onerror = function() {
-            this.onerror=null;
-            this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
-          };
-          modalImageContainer.appendChild(img);
+          modalAnimator.classList.add('project-modal');
+          const isMp4 = itemData.imageUrl && itemData.imageUrl.toLowerCase().endsWith('.mp4');
+          if (isMp4) {
+            const video = document.createElement('video');
+            video.src = itemData.imageUrl;
+            video.className = 'modal-image';
+            video.controls = true;
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = false;
+            video.onerror = () => {
+              modalImageContainer.innerHTML = '<p style="color: var(--primary-color); text-align: center; padding: 20px;">Error loading video.</p>';
+            };
+            modalImageContainer.appendChild(video);
+          } else {
+            const img = document.createElement('img');
+            img.src = itemData.imageUrl;
+            img.alt = itemData.title || itemData.modalTitle;
+            img.className = 'modal-image';
+            img.onerror = function() {
+              this.onerror=null;
+              this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
+            };
+            modalImageContainer.appendChild(img);
+          }
+          modalImageContainer.style.display = 'block';
         }
-        modalImageContainer.style.display = 'block';
 
         let hasCustomButtons = false;
         let rootLink = itemData.link;
@@ -1221,6 +1267,9 @@
               el.setAttribute('frameborder', '0');
               el.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
               el.setAttribute('allowfullscreen', '');
+              if (itemType === 'resume') {
+                el.id = 'resume-modal-iframe';
+              }
             }
             if (el) modalDynamicContentArea.appendChild(el);
           });
@@ -1322,6 +1371,7 @@
           else if (itemType === 'small') itemData = smallProjectsData.find(p => p.id.toString() === itemId);
           else if (itemType === 'skill-group') itemData = skillGroupsData.find(g => g.id === itemId);
           else if (itemType === 'about') itemData = aboutMeData;
+          else if (itemType === 'resume') itemData = resumeData;
 
           if (itemData) openModal(card, itemData, itemType);
         }
@@ -1363,8 +1413,16 @@
           const buffer = 2;
           const prevSections = pageSections.filter(section => section.offsetTop < currentScrollY - buffer);
           if (prevSections.length > 0) {
-            const prevSection = prevSections[prevSections.length - 1];
-            prevSection.scrollIntoView({ behavior: 'smooth' });
+            let prevSection = prevSections[prevSections.length - 1];
+            // If scrolling up would land on 'about', go to 'hero' instead.
+            if (prevSection && prevSection.id === 'about') {
+              prevSection = document.getElementById('hero');
+            }
+            if (prevSection) {
+              prevSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
           } else {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }
@@ -1377,6 +1435,7 @@
     populateAboutMeCard();
     populateProjects();
     populateSkillGroups();
+    populateResumeCard();
 
     let scrollRaf;
     window.addEventListener('scroll', () => {
