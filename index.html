@@ -2,1003 +2,1021 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aadhav Sivakumar's Portfolio</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%23C5A35C' /><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='60' font-family='Playfair Display, serif' fill='white'>AS</text></svg>">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-  <style>
-    /* FONT & THEME */
-    :root {
-      --primary-color: #1a1a1a;
-      --secondary-color: #555555;
-      --icon-resting-color: #555555;
-      --background-color: #F7F5F2;
-      --surface-color: #FFFFFF;
-      --accent-color: #C5A35C;
-      --border-color: #ddd;
-      --animation-duration: 0.65s;
-      --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
-      --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 8%, transparent);
-      --shadow-color-accent: color-mix(in srgb, var(--accent-color) 50%, transparent);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aadhav Sivakumar's Portfolio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%23C5A35C' /><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='60' font-family='Playfair Display, serif' fill='white'>AS</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* FONT & THEME */
+        :root {
+            --primary-color: #1a1a1a;
+            --secondary-color: #555555;
+            --icon-resting-color: #555555;
+            --background-color: #F7F5F2;
+            --surface-color: #FFFFFF;
+            --accent-color: #C5A35C;
+            --border-color: #ddd;
+            --animation-duration: 0.65s;
+            --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
+            --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 8%, transparent);
+            --shadow-color-accent: color-mix(in srgb, var(--accent-color) 50%, transparent);
+        }
 
-    html[data-theme="dark"] {
-      --primary-color: #e0e0e0;
-      --secondary-color: #a0a0a0;
-      --icon-resting-color: #a0a0a0;
-      --background-color: #121212;
-      --surface-color: #1e1e1e;
-      --accent-color: #D4B47C;
-      --border-color: #444;
-      --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
-      --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
-    }
+        html[data-theme="dark"] {
+            --primary-color: #e0e0e0;
+            --secondary-color: #a0a0a0;
+            --icon-resting-color: #a0a0a0;
+            --background-color: #121212;
+            --surface-color: #1e1e1e;
+            --accent-color: #D4B47C;
+            --border-color: #444;
+            --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
+            --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
+        }
 
-    /* Keyframe animation for the breathing effect */
-    @keyframes breathe-animation {
-      0% { transform: translateX(0) translateY(0); }
-      50% { transform: translateX(0) translateY(-8px); }
-      100% { transform: translateX(0) translateY(0); }
-    }
+        /* Keyframe animation for the breathing effect */
+        @keyframes breathe-animation {
+            0% { transform: translateX(0) translateY(0); }
+            50% { transform: translateX(0) translateY(-8px); }
+            100% { transform: translateX(0) translateY(0); }
+        }
 
-    /* GLOBAL STYLES */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--background-color);
-      color: var(--primary-color);
-      line-height: 1.7;
-      overflow-x: hidden;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
+        /* GLOBAL STYLES */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--primary-color);
+            line-height: 1.7;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
 
-    h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-color);}
-    a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
-    a:hover { color: var(--primary-color); }
+        h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-color);}
+        a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
+        a:hover { color: var(--primary-color); }
 
-    /* ANIMATED OBJECTS & HEADER */
-    .animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 100; transition: transform 0.1s linear, background-color 0.3s ease, opacity 0.3s ease; will-change: transform; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-    .animated-object:hover {
-      opacity: 0.9;
-    }
-    .left-object {
-      width: 50px;
-      height: calc(50px * 0.866);
-      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-      left: 2vw;
-      top: 85vh;
-    }
-    .right-object {
-      width: 40px;
-      height: 40px;
-      right: 1vw;
-      top: 0;
-      transform: translateY(-100%);
-    }
-    header { position: fixed; width: 100%; top: 0; left: 0; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; transition: background-color 0.5s ease, box-shadow 0.5s ease; }
-    header.scrolled { background-color: color-mix(in srgb, var(--surface-color) 80%, transparent); backdrop-filter: blur(10px); box-shadow: 0 2px 10px var(--shadow-color-ambient); }
-    header .logo { font-size: 1.5rem; }
-    header nav { display: flex; align-items: center; }
-    header nav a { margin-left: 30px; }
+        /* ANIMATED OBJECTS & HEADER */
+        .animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 100; transition: transform 0.1s linear, background-color 0.3s ease, opacity 0.3s ease; will-change: transform; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .animated-object:hover {
+            opacity: 0.9;
+        }
+        .left-object {
+            width: 50px;
+            height: calc(50px * 0.866);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+            left: 2vw;
+            top: 85vh;
+        }
+        .right-object {
+            width: 40px;
+            height: 40px;
+            right: 1vw;
+            top: 0;
+            transform: translateY(-100%);
+        }
+        header { position: fixed; width: 100%; top: 0; left: 0; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; transition: background-color 0.5s ease, box-shadow 0.5s ease; }
+        header.scrolled { background-color: color-mix(in srgb, var(--surface-color) 80%, transparent); backdrop-filter: blur(10px); box-shadow: 0 2px 10px var(--shadow-color-ambient); }
+        header .logo { font-size: 1.5rem; }
+        header nav { display: flex; align-items: center; }
+        header nav a { margin-left: 30px; }
 
-    #theme-toggle {
-      background: none;
-      border: none;
-      color: var(--primary-color);
-      cursor: pointer;
-      font-size: 1.5rem;
-      margin-left: 20px;
-      padding: 5px;
-      line-height: 1;
-      transition: color 0.3s ease, transform 0.3s ease;
-    }
-    #theme-toggle:hover {
-      color: var(--accent-color);
-      transform: scale(1.1);
-    }
-
-
-    /* SECTION & CARD STYLES */
-    section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
-    section#about { padding: 30px 5% 30px 5%; }
-    section.visible { opacity: 1; transform: translateY(0); }
-    .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
-    #hero { min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
-    #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
-    #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
-
-    .about-card-wrapper {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-    }
-
-    /* SVG Sine Wave Animation Styles */
-    .svg-sine-wave-container {
-      width: 200px;
-      height: 420px;
-      position: relative;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .svg-sine-wave-container.left-wave {
-      -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 100%);
-      mask-image: linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 100%);
-    }
-    .svg-sine-wave-container.right-wave {
-      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
-      mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
-    }
-    .svg-sine-wave-container svg {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%; /* SVG viewport matches container */
-      height: 100%;
-    }
-    .svg-sine-wave-container svg path {
-      stroke: var(--accent-color);
-      stroke-width: 2px;
-      fill: none;
-      transition: stroke 0.3s ease;
-      animation-duration: 5s; /* Slower animation */
-      animation-timing-function: linear;
-      animation-iteration-count: infinite;
-    }
-    .svg-sine-wave-container.left-wave svg path {
-      animation-name: move-left; /* Waves move outwards, to the left */
-    }
-    .svg-sine-wave-container.right-wave svg path {
-      animation-name: move-right; /* Waves move outwards, to the right */
-    }
-
-    @keyframes move-left {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-200px); } /* Scroll by 2 wave cycles for a seamless loop */
-    }
-
-    @keyframes move-right {
-      from { transform: translateX(-200px); }
-      to   { transform: translateX(0); }
-    }
-
-    .about-me-card {
-      max-width: 480px;
-      width: 100%;
-      flex-shrink: 0;
-      z-index: 5;
-    }
-    .about-me-card .project-content {
-      padding: 25px;
-      text-align: center;
-    }
-    .about-me-card .project-content h4 {
-      font-size: 2.8rem;
-      margin-bottom: 15px;
-    }
-    .about-me-card img {
-      width: 100%;
-      height: 420px;
-      aspect-ratio: auto;
-      object-fit: cover;
-    }
-
-    #projects h3 { font-size: 1.8rem; margin-top: 60px; margin-bottom: 20px; text-align: center; color: var(--secondary-color); font-family: 'Poppins'; font-weight: 400; }
-
-    .major-project-card, .small-project-card, .skill-group-card, .about-me-card {
-      cursor: pointer;
-      opacity: 0; visibility: hidden; /* Initial state for observer */
-      transition: opacity 0.5s ease-out, transform 0.5s ease, box-shadow 0.4s ease, background-color 0.3s ease;
-    }
-
-    .project-modal-trigger.animating-out {
-      opacity: 0 !important; transform: scale(0.95) !important; visibility: hidden;
-      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
-    }
-
-    /* Initial offset for slide-in */
-    .major-project-card:nth-child(odd), .small-project-card:nth-child(odd), .skill-group-card:nth-child(odd) { transform: translateX(-50px); }
-    .major-project-card:nth-child(even), .small-project-card:nth-child(even), .skill-group-card:nth-child(even) { transform: translateX(50px); }
-    .about-me-card { transform: translateY(30px); }
-
-    /* State when in view */
-    .major-project-card.in-view, .small-project-card.in-view, .skill-group-card.in-view, .about-me-card.in-view {
-      opacity: 1;
-      transform: translateX(0) translateY(0);
-      visibility: visible;
-    }
+        #theme-toggle {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.5rem;
+            margin-left: 20px;
+            padding: 5px;
+            line-height: 1;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+        #theme-toggle:hover {
+            color: var(--accent-color);
+            transform: scale(1.1);
+        }
 
 
-    .major-project-card:hover, .small-project-card:hover, .skill-group-card:hover {
-      animation: breathe-animation 2s ease-in-out infinite;
-      box-shadow: 0 10px 20px var(--shadow-color-ambient), 0 0 15px var(--shadow-color-accent);
-    }
+        /* SECTION & CARD STYLES */
+        section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
+        section#about { padding: 30px 5% 30px 5%; }
+        section#additional-projects { padding-top: 0; }
+        section.visible { opacity: 1; transform: translateY(0); }
+        .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
+        #hero { min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
+        #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
+        #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
 
-    .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
-    .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
-    .major-project-card img, .major-project-card video { width: 100%; height: 300px; object-fit: cover; }
+        .about-card-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
 
-    .major-projects-grid .major-project-card .project-content {
-      padding: 25px;
-      text-align: left;
-    }
-    .major-projects-grid .major-project-card .project-content h4 {
-      font-size: 1.7rem;
-    }
-    .major-projects-grid .major-project-card .project-content p {
-      color: var(--secondary-color);
-      margin-bottom: 10px;
-    }
+        /* SVG Sine Wave Animation Styles */
+        .svg-sine-wave-container {
+            width: 200px;
+            height: 420px;
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .svg-sine-wave-container.left-wave {
+            -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 100%);
+            mask-image: linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 100%);
+        }
+        .svg-sine-wave-container.right-wave {
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
+        }
+        .svg-sine-wave-container svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%; /* SVG viewport matches container */
+            height: 100%;
+        }
+        .svg-sine-wave-container svg path {
+            stroke: var(--accent-color);
+            stroke-width: 2px;
+            fill: none;
+            transition: stroke 0.3s ease;
+            animation-duration: 5s; /* Slower animation */
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+        .svg-sine-wave-container.left-wave svg path {
+            animation-name: move-left; /* Waves move outwards, to the left */
+        }
+        .svg-sine-wave-container.right-wave svg path {
+            animation-name: move-right; /* Waves move outwards, to the right */
+        }
 
+        @keyframes move-left {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-200px); } /* Scroll by 2 wave cycles for a seamless loop */
+        }
 
-    .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
-    .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); overflow: hidden; }
-    .small-project-card img, .small-project-card video { width: 100%; height: 150px; object-fit: cover; display: block; }
+        @keyframes move-right {
+            from { transform: translateX(-200px); }
+            to   { transform: translateX(0); }
+        }
 
-    /* Styles for GIFs on project cards */
-    .major-project-card img.is-gif,
-    .small-project-card img.is-gif {
-      /* The object-fit: cover is inherited from the default img style, making it fill the space. */
-      background-color: #e9e9e9; /* A neutral background for transparent GIFs */
-    }
-    html[data-theme="dark"] .major-project-card img.is-gif,
-    html[data-theme="dark"] .small-project-card img.is-gif {
-      background-color: #2a2a2a; /* A darker neutral bg for dark mode */
-    }
+        .about-me-card {
+            max-width: 480px;
+            width: 100%;
+            flex-shrink: 0;
+            z-index: 5;
+        }
+        .about-me-card .project-content {
+            padding: 25px;
+            text-align: center;
+        }
+        .about-me-card .project-content h4 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+        }
+        .about-me-card img {
+            width: 100%;
+            height: 420px;
+            aspect-ratio: auto;
+            object-fit: cover;
+        }
 
-    .small-project-content { padding: 15px; }
-    .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
-    .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); margin-bottom: 8px; }
-
-    .project-tags-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 15px;
-    }
-    .project-tag {
-      background: linear-gradient(145deg, #a98642, #f9e099 50%, #b8914c);
-      color: #4B380C;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 0.7rem;
-      border: 1px solid #8c6d31;
-      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0,0,0,0.1);
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
-    }
-    html[data-theme="dark"] .project-tag:not(.status-completed):not(.status-in-progress) {
-      background: linear-gradient(145deg, #b8914c, #ffeeb3 50%, #c49f5f);
-      border-color: #a08244;
-      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0,0,0,0.2);
-    }
-
-    .project-status-container {
-      margin-top: 12px;
-    }
-
-    /* Flat, vibrant status tags overriding the shiny default */
-    .project-tag.status-completed,
-    .project-tag.status-in-progress {
-      background-image: none;
-      border: none;
-      text-shadow: none;
-      box-shadow: none;
-      color: #4B380C; /* Consistent dark text for status tags */
-      font-weight: 500;
-    }
-
-    /* Pastel green tag for 'Completed' status, consistent in light/dark modes */
-    .project-tag.status-completed {
-      background-color: #7CFC00;
-    }
-
-    /* Pastel orange tag for 'In Progress' status, consistent in light/dark modes */
-    .project-tag.status-in-progress {
-      background-color: #FFA500;
-    }
-
-    .skill-groups-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-      margin-top: 40px;
-    }
-    .skill-group-card {
-      background-color: var(--surface-color);
-      border-radius: 10px;
-      overflow: visible;
-      box-shadow: 0 5px 15px var(--shadow-color-ambient);
-      text-align: center;
-      padding: 25px 20px 45px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      position: relative;
-    }
-    .skill-group-card-image-wrapper {
-      position: relative;
-      margin-bottom: 15px;
-      line-height: 0;
-    }
-    .skill-group-card-image {
-      width: 80px;
-      height: 80px;
-      background-color: var(--accent-color);
-      -webkit-mask-size: contain;
-      mask-size: contain;
-      -webkit-mask-position: center;
-      mask-position: center;
-      -webkit-mask-repeat: no-repeat;
-      mask-repeat: no-repeat;
-      /* Resting state (light mode): muted gray. Define all filters for smooth transition. */
-      filter: grayscale(1) opacity(1) brightness(1) contrast(0);
-      transition: filter 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-    html[data-theme="dark"] .skill-group-card-image {
-      /* Resting state (dark mode): lighter gray, more visible */
-      filter: grayscale(1) opacity(1) brightness(1) contrast(0);
-    }
-    .skill-group-card:hover .skill-group-card-image {
-      /* Hover state (both modes): reveal the full gold color. Reset brightness. */
-      filter: grayscale(0) opacity(1) brightness(1) contrast(1);
-    }
-    .skill-group-card-title {
-      font-family: 'Playfair Display', serif;
-      font-size: 1.5rem;
-      margin-bottom: 10px;
-      color: var(--primary-color);
-    }
-    .skill-group-card-tags-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 8px;
-      margin-top: 15px;
-      justify-content: center;
-    }
-    .skill-group-more-info {
-      position: absolute;
-      bottom: 15px;
-      left: 0;
-      right: 0;
-      text-align: center;
-      font-size: 0.75rem;
-      font-style: italic;
-      color: var(--secondary-color);
-      width: 100%;
-    }
-
-    .modal-skill-group-items-container {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .skill-group-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 15px;
-      padding: 15px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      background-color: color-mix(in srgb, var(--surface-color) 95%, var(--background-color));
-      transition: border-color 0.3s ease, background-color 0.3s ease;
-    }
-    .skill-group-item-image {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-      flex-shrink: 0;
-      border-radius: 4px;
-    }
-    .skill-group-item-text {
-      display: flex;
-      flex-direction: column;
-    }
-    .skill-group-item-name {
-      font-family: 'Poppins', sans-serif;
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-      color: var(--primary-color);
-    }
-    .skill-group-item-description {
-      font-size: 0.85rem;
-      color: var(--secondary-color);
-      line-height: 1.5;
-      white-space: pre-wrap;
-    }
+        #projects h3, #additional-projects h3 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--secondary-color);
+            font-family: 'Poppins';
+            font-weight: 400;
+        }
+        #projects h3 {
+            margin-top: 60px;
+        }
+        #additional-projects h3 {
+            margin-top: 100px;
+        }
 
 
-    #contact p, #resume p {
-      max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); text-align: center;
-    }
-    #contact { text-align: center; }
-    .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 35px; align-items: center; }
-    .social-links a { color: var(--secondary-color); transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
-    .social-links a:hover { transform: scale(1.25); color: var(--accent-color); }
-    footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 50px; position: relative; z-index: 10; transition: border-color 0.3s ease, color 0.3s ease;}
+        .major-project-card, .small-project-card, .skill-group-card, .about-me-card {
+            cursor: pointer;
+            opacity: 0; visibility: hidden; /* Initial state for observer */
+            transition: opacity 0.5s ease-out, transform 0.5s ease, box-shadow 0.4s ease, background-color 0.3s ease;
+        }
+
+        .project-modal-trigger.animating-out {
+            opacity: 0 !important; transform: scale(0.95) !important; visibility: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+        }
+
+        /* Initial offset for slide-in */
+        .major-project-card:nth-child(odd), .small-project-card:nth-child(odd), .skill-group-card:nth-child(odd) { transform: translateX(-50px); }
+        .major-project-card:nth-child(even), .small-project-card:nth-child(even), .skill-group-card:nth-child(even) { transform: translateX(50px); }
+        .about-me-card { transform: translateY(30px); }
+
+        /* State when in view */
+        .major-project-card.in-view, .small-project-card.in-view, .skill-group-card.in-view, .about-me-card.in-view {
+            opacity: 1;
+            transform: translateX(0) translateY(0);
+            visibility: visible;
+        }
 
 
-    /* MODAL STYLES */
-    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
-    html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
-    .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
-    .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden;
-      transition: top var(--animation-duration) var(--animation-easing),
-      left var(--animation-duration) var(--animation-easing),
-      width var(--animation-duration) var(--animation-easing),
-      height var(--animation-duration) var(--animation-easing),
-      opacity var(--animation-duration) var(--animation-easing),
-      background-color 0.3s ease;
-      pointer-events: none; visibility: hidden; opacity: 0;
-    }
-    .modal-animator.no-transition { transition: none !important; }
-    .modal-animator.visible { pointer-events: auto; visibility: visible; opacity: 1; }
-    .modal-animator .modal-content-wrapper { opacity: 0; transition: opacity 0.3s 0.2s ease; }
-    .modal-animator.open .modal-content-wrapper { opacity: 1; }
-    .modal-content { position: relative; width: 100%; height: 100%; }
-    .modal-content-wrapper { width: 100%; height: 100%; overflow-y: auto; }
-    .modal-image-container { width: 100%; padding: 50px 35px 0; }
-    .modal-image { width: 100%; height: auto; max-height: 50vh; object-fit: cover; border-radius: 8px; }
+        .major-project-card:hover, .small-project-card:hover, .skill-group-card:hover {
+            animation: breathe-animation 2s ease-in-out infinite;
+            box-shadow: 0 10px 20px var(--shadow-color-ambient), 0 0 15px var(--shadow-color-accent);
+        }
 
-    .modal-animator.skill-group-modal .modal-image-container {
-      padding: 30px 35px 0;
-    }
-    .modal-animator.skill-group-modal .modal-image {
-      max-height: 200px;
-      object-fit: contain;
-    }
-    .modal-animator.skill-modal .modal-image-container,
-    .modal-animator.resume-modal .modal-image-container {
-      display: none;
-    }
+        .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
+        .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
+        .major-project-card img, .major-project-card video { width: 100%; height: 300px; object-fit: cover; }
+
+        .major-projects-grid .major-project-card .project-content {
+            padding: 25px;
+            text-align: left;
+        }
+        .major-projects-grid .major-project-card .project-content h4 {
+            font-size: 1.7rem;
+        }
+        .major-projects-grid .major-project-card .project-content p {
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+        }
 
 
-    .modal-view-button {
-      display: inline-block; padding: 12px 24px; background-color: var(--accent-color);
-      color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
-      text-align: center; transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
-      margin-top: 15px;
-      border: none;
-      cursor: pointer;
-    }
-    html[data-theme="dark"] .modal-view-button {
-      color: var(--background-color) !important;
-    }
-    .modal-view-button:hover {
-      transform: scale(1.05); background-color: var(--primary-color); color: var(--surface-color) !important;
-    }
-    html[data-theme="dark"] .modal-view-button:hover {
-      color: var(--background-color) !important;
-    }
+        .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
+        .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); overflow: hidden; }
+        .small-project-card img, .small-project-card video { width: 100%; height: 150px; object-fit: cover; display: block; }
 
-    .modal-close { position: fixed; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2002; color: white; mix-blend-mode: difference; transition: color 0.3s ease; }
-    .modal-animator.skill-group-modal .modal-close,
-    .modal-animator.skill-modal .modal-close,
-    .modal-animator.resume-modal .modal-close {
-      color: var(--primary-color); mix-blend-mode: normal;
-    }
+        /* Styles for GIFs on project cards */
+        .major-project-card img.is-gif,
+        .small-project-card img.is-gif {
+            /* The object-fit: cover is inherited from the default img style, making it fill the space. */
+            background-color: #e9e9e9; /* A neutral background for transparent GIFs */
+        }
+        html[data-theme="dark"] .major-project-card img.is-gif,
+        html[data-theme="dark"] .small-project-card img.is-gif {
+            background-color: #2a2a2a; /* A darker neutral bg for dark mode */
+        }
 
-    .modal-text-content { padding: 25px 35px; }
-    .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
-    .modal-text-content p#modal-description { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7;}
+        .small-project-content { padding: 15px; }
+        .small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
+        .small-project-content p { font-size: 0.9rem; color: var(--secondary-color); margin-bottom: 8px; }
 
-    .modal-animator.resume-modal .modal-text-content { padding: 15px; height: 100%; box-sizing: border-box; }
-    .modal-animator.resume-modal #modal-dynamic-content-area,
-    .modal-animator.resume-modal .modal-dynamic-embed { height: 100%; }
-    html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180deg); }
+        .project-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .project-tag {
+            background: linear-gradient(145deg, #a98642, #f9e099 50%, #b8914c);
+            color: #4B380C;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            border: 1px solid #8c6d31;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0,0,0,0.1);
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        html[data-theme="dark"] .project-tag:not(.status-completed):not(.status-in-progress) {
+            background: linear-gradient(145deg, #b8914c, #ffeeb3 50%, #c49f5f);
+            border-color: #a08244;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0,0,0,0.2);
+        }
 
-    .modal-dynamic-text { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7; }
-    .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
-    .modal-dynamic-button {
-      display: inline-block; padding: 10px 20px; background-color: var(--accent-color);
-      color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
-      text-align: center; margin: 10px 5px 15px 0;
-      transition: transform 0.3s ease, background-color 0.3s ease;
-    }
-    .modal-dynamic-embed {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      margin: 20px 0;
-      box-shadow: 0 4px 12px var(--shadow-color-ambient);
-      background-color: var(--background-color);
-    }
-    html[data-theme="dark"] .modal-dynamic-button {
-      color: var(--background-color) !important;
-    }
-    .modal-dynamic-button:hover { transform: scale(1.05); background-color: var(--primary-color); }
-    html[data-theme="dark"] .modal-dynamic-button:hover {
-      color: var(--background-color) !important;
-    }
+        .project-status-container {
+            margin-top: 12px;
+        }
 
-    /* RESPONSIVE DESIGN */
-    @media (max-width: 992px) {
-      .about-card-wrapper {
-        flex-direction: column;
-        align-items: center;
-      }
-      .svg-sine-wave-container { /* Hide sine waves on smaller screens */
-        display: none;
-      }
-      .about-me-card {
-        max-width: 90%;
-      }
-    }
+        /* Flat, vibrant status tags overriding the shiny default */
+        .project-tag.status-completed,
+        .project-tag.status-in-progress {
+            background-image: none;
+            border: none;
+            text-shadow: none;
+            box-shadow: none;
+            color: #4B380C; /* Consistent dark text for status tags */
+            font-weight: 500;
+        }
 
-    @media (max-width: 768px) {
-      header nav a { margin-left: 15px; }
-      #theme-toggle { margin-left: 15px; font-size: 1.3rem; }
-      .section-title { font-size: 2.5rem; }
-      .modal-content-wrapper { padding: 20px; }
-      .modal-image-container { padding: 30px 15px 0; }
-      .modal-text-content { padding: 25px 15px; }
-      .modal-text-content h2 { font-size: 2rem; }
-    }
-    @media (max-width: 480px) {
-      header nav a { margin-left: 10px; font-size: 0.9rem;}
-      #theme-toggle { margin-left: 10px; font-size: 1.2rem; }
-      .skill-group-item { flex-direction: column; align-items: center; text-align: center; }
-      .skill-group-item-image { margin-bottom: 10px; }
-      .project-tags-container, .project-status-container { justify-content: center; display: flex; }
-    }
-  </style>
+        /* Pastel green tag for 'Completed' status, consistent in light/dark modes */
+        .project-tag.status-completed {
+            background-color: #7CFC00;
+        }
+
+        /* Pastel orange tag for 'In Progress' status, consistent in light/dark modes */
+        .project-tag.status-in-progress {
+            background-color: #FFA500;
+        }
+
+        .skill-groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .skill-group-card {
+            background-color: var(--surface-color);
+            border-radius: 10px;
+            overflow: visible;
+            box-shadow: 0 5px 15px var(--shadow-color-ambient);
+            text-align: center;
+            padding: 25px 20px 45px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+        }
+        .skill-group-card-image-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+            line-height: 0;
+        }
+        .skill-group-card-image {
+            width: 80px;
+            height: 80px;
+            background-color: var(--accent-color);
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            -webkit-mask-position: center;
+            mask-position: center;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            /* Resting state (light mode): muted gray. Define all filters for smooth transition. */
+            filter: grayscale(1) opacity(1) brightness(1) contrast(0);
+            transition: filter 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        html[data-theme="dark"] .skill-group-card-image {
+            /* Resting state (dark mode): lighter gray, more visible */
+            filter: grayscale(1) opacity(1) brightness(1) contrast(0);
+        }
+        .skill-group-card:hover .skill-group-card-image {
+            /* Hover state (both modes): reveal the full gold color. Reset brightness. */
+            filter: grayscale(0) opacity(1) brightness(1) contrast(1);
+        }
+        .skill-group-card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        .skill-group-card-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 8px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        .skill-group-more-info {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.75rem;
+            font-style: italic;
+            color: var(--secondary-color);
+            width: 100%;
+        }
+
+        .modal-skill-group-items-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .skill-group-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: color-mix(in srgb, var(--surface-color) 95%, var(--background-color));
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+        .skill-group-item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            flex-shrink: 0;
+            border-radius: 4px;
+        }
+        .skill-group-item-text {
+            display: flex;
+            flex-direction: column;
+        }
+        .skill-group-item-name {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+        .skill-group-item-description {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+
+        #contact p, #resume p {
+            max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); text-align: center;
+        }
+        #contact { text-align: center; }
+        .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 35px; align-items: center; }
+        .social-links a { color: var(--secondary-color); transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
+        .social-links a:hover { transform: scale(1.25); color: var(--accent-color); }
+        footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 50px; position: relative; z-index: 10; transition: border-color 0.3s ease, color 0.3s ease;}
+
+
+        /* MODAL STYLES */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
+        html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
+        .modal-backdrop.visible { opacity: 1; pointer-events: auto; }
+        .modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden;
+            transition: top var(--animation-duration) var(--animation-easing),
+            left var(--animation-duration) var(--animation-easing),
+            width var(--animation-duration) var(--animation-easing),
+            height var(--animation-duration) var(--animation-easing),
+            opacity var(--animation-duration) var(--animation-easing),
+            background-color 0.3s ease;
+            pointer-events: none; visibility: hidden; opacity: 0;
+        }
+        .modal-animator.no-transition { transition: none !important; }
+        .modal-animator.visible { pointer-events: auto; visibility: visible; opacity: 1; }
+        .modal-animator .modal-content-wrapper { opacity: 0; transition: opacity 0.3s 0.2s ease; }
+        .modal-animator.open .modal-content-wrapper { opacity: 1; }
+        .modal-content { position: relative; width: 100%; height: 100%; }
+        .modal-content-wrapper { width: 100%; height: 100%; overflow-y: auto; }
+        .modal-image-container { width: 100%; padding: 50px 35px 0; }
+        .modal-image { width: 100%; height: auto; max-height: 50vh; object-fit: cover; border-radius: 8px; }
+
+        .modal-animator.skill-group-modal .modal-image-container {
+            padding: 30px 35px 0;
+        }
+        .modal-animator.skill-group-modal .modal-image {
+            max-height: 200px;
+            object-fit: contain;
+        }
+        .modal-animator.skill-modal .modal-image-container,
+        .modal-animator.resume-modal .modal-image-container {
+            display: none;
+        }
+
+
+        .modal-view-button {
+            display: inline-block; padding: 12px 24px; background-color: var(--accent-color);
+            color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
+            text-align: center; transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+            margin-top: 15px;
+            border: none;
+            cursor: pointer;
+        }
+        html[data-theme="dark"] .modal-view-button {
+            color: var(--background-color) !important;
+        }
+        .modal-view-button:hover {
+            transform: scale(1.05); background-color: var(--primary-color); color: var(--surface-color) !important;
+        }
+        html[data-theme="dark"] .modal-view-button:hover {
+            color: var(--background-color) !important;
+        }
+
+        .modal-close { position: fixed; top: 15px; right: 20px; background: none; border: none; font-size: 2.5rem; cursor: pointer; line-height: 1; z-index: 2002; color: white; mix-blend-mode: difference; transition: color 0.3s ease; }
+        .modal-animator.skill-group-modal .modal-close,
+        .modal-animator.skill-modal .modal-close,
+        .modal-animator.resume-modal .modal-close {
+            color: var(--primary-color); mix-blend-mode: normal;
+        }
+
+        .modal-text-content { padding: 25px 35px; }
+        .modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
+        .modal-text-content p#modal-description { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7;}
+
+        .modal-animator.resume-modal .modal-text-content { padding: 15px; height: 100%; box-sizing: border-box; }
+        .modal-animator.resume-modal #modal-dynamic-content-area,
+        .modal-animator.resume-modal .modal-dynamic-embed { height: 100%; }
+        html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180deg); }
+
+        .modal-dynamic-text { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7; }
+        .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
+        .modal-dynamic-button {
+            display: inline-block; padding: 10px 20px; background-color: var(--accent-color);
+            color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
+            text-align: center; margin: 10px 5px 15px 0;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        .modal-dynamic-embed {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin: 20px 0;
+            box-shadow: 0 4px 12px var(--shadow-color-ambient);
+            background-color: var(--background-color);
+        }
+        html[data-theme="dark"] .modal-dynamic-button {
+            color: var(--background-color) !important;
+        }
+        .modal-dynamic-button:hover { transform: scale(1.05); background-color: var(--primary-color); }
+        html[data-theme="dark"] .modal-dynamic-button:hover {
+            color: var(--background-color) !important;
+        }
+
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 992px) {
+            .about-card-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+            .svg-sine-wave-container { /* Hide sine waves on smaller screens */
+                display: none;
+            }
+            .about-me-card {
+                max-width: 90%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header nav a { margin-left: 15px; }
+            #theme-toggle { margin-left: 15px; font-size: 1.3rem; }
+            .section-title { font-size: 2.5rem; }
+            .modal-content-wrapper { padding: 20px; }
+            .modal-image-container { padding: 30px 15px 0; }
+            .modal-text-content { padding: 25px 15px; }
+            .modal-text-content h2 { font-size: 2rem; }
+        }
+        @media (max-width: 480px) {
+            header nav a { margin-left: 10px; font-size: 0.9rem;}
+            #theme-toggle { margin-left: 10px; font-size: 1.2rem; }
+            .skill-group-item { flex-direction: column; align-items: center; text-align: center; }
+            .skill-group-item-image { margin-bottom: 10px; }
+            .project-tags-container, .project-status-container { justify-content: center; display: flex; }
+        }
+    </style>
 </head>
 <body>
 
 <div id="scroll-down-btn" class="animated-object left-object" title="Next Section" aria-label="Scroll to next section">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"></polyline></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"></polyline></svg>
 </div>
 <div id="scroll-up-btn" class="animated-object right-object" title="Previous Section" aria-label="Scroll to previous section">
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 15 12 10 17 15"></polyline></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 15 12 10 17 15"></polyline></svg>
 </div>
 
 <header>
-  <div class="logo"><a href="#hero">AS.</a></div>
-  <nav>
-    <a href="#about">About</a>
-    <a href="#projects">Projects</a>
-    <a href="#skills">Skills</a>
-    <a href="#resume">Resume</a>
-    <a href="#contact">Contact</a>
-    <button id="theme-toggle" aria-label="Toggle theme">🌙</button>
-  </nav>
+    <div class="logo"><a href="#hero">AS.</a></div>
+    <nav>
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#skills">Skills</a>
+        <a href="#resume">Resume</a>
+        <a href="#contact">Contact</a>
+        <button id="theme-toggle" aria-label="Toggle theme">🌙</button>
+    </nav>
 </header>
 
 <main>
-  <section id="hero" class="visible">
-    <h1>Aadhav Sivakumar</h1>
-    <p>Robotics Engineer Specializing in Embedded AI and Autonomous Systems</p>
-  </section>
+    <section id="hero" class="visible">
+        <h1>Aadhav Sivakumar</h1>
+        <p>Robotics Engineer Specializing in Embedded AI and Autonomous Systems</p>
+    </section>
 
-  <section id="about">
-    <div class="about-card-wrapper">
-      <!-- About Me section content (waves, card) will be injected here by JavaScript -->
-    </div>
-  </section>
+    <section id="about">
+        <div class="about-card-wrapper">
+            <!-- About Me section content (waves, card) will be injected here by JavaScript -->
+        </div>
+    </section>
 
-  <section id="projects">
-    <h2 class="section-title">My Work</h2>
-    <h3>Major Projects</h3>
-    <div class="major-projects-grid" id="major-projects-container"></div>
-    <h3>More Work</h3>
-    <div class="small-projects-grid" id="small-projects-container"></div>
-  </section>
+    <section id="projects">
+        <h2 class="section-title">My Work</h2>
+        <h3>Major Projects</h3>
+        <div class="major-projects-grid" id="major-projects-container"></div>
+    </section>
 
-  <section id="skills">
-    <h2 class="section-title">Technical Skills</h2>
-    <div class="skill-groups-grid" id="skill-groups-container">
-      <!-- Skill group cards will be injected here -->
-    </div>
-  </section>
+    <section id="additional-projects">
+        <h3>Additional Projects</h3>
+        <div class="small-projects-grid" id="small-projects-container"></div>
+    </section>
 
-  <section id="resume">
-    <h2 class="section-title">My Résumé</h2>
-    <p>Explore my professional experience, skills, and qualifications in detail. Click the card below to view my resume.</p>
-    <div id="resume-card-container" class="major-projects-grid" style="max-width: 410px; margin: 40px auto 0;">
-      <!-- Resume card will be injected here by JS -->
-    </div>
-  </section>
+    <section id="skills">
+        <h2 class="section-title">Technical Skills</h2>
+        <div class="skill-groups-grid" id="skill-groups-container">
+            <!-- Skill group cards will be injected here -->
+        </div>
+    </section>
 
-  <section id="contact">
-    <h2 class="section-title">Get In Touch</h2>
-    <p>I'm currently available for new opportunities. If you have a project in mind or just want to connect, I'd love to hear from you!</p>
-    <div class="social-links">
-      <a href="https://www.linkedin.com/in/aadhav-s/" target="_blank" aria-label="LinkedIn Profile">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="40" height="40"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" /></svg>
-      </a>
-      <a href="https://github.com/AadhavSivakumar" target="_blank" aria-label="GitHub Profile">
-        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="40" height="40"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-      </a>
-      <a href="mailto:sivakumaadhav@gmail.com" aria-label="Email">
-        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-      </a>
-    </div>
-  </section>
+    <section id="resume">
+        <h2 class="section-title">My Résumé</h2>
+        <p>Explore my professional experience, skills, and qualifications in detail. Click the card below to view my resume.</p>
+        <div id="resume-card-container" class="major-projects-grid" style="max-width: 410px; margin: 40px auto 0;">
+            <!-- Resume card will be injected here by JS -->
+        </div>
+    </section>
+
+    <section id="contact">
+        <h2 class="section-title">Get In Touch</h2>
+        <p>I'm currently available for new opportunities. If you have a project in mind or just want to connect, I'd love to hear from you!</p>
+        <div class="social-links">
+            <a href="https://www.linkedin.com/in/aadhav-s/" target="_blank" aria-label="LinkedIn Profile">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="40" height="40"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z" /></svg>
+            </a>
+            <a href="https://github.com/AadhavSivakumar" target="_blank" aria-label="GitHub Profile">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="40" height="40"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+            </a>
+            <a href="mailto:sivakumaadhav@gmail.com" aria-label="Email">
+                <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </a>
+        </div>
+    </section>
 </main>
 
 <footer>
-  <p>© 2024 Aadhav Sivakumar. All Rights Reserved.</p>
+    <p>© 2024 Aadhav Sivakumar. All Rights Reserved.</p>
 </footer>
 
 <!-- Modal Structure -->
 <div class="modal-backdrop">
-  <div class="modal-animator">
-    <div class="modal-content">
-      <button class="modal-close" aria-label="Close modal">&times;</button>
-      <div class="modal-content-wrapper">
-        <div class="modal-image-container">
-          <!-- Media (img/video) will be injected here by JS -->
+    <div class="modal-animator">
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close modal">&times;</button>
+            <div class="modal-content-wrapper">
+                <div class="modal-image-container">
+                    <!-- Media (img/video) will be injected here by JS -->
+                </div>
+                <div class="modal-text-content">
+                    <h2 id="modal-title"></h2>
+                    <p id="modal-description"></p>
+                    <div id="modal-dynamic-content-area"></div>
+                    <div id="modal-tech-stack"></div>
+                    <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
+                </div>
+            </div>
         </div>
-        <div class="modal-text-content">
-          <h2 id="modal-title"></h2>
-          <p id="modal-description"></p>
-          <div id="modal-dynamic-content-area"></div>
-          <div id="modal-tech-stack"></div>
-          <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
-        </div>
-      </div>
     </div>
-  </div>
 </div>
 
 
 <script>
-  window.addEventListener('load', () => {
-    // Prevent browser from restoring scroll position and force to top
-    if (history.scrollRestoration) {
-      history.scrollRestoration = 'manual';
-    }
-    window.scrollTo(0, 0);
-
-    const aboutMeData = {
-      id: 'about-me-section',
-      type: 'about',
-      cardTitle: 'About Me',
-      cardTeaser: 'A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.',
-      imageUrl: 'https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG',
-      modalTitle: 'Aadhav Sivakumar',
-      modalContent: [
-        { type: 'text', value: "Hello! I'm Aadhav Sivakumar, a Robotics and Embedded Systems Engineer with a Master's in Mechatronics and Robotics from NYU Tandon and a Bachelor's from UC Santa Cruz. I specialize in designing and developing intelligent systems, from autonomous drones and telerobotic interfaces to advanced sensor technologies. My work is driven by a passion for solving complex challenges at the intersection of hardware and software." },
-        { type: 'text', value: "I thrive on developing cutting-edge solutions and have hands-on experience with the full project lifecycle, from conceptualization and PCB design to firmware development and AI integration. Beyond my core engineering work, I enjoy playing volleyball and biking, activities that fuel my creativity and problem-solving mindset." },
-        { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
-        { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' },
-        { type: 'text', value: "Feel free to explore my projects or reach out if you'd like to collaborate!" }
-      ]
-    };
-    const baseProjectImagePath = 'https://aadhavsivakumar.github.io/Images/projectcovers/';
-    const majorProjectsData = [
-      { id: 1, title: 'Project Millet', cardDescription: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery.', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{type: 'text', value: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery, aiming to enhance farming efficiency.'}] },
-      { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data.', imageUrl: baseProjectImagePath+'solegaitvidmute.mp4', tags: ['Python', 'Arduino', 'Comm Protocols'], status: 'In Progress', modalContent: [{type: 'text', value: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data for healthcare and athletic performance.'}] },
-      { id: 3, title: 'Glass-2-Bot', cardDescription: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions.', imageUrl: baseProjectImagePath+'glass2bot.gif', tags: ['Google Glass', 'AI Vision', 'Python', 'Telerobotics'], status: 'Completed', modalContent: [{type: 'text', value: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions, demonstrating a novel human-robot interface.'}, {type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Project Documentation PDF'}] },
-      { id: 4, title: 'SMART compost sorting', cardDescription: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework to automate the identification and separation of contaminants.', imageUrl: baseProjectImagePath + 'smartsort.gif', tags:['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
-      { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction.', imageUrl: baseProjectImagePath+'tacmanipHQ.gif', tags: ['C', 'Altium Designer'], status: 'Completed', modalContent: [{type: 'text', value: 'Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction, enhancing a robot\'s ability to handle delicate objects.'}, {type: 'button', text: 'View Organization', link: 'https://tml.engineering.ucsc.edu/'}, {type: 'button', text: 'View Previous Research', link: 'https://tml.engineering.ucsc.edu/research/dexterous-manipulation/'}] },
-      { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency in a retail environment.', imageUrl: baseProjectImagePath + 'stockbot.gif', tags:['Python', 'Mujoco', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency and accuracy in a dynamic retail environment.'}, { type: 'text', value: "This project was a capstone for my undergraduate studies, showcasing the integration of advanced simulation with robotic control theory. The final system demonstrated a significant potential for reducing manual labor and improving inventory management in a simulated retail setting." }, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
-    ];
-
-    const smallProjectsData = [
-      { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath+'deskrobarm.png', tags: ['Python', 'AI Vision', 'Raspberry Pi'], status: 'In Progress', modalContent: [{type: 'text', value: 'Building a desktop robotic arm controlled by AI vision running on a Raspberry Pi. This project explores real-time object recognition and manipulation, creating an interactive and intelligent automated workspace assistant.'}] },
-      { id: 'h', title: '3d Fruit Ninja Simulation', imageUrl: baseProjectImagePath+'fruitninja.mp4', tags: ['Python', 'Webots'], status: 'In Progress', modalContent: [{type: 'text', value: "Created a 3D simulation of the game 'Fruit Ninja' using Python, applying principles of physics-based modeling and 3D graphics to develop an interactive and engaging virtual experience."}] },
-      { id: 'a', title: 'Sand Table', imageUrl: baseProjectImagePath+'2rplanarstraight.gif', tags: ['Parallax Propeller', 'C++', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: 'Engineered a 2R planar manipulator controlled by a Parallax Propeller MCU to draw intricate patterns in sand. Applied C++ and kinematic principles to translate digital designs into precise, physical motion.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
-      { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath+'PONG.mp4', tags: ['Arduino', 'LED matrix'], status: 'Completed', modalContent: [{type: 'text', value: 'Constructed a standalone version of the classic game PONG using an Arduino and an LED matrix. This project involved low-level hardware interfacing and efficient programming to create a responsive and engaging game.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
-      { id: 'c', title: 'MATE ROV', imageUrl: baseProjectImagePath+'MATEROV.jpeg', tags: ['C++', 'EAGLE', 'Ultrasonic'], status: 'Completed', modalContent: [{type: 'text', value: 'Contributed to a competitive MATE ROV team by designing and building electronic subsystems for an underwater drone. Utilized EAGLE for PCB design and integrated ultrasonic sensors for complex subsea navigation and task execution.'}] },
-      { id: 'd', title: 'Automated Dog Feeder', imageUrl: baseProjectImagePath+'dogfeeder.webp', tags: ['C', 'Raspberry Pi'], status: 'Completed', modalContent: [{type: 'text', value: 'Designed and built an internet-enabled pet feeder powered by a Raspberry Pi and Firebase. This system allows for remote and scheduled feeding with precise portion control, ensuring a pet\'s dietary needs are met.'}, {type: 'button', text: 'View on Instructables', link: 'https://www.instructables.com/Internet-Enabled-Raspberry-Pi-Pet-Feeder/'}] },
-      { id: 'e', title: 'FPGA VGA Game', imageUrl: baseProjectImagePath+'fpgaVGA.png', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{type: 'text', value: "Developed a 'Flappy Bird' style game on a Basys 3 FPGA using Verilog. This project involved designing digital logic circuits from the ground up to handle game state, player input, and VGA signal generation."}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
-      { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath+'mechcomp.mp4', tags: ['STM32', 'C++', 'PID Control'], status: 'Completed', modalContent: [{type: 'text', value: 'Built and programmed an autonomous robot on an STM32 platform for a mechatronics competition. Implemented C++ and fine-tuned PID control algorithms to achieve precise targeting and win a ping pong ball shooting tournament.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
-    ];
-
-    const resumeData = {
-      id: 'resume-card',
-      type: 'resume',
-      title: 'View My Résumé',
-      cardDescription: 'An up-to-date overview of my professional journey, technical skills, and key projects. Click to open the PDF.',
-      imageUrl: 'https://placehold.co/600x400/F7F5F2/BFA181?text=View+R%C3%A9sum%C3%A9',
-      modalTitle: 'My Résumé',
-      modalContent: [
-        { type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Aadhav Sivakumar\'s Resume' }
-      ]
-    };
-
-    const baseSkillImagePath = 'https://aadhavsivakumar.github.io/Images/skills/';
-    const deviconsBaseUrl = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/';
-
-
-    const skillGroupsData = [
-      {
-        id: 'programming-software',
-        title: 'Programming & Software Development',
-        cardImageUrl: 'https://api.iconify.design/mdi/code-braces-box.svg',
-        items: [
-          { name: 'C', imageUrl: deviconsBaseUrl + 'c/c-original.svg', description: 'A powerful, general-purpose language for system programming, embedded systems, and performance-critical applications.' },
-          { name: 'C++', imageUrl: deviconsBaseUrl + 'cplusplus/cplusplus-original.svg', description: 'An extension of C with object-oriented features, used in game engines, OS, and complex software.' },
-          { name: 'Python', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'High-level, versatile language for web dev, data science, AI, scripting, and automation.' },
-          { name: 'Java', imageUrl: deviconsBaseUrl + 'java/java-original.svg', description: 'Class-based, object-oriented language for enterprise apps, Android development, and large systems.' },
-          { name: 'HTML5', imageUrl: deviconsBaseUrl + 'html5/html5-original.svg', description: 'Standard markup language for creating web pages and applications with rich multimedia and graphics.' },
-          { name: 'CSS3', imageUrl: deviconsBaseUrl + 'css3/css3-original.svg', description: 'Styling language for web documents, enabling animations, transitions, and responsive design.' },
-          { name: 'JavaScript', imageUrl: deviconsBaseUrl + 'javascript/javascript-original.svg', description: 'Essential for interactive web content; also used in non-browser environments via Node.js.' },
-          { name: 'React', imageUrl: deviconsBaseUrl + 'react/react-original.svg', description: 'A JavaScript library for building user interfaces, widely used for creating single-page applications and dynamic UIs.' },
-          { name: 'SQL', imageUrl: deviconsBaseUrl + 'postgresql/postgresql-original.svg', description: 'Language for managing and querying data in relational database management systems (RDBMS).' },
-          { name: 'Verilog', imageUrl: baseSkillImagePath + 'verilog.png', description: 'Hardware description language (HDL) for modeling electronic systems like FPGAs and ASICs.' },
-          { name: 'ROS', imageUrl: baseSkillImagePath + 'ROS.png', description: 'Flexible framework for writing robot software, simplifying complex robot behavior development.' },
-          { name: 'Firebase', imageUrl: baseSkillImagePath + 'firebase.png', description: 'Google\'s platform for mobile/web app development with real-time databases, auth, and hosting.' },
-          { name: 'Android Studio', imageUrl: baseSkillImagePath + 'AndroidStudio.png', description: 'Official IDE for Android app development, built on IntelliJ IDEA for coding, debugging, and testing.' }
-        ]
-      },
-      {
-        id: 'robotics-control',
-        title: 'Robotics & Control Systems',
-        cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
-        items: [
-          { name: 'Franka Emika Robot', imageUrl: baseSkillImagePath + 'Franka-Emika-Panda-robot.png', description: 'Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors.' },
-          { name: 'Pixhawk 6x', imageUrl: baseSkillImagePath + 'pixhawk.png', description: 'Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard.' },
-          { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/axis-arrow-lock.svg?color=var(--icon-resting-color)', description: 'Describing motion of objects and systems; crucial in robotics for arm positions and trajectories.' },
-          { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg?color=var(--icon-resting-color)', description: 'Feedback mechanism for industrial control and robotics, correcting errors based on P, I, D terms.' },
-          { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/filter-outline.svg?color=var(--icon-resting-color)', description: 'Algorithm for producing accurate estimates from noisy measurements over time.' },
-          { name: 'Telerobotics', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg?color=var(--icon-resting-color)', description: 'Controlling semi-autonomous robots from a distance using wireless or tethered connections.' },
-          { name: 'Webots', imageUrl: baseSkillImagePath + 'webots.png', description: 'Open-source robot simulator for modeling, programming, and simulating robots.' }
-        ]
-      },
-      {
-        id: 'electronics-embedded',
-        title: 'Electronics & Embedded Systems',
-        cardImageUrl: 'https://api.iconify.design/mdi/chip.svg',
-        items: [
-          { name: 'NI DAQ', imageUrl: baseSkillImagePath + 'NIDAQ.jpg', description: 'National Instruments hardware for measuring electrical/physical phenomena and converting to digital data.' },
-          { name: 'Oscilloscope', imageUrl: baseSkillImagePath + 'oscilloscope.jpg', description: 'Instrument for observing varying signal voltages, crucial for debugging electronic circuits.' },
-          { name: 'LED Matrix', imageUrl: baseSkillImagePath + 'matrixheart.jpg', description: '2D array of LEDs for displaying patterns, characters, or animations via individual control.' },
-          { name: 'Arduino', imageUrl: baseSkillImagePath + 'Arduino.jpg', description: 'Open-source platform for interactive objects, popular for prototyping and education.' },
-          { name: 'Raspberry Pi', imageUrl: baseSkillImagePath + 'raspberrypi.webp', description: 'Small single-board computers for robotics, IoT, home automation, and education.' },
-          { name: 'Basys 3 FPGA', imageUrl: baseSkillImagePath + 'Basys3.webp', description: 'Entry-level FPGA board with Artix-7, used for learning digital logic with Verilog/VHDL.' },
-          { name: 'STM32 Nucleo', imageUrl: baseSkillImagePath + 'STM32.webp', description: 'Affordable boards with STM32 MCUs (ARM Cortex-M) for prototyping and concept testing.' },
-          { name: 'ESP32/8266', imageUrl: baseSkillImagePath + 'ESP32.jpg', description: 'Low-cost Wi-Fi & Bluetooth/BLE MCUs for IoT, home automation, and wireless sensors.' },
-          { name: 'Infineon PSoC 4', imageUrl: baseSkillImagePath + 'psoc4.jpg', description: 'Programmable System-on-Chip with ARM Cortex-M0/M0+ and programmable analog/digital blocks.' },
-          { name: 'Parallax Propeller', imageUrl: baseSkillImagePath + 'propeller.jpg', description: 'Multicore MCU with eight 32-bit cores for true parallel processing and deterministic timing.' },
-          { name: 'Jetson Nano', imageUrl: baseSkillImagePath + 'jetsonnano.jpg', description: 'Small, powerful computer for accelerated AI in embedded apps like image classification.' },
-          { name: 'Comm Protocols', imageUrl: 'https://api.iconify.design/mdi/serial-port.svg?color=var(--icon-resting-color)', description: 'Rules for data transmission (I2C, SPI, UART, CAN, Ethernet, Wi-Fi, Bluetooth).' },
-          { name: 'Altium Designer', imageUrl: baseSkillImagePath + 'altium-designer.png', description: 'EDA software for PCB, FPGA, and embedded software design in a unified environment.' },
-          { name: 'Autodesk EAGLE', imageUrl: baseSkillImagePath + 'EAGLE.jpg', description: 'EDA tool for schematic capture, PCB layout, auto-router, and CAM features.' },
-          { name: 'ORcad x Capture', imageUrl: baseSkillImagePath + 'OrCADCapture.webp', description: 'Cadence EDA tools for designing ICs, SoCs, and PCBs.' },
-          { name: 'Pspice/LTspice', imageUrl: baseSkillImagePath + 'LTspice.png', description: 'SPICE-based analog circuit and digital logic simulation program for design verification.' }
-        ]
-      },
-      {
-        id: 'ai-ml-data',
-        title: 'AI, Machine Learning & Data',
-        cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
-        items: [
-          { name: 'AI Vision', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg?color=var(--icon-resting-color)', description: 'Enabling computers to "see" and interpret visual information like images and videos.' },
-          { name: 'Gen AI API', imageUrl: 'https://api.iconify.design/mdi/robot-confused-outline.svg?color=var(--icon-resting-color)', description: 'Using Generative AI APIs (ChatGPT, Gemini, Claude) for content generation, chatbots, etc.' },
-          { name: 'MATLAB', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Matlab_Logo.png/667px-Matlab_Logo.png', description: 'Numerical computing environment for data analysis, algorithm development, simulation.' },
-          { name: 'Python (AI/Data Focus)', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'Widely used in AI/ML for its extensive libraries (TensorFlow, PyTorch, scikit-learn).' }
-        ]
-      },
-      {
-        id: 'design-fabrication',
-        title: 'Design & Fabrication',
-        cardImageUrl: 'https://api.iconify.design/mdi/printer-3d-nozzle-outline.svg',
-        items: [
-          { name: 'Google Glass', imageUrl: baseSkillImagePath + 'googleglass.jpg', description: 'Optical head-mounted display for hands-free info access and AR applications.' },
-          { name: 'Bambu Lab Printer', imageUrl: baseSkillImagePath + 'bambu.webp', description: 'High-speed 3D printers with multi-material support (AMS) and advanced features.' },
-          { name: 'Glowforge', imageUrl: baseSkillImagePath + 'glowforge.webp', description: 'Desktop laser cutter/engraver for precise designs on wood, acrylic, leather, etc.' },
-          { name: 'SolidWorks', imageUrl: baseSkillImagePath + 'SOLIDWORKS.webp', description: 'CAD/CAE software for designing, simulating, and manufacturing products.' },
-          { name: 'Fusion 360', imageUrl: baseSkillImagePath + 'fusion360.png', description: 'Cloud-based 3D CAD, CAM, CAE, PCB platform for product design and manufacturing.' },
-          { name: 'AutoCAD', imageUrl: baseSkillImagePath + 'autocad.png', description: 'Commercial CAD and drafting software for 2D/3D design and documentation.' }
-        ]
-      },
-      {
-        id: 'sensors-tools',
-        title: 'Sensors & Specialized Tools',
-        cardImageUrl: 'https://api.iconify.design/mdi/leak.svg',
-        items: [
-          { name: 'ATI Multi-Axis Force/Torque', imageUrl: baseSkillImagePath + 'ati_force_torque.svg', description: 'Measures all six components of force/torque for robotics, haptics, product testing.' },
-          { name: 'IMU', imageUrl: baseSkillImagePath + 'imu.svg', description: 'Measures body\'s specific force, angular rate, and orientation using accelerometers/gyroscopes.' },
-          { name: 'Ultrasonic', imageUrl: baseSkillImagePath + 'ultrasonic_sensor.svg', description: 'Measures distance by emitting/receiving ultrasonic waves for object detection/avoidance.' },
-          { name: 'Flex Sensor', imageUrl: baseSkillImagePath + 'flex_sensor.svg', description: 'Variable resistor that changes resistance when bent, used to detect flexing motions.' },
-          { name: 'Capacitive', imageUrl: baseSkillImagePath + 'capacitive_sensor.svg', description: 'Detects changes in capacitance for touch sensing, proximity detection, liquid level sensing.' },
-          { name: 'Piezoelectric', imageUrl: baseSkillImagePath + 'piezoelectric_sensor.svg', description: 'Generates electric charge from mechanical stress; used as pressure sensors, accelerometers.' },
-          { name: 'Test Automation', imageUrl: 'https://api.iconify.design/mdi/play-box-multiple-outline.svg?color=var(--icon-resting-color)', description: 'Using software to execute pre-scripted tests for quality assurance and faster development cycles.' }
-        ]
-      }
-    ];
-
-
-    const header = document.querySelector('header');
-    const leftObject = document.querySelector('.left-object');
-    const rightObject = document.querySelector('.right-object');
-    const sections = document.querySelectorAll('main > section');
-    const aboutCardWrapper = document.querySelector('#about .about-card-wrapper');
-    const majorProjectsContainer = document.getElementById('major-projects-container');
-    const smallProjectsContainer = document.getElementById('small-projects-container');
-    const resumeCardContainer = document.getElementById('resume-card-container');
-    const skillGroupsContainer = document.getElementById('skill-groups-container');
-    const themeToggleButton = document.getElementById('theme-toggle');
-
-    const modalBackdrop = document.querySelector('.modal-backdrop');
-    const modalAnimator = document.querySelector('.modal-animator');
-    const modalCloseBtn = document.querySelector('.modal-close');
-    const modalImageContainer = document.querySelector('.modal-image-container');
-    const modalTitle = document.getElementById('modal-title');
-    const modalDescription = document.getElementById('modal-description');
-    const modalLink = document.getElementById('modal-link');
-    const modalDynamicContentArea = document.getElementById('modal-dynamic-content-area');
-
-
-    let isAnimating = false;
-    let lastClickedCard = null;
-    let lastCardRect = null;
-    let cardObserver;
-
-
-    const applyTheme = (theme) => {
-      document.documentElement.setAttribute('data-theme', theme);
-      if (themeToggleButton) {
-        themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
-      }
-      localStorage.setItem('theme', theme);
-      if (modalAnimator.classList.contains('visible') && modalAnimator.classList.contains('skill-group-modal')) {
-        const skillItems = modalDynamicContentArea.querySelectorAll('.skill-group-item-image');
-        skillItems.forEach(img => {
-          if (img.src.includes('iconify.design') && img.src.includes('color=')) {
-            let newSrc = img.src;
-            if (img.src.includes('color=var(--icon-resting-color)')) {
-              const iconRestingColorValue = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#','');
-              newSrc = img.src.replace('color=var(--icon-resting-color)', `color=${iconRestingColorValue}`);
-            } else if (!img.src.match(/color=([a-f0-9]{3,6}|var\(--accent-color\)|var\(--primary-color\)|var\(--secondary-color\))/i)) {
-              const defaultIconColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim().replace('#','');
-              newSrc += (newSrc.includes('?') ? '&' : '?') + `color=${defaultIconColor}`;
-            }
-            img.src = newSrc;
-          }
-        });
-      }
-    };
-
-    const initTheme = () => {
-      let currentTheme = localStorage.getItem('theme');
-      if (!currentTheme) {
-        currentTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-      applyTheme(currentTheme);
-      if (themeToggleButton) {
-        themeToggleButton.addEventListener('click', () => {
-          let newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-          applyTheme(newTheme);
-        });
-      }
-    };
-
-
-    const populateAboutMeCard = () => {
-      if (!aboutCardWrapper) return;
-      aboutCardWrapper.innerHTML = '';
-
-      const SVG_NS = "http://www.w3.org/2000/svg";
-      const CONTAINER_WIDTH = 300;
-      const CONTAINER_HEIGHT = 420;
-      // To change the number of waves, adjust this value.
-      // The number of visible waves will be NUM_TOTAL_WAVES_PER_SIDE - 2 (to account for clipped top/bottom edges).
-      const NUM_TOTAL_WAVES_PER_SIDE = 50; // Results in 25 visible waves.
-      const WAVE_AMPLITUDE = 12;
-      const VERTICAL_SPACING = 12;
-      const WAVE_CYCLE_WIDTH = 100;
-      const PATH_TOTAL_WIDTH = CONTAINER_WIDTH * 2;
-
-      const createSvgWaveContainer = (isLeftWave) => {
-        const container = document.createElement('div');
-        container.className = `svg-sine-wave-container ${isLeftWave ? 'left-wave' : 'right-wave'}`;
-
-        const svg = document.createElementNS(SVG_NS, "svg");
-        svg.setAttribute('viewBox', `0 0 ${CONTAINER_WIDTH} ${CONTAINER_HEIGHT}`);
-        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-
-        for (let i = 1; i < NUM_TOTAL_WAVES_PER_SIDE - 1; i++) {
-          const path = document.createElementNS(SVG_NS, "path");
-          let d = "";
-          const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_TOTAL_WAVES_PER_SIDE - 1) / 2) * VERTICAL_SPACING;
-
-          d = `M 0 ${startY}`;
-          for (let xPos = 0; xPos < PATH_TOTAL_WIDTH; xPos += WAVE_CYCLE_WIDTH) {
-            d += ` q ${WAVE_CYCLE_WIDTH/4} ${-WAVE_AMPLITUDE} ${WAVE_CYCLE_WIDTH/2} 0`;
-            d += ` t ${WAVE_CYCLE_WIDTH/2} 0`;
-          }
-          path.setAttribute('d', d);
-
-          const animationDuration = 3; // From CSS: animation-duration: 5s;
-          const phaseShiftDegrees = 12; // A slight offset
-          const delay = (i * phaseShiftDegrees / 360) * animationDuration;
-          path.style.animationDelay = `-${delay}s`;
-
-          svg.appendChild(path);
+    window.addEventListener('load', () => {
+        // Prevent browser from restoring scroll position and force to top
+        if (history.scrollRestoration) {
+            history.scrollRestoration = 'manual';
         }
-        container.appendChild(svg);
-        return container;
-      };
+        window.scrollTo(0, 0);
 
-      const leftWaveContainer = createSvgWaveContainer(true);
-      const rightWaveContainer = createSvgWaveContainer(false);
+        const aboutMeData = {
+            id: 'about-me-section',
+            type: 'about',
+            cardTitle: 'About Me',
+            cardTeaser: 'A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.',
+            imageUrl: 'https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG',
+            modalTitle: 'Aadhav Sivakumar',
+            modalContent: [
+                { type: 'text', value: "Hello! I'm Aadhav Sivakumar, a Robotics and Embedded Systems Engineer with a Master's in Mechatronics and Robotics from NYU Tandon and a Bachelor's from UC Santa Cruz. I specialize in designing and developing intelligent systems, from autonomous drones and telerobotic interfaces to advanced sensor technologies. My work is driven by a passion for solving complex challenges at the intersection of hardware and software." },
+                { type: 'text', value: "I thrive on developing cutting-edge solutions and have hands-on experience with the full project lifecycle, from conceptualization and PCB design to firmware development and AI integration. Beyond my core engineering work, I enjoy playing volleyball and biking, activities that fuel my creativity and problem-solving mindset." },
+                { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
+                { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' },
+                { type: 'text', value: "Feel free to explore my projects or reach out if you'd like to collaborate!" }
+            ]
+        };
+        const baseProjectImagePath = 'https://aadhavsivakumar.github.io/Images/projectcovers/';
+        const majorProjectsData = [
+            { id: 1, title: 'Project Millet', cardDescription: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery.', imageUrl: baseProjectImagePath+'Millet.webp', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{type: 'text', value: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery, aiming to enhance farming efficiency.'}] },
+            { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data.', imageUrl: baseProjectImagePath+'solegaitvidmute.mp4', tags: ['Python', 'Arduino', 'Comm Protocols'], status: 'In Progress', modalContent: [{type: 'text', value: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data for healthcare and athletic performance.'}, {type: 'text', value: 'This project showcases my skills in embedded systems design, sensor integration, and data transmission. The goal is to create a low-cost, effective tool for physical therapists and athletes to monitor and improve gait patterns, preventing injuries and enhancing performance.'}] },
+            { id: 3, title: 'Glass-2-Bot', cardDescription: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions.', imageUrl: baseProjectImagePath+'glass2bot.gif', tags: ['Google Glass', 'AI Vision', 'Python', 'Telerobotics'], status: 'Completed', modalContent: [{type: 'text', value: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions, demonstrating a novel human-robot interface.'}, {type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Project Documentation PDF'}] },
+            { id: 4, title: 'SMART compost sorting', cardDescription: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework to automate the identification and separation of contaminants.', imageUrl: baseProjectImagePath + 'smartsort.gif', tags:['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{type: 'text', value: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
+            { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction.', imageUrl: baseProjectImagePath+'tacmanipHQ.gif', tags: ['C', 'Altium Designer'], status: 'Completed', modalContent: [{type: 'text', value: 'Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction, enhancing a robot\'s ability to handle delicate objects.'}, {type: 'button', text: 'View Organization', link: 'https://tml.engineering.ucsc.edu/'}, {type: 'button', text: 'View Previous Research', link: 'https://tml.engineering.ucsc.edu/research/dexterous-manipulation/'}] },
+            { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency in a retail environment.', imageUrl: baseProjectImagePath + 'stockbot.gif', tags:['Python', 'Mujoco', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency and accuracy in a dynamic retail environment.'}, { type: 'text', value: "This project was a capstone for my undergraduate studies, showcasing the integration of advanced simulation with robotic control theory. The final system demonstrated a significant potential for reducing manual labor and improving inventory management in a simulated retail setting." }, {type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home'}] },
+        ];
 
-      aboutCardWrapper.appendChild(leftWaveContainer);
+        const smallProjectsData = [
+            { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath+'deskrobarm.png', tags: ['Python', 'AI Vision', 'Raspberry Pi'], status: 'In Progress', modalContent: [{type: 'text', value: 'Building a desktop robotic arm controlled by AI vision running on a Raspberry Pi. This project explores real-time object recognition and manipulation, creating an interactive and intelligent automated workspace assistant.'}] },
+            { id: 'h', title: '3d Fruit Ninja Simulation', imageUrl: baseProjectImagePath+'fruitninja.mp4', tags: ['Python', 'Webots'], status: 'In Progress', modalContent: [{type: 'text', value: "Created a 3D simulation of the game 'Fruit Ninja' using Python, applying principles of physics-based modeling and 3D graphics to develop an interactive and engaging virtual experience."}] },
+            { id: 'a', title: 'Sand Table', imageUrl: baseProjectImagePath+'2rplanarstraight.gif', tags: ['Parallax Propeller', 'C++', 'Kinematics'], status: 'Completed', modalContent: [{type: 'text', value: 'Engineered a 2R planar manipulator controlled by a Parallax Propeller MCU to draw intricate patterns in sand. Applied C++ and kinematic principles to translate digital designs into precise, physical motion.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
+            { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath+'PONG.mp4', tags: ['Arduino', 'LED matrix'], status: 'Completed', modalContent: [{type: 'text', value: 'Constructed a standalone version of the classic game PONG using an Arduino and an LED matrix. This project involved low-level hardware interfacing and efficient programming to create a responsive and engaging game.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
+            { id: 'c', title: 'MATE ROV', imageUrl: baseProjectImagePath+'MATEROV.jpeg', tags: ['C++', 'EAGLE', 'Ultrasonic'], status: 'Completed', modalContent: [{type: 'text', value: 'Contributed to a competitive MATE ROV team by designing and building electronic subsystems for an underwater drone. Utilized EAGLE for PCB design and integrated ultrasonic sensors for complex subsea navigation and task execution.'}] },
+            { id: 'd', title: 'Automated Dog Feeder', imageUrl: baseProjectImagePath+'dogfeeder.webp', tags: ['C', 'Raspberry Pi'], status: 'Completed', modalContent: [{type: 'text', value: 'Designed and built an internet-enabled pet feeder powered by a Raspberry Pi and Firebase. This system allows for remote and scheduled feeding with precise portion control, ensuring a pet\'s dietary needs are met.'}, {type: 'button', text: 'View on Instructables', link: 'https://www.instructables.com/Internet-Enabled-Raspberry-Pi-Pet-Feeder/'}] },
+            { id: 'e', title: 'FPGA VGA Game', imageUrl: baseProjectImagePath+'fpgaVGA.png', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{type: 'text', value: "Developed a 'Flappy Bird' style game on a Basys 3 FPGA using Verilog. This project involved designing digital logic circuits from the ground up to handle game state, player input, and VGA signal generation."}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
+            { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath+'mechcomp.mp4', tags: ['STM32', 'C++', 'PID Control'], status: 'Completed', modalContent: [{type: 'text', value: 'Built and programmed an autonomous robot on an STM32 platform for a mechatronics competition. Implemented C++ and fine-tuned PID control algorithms to achieve precise targeting and win a ping pong ball shooting tournament.'}, {type: 'embed', value: '', title: 'Project Documentation (Coming Soon)'}] },
+        ];
 
-      const card = document.createElement('div');
-      card.className = 'major-project-card project-modal-trigger about-me-card';
-      card.dataset.itemId = aboutMeData.id;
-      card.dataset.itemType = aboutMeData.type;
-      card.innerHTML = `
+        const resumeData = {
+            id: 'resume-card',
+            type: 'resume',
+            title: 'View My Résumé',
+            cardDescription: 'An up-to-date overview of my professional journey, technical skills, and key projects. Click to open the PDF.',
+            imageUrl: 'https://placehold.co/600x400/F7F5F2/BFA181?text=View+R%C3%A9sum%C3%A9',
+            modalTitle: 'My Résumé',
+            modalContent: [
+                { type: 'embed', value: 'https://aadhavsivakumar.github.io/Resume/Aadhav_Sivakumar_Resume_20250616_2.pdf', title: 'Aadhav Sivakumar\'s Resume' }
+            ]
+        };
+
+        const baseSkillImagePath = 'https://aadhavsivakumar.github.io/Images/skills/';
+        const deviconsBaseUrl = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/';
+
+
+        const skillGroupsData = [
+            {
+                id: 'programming-software',
+                title: 'Programming & Software Development',
+                cardImageUrl: 'https://api.iconify.design/mdi/code-braces-box.svg',
+                items: [
+                    { name: 'C', imageUrl: deviconsBaseUrl + 'c/c-original.svg', description: 'A powerful, general-purpose language for system programming, embedded systems, and performance-critical applications.' },
+                    { name: 'C++', imageUrl: deviconsBaseUrl + 'cplusplus/cplusplus-original.svg', description: 'An extension of C with object-oriented features, used in game engines, OS, and complex software.' },
+                    { name: 'Python', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'High-level, versatile language for web dev, data science, AI, scripting, and automation.' },
+                    { name: 'Java', imageUrl: deviconsBaseUrl + 'java/java-original.svg', description: 'Class-based, object-oriented language for enterprise apps, Android development, and large systems.' },
+                    { name: 'HTML5', imageUrl: deviconsBaseUrl + 'html5/html5-original.svg', description: 'Standard markup language for creating web pages and applications with rich multimedia and graphics.' },
+                    { name: 'CSS3', imageUrl: deviconsBaseUrl + 'css3/css3-original.svg', description: 'Styling language for web documents, enabling animations, transitions, and responsive design.' },
+                    { name: 'JavaScript', imageUrl: deviconsBaseUrl + 'javascript/javascript-original.svg', description: 'Essential for interactive web content; also used in non-browser environments via Node.js.' },
+                    { name: 'React', imageUrl: deviconsBaseUrl + 'react/react-original.svg', description: 'A JavaScript library for building user interfaces, widely used for creating single-page applications and dynamic UIs.' },
+                    { name: 'SQL', imageUrl: deviconsBaseUrl + 'postgresql/postgresql-original.svg', description: 'Language for managing and querying data in relational database management systems (RDBMS).' },
+                    { name: 'Verilog', imageUrl: baseSkillImagePath + 'verilog.png', description: 'Hardware description language (HDL) for modeling electronic systems like FPGAs and ASICs.' },
+                    { name: 'ROS', imageUrl: baseSkillImagePath + 'ROS.png', description: 'Flexible framework for writing robot software, simplifying complex robot behavior development.' },
+                    { name: 'Firebase', imageUrl: baseSkillImagePath + 'firebase.png', description: 'Google\'s platform for mobile/web app development with real-time databases, auth, and hosting.' },
+                    { name: 'Android Studio', imageUrl: baseSkillImagePath + 'AndroidStudio.png', description: 'Official IDE for Android app development, built on IntelliJ IDEA for coding, debugging, and testing.' }
+                ]
+            },
+            {
+                id: 'robotics-control',
+                title: 'Robotics & Control Systems',
+                cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
+                items: [
+                    { name: 'Franka Emika Robot', imageUrl: baseSkillImagePath + 'Franka-Emika-Panda-robot.png', description: 'Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors.' },
+                    { name: 'Pixhawk 6x', imageUrl: baseSkillImagePath + 'pixhawk.png', description: 'Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard.' },
+                    { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/axis-arrow-lock.svg?color=var(--icon-resting-color)', description: 'Describing motion of objects and systems; crucial in robotics for arm positions and trajectories.' },
+                    { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg?color=var(--icon-resting-color)', description: 'Feedback mechanism for industrial control and robotics, correcting errors based on P, I, D terms.' },
+                    { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/filter-outline.svg?color=var(--icon-resting-color)', description: 'Algorithm for producing accurate estimates from noisy measurements over time.' },
+                    { name: 'Telerobotics', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg?color=var(--icon-resting-color)', description: 'Controlling semi-autonomous robots from a distance using wireless or tethered connections.' },
+                    { name: 'Webots', imageUrl: baseSkillImagePath + 'webots.png', description: 'Open-source robot simulator for modeling, programming, and simulating robots.' }
+                ]
+            },
+            {
+                id: 'electronics-embedded',
+                title: 'Electronics & Embedded Systems',
+                cardImageUrl: 'https://api.iconify.design/mdi/chip.svg',
+                items: [
+                    { name: 'NI DAQ', imageUrl: baseSkillImagePath + 'NIDAQ.jpg', description: 'National Instruments hardware for measuring electrical/physical phenomena and converting to digital data.' },
+                    { name: 'Oscilloscope', imageUrl: baseSkillImagePath + 'oscilloscope.jpg', description: 'Instrument for observing varying signal voltages, crucial for debugging electronic circuits.' },
+                    { name: 'LED Matrix', imageUrl: baseSkillImagePath + 'matrixheart.jpg', description: '2D array of LEDs for displaying patterns, characters, or animations via individual control.' },
+                    { name: 'Arduino', imageUrl: baseSkillImagePath + 'Arduino.jpg', description: 'Open-source platform for interactive objects, popular for prototyping and education.' },
+                    { name: 'Raspberry Pi', imageUrl: baseSkillImagePath + 'raspberrypi.webp', description: 'Small single-board computers for robotics, IoT, home automation, and education.' },
+                    { name: 'Basys 3 FPGA', imageUrl: baseSkillImagePath + 'Basys3.webp', description: 'Entry-level FPGA board with Artix-7, used for learning digital logic with Verilog/VHDL.' },
+                    { name: 'STM32 Nucleo', imageUrl: baseSkillImagePath + 'STM32.webp', description: 'Affordable boards with STM32 MCUs (ARM Cortex-M) for prototyping and concept testing.' },
+                    { name: 'ESP32/8266', imageUrl: baseSkillImagePath + 'ESP32.jpg', description: 'Low-cost Wi-Fi & Bluetooth/BLE MCUs for IoT, home automation, and wireless sensors.' },
+                    { name: 'Infineon PSoC 4', imageUrl: baseSkillImagePath + 'psoc4.jpg', description: 'Programmable System-on-Chip with ARM Cortex-M0/M0+ and programmable analog/digital blocks.' },
+                    { name: 'Parallax Propeller', imageUrl: baseSkillImagePath + 'propeller.jpg', description: 'Multicore MCU with eight 32-bit cores for true parallel processing and deterministic timing.' },
+                    { name: 'Jetson Nano', imageUrl: baseSkillImagePath + 'jetsonnano.jpg', description: 'Small, powerful computer for accelerated AI in embedded apps like image classification.' },
+                    { name: 'Comm Protocols', imageUrl: 'https://api.iconify.design/mdi/serial-port.svg?color=var(--icon-resting-color)', description: 'Rules for data transmission (I2C, SPI, UART, CAN, Ethernet, Wi-Fi, Bluetooth).' },
+                    { name: 'Altium Designer', imageUrl: baseSkillImagePath + 'altium-designer.png', description: 'EDA software for PCB, FPGA, and embedded software design in a unified environment.' },
+                    { name: 'Autodesk EAGLE', imageUrl: baseSkillImagePath + 'EAGLE.jpg', description: 'EDA tool for schematic capture, PCB layout, auto-router, and CAM features.' },
+                    { name: 'ORcad x Capture', imageUrl: baseSkillImagePath + 'OrCADCapture.webp', description: 'Cadence EDA tools for designing ICs, SoCs, and PCBs.' },
+                    { name: 'Pspice/LTspice', imageUrl: baseSkillImagePath + 'LTspice.png', description: 'SPICE-based analog circuit and digital logic simulation program for design verification.' }
+                ]
+            },
+            {
+                id: 'ai-ml-data',
+                title: 'AI, Machine Learning & Data',
+                cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
+                items: [
+                    { name: 'AI Vision', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg?color=var(--icon-resting-color)', description: 'Enabling computers to "see" and interpret visual information like images and videos.' },
+                    { name: 'Gen AI API', imageUrl: 'https://api.iconify.design/mdi/robot-confused-outline.svg?color=var(--icon-resting-color)', description: 'Using Generative AI APIs (ChatGPT, Gemini, Claude) for content generation, chatbots, etc.' },
+                    { name: 'MATLAB', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Matlab_Logo.png/667px-Matlab_Logo.png', description: 'Numerical computing environment for data analysis, algorithm development, simulation.' },
+                    { name: 'Python (AI/Data Focus)', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'Widely used in AI/ML for its extensive libraries (TensorFlow, PyTorch, scikit-learn).' }
+                ]
+            },
+            {
+                id: 'design-fabrication',
+                title: 'Design & Fabrication',
+                cardImageUrl: 'https://api.iconify.design/mdi/printer-3d-nozzle-outline.svg',
+                items: [
+                    { name: 'Google Glass', imageUrl: baseSkillImagePath + 'googleglass.jpg', description: 'Optical head-mounted display for hands-free info access and AR applications.' },
+                    { name: 'Bambu Lab Printer', imageUrl: baseSkillImagePath + 'bambu.webp', description: 'High-speed 3D printers with multi-material support (AMS) and advanced features.' },
+                    { name: 'Glowforge', imageUrl: baseSkillImagePath + 'glowforge.webp', description: 'Desktop laser cutter/engraver for precise designs on wood, acrylic, leather, etc.' },
+                    { name: 'SolidWorks', imageUrl: baseSkillImagePath + 'SOLIDWORKS.webp', description: 'CAD/CAE software for designing, simulating, and manufacturing products.' },
+                    { name: 'Fusion 360', imageUrl: baseSkillImagePath + 'fusion360.png', description: 'Cloud-based 3D CAD, CAM, CAE, PCB platform for product design and manufacturing.' },
+                    { name: 'AutoCAD', imageUrl: baseSkillImagePath + 'autocad.png', description: 'Commercial CAD and drafting software for 2D/3D design and documentation.' }
+                ]
+            },
+            {
+                id: 'sensors-tools',
+                title: 'Sensors & Specialized Tools',
+                cardImageUrl: 'https://api.iconify.design/mdi/leak.svg',
+                items: [
+                    { name: 'ATI Multi-Axis Force/Torque', imageUrl: baseSkillImagePath + 'ati_force_torque.svg', description: 'Measures all six components of force/torque for robotics, haptics, product testing.' },
+                    { name: 'IMU', imageUrl: baseSkillImagePath + 'imu.svg', description: 'Measures body\'s specific force, angular rate, and orientation using accelerometers/gyroscopes.' },
+                    { name: 'Ultrasonic', imageUrl: baseSkillImagePath + 'ultrasonic_sensor.svg', description: 'Measures distance by emitting/receiving ultrasonic waves for object detection/avoidance.' },
+                    { name: 'Flex Sensor', imageUrl: baseSkillImagePath + 'flex_sensor.svg', description: 'Variable resistor that changes resistance when bent, used to detect flexing motions.' },
+                    { name: 'Capacitive', imageUrl: baseSkillImagePath + 'capacitive_sensor.svg', description: 'Detects changes in capacitance for touch sensing, proximity detection, liquid level sensing.' },
+                    { name: 'Piezoelectric', imageUrl: baseSkillImagePath + 'piezoelectric_sensor.svg', description: 'Generates electric charge from mechanical stress; used as pressure sensors, accelerometers.' },
+                    { name: 'Test Automation', imageUrl: 'https://api.iconify.design/mdi/play-box-multiple-outline.svg?color=var(--icon-resting-color)', description: 'Using software to execute pre-scripted tests for quality assurance and faster development cycles.' }
+                ]
+            }
+        ];
+
+
+        const header = document.querySelector('header');
+        const leftObject = document.querySelector('.left-object');
+        const rightObject = document.querySelector('.right-object');
+        const sections = document.querySelectorAll('main > section');
+        const aboutCardWrapper = document.querySelector('#about .about-card-wrapper');
+        const majorProjectsContainer = document.getElementById('major-projects-container');
+        const smallProjectsContainer = document.getElementById('small-projects-container');
+        const resumeCardContainer = document.getElementById('resume-card-container');
+        const skillGroupsContainer = document.getElementById('skill-groups-container');
+        const themeToggleButton = document.getElementById('theme-toggle');
+
+        const modalBackdrop = document.querySelector('.modal-backdrop');
+        const modalAnimator = document.querySelector('.modal-animator');
+        const modalCloseBtn = document.querySelector('.modal-close');
+        const modalImageContainer = document.querySelector('.modal-image-container');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDescription = document.getElementById('modal-description');
+        const modalLink = document.getElementById('modal-link');
+        const modalDynamicContentArea = document.getElementById('modal-dynamic-content-area');
+
+
+        let isAnimating = false;
+        let lastClickedCard = null;
+        let lastCardRect = null;
+        let cardObserver;
+
+
+        const applyTheme = (theme) => {
+            document.documentElement.setAttribute('data-theme', theme);
+            if (themeToggleButton) {
+                themeToggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
+            }
+            localStorage.setItem('theme', theme);
+            if (modalAnimator.classList.contains('visible') && modalAnimator.classList.contains('skill-group-modal')) {
+                const skillItems = modalDynamicContentArea.querySelectorAll('.skill-group-item-image');
+                skillItems.forEach(img => {
+                    if (img.src.includes('iconify.design') && img.src.includes('color=')) {
+                        let newSrc = img.src;
+                        if (img.src.includes('color=var(--icon-resting-color)')) {
+                            const iconRestingColorValue = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#','');
+                            newSrc = img.src.replace('color=var(--icon-resting-color)', `color=${iconRestingColorValue}`);
+                        } else if (!img.src.match(/color=([a-f0-9]{3,6}|var\(--accent-color\)|var\(--primary-color\)|var\(--secondary-color\))/i)) {
+                            const defaultIconColor = getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim().replace('#','');
+                            newSrc += (newSrc.includes('?') ? '&' : '?') + `color=${defaultIconColor}`;
+                        }
+                        img.src = newSrc;
+                    }
+                });
+            }
+        };
+
+        const initTheme = () => {
+            let currentTheme = localStorage.getItem('theme');
+            if (!currentTheme) {
+                currentTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            applyTheme(currentTheme);
+            if (themeToggleButton) {
+                themeToggleButton.addEventListener('click', () => {
+                    let newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                    applyTheme(newTheme);
+                });
+            }
+        };
+
+
+        const populateAboutMeCard = () => {
+            if (!aboutCardWrapper) return;
+            aboutCardWrapper.innerHTML = '';
+
+            const SVG_NS = "http://www.w3.org/2000/svg";
+            const CONTAINER_WIDTH = 300;
+            const CONTAINER_HEIGHT = 420;
+            // To change the number of waves, adjust this value.
+            // The number of visible waves will be NUM_TOTAL_WAVES_PER_SIDE - 2 (to account for clipped top/bottom edges).
+            const NUM_TOTAL_WAVES_PER_SIDE = 50; // Results in 25 visible waves.
+            const WAVE_AMPLITUDE = 12;
+            const VERTICAL_SPACING = 12;
+            const WAVE_CYCLE_WIDTH = 100;
+            const PATH_TOTAL_WIDTH = CONTAINER_WIDTH * 2;
+
+            const createSvgWaveContainer = (isLeftWave) => {
+                const container = document.createElement('div');
+                container.className = `svg-sine-wave-container ${isLeftWave ? 'left-wave' : 'right-wave'}`;
+
+                const svg = document.createElementNS(SVG_NS, "svg");
+                svg.setAttribute('viewBox', `0 0 ${CONTAINER_WIDTH} ${CONTAINER_HEIGHT}`);
+                svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+                for (let i = 1; i < NUM_TOTAL_WAVES_PER_SIDE - 1; i++) {
+                    const path = document.createElementNS(SVG_NS, "path");
+                    let d = "";
+                    const startY = (CONTAINER_HEIGHT / 2) + (i - (NUM_TOTAL_WAVES_PER_SIDE - 1) / 2) * VERTICAL_SPACING;
+
+                    d = `M 0 ${startY}`;
+                    for (let xPos = 0; xPos < PATH_TOTAL_WIDTH; xPos += WAVE_CYCLE_WIDTH) {
+                        d += ` q ${WAVE_CYCLE_WIDTH/4} ${-WAVE_AMPLITUDE} ${WAVE_CYCLE_WIDTH/2} 0`;
+                        d += ` t ${WAVE_CYCLE_WIDTH/2} 0`;
+                    }
+                    path.setAttribute('d', d);
+
+                    const animationDuration = 3; // From CSS: animation-duration: 5s;
+                    const phaseShiftDegrees = 12; // A slight offset
+                    const delay = (i * phaseShiftDegrees / 360) * animationDuration;
+                    path.style.animationDelay = `-${delay}s`;
+
+                    svg.appendChild(path);
+                }
+                container.appendChild(svg);
+                return container;
+            };
+
+            const leftWaveContainer = createSvgWaveContainer(true);
+            const rightWaveContainer = createSvgWaveContainer(false);
+
+            aboutCardWrapper.appendChild(leftWaveContainer);
+
+            const card = document.createElement('div');
+            card.className = 'major-project-card project-modal-trigger about-me-card';
+            card.dataset.itemId = aboutMeData.id;
+            card.dataset.itemType = aboutMeData.type;
+            card.innerHTML = `
             <img src="${aboutMeData.imageUrl}" alt="Aadhav Sivakumar" onerror="this.onerror=null;this.src='https://placehold.co/480x420/F7F5F2/BFA181?text=Image+Not+Found';">
             <div class="project-content">
                 <h4>${aboutMeData.cardTitle}</h4>
                 <p>${aboutMeData.cardTeaser}</p>
             </div>`;
-      aboutCardWrapper.appendChild(card);
-      // Observe the newly created card
-      if (cardObserver) {
-        cardObserver.observe(card);
-      }
-
-      aboutCardWrapper.appendChild(rightWaveContainer);
-    };
-
-
-    const populateProjects = () => {
-      [majorProjectsData, smallProjectsData].forEach((projectList, index) => {
-        const container = index === 0 ? majorProjectsContainer : smallProjectsContainer;
-        if (!container) return;
-
-        projectList.forEach((project) => {
-          const isMajor = index === 0;
-          const card = document.createElement('div');
-          card.className = `${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`;
-          card.dataset.itemId = project.id;
-          card.dataset.itemType = isMajor ? 'major' : 'small';
-
-          const isMp4 = project.imageUrl && project.imageUrl.toLowerCase().endsWith('.mp4');
-          const isGif = !isMp4 && project.imageUrl && project.imageUrl.toLowerCase().endsWith('.gif');
-          const imageClass = isGif ? 'is-gif' : '';
-
-          const placeholder = isMajor ?
-                  'https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found' :
-                  'https://placehold.co/400x400/F7F5F2/BFA181?text=Image';
-
-          let mediaHtml = '';
-          if (isMp4) {
-            mediaHtml = `<video src="${project.imageUrl}" autoplay loop muted playsinline></video>`;
-          } else {
-            mediaHtml = `<img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='${placeholder}';">`;
-          }
-
-          // Tech Tags
-          let techTagsHtml = '';
-          if (project.tags && project.tags.length > 0) {
-            techTagsHtml = '<div class="project-tags-container">';
-            const tagsToShow = isMajor ? project.tags : project.tags.slice(0, 3);
-            tagsToShow.forEach(tag => {
-              techTagsHtml += `<span class="project-tag">${tag}</span>`;
-            });
-            if (!isMajor && project.tags.length > 3) {
-              techTagsHtml += `<span class="project-tag">...</span>`;
+            aboutCardWrapper.appendChild(card);
+            // Observe the newly created card
+            if (cardObserver) {
+                cardObserver.observe(card);
             }
-            techTagsHtml += '</div>';
-          }
 
-          // Status Tag
-          let statusTagHtml = '';
-          if (project.status) {
-            statusTagHtml = '<div class="project-status-container">';
-            const statusClass = project.status.toLowerCase().replace(/ /g, '-');
-            statusTagHtml += `<span class="project-tag status-${statusClass}">${project.status}</span>`;
-            statusTagHtml += '</div>';
-          }
+            aboutCardWrapper.appendChild(rightWaveContainer);
+        };
 
-          if (isMajor) {
-            card.innerHTML = `
+
+        const populateProjects = () => {
+            [majorProjectsData, smallProjectsData].forEach((projectList, index) => {
+                const container = index === 0 ? majorProjectsContainer : smallProjectsContainer;
+                if (!container) return;
+
+                projectList.forEach((project) => {
+                    const isMajor = index === 0;
+                    const card = document.createElement('div');
+                    card.className = `${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`;
+                    card.dataset.itemId = project.id;
+                    card.dataset.itemType = isMajor ? 'major' : 'small';
+
+                    const isMp4 = project.imageUrl && project.imageUrl.toLowerCase().endsWith('.mp4');
+                    const isGif = !isMp4 && project.imageUrl && project.imageUrl.toLowerCase().endsWith('.gif');
+                    const imageClass = isGif ? 'is-gif' : '';
+
+                    const placeholder = isMajor ?
+                        'https://placehold.co/600x400/F7F5F2/BFA181?text=Image+Not+Found' :
+                        'https://placehold.co/400x400/F7F5F2/BFA181?text=Image';
+
+                    let mediaHtml = '';
+                    if (isMp4) {
+                        mediaHtml = `<video src="${project.imageUrl}" autoplay loop muted playsinline></video>`;
+                    } else {
+                        mediaHtml = `<img src="${project.imageUrl}" alt="${project.title}" class="${imageClass}" onerror="this.onerror=null;this.src='${placeholder}';">`;
+                    }
+
+                    // Tech Tags
+                    let techTagsHtml = '';
+                    if (project.tags && project.tags.length > 0) {
+                        techTagsHtml = '<div class="project-tags-container">';
+                        const tagsToShow = isMajor ? project.tags : project.tags.slice(0, 3);
+                        tagsToShow.forEach(tag => {
+                            techTagsHtml += `<span class="project-tag">${tag}</span>`;
+                        });
+                        if (!isMajor && project.tags.length > 3) {
+                            techTagsHtml += `<span class="project-tag">...</span>`;
+                        }
+                        techTagsHtml += '</div>';
+                    }
+
+                    // Status Tag
+                    let statusTagHtml = '';
+                    if (project.status) {
+                        statusTagHtml = '<div class="project-status-container">';
+                        const statusClass = project.status.toLowerCase().replace(/ /g, '-');
+                        statusTagHtml += `<span class="project-tag status-${statusClass}">${project.status}</span>`;
+                        statusTagHtml += '</div>';
+                    }
+
+                    if (isMajor) {
+                        card.innerHTML = `
                         ${mediaHtml}
                         <div class="project-content">
                             <h4>${project.title}</h4>
@@ -1006,12 +1024,12 @@
                             ${techTagsHtml}
                             ${statusTagHtml}
                         </div>`;
-          } else {
-            let cardDesc = 'A cool small project.';
-            if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
-              cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
-            }
-            card.innerHTML = `
+                    } else {
+                        let cardDesc = 'A cool small project.';
+                        if (project.modalContent && project.modalContent.length > 0 && project.modalContent[0].type === 'text') {
+                            cardDesc = project.modalContent[0].value.substring(0, 70) + (project.modalContent[0].value.length > 70 ? '...' : '');
+                        }
+                        card.innerHTML = `
                         ${mediaHtml}
                         <div class="small-project-content">
                             <h4>${project.title}</h4>
@@ -1019,61 +1037,61 @@
                             ${techTagsHtml}
                             ${statusTagHtml}
                         </div>`;
-          }
+                    }
 
-          container.appendChild(card);
-          if (cardObserver) cardObserver.observe(card);
-        });
-      });
-    };
+                    container.appendChild(card);
+                    if (cardObserver) cardObserver.observe(card);
+                });
+            });
+        };
 
-    const populateResumeCard = () => {
-      if (!resumeCardContainer) return;
+        const populateResumeCard = () => {
+            if (!resumeCardContainer) return;
 
-      const card = document.createElement('div');
-      card.className = 'major-project-card project-modal-trigger';
-      card.dataset.itemId = resumeData.id;
-      card.dataset.itemType = resumeData.type;
+            const card = document.createElement('div');
+            card.className = 'major-project-card project-modal-trigger';
+            card.dataset.itemId = resumeData.id;
+            card.dataset.itemType = resumeData.type;
 
-      const placeholder = 'https://placehold.co/600x400/F7F5F2/BFA181?text=R%C3%A9sum%C3%A9';
-      const mediaHtml = `<img src="${resumeData.imageUrl}" alt="${resumeData.title}" onerror="this.onerror=null;this.src='${placeholder}';">`;
+            const placeholder = 'https://placehold.co/600x400/F7F5F2/BFA181?text=R%C3%A9sum%C3%A9';
+            const mediaHtml = `<img src="${resumeData.imageUrl}" alt="${resumeData.title}" onerror="this.onerror=null;this.src='${placeholder}';">`;
 
-      card.innerHTML = `
+            card.innerHTML = `
             ${mediaHtml}
             <div class="project-content">
                 <h4>${resumeData.title}</h4>
                 <p>${resumeData.cardDescription}</p>
             </div>`;
 
-      resumeCardContainer.appendChild(card);
-      if (cardObserver) cardObserver.observe(card);
-    };
+            resumeCardContainer.appendChild(card);
+            if (cardObserver) cardObserver.observe(card);
+        };
 
-    const populateSkillGroups = () => {
-      if (!skillGroupsContainer) return;
-      skillGroupsContainer.innerHTML = '';
+        const populateSkillGroups = () => {
+            if (!skillGroupsContainer) return;
+            skillGroupsContainer.innerHTML = '';
 
-      skillGroupsData.forEach(group => {
-        const card = document.createElement('div');
-        card.className = 'skill-group-card project-modal-trigger';
-        card.dataset.itemId = group.id;
-        card.dataset.itemType = 'skill-group';
+            skillGroupsData.forEach(group => {
+                const card = document.createElement('div');
+                card.className = 'skill-group-card project-modal-trigger';
+                card.dataset.itemId = group.id;
+                card.dataset.itemType = 'skill-group';
 
-        let skillsListHtml = '<div class="skill-group-card-tags-container">';
-        const MAX_SKILLS_ON_CARD = 8;
-        group.items.slice(0, MAX_SKILLS_ON_CARD).forEach(skill => {
-          skillsListHtml += `<span class="project-tag">${skill.name}</span>`;
-        });
-        skillsListHtml += '</div>';
+                let skillsListHtml = '<div class="skill-group-card-tags-container">';
+                const MAX_SKILLS_ON_CARD = 8;
+                group.items.slice(0, MAX_SKILLS_ON_CARD).forEach(skill => {
+                    skillsListHtml += `<span class="project-tag">${skill.name}</span>`;
+                });
+                skillsListHtml += '</div>';
 
-        let moreInfoHtml = '';
-        if (group.items.length > MAX_SKILLS_ON_CARD) {
-          moreInfoHtml = `<p class="skill-group-more-info">...and ${group.items.length - MAX_SKILLS_ON_CARD} more</p>`;
-        }
+                let moreInfoHtml = '';
+                if (group.items.length > MAX_SKILLS_ON_CARD) {
+                    moreInfoHtml = `<p class="skill-group-more-info">...and ${group.items.length - MAX_SKILLS_ON_CARD} more</p>`;
+                }
 
-        const cardImageSrc = group.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
+                const cardImageSrc = group.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
 
-        card.innerHTML = `
+                card.innerHTML = `
                 <div class="skill-group-card-image-wrapper">
                   <div role="img" aria-label="${group.title} icon" class="skill-group-card-image" style="-webkit-mask-image: url(${cardImageSrc}); mask-image: url(${cardImageSrc});"></div>
                 </div>
@@ -1081,372 +1099,372 @@
                 ${skillsListHtml}
                 ${moreInfoHtml}
             `;
-        skillGroupsContainer.appendChild(card);
-        if (cardObserver) cardObserver.observe(card);
-      });
-    };
-
-
-    const handleScrollAnimations = () => {
-      const scrollY = window.scrollY;
-      const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const scrollPercent = totalScrollableHeight > 0 ? scrollY / totalScrollableHeight : 0;
-      header.classList.toggle('scrolled', scrollY > 50);
-
-      if (rightObject) {
-        const arrowIcon = rightObject.querySelector('svg');
-        const squareTravelDistance = window.innerHeight;
-        const squareY = scrollPercent * squareTravelDistance;
-        const squareRotation = scrollPercent * 360;
-        rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
-        if (arrowIcon) {
-          arrowIcon.style.transform = `rotate(${-squareRotation}deg)`;
-        }
-      }
-      if (leftObject) {
-        const arrowIcon = leftObject.querySelector('svg');
-        const initialTopVh = 85;
-        const initialTopPx = window.innerHeight * (initialTopVh / 100);
-        const objectHeight = leftObject.offsetHeight;
-
-        const totalUpwardTravelDistance = initialTopPx + objectHeight;
-
-        const triangleY = -scrollPercent * totalUpwardTravelDistance;
-        const triangleRotation = scrollPercent * 720;
-
-        leftObject.style.transform = `translateY(${triangleY}px) rotate(${triangleRotation}deg)`;
-        if (arrowIcon) {
-          arrowIcon.style.transform = `rotate(${-triangleRotation}deg)`;
-        }
-      }
-    };
-
-    const setupIntersectionObservers = () => {
-      const sectionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            sectionObserver.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.1 });
-      sections.forEach(section => sectionObserver.observe(section));
-
-      cardObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
-            // cardObserver.unobserve(entry.target); // Optional: unobserve after first animation
-          }
-        });
-      }, { threshold: 0.1 });
-
-      // Note: The about-me-card is now observed within populateAboutMeCard
-      // Other cards are observed when populated in their respective functions.
-    };
-
-    const openModal = (card, itemData, itemType) => {
-      if (isAnimating) return;
-      isAnimating = true;
-      lastClickedCard = card;
-      document.body.style.overflow = 'hidden';
-
-      modalDynamicContentArea.innerHTML = '';
-      modalDescription.textContent = '';
-      modalDescription.style.display = 'none';
-      modalLink.style.display = 'none';
-      modalImageContainer.innerHTML = ''; // Clear previous media content
-
-      modalTitle.textContent = itemData.title || itemData.modalTitle || itemData.name;
-
-      modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal', 'resume-modal');
-      if (itemType === 'skill-group') {
-        modalAnimator.classList.add('skill-group-modal');
-        let groupCardImageSrc = itemData.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
-
-        const img = document.createElement('img');
-        img.src = groupCardImageSrc;
-        img.alt = itemData.title;
-        img.className = 'modal-image';
-        img.onerror = function() {
-          this.onerror=null;
-          this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
+                skillGroupsContainer.appendChild(card);
+                if (cardObserver) cardObserver.observe(card);
+            });
         };
-        modalImageContainer.appendChild(img);
-        modalImageContainer.style.display = itemData.cardImageUrl ? 'block' : 'none';
 
-        const itemsContainer = document.createElement('div');
-        itemsContainer.className = 'modal-skill-group-items-container';
-        itemData.items.forEach(skillItem => {
-          const itemEl = document.createElement('div');
-          itemEl.className = 'skill-group-item';
-          let skillItemImageSrc = skillItem.imageUrl;
-          if (skillItemImageSrc.includes('iconify.design')) {
-            const iconRestingColorValue = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#','');
-            if (skillItemImageSrc.includes('?')) {
-              skillItemImageSrc += `&color=${iconRestingColorValue}`;
-            } else {
-              skillItemImageSrc += `?color=${iconRestingColorValue}`;
+
+        const handleScrollAnimations = () => {
+            const scrollY = window.scrollY;
+            const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = totalScrollableHeight > 0 ? scrollY / totalScrollableHeight : 0;
+            header.classList.toggle('scrolled', scrollY > 50);
+
+            if (rightObject) {
+                const arrowIcon = rightObject.querySelector('svg');
+                const squareTravelDistance = window.innerHeight;
+                const squareY = scrollPercent * squareTravelDistance;
+                const squareRotation = scrollPercent * 360;
+                rightObject.style.transform = `translateY(${squareY - rightObject.offsetHeight}px) rotate(${squareRotation}deg)`;
+                if (arrowIcon) {
+                    arrowIcon.style.transform = `rotate(${-squareRotation}deg)`;
+                }
             }
-          }
+            if (leftObject) {
+                const arrowIcon = leftObject.querySelector('svg');
+                const initialTopVh = 85;
+                const initialTopPx = window.innerHeight * (initialTopVh / 100);
+                const objectHeight = leftObject.offsetHeight;
+
+                const totalUpwardTravelDistance = initialTopPx + objectHeight;
+
+                const triangleY = -scrollPercent * totalUpwardTravelDistance;
+                const triangleRotation = scrollPercent * 720;
+
+                leftObject.style.transform = `translateY(${triangleY}px) rotate(${triangleRotation}deg)`;
+                if (arrowIcon) {
+                    arrowIcon.style.transform = `rotate(${-triangleRotation}deg)`;
+                }
+            }
+        };
+
+        const setupIntersectionObservers = () => {
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        sectionObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            sections.forEach(section => sectionObserver.observe(section));
+
+            cardObserver = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                        // cardObserver.unobserve(entry.target); // Optional: unobserve after first animation
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            // Note: The about-me-card is now observed within populateAboutMeCard
+            // Other cards are observed when populated in their respective functions.
+        };
+
+        const openModal = (card, itemData, itemType) => {
+            if (isAnimating) return;
+            isAnimating = true;
+            lastClickedCard = card;
+            document.body.style.overflow = 'hidden';
+
+            modalDynamicContentArea.innerHTML = '';
+            modalDescription.textContent = '';
+            modalDescription.style.display = 'none';
+            modalLink.style.display = 'none';
+            modalImageContainer.innerHTML = ''; // Clear previous media content
+
+            modalTitle.textContent = itemData.title || itemData.modalTitle || itemData.name;
+
+            modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal', 'resume-modal');
+            if (itemType === 'skill-group') {
+                modalAnimator.classList.add('skill-group-modal');
+                let groupCardImageSrc = itemData.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
+
+                const img = document.createElement('img');
+                img.src = groupCardImageSrc;
+                img.alt = itemData.title;
+                img.className = 'modal-image';
+                img.onerror = function() {
+                    this.onerror=null;
+                    this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
+                };
+                modalImageContainer.appendChild(img);
+                modalImageContainer.style.display = itemData.cardImageUrl ? 'block' : 'none';
+
+                const itemsContainer = document.createElement('div');
+                itemsContainer.className = 'modal-skill-group-items-container';
+                itemData.items.forEach(skillItem => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'skill-group-item';
+                    let skillItemImageSrc = skillItem.imageUrl;
+                    if (skillItemImageSrc.includes('iconify.design')) {
+                        const iconRestingColorValue = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#','');
+                        if (skillItemImageSrc.includes('?')) {
+                            skillItemImageSrc += `&color=${iconRestingColorValue}`;
+                        } else {
+                            skillItemImageSrc += `?color=${iconRestingColorValue}`;
+                        }
+                    }
 
 
-          itemEl.innerHTML = `
+                    itemEl.innerHTML = `
                   <img src="${skillItemImageSrc}" alt="${skillItem.name}" class="skill-group-item-image" onerror="this.onerror=null;this.src='https://placehold.co/60x60/F7F5F2/BFA181?text=?';">
                   <div class="skill-group-item-text">
                       <h4 class="skill-group-item-name">${skillItem.name}</h4>
                       <p class="skill-group-item-description">${skillItem.description}</p>
                   </div>`;
-          itemsContainer.appendChild(itemEl);
-        });
-        modalDynamicContentArea.appendChild(itemsContainer);
+                    itemsContainer.appendChild(itemEl);
+                });
+                modalDynamicContentArea.appendChild(itemsContainer);
 
-      } else if (itemType === 'about' || itemType === 'major' || itemType === 'small' || itemType === 'resume') {
+            } else if (itemType === 'about' || itemType === 'major' || itemType === 'small' || itemType === 'resume') {
 
-        if (itemType === 'resume') {
-          modalAnimator.classList.add('resume-modal');
-          modalImageContainer.style.display = 'none';
-        } else {
-          modalAnimator.classList.add('project-modal');
-          const isMp4 = itemData.imageUrl && itemData.imageUrl.toLowerCase().endsWith('.mp4');
-          if (isMp4) {
-            const video = document.createElement('video');
-            video.src = itemData.imageUrl;
-            video.className = 'modal-image';
-            video.controls = true;
-            video.autoplay = true;
-            video.loop = true;
-            video.muted = false;
-            video.onerror = () => {
-              modalImageContainer.innerHTML = '<p style="color: var(--primary-color); text-align: center; padding: 20px;">Error loading video.</p>';
-            };
-            modalImageContainer.appendChild(video);
-          } else {
-            const img = document.createElement('img');
-            img.src = itemData.imageUrl;
-            img.alt = itemData.title || itemData.modalTitle;
-            img.className = 'modal-image';
-            img.onerror = function() {
-              this.onerror=null;
-              this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
-            };
-            modalImageContainer.appendChild(img);
-          }
-          modalImageContainer.style.display = 'block';
-        }
+                if (itemType === 'resume') {
+                    modalAnimator.classList.add('resume-modal');
+                    modalImageContainer.style.display = 'none';
+                } else {
+                    modalAnimator.classList.add('project-modal');
+                    const isMp4 = itemData.imageUrl && itemData.imageUrl.toLowerCase().endsWith('.mp4');
+                    if (isMp4) {
+                        const video = document.createElement('video');
+                        video.src = itemData.imageUrl;
+                        video.className = 'modal-image';
+                        video.controls = true;
+                        video.autoplay = true;
+                        video.loop = true;
+                        video.muted = false;
+                        video.onerror = () => {
+                            modalImageContainer.innerHTML = '<p style="color: var(--primary-color); text-align: center; padding: 20px;">Error loading video.</p>';
+                        };
+                        modalImageContainer.appendChild(video);
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = itemData.imageUrl;
+                        img.alt = itemData.title || itemData.modalTitle;
+                        img.className = 'modal-image';
+                        img.onerror = function() {
+                            this.onerror=null;
+                            this.src='https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error';
+                        };
+                        modalImageContainer.appendChild(img);
+                    }
+                    modalImageContainer.style.display = 'block';
+                }
 
-        let hasCustomButtons = false;
-        let rootLink = itemData.link;
+                let hasCustomButtons = false;
+                let rootLink = itemData.link;
 
-        if (itemData.modalContent && Array.isArray(itemData.modalContent)) {
-          itemData.modalContent.forEach(contentItem => {
-            let el;
-            if (contentItem.type === 'text') {
-              el = document.createElement('p');
-              el.className = 'modal-dynamic-text';
-              el.textContent = contentItem.value;
-            } else if (contentItem.type === 'image') {
-              el = document.createElement('img');
-              el.src = contentItem.value;
-              el.alt = contentItem.alt || 'Modal content image';
-              el.className = 'modal-dynamic-image';
-              el.onerror = function() { this.src='https://placehold.co/600x400/cccccc/333333?text=Img+Error'; this.alt='Error loading image'; };
-            } else if (contentItem.type === 'button') {
-              el = document.createElement('a');
-              el.href = contentItem.link;
-              el.textContent = contentItem.text;
-              el.className = 'modal-dynamic-button';
-              el.target = '_blank';
-              el.rel = 'noopener noreferrer';
-              hasCustomButtons = true;
-            } else if (contentItem.type === 'embed') {
-              el = document.createElement('iframe');
-              el.src = contentItem.value;
-              el.title = contentItem.title || 'Embedded Content';
-              el.className = 'modal-dynamic-embed';
-              el.setAttribute('frameborder', '0');
-              el.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-              el.setAttribute('allowfullscreen', '');
-              if (itemType === 'resume') {
-                el.id = 'resume-modal-iframe';
-              }
+                if (itemData.modalContent && Array.isArray(itemData.modalContent)) {
+                    itemData.modalContent.forEach(contentItem => {
+                        let el;
+                        if (contentItem.type === 'text') {
+                            el = document.createElement('p');
+                            el.className = 'modal-dynamic-text';
+                            el.textContent = contentItem.value;
+                        } else if (contentItem.type === 'image') {
+                            el = document.createElement('img');
+                            el.src = contentItem.value;
+                            el.alt = contentItem.alt || 'Modal content image';
+                            el.className = 'modal-dynamic-image';
+                            el.onerror = function() { this.src='https://placehold.co/600x400/cccccc/333333?text=Img+Error'; this.alt='Error loading image'; };
+                        } else if (contentItem.type === 'button') {
+                            el = document.createElement('a');
+                            el.href = contentItem.link;
+                            el.textContent = contentItem.text;
+                            el.className = 'modal-dynamic-button';
+                            el.target = '_blank';
+                            el.rel = 'noopener noreferrer';
+                            hasCustomButtons = true;
+                        } else if (contentItem.type === 'embed') {
+                            el = document.createElement('iframe');
+                            el.src = contentItem.value;
+                            el.title = contentItem.title || 'Embedded Content';
+                            el.className = 'modal-dynamic-embed';
+                            el.setAttribute('frameborder', '0');
+                            el.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                            el.setAttribute('allowfullscreen', '');
+                            if (itemType === 'resume') {
+                                el.id = 'resume-modal-iframe';
+                            }
+                        }
+                        if (el) modalDynamicContentArea.appendChild(el);
+                    });
+                }
+                if (!hasCustomButtons && rootLink && (itemType === 'major' || itemType === 'small')) {
+                    modalLink.href = rootLink;
+                    modalLink.style.display = 'inline-block';
+                    modalLink.textContent = "View Project";
+                } else {
+                    modalLink.style.display = 'none';
+                }
+            } else if (itemType === 'skill') {
+                modalAnimator.classList.add('skill-modal');
+                modalImageContainer.style.display = 'none';
+                modalDescription.textContent = itemData.description || '';
+                modalDescription.style.display = modalDescription.textContent ? 'block' : 'none';
             }
-            if (el) modalDynamicContentArea.appendChild(el);
-          });
-        }
-        if (!hasCustomButtons && rootLink && (itemType === 'major' || itemType === 'small')) {
-          modalLink.href = rootLink;
-          modalLink.style.display = 'inline-block';
-          modalLink.textContent = "View Project";
-        } else {
-          modalLink.style.display = 'none';
-        }
-      } else if (itemType === 'skill') {
-        modalAnimator.classList.add('skill-modal');
-        modalImageContainer.style.display = 'none';
-        modalDescription.textContent = itemData.description || '';
-        modalDescription.style.display = modalDescription.textContent ? 'block' : 'none';
-      }
 
-      modalBackdrop.classList.add('visible');
-      const cardRect = card.getBoundingClientRect();
-      lastCardRect = cardRect; // Cache the card's position and size
-      modalAnimator.classList.add('visible');
-      if (lastClickedCard) lastClickedCard.classList.add('animating-out');
+            modalBackdrop.classList.add('visible');
+            const cardRect = card.getBoundingClientRect();
+            lastCardRect = cardRect; // Cache the card's position and size
+            modalAnimator.classList.add('visible');
+            if (lastClickedCard) lastClickedCard.classList.add('animating-out');
 
-      let finalWidth, finalHeight, finalTop, finalLeft;
-      finalWidth = Math.min(1280, window.innerWidth * 0.9);
-      finalHeight = Math.min(window.innerHeight * 0.9, 1080);
-      finalTop = (window.innerHeight - finalHeight) / 2;
-      finalLeft = (window.innerWidth - finalWidth) / 2;
+            let finalWidth, finalHeight, finalTop, finalLeft;
+            finalWidth = Math.min(1280, window.innerWidth * 0.9);
+            finalHeight = Math.min(window.innerHeight * 0.9, 1080);
+            finalTop = (window.innerHeight - finalHeight) / 2;
+            finalLeft = (window.innerWidth - finalWidth) / 2;
 
-      modalAnimator.classList.add('no-transition');
-      modalAnimator.style.top = `${cardRect.top}px`;
-      modalAnimator.style.left = `${cardRect.left}px`;
-      modalAnimator.style.width = `${cardRect.width}px`;
-      modalAnimator.style.height = `${cardRect.height}px`;
-      void modalAnimator.offsetHeight;
-      modalAnimator.classList.remove('no-transition');
+            modalAnimator.classList.add('no-transition');
+            modalAnimator.style.top = `${cardRect.top}px`;
+            modalAnimator.style.left = `${cardRect.left}px`;
+            modalAnimator.style.width = `${cardRect.width}px`;
+            modalAnimator.style.height = `${cardRect.height}px`;
+            void modalAnimator.offsetHeight;
+            modalAnimator.classList.remove('no-transition');
 
-      requestAnimationFrame(() => {
-        modalAnimator.style.top = `${finalTop}px`;
-        modalAnimator.style.left = `${finalLeft}px`;
-        modalAnimator.style.width = `${finalWidth}px`;
-        modalAnimator.style.height = `${finalHeight}px`;
-        modalAnimator.classList.add('open');
-      });
+            requestAnimationFrame(() => {
+                modalAnimator.style.top = `${finalTop}px`;
+                modalAnimator.style.left = `${finalLeft}px`;
+                modalAnimator.style.width = `${finalWidth}px`;
+                modalAnimator.style.height = `${finalHeight}px`;
+                modalAnimator.classList.add('open');
+            });
 
-      const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
-      setTimeout(() => { isAnimating = false; }, animationDurationMs);
-    };
+            const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
+            setTimeout(() => { isAnimating = false; }, animationDurationMs);
+        };
 
-    const closeModal = () => {
-      if (isAnimating || !lastClickedCard || !lastCardRect) return;
-      isAnimating = true;
+        const closeModal = () => {
+            if (isAnimating || !lastClickedCard || !lastCardRect) return;
+            isAnimating = true;
 
-      // Animate the modal content and backdrop fading out
-      modalAnimator.classList.remove('open');
-      modalBackdrop.classList.remove('visible');
+            // Animate the modal content and backdrop fading out
+            modalAnimator.classList.remove('open');
+            modalBackdrop.classList.remove('visible');
 
-      // Set the target position for the modal to shrink back to
-      modalAnimator.style.top = `${lastCardRect.top}px`;
-      modalAnimator.style.left = `${lastCardRect.left}px`;
-      modalAnimator.style.width = `${lastCardRect.width}px`;
-      modalAnimator.style.height = `${lastCardRect.height}px`;
+            // Set the target position for the modal to shrink back to
+            modalAnimator.style.top = `${lastCardRect.top}px`;
+            modalAnimator.style.left = `${lastCardRect.left}px`;
+            modalAnimator.style.width = `${lastCardRect.width}px`;
+            modalAnimator.style.height = `${lastCardRect.height}px`;
 
-      // Animate opacity to 0. We can't just remove the 'visible' class, as that
-      // would also apply 'visibility: hidden' instantly, killing the animation.
-      // Instead, we leave '.visible' on for the animation's duration and override opacity.
-      modalAnimator.style.opacity = '0';
+            // Animate opacity to 0. We can't just remove the 'visible' class, as that
+            // would also apply 'visibility: hidden' instantly, killing the animation.
+            // Instead, we leave '.visible' on for the animation's duration and override opacity.
+            modalAnimator.style.opacity = '0';
 
-      const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
-      setTimeout(() => {
-        // After the animation, hide the element properly and reset its state for next time.
-        modalAnimator.classList.remove('visible');
-        modalAnimator.style.opacity = ''; // Clear inline style
+            const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
+            setTimeout(() => {
+                // After the animation, hide the element properly and reset its state for next time.
+                modalAnimator.classList.remove('visible');
+                modalAnimator.style.opacity = ''; // Clear inline style
 
-        if (lastClickedCard) {
-          lastClickedCard.classList.remove('animating-out');
-        }
-        document.body.style.overflow = '';
-        modalDynamicContentArea.innerHTML = '';
-        modalDescription.textContent = '';
-        modalDescription.style.display = 'none';
-        modalLink.style.display = 'none';
-        isAnimating = false;
-        lastClickedCard = null;
-        lastCardRect = null;
-      }, animationDurationMs);
-    };
+                if (lastClickedCard) {
+                    lastClickedCard.classList.remove('animating-out');
+                }
+                document.body.style.overflow = '';
+                modalDynamicContentArea.innerHTML = '';
+                modalDescription.textContent = '';
+                modalDescription.style.display = 'none';
+                modalLink.style.display = 'none';
+                isAnimating = false;
+                lastClickedCard = null;
+                lastCardRect = null;
+            }, animationDurationMs);
+        };
 
-    const setupModalTriggers = () => {
-      document.body.addEventListener('click', (e) => {
-        const card = e.target.closest('.project-modal-trigger');
-        if (card) {
-          const itemId = card.dataset.itemId;
-          const itemType = card.dataset.itemType;
-          let itemData;
+        const setupModalTriggers = () => {
+            document.body.addEventListener('click', (e) => {
+                const card = e.target.closest('.project-modal-trigger');
+                if (card) {
+                    const itemId = card.dataset.itemId;
+                    const itemType = card.dataset.itemType;
+                    let itemData;
 
-          if (itemType === 'major') itemData = majorProjectsData.find(p => p.id.toString() === itemId);
-          else if (itemType === 'small') itemData = smallProjectsData.find(p => p.id.toString() === itemId);
-          else if (itemType === 'skill-group') itemData = skillGroupsData.find(g => g.id === itemId);
-          else if (itemType === 'about') itemData = aboutMeData;
-          else if (itemType === 'resume') itemData = resumeData;
+                    if (itemType === 'major') itemData = majorProjectsData.find(p => p.id.toString() === itemId);
+                    else if (itemType === 'small') itemData = smallProjectsData.find(p => p.id.toString() === itemId);
+                    else if (itemType === 'skill-group') itemData = skillGroupsData.find(g => g.id === itemId);
+                    else if (itemType === 'about') itemData = aboutMeData;
+                    else if (itemType === 'resume') itemData = resumeData;
 
-          if (itemData) openModal(card, itemData, itemType);
-        }
-      });
-      modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
-      modalCloseBtn.addEventListener('click', closeModal);
-      window.addEventListener('keydown', (e) => { if(e.key === 'Escape' && modalBackdrop.classList.contains('visible')) closeModal(); });
-    };
+                    if (itemData) openModal(card, itemData, itemType);
+                }
+            });
+            modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+            modalCloseBtn.addEventListener('click', closeModal);
+            window.addEventListener('keydown', (e) => { if(e.key === 'Escape' && modalBackdrop.classList.contains('visible')) closeModal(); });
+        };
 
-    const setupScrollControls = () => {
-      const scrollUpBtn = document.getElementById('scroll-up-btn');
-      const scrollDownBtn = document.getElementById('scroll-down-btn');
-      const pageSections = Array.from(document.querySelectorAll('main > section'));
+        const setupScrollControls = () => {
+            const scrollUpBtn = document.getElementById('scroll-up-btn');
+            const scrollDownBtn = document.getElementById('scroll-down-btn');
+            const pageSections = Array.from(document.querySelectorAll('main > section'));
 
-      if (scrollDownBtn) {
-        scrollDownBtn.addEventListener('click', () => {
-          const currentScrollY = window.scrollY;
-          const buffer = 2;
-          let nextSection = pageSections.find(section => section.offsetTop > currentScrollY + buffer);
+            if (scrollDownBtn) {
+                scrollDownBtn.addEventListener('click', () => {
+                    const currentScrollY = window.scrollY;
+                    const buffer = 2;
+                    let nextSection = pageSections.find(section => section.offsetTop > currentScrollY + buffer);
 
-          // If the next natural section is 'about', skip it and go to 'projects' instead.
-          // This primarily affects the first scroll from the top ('hero' section).
-          if (nextSection && nextSection.id === 'about') {
-            nextSection = document.getElementById('projects');
-          }
+                    // If the next natural section is 'about', skip it and go to 'projects' instead.
+                    // This primarily affects the first scroll from the top ('hero' section).
+                    if (nextSection && nextSection.id === 'about') {
+                        nextSection = document.getElementById('projects');
+                    }
 
-          if (nextSection) {
-            nextSection.scrollIntoView({ behavior: 'smooth' });
-          } else {
-            // If no next section, scroll to footer
-            document.querySelector('footer').scrollIntoView({ behavior: 'smooth' });
-          }
-        });
-      }
-
-      if (scrollUpBtn) {
-        scrollUpBtn.addEventListener('click', () => {
-          const currentScrollY = window.scrollY;
-          const buffer = 2;
-          const prevSections = pageSections.filter(section => section.offsetTop < currentScrollY - buffer);
-          if (prevSections.length > 0) {
-            let prevSection = prevSections[prevSections.length - 1];
-            // If scrolling up would land on 'about', go to 'hero' instead.
-            if (prevSection && prevSection.id === 'about') {
-              prevSection = document.getElementById('hero');
+                    if (nextSection) {
+                        nextSection.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        // If no next section, scroll to footer
+                        document.querySelector('footer').scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
             }
-            if (prevSection) {
-              prevSection.scrollIntoView({ behavior: 'smooth' });
-            } else {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (scrollUpBtn) {
+                scrollUpBtn.addEventListener('click', () => {
+                    const currentScrollY = window.scrollY;
+                    const buffer = 2;
+                    const prevSections = pageSections.filter(section => section.offsetTop < currentScrollY - buffer);
+                    if (prevSections.length > 0) {
+                        let prevSection = prevSections[prevSections.length - 1];
+                        // If scrolling up would land on 'about', go to 'hero' instead.
+                        if (prevSection && prevSection.id === 'about') {
+                            prevSection = document.getElementById('hero');
+                        }
+                        if (prevSection) {
+                            prevSection.scrollIntoView({ behavior: 'smooth' });
+                        } else {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                    } else {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                });
             }
-          } else {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }
-        });
-      }
-    };
+        };
 
-    setupIntersectionObservers();
-    initTheme();
-    populateAboutMeCard();
-    populateProjects();
-    populateSkillGroups();
-    populateResumeCard();
+        setupIntersectionObservers();
+        initTheme();
+        populateAboutMeCard();
+        populateProjects();
+        populateSkillGroups();
+        populateResumeCard();
 
-    let scrollRaf;
-    window.addEventListener('scroll', () => {
-      if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
-      scrollRaf = window.requestAnimationFrame(handleScrollAnimations);
-    }, { passive: true });
+        let scrollRaf;
+        window.addEventListener('scroll', () => {
+            if (scrollRaf) window.cancelAnimationFrame(scrollRaf);
+            scrollRaf = window.requestAnimationFrame(handleScrollAnimations);
+        }, { passive: true });
 
-    setupModalTriggers();
-    setupScrollControls();
+        setupModalTriggers();
+        setupScrollControls();
 
-  });
+    });
 </script>
 </body>
 </html>
