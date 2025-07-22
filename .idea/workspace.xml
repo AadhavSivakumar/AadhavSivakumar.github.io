@@ -83,18 +83,18 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projects" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\legacy" />
     </key>
   </component>
-  <component name="RunManager" selected="Attach to Node.js/Chrome.Unnamed">
+  <component name="RunManager" selected="JavaScript Debug.index.html">
     <configuration name="Unnamed" type="ChromiumRemoteDebugType" factoryName="Chromium Remote" nameIsGenerated="true" port="9229">
       <method v="2" />
     </configuration>
-    <configuration name="index.html" type="JavascriptDebugType" uri="http://localhost:63342/AadhavSivakumar.github.io/legacy/index.html" useBuiltInWebServerPort="true">
+    <configuration name="index.html" type="JavascriptDebugType" uri="http://localhost:63342/AadhavSivakumar.github.io/index.html" useBuiltInWebServerPort="true">
       <method v="2" />
     </configuration>
     <configuration name="old_index.html" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/AadhavSivakumar.github.io/legacy/old_index.html" useBuiltInWebServerPort="true">
@@ -183,15 +183,7 @@
       <workItem from="1751727661502" duration="14035000" />
       <workItem from="1751834519148" duration="14109000" />
       <workItem from="1752102978898" duration="9611000" />
-      <workItem from="1752858608122" duration="7360000" />
-    </task>
-    <task id="LOCAL-00012" summary="images">
-      <option name="closed" value="true" />
-      <created>1750803989851</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1750803989851</updated>
+      <workItem from="1752858608122" duration="7504000" />
     </task>
     <task id="LOCAL-00013" summary="images">
       <option name="closed" value="true" />
@@ -577,7 +569,15 @@
       <option name="project" value="LOCAL" />
       <updated>1752381881186</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="currentizing">
+      <option name="closed" value="true" />
+      <created>1753151137272</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1753151137273</updated>
+    </task>
+    <option name="localTasksCounter" value="62" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
