@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="currentizing">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="3d camera video">
+      <change afterPath="$PROJECT_DIR$/projectpdf/Biomedical_devices_research_paper.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/projectpdf/Capstone_final_report.pdf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -83,11 +85,11 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\projectpdf" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projects" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\legacy" />
     </key>
   </component>
   <component name="RunManager" selected="JavaScript Debug.index.html">
@@ -184,15 +186,7 @@
       <workItem from="1751834519148" duration="14109000" />
       <workItem from="1752102978898" duration="9611000" />
       <workItem from="1752858608122" duration="7990000" />
-      <workItem from="1753220923969" duration="593000" />
-    </task>
-    <task id="LOCAL-00015" summary="some more skills images">
-      <option name="closed" value="true" />
-      <created>1750822598942</created>
-      <option name="number" value="00015" />
-      <option name="presentableId" value="LOCAL-00015" />
-      <option name="project" value="LOCAL" />
-      <updated>1750822598942</updated>
+      <workItem from="1753220923969" duration="3326000" />
     </task>
     <task id="LOCAL-00016" summary="software images updated">
       <option name="closed" value="true" />
@@ -578,7 +572,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753151390460</updated>
     </task>
-    <option name="localTasksCounter" value="64" />
+    <task id="LOCAL-00064" summary="3d camera video">
+      <option name="closed" value="true" />
+      <created>1753221587741</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1753221587742</updated>
+    </task>
+    <option name="localTasksCounter" value="65" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -596,7 +598,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="in progress and completed" />
     <MESSAGE value="cleanup" />
     <MESSAGE value="MAJOR new testfile made as index" />
     <MESSAGE value="added tag cloud" />
@@ -621,6 +622,7 @@
     <MESSAGE value="up down arrows" />
     <MESSAGE value="up down arrows cont" />
     <MESSAGE value="currentizing" />
-    <option name="LAST_COMMIT_MESSAGE" value="currentizing" />
+    <MESSAGE value="3d camera video" />
+    <option name="LAST_COMMIT_MESSAGE" value="3d camera video" />
   </component>
 </project>
