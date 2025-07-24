@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="pdfs">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="currentizing" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -185,15 +182,7 @@
       <workItem from="1751834519148" duration="14109000" />
       <workItem from="1752102978898" duration="9611000" />
       <workItem from="1752858608122" duration="7990000" />
-      <workItem from="1753220923969" duration="5222000" />
-    </task>
-    <task id="LOCAL-00017" summary="software images updated">
-      <option name="closed" value="true" />
-      <created>1750837319571</created>
-      <option name="number" value="00017" />
-      <option name="presentableId" value="LOCAL-00017" />
-      <option name="project" value="LOCAL" />
-      <updated>1750837319571</updated>
+      <workItem from="1753220923969" duration="5832000" />
     </task>
     <task id="LOCAL-00018" summary="moved resume">
       <option name="closed" value="true" />
@@ -579,7 +568,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753243795949</updated>
     </task>
-    <option name="localTasksCounter" value="66" />
+    <task id="LOCAL-00066" summary="currentizing">
+      <option name="closed" value="true" />
+      <created>1753308842876</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1753308842877</updated>
+    </task>
+    <option name="localTasksCounter" value="67" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -619,9 +616,9 @@
     <MESSAGE value="Added High quality world map" />
     <MESSAGE value="up down arrows" />
     <MESSAGE value="up down arrows cont" />
-    <MESSAGE value="currentizing" />
     <MESSAGE value="3d camera video" />
     <MESSAGE value="pdfs" />
-    <option name="LAST_COMMIT_MESSAGE" value="pdfs" />
+    <MESSAGE value="currentizing" />
+    <option name="LAST_COMMIT_MESSAGE" value="currentizing" />
   </component>
 </project>
