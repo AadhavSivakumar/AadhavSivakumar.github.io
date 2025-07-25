@@ -36,15 +36,19 @@
             --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
         }
 
+        /* Keyframe animation for the breathing effect */
+        @keyframes breathe-animation {
+            0% { transform: translateX(0) translateY(0); }
+            50% { transform: translateX(0) translateY(-8px); }
+            100% { transform: translateX(0) translateY(0); }
+        }
+
         /* GLOBAL STYLES */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
         body {
             font-family: 'Poppins', sans-serif;
-            background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent-color) 10%, transparent) 0%, transparent 30%),
-            radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--primary-color) 5%, transparent) 0%, transparent 40%),
-            var(--background-color);
-            background-attachment: fixed;
+            background-color: var(--background-color);
             color: var(--primary-color);
             line-height: 1.7;
             overflow-x: hidden;
@@ -203,14 +207,7 @@
         .major-project-card, .small-project-card, .skill-group-card, .about-me-card {
             cursor: pointer;
             opacity: 0; visibility: hidden; /* Initial state for observer */
-            transition: opacity 0.5s ease-out, transform 0.3s ease-out, box-shadow 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
-            position: relative;
-            overflow: hidden;
-            background-color: color-mix(in srgb, var(--surface-color) 70%, transparent);
-            border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px); /* Safari support */
-            will-change: transform; /* Performance hint for the browser */
+            transition: opacity 0.5s ease-out, transform 0.5s ease, box-shadow 0.4s ease, background-color 0.3s ease;
         }
 
         .project-modal-trigger.animating-out {
@@ -230,23 +227,14 @@
             visibility: visible;
         }
 
-        .major-project-card:hover, .small-project-card:hover, .skill-group-card:hover, .about-me-card:hover {
-            /* transform is now handled by JS for the 3D tilt effect */
-            box-shadow: 0 12px 24px var(--shadow-color-ambient);
-            background-color: color-mix(in srgb, var(--surface-color) 60%, transparent);
-            border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
-            backdrop-filter: blur(16px) saturate(120%); /* Increased blur for more "frost" */
-            -webkit-backdrop-filter: blur(16px) saturate(120%);
-        }
 
-        /* Card content needs to be on top of the shine pseudo-element */
-        .major-project-card > *, .small-project-card > *, .skill-group-card > *, .about-me-card > * {
-            position: relative;
-            z-index: 2;
+        .major-project-card:hover, .small-project-card:hover, .skill-group-card:hover {
+            animation: breathe-animation 2s ease-in-out infinite;
+            box-shadow: 0 10px 20px var(--shadow-color-ambient), 0 0 15px var(--shadow-color-accent);
         }
 
         .major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
-        .major-project-card { border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
+        .major-project-card { background-color: var(--surface-color); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
         .major-project-card img, .major-project-card video { width: 100%; height: 300px; object-fit: cover; }
 
         .major-projects-grid .major-project-card .project-content {
@@ -263,7 +251,7 @@
 
 
         .small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
-        .small-project-card { border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
+        .small-project-card { background-color: var(--surface-color); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); overflow: hidden; }
         .small-project-card img, .small-project-card video { width: 100%; height: 150px; object-fit: cover; display: block; }
 
         /* Styles for GIFs on project cards */
@@ -337,6 +325,7 @@
             margin-top: 40px;
         }
         .skill-group-card {
+            background-color: var(--surface-color);
             border-radius: 10px;
             overflow: visible;
             box-shadow: 0 5px 15px var(--shadow-color-ambient);
@@ -346,6 +335,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
+            position: relative;
         }
         .skill-group-card-image-wrapper {
             position: relative;
@@ -1461,38 +1451,6 @@
             }
         };
 
-        const setupGlassEffect = () => {
-            const cards = document.querySelectorAll('.major-project-card, .small-project-card, .skill-group-card, .about-me-card');
-
-            cards.forEach(card => {
-                const maxRotate = 8; // Max rotation in degrees
-
-                card.addEventListener('mousemove', e => {
-                    const rect = card.getBoundingClientRect();
-
-                    // 3D tilt effect logic
-                    const width = rect.width;
-                    const height = rect.height;
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
-                    const xCenter = width / 2;
-                    const yCenter = height / 2;
-
-                    const rotateX = ((mouseY - yCenter) / yCenter) * -maxRotate;
-                    const rotateY = ((mouseX - xCenter) / xCenter) * maxRotate;
-
-                    // Apply a 3D transform. The scale gives it a 'lift' effect.
-                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
-                });
-
-                card.addEventListener('mouseleave', () => {
-                    // Resetting the inline style will make the card fall back to its CSS-defined transform,
-                    // which will be smoothly animated by the transition property.
-                    card.style.transform = '';
-                });
-            });
-        };
-
         setupIntersectionObservers();
         initTheme();
         populateAboutMeCard();
@@ -1508,7 +1466,6 @@
 
         setupModalTriggers();
         setupScrollControls();
-        setupGlassEffect();
 
     });
 </script>
