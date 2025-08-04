@@ -4,10 +4,20 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="currentizing">
-      <change afterPath="$PROJECT_DIR$/legacy/legacyindex20250725.html" afterDir="false" />
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="3d card movement">
+      <change afterPath="$PROJECT_DIR$/index.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/index.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/legacy/legacyindex20250803.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/contact.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/contact.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/legacyindex.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/legacyindex.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/resume.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/resume.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/temp.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/temp.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/projects.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/projects.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tamilwords200.json" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/tamilwords200.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tempex.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/testreact.jsx" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -55,29 +65,30 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;JavaScript Debug.index.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.resume.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.tamiltest1.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.tempex.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.testfile.html.executor&quot;: &quot;Run&quot;,
-    &quot;Node.js.testreact.jsx.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/hiaad/OneDrive/Desktop/Staging area/AadhavSivakumar.github.io/Images/Resume&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "JavaScript Debug.index.html.executor": "Run",
+    "JavaScript Debug.resume.html.executor": "Run",
+    "JavaScript Debug.tamiltest1.html.executor": "Run",
+    "JavaScript Debug.tempex.html.executor": "Run",
+    "JavaScript Debug.testfile.html.executor": "Run",
+    "Node.js.testreact.jsx.executor": "Run",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/hiaad/OneDrive/Desktop/Staging area/AadhavSivakumar.github.io/Images/Resume",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
+    "ts.external.directory.path": "C:\\Program Files\\JetBrains\\WebStorm 2024.3.1.1\\plugins\\javascript-plugin\\jsLanguageServicesImpl\\external",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\Images\Resume" />
@@ -85,18 +96,18 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io" />
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\legacy" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\projectpdf" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projects" />
     </key>
   </component>
-  <component name="RunManager" selected="JavaScript Debug.index.html">
+  <component name="RunManager">
     <configuration name="Unnamed" type="ChromiumRemoteDebugType" factoryName="Chromium Remote" nameIsGenerated="true" port="9229">
       <method v="2" />
     </configuration>
-    <configuration name="index.html" type="JavascriptDebugType" uri="http://localhost:63342/AadhavSivakumar.github.io/index.html" useBuiltInWebServerPort="true">
+    <configuration name="index.html" type="JavascriptDebugType" uri="http://localhost:63342/AadhavSivakumar.github.io/legacy/legacyindex20250803.html" useBuiltInWebServerPort="true">
       <method v="2" />
     </configuration>
     <configuration name="old_index.html" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/AadhavSivakumar.github.io/legacy/old_index.html" useBuiltInWebServerPort="true">
@@ -186,15 +197,11 @@
       <workItem from="1751834519148" duration="14109000" />
       <workItem from="1752102978898" duration="9611000" />
       <workItem from="1752858608122" duration="7990000" />
-      <workItem from="1753220923969" duration="13294000" />
-    </task>
-    <task id="LOCAL-00023" summary="static waves">
-      <option name="closed" value="true" />
-      <created>1750961530217</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1750961530217</updated>
+      <workItem from="1753220923969" duration="14707000" />
+      <workItem from="1753670828784" duration="1197000" />
+      <workItem from="1753746154111" duration="534000" />
+      <workItem from="1753906319194" duration="6289000" />
+      <workItem from="1754253778305" duration="1817000" />
     </task>
     <task id="LOCAL-00024" summary="static waves">
       <option name="closed" value="true" />
@@ -580,7 +587,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753455826350</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="3d card movement">
+      <option name="closed" value="true" />
+      <created>1753475068172</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1753475068172</updated>
+    </task>
+    <option name="localTasksCounter" value="73" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -598,7 +613,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="MAJOR new testfile made as index" />
     <MESSAGE value="added tag cloud" />
     <MESSAGE value="removed tag cloud" />
     <MESSAGE value="changed tags" />
@@ -623,6 +637,7 @@
     <MESSAGE value="3d camera video" />
     <MESSAGE value="pdfs" />
     <MESSAGE value="currentizing" />
-    <option name="LAST_COMMIT_MESSAGE" value="currentizing" />
+    <MESSAGE value="3d card movement" />
+    <option name="LAST_COMMIT_MESSAGE" value="3d card movement" />
   </component>
 </project>
