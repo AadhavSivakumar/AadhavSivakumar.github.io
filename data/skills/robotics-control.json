@@ -1,0 +1,15 @@
+
+{
+    "id": "robotics-control",
+    "title": "Robotics & Control Systems",
+    "cardImageUrl": "https://api.iconify.design/mdi/robot-industrial.svg",
+    "items": [
+        { "name": "Franka Emika Robot", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/Franka-Emika-Panda-robot.png", "description": "Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors." },
+        { "name": "Pixhawk 6x", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/pixhawk.png", "description": "Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard." },
+        { "name": "Kinematics", "imageUrl": "https://api.iconify.design/mdi/axis-arrow-lock.svg?color=var(--icon-resting-color)", "description": "Describing motion of objects and systems; crucial in robotics for arm positions and trajectories." },
+        { "name": "PID Control", "imageUrl": "https://api.iconify.design/mdi/tune-variant.svg?color=var(--icon-resting-color)", "description": "Feedback mechanism for industrial control and robotics, correcting errors based on P, I, D terms." },
+        { "name": "Kalman Filtering", "imageUrl": "https://api.iconify.design/mdi/filter-outline.svg?color=var(--icon-resting-color)", "description": "Algorithm for producing accurate estimates from noisy measurements over time." },
+        { "name": "Telerobotics", "imageUrl": "https://api.iconify.design/mdi/gamepad-variant-outline.svg?color=var(--icon-resting-color)", "description": "Controlling semi-autonomous robots from a distance using wireless or tethered connections." },
+        { "name": "Webots", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/webots.png", "description": "Open-source robot simulator for modeling, programming, and simulating robots." }
+    ]
+}

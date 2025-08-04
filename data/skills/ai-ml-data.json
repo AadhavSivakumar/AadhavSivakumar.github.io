@@ -1,0 +1,12 @@
+
+{
+    "id": "ai-ml-data",
+    "title": "AI, Machine Learning & Data",
+    "cardImageUrl": "https://api.iconify.design/mdi/brain.svg",
+    "items": [
+        { "name": "AI Vision", "imageUrl": "https://api.iconify.design/mdi/eye-check-outline.svg?color=var(--icon-resting-color)", "description": "Enabling computers to 'see' and interpret visual information like images and videos." },
+        { "name": "Gen AI API", "imageUrl": "https://api.iconify.design/mdi/robot-confused-outline.svg?color=var(--icon-resting-color)", "description": "Using Generative AI APIs (ChatGPT, Gemini, Claude) for content generation, chatbots, etc." },
+        { "name": "MATLAB", "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Matlab_Logo.png/667px-Matlab_Logo.png", "description": "Numerical computing environment for data analysis, algorithm development, simulation." },
+        { "name": "Python (AI/Data Focus)", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg", "description": "Widely used in AI/ML for its extensive libraries (TensorFlow, PyTorch, scikit-learn)." }
+    ]
+}

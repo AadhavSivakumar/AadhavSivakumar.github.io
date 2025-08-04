@@ -1,0 +1,12 @@
+
+{
+    "id": "g",
+    "title": "CV controlled Desktop Robot arm",
+    "imageFile": "deskrobarm.png",
+    "tags": ["Python", "AI Vision", "Raspberry Pi"],
+    "status": "In Progress",
+    "modalContent": [{
+        "type": "text",
+        "value": "Building a desktop robotic arm controlled by AI vision running on a Raspberry Pi. This project explores real-time object recognition and manipulation, creating an interactive and intelligent automated workspace assistant."
+    }]
+}

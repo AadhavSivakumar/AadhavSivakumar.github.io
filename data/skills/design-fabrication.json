@@ -1,0 +1,14 @@
+
+{
+    "id": "design-fabrication",
+    "title": "Design & Fabrication",
+    "cardImageUrl": "https://api.iconify.design/mdi/printer-3d-nozzle-outline.svg",
+    "items": [
+        { "name": "Google Glass", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/googleglass.jpg", "description": "Optical head-mounted display for hands-free info access and AR applications." },
+        { "name": "Bambu Lab Printer", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/bambu.webp", "description": "High-speed 3D printers with multi-material support (AMS) and advanced features." },
+        { "name": "Glowforge", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/glowforge.webp", "description": "Desktop laser cutter/engraver for precise designs on wood, acrylic, leather, etc." },
+        { "name": "SolidWorks", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/SOLIDWORKS.webp", "description": "CAD/CAE software for designing, simulating, and manufacturing products." },
+        { "name": "Fusion 360", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/fusion360.png", "description": "Cloud-based 3D CAD, CAM, CAE, PCB platform for product design and manufacturing." },
+        { "name": "AutoCAD", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/autocad.png", "description": "Commercial CAD and drafting software for 2D/3D design and documentation." }
+    ]
+}

@@ -1,0 +1,12 @@
+
+{
+    "id": "j",
+    "title": "3D space mapping with depth camera",
+    "imageFile": "3dcamera.mp4",
+    "tags": ["Python", "Open3D", "Depth Camera"],
+    "status": "In Progress",
+    "modalContent": [{
+        "type": "text",
+        "value": "Developing a system to capture and stitch together depth data from a camera to create a 3D map of an environment. This project explores point cloud processing and 3D reconstruction techniques."
+    }]
+}

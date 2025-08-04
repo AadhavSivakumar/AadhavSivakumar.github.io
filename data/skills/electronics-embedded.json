@@ -1,0 +1,24 @@
+
+{
+    "id": "electronics-embedded",
+    "title": "Electronics & Embedded Systems",
+    "cardImageUrl": "https://api.iconify.design/mdi/chip.svg",
+    "items": [
+        { "name": "NI DAQ", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/NIDAQ.jpg", "description": "National Instruments hardware for measuring electrical/physical phenomena and converting to digital data." },
+        { "name": "Oscilloscope", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/oscilloscope.jpg", "description": "Instrument for observing varying signal voltages, crucial for debugging electronic circuits." },
+        { "name": "LED Matrix", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/matrixheart.jpg", "description": "2D array of LEDs for displaying patterns, characters, or animations via individual control." },
+        { "name": "Arduino", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/Arduino.jpg", "description": "Open-source platform for interactive objects, popular for prototyping and education." },
+        { "name": "Raspberry Pi", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/raspberrypi.webp", "description": "Small single-board computers for robotics, IoT, home automation, and education." },
+        { "name": "Basys 3 FPGA", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/Basys3.webp", "description": "Entry-level FPGA board with Artix-7, used for learning digital logic with Verilog/VHDL." },
+        { "name": "STM32 Nucleo", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/STM32.webp", "description": "Affordable boards with STM32 MCUs (ARM Cortex-M) for prototyping and concept testing." },
+        { "name": "ESP32/8266", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/ESP32.jpg", "description": "Low-cost Wi-Fi & Bluetooth/BLE MCUs for IoT, home automation, and wireless sensors." },
+        { "name": "Infineon PSoC 4", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/psoc4.jpg", "description": "Programmable System-on-Chip with ARM Cortex-M0/M0+ and programmable analog/digital blocks." },
+        { "name": "Parallax Propeller", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/propeller.jpg", "description": "Multicore MCU with eight 32-bit cores for true parallel processing and deterministic timing." },
+        { "name": "Jetson Nano", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/jetsonnano.jpg", "description": "Small, powerful computer for accelerated AI in embedded apps like image classification." },
+        { "name": "Comm Protocols", "imageUrl": "https://api.iconify.design/mdi/serial-port.svg?color=var(--icon-resting-color)", "description": "Rules for data transmission (I2C, SPI, UART, CAN, Ethernet, Wi-Fi, Bluetooth)." },
+        { "name": "Altium Designer", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/altium-designer.png", "description": "EDA software for PCB, FPGA, and embedded software design in a unified environment." },
+        { "name": "Autodesk EAGLE", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/EAGLE.jpg", "description": "EDA tool for schematic capture, PCB layout, auto-router, and CAM features." },
+        { "name": "ORcad x Capture", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/OrCADCapture.webp", "description": "Cadence EDA tools for designing ICs, SoCs, and PCBs." },
+        { "name": "Pspice/LTspice", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/LTspice.png", "description": "SPICE-based analog circuit and digital logic simulation program for design verification." }
+    ]
+}

@@ -1,0 +1,21 @@
+
+{
+    "id": 5,
+    "title": "Tactile Manipulation sensor",
+    "cardDescription": "Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction.",
+    "imageFile": "tacmanipHQ.gif",
+    "tags": ["C", "Altium Designer"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction, enhancing a robot's ability to handle delicate objects."
+    }, {
+        "type": "button",
+        "text": "View Organization",
+        "link": "https://tml.engineering.ucsc.edu/"
+    }, {
+        "type": "button",
+        "text": "View Previous Research",
+        "link": "https://tml.engineering.ucsc.edu/research/dexterous-manipulation/"
+    }]
+}

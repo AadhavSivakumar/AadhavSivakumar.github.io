@@ -1,0 +1,16 @@
+
+{
+    "id": "a",
+    "title": "Sand Table",
+    "imageFile": "2rplanarstraight.gif",
+    "tags": ["Parallax Propeller", "C++", "Kinematics"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Engineered a 2R planar manipulator controlled by a Parallax Propeller MCU to draw intricate patterns in sand. Applied C++ and kinematic principles to translate digital designs into precise, physical motion."
+    }, {
+        "type": "embed",
+        "file": "Advanced_mechatronics_Project_2_report.pdf",
+        "title": "Project Documentation (Coming Soon)"
+    }]
+}

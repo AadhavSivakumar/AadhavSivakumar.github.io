@@ -1,0 +1,23 @@
+
+{
+  "major": [
+    "data/projects/project-millet.json",
+    "data/projects/solegait-foot-sensor.json",
+    "data/projects/glass-2-bot.json",
+    "data/projects/smart-compost-sorting.json",
+    "data/projects/tactile-manipulation-sensor.json",
+    "data/projects/stockbot-grocery-robotics.json"
+  ],
+  "small": [
+    "data/projects/point-cloud-visualization.json",
+    "data/projects/3d-space-mapping.json",
+    "data/projects/cv-controlled-desktop-robot-arm.json",
+    "data/projects/3d-fruit-ninja-simulation.json",
+    "data/projects/sand-table.json",
+    "data/projects/pong.json",
+    "data/projects/mate-rov.json",
+    "data/projects/automated-dog-feeder.json",
+    "data/projects/fpga-vga-game.json",
+    "data/projects/mechatronics-competition.json"
+  ]
+}

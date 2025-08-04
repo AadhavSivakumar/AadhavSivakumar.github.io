@@ -1,0 +1,12 @@
+
+{
+    "id": "i",
+    "title": "Point cloud visualization with 2D lidar",
+    "imageFile": "2dlidar.mp4",
+    "tags": ["Python", "Matplotlib", "Lidar"],
+    "status": "In Progress",
+    "modalContent": [{
+        "type": "text",
+        "value": "Interfaced an hls_lfcd lidar with Python to capture and visualize 2D point cloud data in real-time using Matplotlib, demonstrating foundational skills in sensor integration and data representation."
+    }]
+}

@@ -1,0 +1,17 @@
+
+{
+    "id": 3,
+    "title": "Glass-2-Bot",
+    "cardDescription": "Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions.",
+    "imageFile": "glass2bot.gif",
+    "tags": ["Google Glass", "AI Vision", "Python", "Telerobotics"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions, demonstrating a novel human-robot interface."
+    }, {
+        "type": "embed",
+        "file": "Adv__Mechatronics_Final_Report.pdf",
+        "title": "Project Documentation PDF"
+    }]
+}

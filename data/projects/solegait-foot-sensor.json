@@ -1,0 +1,20 @@
+
+{
+  "id": 2,
+  "title": "SoleGait Foot Sensor",
+  "cardDescription": "Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data.",
+  "imageFile": "solegaitvidmute.mp4",
+  "tags": ["Python", "Arduino", "Comm Protocols"],
+  "status": "In Progress",
+  "modalContent": [{
+    "type": "text",
+    "value": "Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data for healthcare and athletic performance."
+  }, {
+    "type": "text",
+    "value": "This project showcases my skills in embedded systems design, sensor integration, and data transmission. The goal is to create a low-cost, effective tool for physical therapists and athletes to monitor and improve gait patterns, preventing injuries and enhancing performance."
+  }, {
+    "type": "embed",
+    "file": "Biomedical_devices_research_paper.pdf",
+    "title": "Project Documentation (Coming Soon)"
+  }]
+}

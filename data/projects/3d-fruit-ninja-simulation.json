@@ -1,0 +1,12 @@
+
+{
+    "id": "h",
+    "title": "3d Fruit Ninja Simulation",
+    "imageFile": "fruitninja.mp4",
+    "tags": ["Python", "Webots"],
+    "status": "In Progress",
+    "modalContent": [{
+        "type": "text",
+        "value": "Created a 3D simulation of the game 'Fruit Ninja' using Python, applying principles of physics-based modeling and 3D graphics to develop an interactive and engaging virtual experience."
+    }]
+}

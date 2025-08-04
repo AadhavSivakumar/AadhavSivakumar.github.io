@@ -1,0 +1,12 @@
+
+{
+    "id": "c",
+    "title": "MATE ROV",
+    "imageFile": "MATEROV.jpeg",
+    "tags": ["C++", "EAGLE", "Ultrasonic"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Contributed to a competitive MATE ROV team by designing and building electronic subsystems for an underwater drone. Utilized EAGLE for PCB design and integrated ultrasonic sensors for complex subsea navigation and task execution."
+    }]
+}

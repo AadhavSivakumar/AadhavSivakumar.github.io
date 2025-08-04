@@ -1,0 +1,16 @@
+
+{
+    "id": "d",
+    "title": "Automated Dog Feeder",
+    "imageFile": "dogfeeder.webp",
+    "tags": ["C", "Raspberry Pi"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Designed and built an internet-enabled pet feeder powered by a Raspberry Pi and Firebase. This system allows for remote and scheduled feeding with precise portion control, ensuring a pet's dietary needs are met."
+    }, {
+        "type": "button",
+        "text": "View on Instructables",
+        "link": "https://www.instructables.com/Internet-Enabled-Raspberry-Pi-Pet-Feeder/"
+    }]
+}

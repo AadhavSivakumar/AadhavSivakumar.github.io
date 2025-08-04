@@ -1,0 +1,16 @@
+
+{
+    "id": "b",
+    "title": "PONG",
+    "imageFile": "PONG.mp4",
+    "tags": ["Arduino", "LED matrix"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Constructed a standalone version of the classic game PONG using an Arduino and an LED matrix. This project involved low-level hardware interfacing and efficient programming to create a responsive and engaging game."
+    }, {
+        "type": "embed",
+        "file": "Advanced_Mechatronics_Project_1_report.pdf",
+        "title": "Project Documentation (Coming Soon)"
+    }]
+}

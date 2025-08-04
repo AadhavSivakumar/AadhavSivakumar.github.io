@@ -1,0 +1,16 @@
+
+{
+    "id": "f",
+    "title": "Mechatronics Competition",
+    "imageFile": "mechcomp.mp4",
+    "tags": ["STM32", "C++", "PID Control"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Built and programmed an autonomous robot on an STM32 platform for a mechatronics competition. Implemented C++ and fine-tuned PID control algorithms to achieve precise targeting and win a ping pong ball shooting tournament."
+    }, {
+        "type": "embed",
+        "file": "ECE_118_Final_Project_Report.pdf",
+        "title": "Project Documentation (Coming Soon)"
+    }]
+}

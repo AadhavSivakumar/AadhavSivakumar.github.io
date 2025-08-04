@@ -1,0 +1,16 @@
+
+{
+    "id": "about-me-section",
+    "type": "about",
+    "cardTitle": "About Me",
+    "cardTeaser": "A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.",
+    "imageUrl": "https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG",
+    "modalTitle": "Aadhav Sivakumar",
+    "modalContent": [
+        { "type": "text", "value": "Hello! I'm Aadhav Sivakumar, a Robotics and Embedded Systems Engineer with a Master's in Mechatronics and Robotics from NYU Tandon and a Bachelor's from UC Santa Cruz. I specialize in designing and developing intelligent systems, from autonomous drones and telerobotic interfaces to advanced sensor technologies. My work is driven by a passion for solving complex challenges at the intersection of hardware and software." },
+        { "type": "text", "value": "I thrive on developing cutting-edge solutions and have hands-on experience with the full project lifecycle, from conceptualization and PCB design to firmware development and AI integration. Beyond my core engineering work, I enjoy playing volleyball and biking, activities that fuel my creativity and problem-solving mindset." },
+        { "type": "button", "text": "Connect on LinkedIn", "link": "https://www.linkedin.com/in/aadhav-s/" },
+        { "type": "button", "text": "Connect on GitHub", "link": "https://github.com/AadhavSivakumar" },
+        { "type": "text", "value": "Feel free to explore my projects or reach out if you'd like to collaborate!" }
+    ]
+}

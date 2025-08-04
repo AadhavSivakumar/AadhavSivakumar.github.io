@@ -1,0 +1,17 @@
+
+{
+    "id": 4,
+    "title": "SMART compost sorting",
+    "cardDescription": "Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework to automate the identification and separation of contaminants.",
+    "imageFile": "smartsort.gif",
+    "tags": ["Franka Emika Robot", "AI Vision", "ROS"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams."
+    }, {
+        "type": "embed",
+        "file": "Capstone_final_report.pdf",
+        "title": "Project Documentation (Coming Soon)"
+    }]
+}

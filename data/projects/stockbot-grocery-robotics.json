@@ -1,0 +1,20 @@
+
+{
+    "id": 6,
+    "title": "Stockbot: Grocery Robotics",
+    "cardDescription": "Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency in a retail environment.",
+    "imageFile": "stockbot.gif",
+    "tags": ["Python", "Mujoco", "Kinematics"],
+    "status": "Completed",
+    "modalContent": [{
+        "type": "text",
+        "value": "Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency and accuracy in a dynamic retail environment."
+    }, {
+        "type": "text",
+        "value": "This project was a capstone for my undergraduate studies, showcasing the integration of advanced simulation with robotic control theory. The final system demonstrated a significant potential for reducing manual labor and improving inventory management in a simulated retail setting."
+    }, {
+        "type": "button",
+        "text": "View Project",
+        "link": "https://sites.google.com/ucsc.edu/stockbot/home"
+    }]
+}

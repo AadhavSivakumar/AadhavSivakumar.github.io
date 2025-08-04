@@ -1,0 +1,15 @@
+
+{
+    "id": "sensors-tools",
+    "title": "Sensors & Specialized Tools",
+    "cardImageUrl": "https://api.iconify.design/mdi/leak.svg",
+    "items": [
+        { "name": "ATI Multi-Axis Force/Torque", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/ati_force_torque.svg", "description": "Measures all six components of force/torque for robotics, haptics, product testing." },
+        { "name": "IMU", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/imu.svg", "description": "Measures body's specific force, angular rate, and orientation using accelerometers/gyroscopes." },
+        { "name": "Ultrasonic", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/ultrasonic_sensor.svg", "description": "Measures distance by emitting/receiving ultrasonic waves for object detection/avoidance." },
+        { "name": "Flex Sensor", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/flex_sensor.svg", "description": "Variable resistor that changes resistance when bent, used to detect flexing motions." },
+        { "name": "Capacitive", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/capacitive_sensor.svg", "description": "Detects changes in capacitance for touch sensing, proximity detection, liquid level sensing." },
+        { "name": "Piezoelectric", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/piezoelectric_sensor.svg", "description": "Generates electric charge from mechanical stress; used as pressure sensors, accelerometers." },
+        { "name": "Test Automation", "imageUrl": "https://api.iconify.design/mdi/play-box-multiple-outline.svg?color=var(--icon-resting-color)", "description": "Using software to execute pre-scripted tests for quality assurance and faster development cycles." }
+    ]
+}

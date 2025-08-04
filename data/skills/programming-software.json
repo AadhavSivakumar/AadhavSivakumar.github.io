@@ -1,0 +1,21 @@
+
+{
+    "id": "programming-software",
+    "title": "Programming & Software Development",
+    "cardImageUrl": "https://api.iconify.design/mdi/code-braces-box.svg",
+    "items": [
+        { "name": "C", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/c/c-original.svg", "description": "A powerful, general-purpose language for system programming, embedded systems, and performance-critical applications." },
+        { "name": "C++", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg", "description": "An extension of C with object-oriented features, used in game engines, OS, and complex software." },
+        { "name": "Python", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg", "description": "High-level, versatile language for web dev, data science, AI, scripting, and automation." },
+        { "name": "Java", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/java/java-original.svg", "description": "Class-based, object-oriented language for enterprise apps, Android development, and large systems." },
+        { "name": "HTML5", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg", "description": "Standard markup language for creating web pages and applications with rich multimedia and graphics." },
+        { "name": "CSS3", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg", "description": "Styling language for web documents, enabling animations, transitions, and responsive design." },
+        { "name": "JavaScript", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg", "description": "Essential for interactive web content; also used in non-browser environments via Node.js." },
+        { "name": "React", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/react/react-original.svg", "description": "A JavaScript library for building user interfaces, widely used for creating single-page applications and dynamic UIs." },
+        { "name": "SQL", "imageUrl": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/postgresql/postgresql-original.svg", "description": "Language for managing and querying data in relational database management systems (RDBMS)." },
+        { "name": "Verilog", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/verilog.png", "description": "Hardware description language (HDL) for modeling electronic systems like FPGAs and ASICs." },
+        { "name": "ROS", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/ROS.png", "description": "Flexible framework for writing robot software, simplifying complex robot behavior development." },
+        { "name": "Firebase", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/firebase.png", "description": "Google's platform for mobile/web app development with real-time databases, auth, and hosting." },
+        { "name": "Android Studio", "imageUrl": "https://aadhavsivakumar.github.io/Images/skills/AndroidStudio.png", "description": "Official IDE for Android app development, built on IntelliJ IDEA for coding, debugging, and testing." }
+    ]
+}
