@@ -1,0 +1,26 @@
+/* FONT & THEME */
+:root {
+    --primary-color: #1a1a1a;
+    --secondary-color: #555555;
+    --icon-resting-color: #555555;
+    --background-color: #F7F5F2;
+    --surface-color: #FFFFFF;
+    --accent-color: #C5A35C;
+    --border-color: #ddd;
+    --animation-duration: 0.65s;
+    --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
+    --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 8%, transparent);
+    --shadow-color-accent: color-mix(in srgb, var(--accent-color) 50%, transparent);
+}
+
+html[data-theme="dark"] {
+    --primary-color: #e0e0e0;
+    --secondary-color: #a0a0a0;
+    --icon-resting-color: #a0a0a0;
+    --background-color: #121212;
+    --surface-color: #1e1e1e;
+    --accent-color: #D4B47C;
+    --border-color: #444;
+    --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
+    --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
+}

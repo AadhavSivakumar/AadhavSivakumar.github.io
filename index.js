@@ -414,7 +414,7 @@ window.addEventListener('load', async () => {
 
         modalTitle.textContent = itemData.title || itemData.modalTitle || itemData.name;
 
-        modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal', 'resume-modal');
+        modalAnimator.classList.remove('project-modal', 'skill-group-modal', 'skill-modal', 'resume-modal', 'is-flipped', 'open');
         if (itemType === 'skill-group') {
             modalAnimator.classList.add('skill-group-modal');
             let groupCardImageSrc = itemData.cardImageUrl || 'https://placehold.co/80x80/F0F0F0/BFA181?text=SKILL';
@@ -543,9 +543,14 @@ window.addEventListener('load', async () => {
             modalDescription.style.display = modalDescription.textContent ? 'block' : 'none';
         }
 
+        const modalFront = modalAnimator.querySelector('.modal-front');
+        if (modalFront) {
+            modalFront.innerHTML = card.innerHTML;
+        }
+
         modalBackdrop.classList.add('visible');
         const cardRect = card.getBoundingClientRect();
-        lastCardRect = cardRect; // Cache the card's position and size
+        lastCardRect = cardRect;
         modalAnimator.classList.add('visible');
         if (lastClickedCard) lastClickedCard.classList.add('animating-out');
 
@@ -568,7 +573,7 @@ window.addEventListener('load', async () => {
             modalAnimator.style.left = `${finalLeft}px`;
             modalAnimator.style.width = `${finalWidth}px`;
             modalAnimator.style.height = `${finalHeight}px`;
-            modalAnimator.classList.add('open');
+            modalAnimator.classList.add('open', 'is-flipped');
         });
 
         const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
@@ -579,30 +584,34 @@ window.addEventListener('load', async () => {
         if (isAnimating || !lastClickedCard || !lastCardRect) return;
         isAnimating = true;
 
-        // Animate the modal content and backdrop fading out
+        // 1. Animate content and backdrop out
         modalAnimator.classList.remove('open');
         modalBackdrop.classList.remove('visible');
 
-        // Set the target position for the modal to shrink back to
-        modalAnimator.style.top = `${lastCardRect.top}px`;
-        modalAnimator.style.left = `${lastCardRect.left}px`;
-        modalAnimator.style.width = `${lastCardRect.width}px`;
-        modalAnimator.style.height = `${lastCardRect.height}px`;
-
-        // Animate opacity to 0. We can't just remove the 'visible' class, as that
-        // would also apply 'visibility: hidden' instantly, killing the animation.
-        // Instead, we leave '.visible' on for the animation's duration and override opacity.
-        modalAnimator.style.opacity = '0';
+        // 2. Start shrinking, flipping, and fading out the modal container.
+        // A small delay ensures the content fade-out has begun.
+        setTimeout(() => {
+            modalAnimator.classList.remove('is-flipped');
+            modalAnimator.style.top = `${lastCardRect.top}px`;
+            modalAnimator.style.left = `${lastCardRect.left}px`;
+            modalAnimator.style.width = `${lastCardRect.width}px`;
+            modalAnimator.style.height = `${lastCardRect.height}px`;
+            modalAnimator.style.opacity = '0';
+        }, 50);
 
         const animationDurationMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--animation-duration')) * 1000;
         setTimeout(() => {
-            // After the animation, hide the element properly and reset its state for next time.
+            // 3. After the animation, hide element properly and reset state.
             modalAnimator.classList.remove('visible');
             modalAnimator.style.opacity = ''; // Clear inline style
 
             if (lastClickedCard) {
                 lastClickedCard.classList.remove('animating-out');
             }
+
+            const modalFront = modalAnimator.querySelector('.modal-front');
+            if (modalFront) modalFront.innerHTML = '';
+            
             document.body.style.overflow = '';
             modalDynamicContentArea.innerHTML = '';
             modalDescription.textContent = '';
@@ -611,7 +620,7 @@ window.addEventListener('load', async () => {
             isAnimating = false;
             lastClickedCard = null;
             lastCardRect = null;
-        }, animationDurationMs);
+        }, animationDurationMs + 50); // Add delay to timeout
     };
 
     const setupModalTriggers = () => {

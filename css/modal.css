@@ -1,0 +1,206 @@
+/* MODAL STYLES */
+.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
+html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
+.modal-backdrop.visible { opacity: 1; pointer-events: auto; }
+
+.modal-animator {
+    position: fixed;
+    background-color: transparent; /* Animator is now just a container */
+    border-radius: 10px;
+    z-index: 2001;
+    overflow: hidden;
+    perspective: 2000px; /* For 3D flip effect */
+    transition: top var(--animation-duration) var(--animation-easing),
+                left var(--animation-duration) var(--animation-easing),
+                width var(--animation-duration) var(--animation-easing),
+                height var(--animation-duration) var(--animation-easing),
+                opacity calc(var(--animation-duration) - 0.1s) ease; /* Fade out on close */
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+}
+.modal-animator.no-transition { transition: none !important; }
+.modal-animator.no-transition * { transition: none !important; }
+.modal-animator.visible { pointer-events: auto; visibility: visible; opacity: 1; }
+
+.modal-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform var(--animation-duration) var(--animation-easing);
+}
+
+.modal-animator.is-flipped .modal-content {
+    transform: rotateY(180deg);
+}
+
+.modal-front, .modal-back {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    overflow: hidden;
+    background-color: var(--surface-color);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+}
+.modal-front {
+    /* The front face is a clone of the original card */
+    border: 1px solid var(--border-color);
+}
+.modal-front > * {
+    flex-shrink: 0; /* Prevents content from shrinking */
+}
+.modal-back {
+    transform: rotateY(180deg);
+}
+
+
+.modal-animator .modal-content-wrapper {
+    opacity: 0;
+    transition: opacity 0.2s ease-out; /* Quick fade out */
+}
+.modal-animator.open .modal-content-wrapper {
+    opacity: 1;
+    transition: opacity 0.4s ease-in 0.4s; /* Fade in after flip/expand animation */
+}
+
+.modal-content-wrapper { width: 100%; height: 100%; overflow-y: auto; }
+.modal-image-container { width: 100%; padding: 50px 35px 0; }
+.modal-image { width: 100%; height: auto; max-height: 50vh; object-fit: cover; border-radius: 8px; }
+
+.modal-animator.skill-group-modal .modal-image-container {
+    padding: 30px 35px 0;
+}
+.modal-animator.skill-group-modal .modal-image {
+    max-height: 200px;
+    object-fit: contain;
+}
+.modal-animator.skill-modal .modal-image-container,
+.modal-animator.resume-modal .modal-image-container {
+    display: none;
+}
+
+
+.modal-view-button {
+    display: inline-block; padding: 12px 24px; background-color: var(--accent-color);
+    color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
+    text-align: center; transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+    margin-top: 15px;
+    border: none;
+    cursor: pointer;
+}
+html[data-theme="dark"] .modal-view-button {
+    color: var(--background-color) !important;
+}
+.modal-view-button:hover {
+    transform: scale(1.05); background-color: var(--primary-color); color: var(--surface-color) !important;
+}
+html[data-theme="dark"] .modal-view-button:hover {
+    color: var(--background-color) !important;
+}
+
+.modal-close {
+    position: absolute; /* Changed from fixed to be relative to modal-back */
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 2.5rem;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 2; /* Ensure it's on top of content */
+    color: var(--primary-color);
+    mix-blend-mode: normal;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+.modal-close:hover {
+    transform: scale(1.1);
+    color: var(--accent-color);
+}
+
+
+.modal-text-content { padding: 25px 35px; }
+.modal-text-content h2 { margin-bottom: 15px; font-size: 2.5rem; }
+.modal-text-content p#modal-description { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7;}
+
+.modal-animator.resume-modal .modal-text-content { padding: 15px; height: 100%; box-sizing: border-box; }
+.modal-animator.resume-modal #modal-dynamic-content-area,
+.modal-animator.resume-modal .modal-dynamic-embed { height: 100%; }
+html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180deg); }
+
+.modal-dynamic-text { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7; }
+.modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
+.modal-dynamic-button {
+    display: inline-block; padding: 10px 20px; background-color: var(--accent-color);
+    color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
+    text-align: center; margin: 10px 5px 15px 0;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.modal-dynamic-embed {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin: 20px 0;
+    box-shadow: 0 4px 12px var(--shadow-color-ambient);
+    background-color: var(--background-color);
+}
+html[data-theme="dark"] .modal-dynamic-button {
+    color: var(--background-color) !important;
+}
+.modal-dynamic-button:hover { transform: scale(1.05); background-color: var(--primary-color); }
+html[data-theme="dark"] .modal-dynamic-button:hover {
+    color: var(--background-color) !important;
+}
+
+.modal-skill-group-items-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+.skill-group-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--surface-color) 95%, var(--background-color));
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+.skill-group-item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: 4px;
+}
+.skill-group-item-text {
+    display: flex;
+    flex-direction: column;
+}
+.skill-group-item-name {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+.skill-group-item-description {
+    font-size: 0.85rem;
+    color: var(--secondary-color);
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+    .modal-content-wrapper { padding: 20px; }
+    .modal-image-container { padding: 30px 15px 0; }
+    .modal-text-content { padding: 25px 15px; }
+    .modal-text-content h2 { font-size: 2rem; }
+}

@@ -7,7 +7,12 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%23C5A35C' /><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-size='60' font-family='Playfair Display, serif' fill='white'>AS</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/card.css">
+    <link rel="stylesheet" href="css/modal.css">
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>
@@ -94,23 +99,29 @@
 <div class="modal-backdrop">
     <div class="modal-animator">
         <div class="modal-content">
-            <button class="modal-close" aria-label="Close modal">&times;</button>
-            <div class="modal-content-wrapper">
-                <div class="modal-image-container">
-                    <!-- Media (img/video) will be injected here by JS -->
-                </div>
-                <div class="modal-text-content">
-                    <h2 id="modal-title"></h2>
-                    <p id="modal-description"></p>
-                    <div id="modal-dynamic-content-area"></div>
-                    <div id="modal-tech-stack"></div>
-                    <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
+            <div class="modal-front">
+                <!-- Card clone is injected here by JS -->
+            </div>
+            <div class="modal-back">
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+                <div class="modal-content-wrapper">
+                    <div class="modal-image-container">
+                        <!-- Media (img/video) will be injected here by JS -->
+                    </div>
+                    <div class="modal-text-content">
+                        <h2 id="modal-title"></h2>
+                        <p id="modal-description"></p>
+                        <div id="modal-dynamic-content-area"></div>
+                        <div id="modal-tech-stack"></div>
+                        <a href="#" target="_blank" rel="noopener noreferrer" class="modal-view-button" id="modal-link">View Project</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<script type="module" src="index.js"></script>
+<script type="module" src="js/main.js"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -6,6 +6,35 @@
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="moved files around">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/about.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/3d-fruit-ninja-simulation.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/3d-space-mapping.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/automated-dog-feeder.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/cv-controlled-desktop-robot-arm.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/fpga-vga-game.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/glass-2-bot.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/mate-rov.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/mechatronics-competition.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/point-cloud-visualization.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/pong.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/project-millet.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/sand-table.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/smart-compost-sorting.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/solegait-foot-sensor.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/stockbot-grocery-robotics.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/projects/tactile-manipulation-sensor.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/resume.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills/ai-ml-data.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills/design-fabrication.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills/electronics-embedded.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills/programming-software.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills/robotics-control.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/skills/sensors-tools.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.js" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -190,15 +219,7 @@
       <workItem from="1753746154111" duration="534000" />
       <workItem from="1753906319194" duration="6289000" />
       <workItem from="1754253778305" duration="1817000" />
-      <workItem from="1754283469850" duration="3244000" />
-    </task>
-    <task id="LOCAL-00027" summary="cleanup">
-      <option name="closed" value="true" />
-      <created>1751426648399</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
-      <option name="project" value="LOCAL" />
-      <updated>1751426648400</updated>
+      <workItem from="1754283469850" duration="4298000" />
     </task>
     <task id="LOCAL-00028" summary="MAJOR new testfile made as index">
       <option name="closed" value="true" />
@@ -584,7 +605,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754353117773</updated>
     </task>
-    <option name="localTasksCounter" value="76" />
+    <task id="LOCAL-00076" summary="moved files around">
+      <option name="closed" value="true" />
+      <created>1754354432428</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1754354432428</updated>
+    </task>
+    <option name="localTasksCounter" value="77" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

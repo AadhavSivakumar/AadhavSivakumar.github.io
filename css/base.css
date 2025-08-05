@@ -1,0 +1,18 @@
+/* GLOBAL STYLES */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: 'Poppins', sans-serif;
+    background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent-color) 10%, transparent) 0%, transparent 30%),
+    radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--primary-color) 5%, transparent) 0%, transparent 40%),
+    var(--background-color);
+    background-attachment: fixed;
+    color: var(--primary-color);
+    line-height: 1.7;
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-color);}
+a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
+a:hover { color: var(--primary-color); }
