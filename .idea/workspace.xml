@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="removed tsx reference" />
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="moved files around">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -82,11 +84,11 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\files" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\legacy" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\projectpdf" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
     </key>
   </component>
   <component name="RunManager" selected="Attach to Node.js/Chrome.Unnamed">
@@ -188,15 +190,7 @@
       <workItem from="1753746154111" duration="534000" />
       <workItem from="1753906319194" duration="6289000" />
       <workItem from="1754253778305" duration="1817000" />
-      <workItem from="1754283469850" duration="2415000" />
-    </task>
-    <task id="LOCAL-00026" summary="in progress and completed">
-      <option name="closed" value="true" />
-      <created>1751171089400</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
-      <option name="project" value="LOCAL" />
-      <updated>1751171089400</updated>
+      <workItem from="1754283469850" duration="3244000" />
     </task>
     <task id="LOCAL-00027" summary="cleanup">
       <option name="closed" value="true" />
@@ -582,7 +576,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754341750571</updated>
     </task>
-    <option name="localTasksCounter" value="75" />
+    <task id="LOCAL-00075" summary="moved files around">
+      <option name="closed" value="true" />
+      <created>1754353117773</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1754353117773</updated>
+    </task>
+    <option name="localTasksCounter" value="76" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -600,7 +602,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="changed tags" />
     <MESSAGE value="project millet img for all" />
     <MESSAGE value="changed wave animation" />
     <MESSAGE value="changed wave animation again" />
@@ -625,6 +626,7 @@
     <MESSAGE value="3d card movement" />
     <MESSAGE value="split data to jsons" />
     <MESSAGE value="removed tsx reference" />
-    <option name="LAST_COMMIT_MESSAGE" value="removed tsx reference" />
+    <MESSAGE value="moved files around" />
+    <option name="LAST_COMMIT_MESSAGE" value="moved files around" />
   </component>
 </project>
