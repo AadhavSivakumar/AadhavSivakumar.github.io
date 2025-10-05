@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="currentizing">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/aboutme.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/aboutme.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,11 +82,11 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Resume" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\projectpdf" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projects" />
     </key>
   </component>
   <component name="RunManager" selected="JavaScript Debug.index.html">
@@ -186,23 +186,7 @@
       <workItem from="1753220923969" duration="13294000" />
       <workItem from="1756579353748" duration="886000" />
       <workItem from="1756672420046" duration="5233000" />
-      <workItem from="1759633064315" duration="1894000" />
-    </task>
-    <task id="LOCAL-00023" summary="static waves">
-      <option name="closed" value="true" />
-      <created>1750961530217</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
-      <option name="project" value="LOCAL" />
-      <updated>1750961530217</updated>
-    </task>
-    <task id="LOCAL-00024" summary="static waves">
-      <option name="closed" value="true" />
-      <created>1750962876447</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
-      <option name="project" value="LOCAL" />
-      <updated>1750962876447</updated>
+      <workItem from="1759633064315" duration="2640000" />
     </task>
     <task id="LOCAL-00025" summary="in progress and completed">
       <option name="closed" value="true" />
@@ -580,7 +564,23 @@
       <option name="project" value="LOCAL" />
       <updated>1753455826350</updated>
     </task>
-    <option name="localTasksCounter" value="72" />
+    <task id="LOCAL-00072" summary="currentizing">
+      <option name="closed" value="true" />
+      <created>1759638936635</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1759638936635</updated>
+    </task>
+    <task id="LOCAL-00073" summary="currentizing">
+      <option name="closed" value="true" />
+      <created>1759639095564</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1759639095564</updated>
+    </task>
+    <option name="localTasksCounter" value="74" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
