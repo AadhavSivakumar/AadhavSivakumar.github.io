@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="currentizing">
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="new vid for mujoco">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Images/projectcovers/fruitninja.mp4" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,12 +29,12 @@
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {}
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git&quot;,
-    &quot;accountId&quot;: &quot;ab4a1f82-ed24-4cbc-a7b8-cf81475cf5cf&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git",
+    "accountId": "038ec871-f314-465f-8052-0c646f070f34"
   }
-}</component>
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -83,9 +82,9 @@
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Resume" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\projectpdf" />
-      <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images\projectcovers" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\misc" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io\Images" />
     </key>
@@ -188,15 +187,7 @@
       <workItem from="1756579353748" duration="886000" />
       <workItem from="1756672420046" duration="5233000" />
       <workItem from="1759633064315" duration="4279000" />
-      <workItem from="1764888849902" duration="942000" />
-    </task>
-    <task id="LOCAL-00028" summary="MAJOR new testfile made as index">
-      <option name="closed" value="true" />
-      <created>1751426819837</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
-      <option name="project" value="LOCAL" />
-      <updated>1751426819837</updated>
+      <workItem from="1764888849902" duration="2201000" />
     </task>
     <task id="LOCAL-00029" summary="added tag cloud">
       <option name="closed" value="true" />
@@ -582,7 +573,15 @@
       <option name="project" value="LOCAL" />
       <updated>1759688503382</updated>
     </task>
-    <option name="localTasksCounter" value="77" />
+    <task id="LOCAL-00077" summary="new vid for mujoco">
+      <option name="closed" value="true" />
+      <created>1764901710594</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1764901710594</updated>
+    </task>
+    <option name="localTasksCounter" value="78" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -600,7 +599,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="MAJOR new testfile made as index" />
     <MESSAGE value="added tag cloud" />
     <MESSAGE value="removed tag cloud" />
     <MESSAGE value="changed tags" />
@@ -625,6 +623,7 @@
     <MESSAGE value="3d camera video" />
     <MESSAGE value="pdfs" />
     <MESSAGE value="currentizing" />
-    <option name="LAST_COMMIT_MESSAGE" value="currentizing" />
+    <MESSAGE value="new vid for mujoco" />
+    <option name="LAST_COMMIT_MESSAGE" value="new vid for mujoco" />
   </component>
 </project>
