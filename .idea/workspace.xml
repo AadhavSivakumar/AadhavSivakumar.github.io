@@ -5,7 +5,68 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="new resume upload">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/Gradpic.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/Gradpic.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/MATErov2.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/MATErov2.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/frontpagepfp.JPG" beforeDir="false" afterPath="$PROJECT_DIR$/Media/frontpagepfp.JPG" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/2dlidar.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/2dlidar.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/2rplanarstraight.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/2rplanarstraight.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/3dcamera.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/3dcamera.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/IMG_3239.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/IMG_3239.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/MATEROV.jpeg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/MATEROV.jpeg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/Millet.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/Millet.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/PCBimg.JPG" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/PCBimg.JPG" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/PONG.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/PONG.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/PONG.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/PONG.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/PONG2.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/PONG2.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/SMARTdump.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/SMARTdump.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/SoleGait.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/SoleGait.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/SoleGaitHQ.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/SoleGaitHQ.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/aslglove.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/aslglove.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/deskrobarm.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/deskrobarm.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/dogfeeder.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/dogfeeder.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/fpgaVGA.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/fpgaVGA.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/fruitninja.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/fruitninja.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/glass2bot.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/glass2bot.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/mechcomp.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/mechcomp.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/mutualcapsensor.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/mutualcapsensor.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/sev.PNG" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/sev.PNG" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/smartsort.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/smartsort.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/solarhydrogen.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/solarhydrogen.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/solegaitvidmute.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/solegaitvidmute.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/stockbot.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/stockbot.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/tacmanip.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/tacmanip.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/projectcovers/tacmanipHQ.gif" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/tacmanipHQ.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/AndroidStudio.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/AndroidStudio.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/Arduino.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/Arduino.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/Basys3.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/Basys3.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/EAGLE.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/EAGLE.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/ESP32.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/ESP32.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/Franka-Emika-Panda-robot.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/Franka-Emika-Panda-robot.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/LTspice.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/LTspice.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/NIDAQ.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/NIDAQ.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/OrCADCapture.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/OrCADCapture.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/ROS.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/ROS.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/SOLIDWORKS.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/SOLIDWORKS.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/STM32.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/STM32.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/altium-designer.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/altium-designer.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/autocad.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/autocad.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/bambu.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/bambu.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/firebase.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/firebase.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/fusion360.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/fusion360.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/glowforge.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/glowforge.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/googleglass.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/googleglass.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/jetsonnano.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/jetsonnano.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/matrixheart.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/matrixheart.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/oscilloscope.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/oscilloscope.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/pixhawk.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/pixhawk.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/propeller.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/propeller.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/psoc4.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/psoc4.jpg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/raspberrypi.webp" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/raspberrypi.webp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/verilog.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/verilog.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Images/skills/webots.png" beforeDir="false" afterPath="$PROJECT_DIR$/Media/skills/webots.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/aboutme.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/aboutme.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/old_index.html" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/old_index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/legacy/ss.css" beforeDir="false" afterPath="$PROJECT_DIR$/legacy/ss.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,12 +90,12 @@
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {}
 }</component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git",
-    "accountId": "038ec871-f314-465f-8052-0c646f070f34"
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git&quot;,
+    &quot;accountId&quot;: &quot;038ec871-f314-465f-8052-0c646f070f34&quot;
   }
-}]]></component>
+}</component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -50,31 +111,31 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;JavaScript Debug.index.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.resume.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.tamiltest1.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.tempex.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.testfile.html.executor&quot;: &quot;Run&quot;,
-    &quot;Node.js.testreact.jsx.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/hiaad/OneDrive/Documents/GitHub/AadhavSivakumar.github.io&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "JavaScript Debug.index.html.executor": "Run",
+    "JavaScript Debug.resume.html.executor": "Run",
+    "JavaScript Debug.tamiltest1.html.executor": "Run",
+    "JavaScript Debug.tempex.html.executor": "Run",
+    "JavaScript Debug.testfile.html.executor": "Run",
+    "Node.js.testreact.jsx.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/hiaad/Github/AadhavSivakumar.github.io",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\Images\Resume" />
@@ -188,6 +249,7 @@
       <workItem from="1756672420046" duration="5233000" />
       <workItem from="1759633064315" duration="4279000" />
       <workItem from="1764888849902" duration="5279000" />
+      <workItem from="1765857730723" duration="2229000" />
     </task>
     <task id="LOCAL-00030" summary="removed tag cloud">
       <option name="closed" value="true" />

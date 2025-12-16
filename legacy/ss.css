@@ -1,12 +1,12 @@
 #homescout{
-  background-image: url("../Images/gorger.jpg");
+  background-image: url("../Media/gorger.jpg");
   background-size:cover;
   background-repeat: no-repeat;
   background-position: center;
   position: relative;
 }
 #homevol{
-  background-image: url("../Images/vol.png");
+  background-image: url("../Media/vol.png");
   background-size:cover;
   background-repeat: no-repeat;
   background-position: center;
