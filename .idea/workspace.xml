@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="folder renaming">
-      <change afterPath="$PROJECT_DIR$/Media/projects/1_cover.mp4" afterDir="false" />
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="file changes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Media/projects/g_cover.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/Media/projects/g_cover.mp4" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -191,15 +189,7 @@
       <workItem from="1759633064315" duration="4279000" />
       <workItem from="1764888849902" duration="5279000" />
       <workItem from="1765857730723" duration="4629000" />
-      <workItem from="1765999485507" duration="779000" />
-    </task>
-    <task id="LOCAL-00033" summary="project millet img for all">
-      <option name="closed" value="true" />
-      <created>1751660972115</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
-      <option name="project" value="LOCAL" />
-      <updated>1751660972115</updated>
+      <workItem from="1765999485507" duration="3186000" />
     </task>
     <task id="LOCAL-00034" summary="changed wave animation">
       <option name="closed" value="true" />
@@ -585,7 +575,15 @@
       <option name="project" value="LOCAL" />
       <updated>1765999706783</updated>
     </task>
-    <option name="localTasksCounter" value="82" />
+    <task id="LOCAL-00082" summary="file changes">
+      <option name="closed" value="true" />
+      <created>1766000397955</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1766000397955</updated>
+    </task>
+    <option name="localTasksCounter" value="83" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -603,7 +601,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="changed tags" />
     <MESSAGE value="project millet img for all" />
     <MESSAGE value="changed wave animation" />
     <MESSAGE value="changed wave animation again" />
@@ -628,6 +625,7 @@
     <MESSAGE value="new vid for mujoco" />
     <MESSAGE value="new resume upload" />
     <MESSAGE value="folder renaming" />
-    <option name="LAST_COMMIT_MESSAGE" value="folder renaming" />
+    <MESSAGE value="file changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="file changes" />
   </component>
 </project>
