@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="file changes">
-      <change afterPath="$PROJECT_DIR$/Media/projects/a_millet/1.webp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="file changes" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -192,7 +189,7 @@
       <workItem from="1764888849902" duration="5279000" />
       <workItem from="1765857730723" duration="4629000" />
       <workItem from="1765999485507" duration="3186000" />
-      <workItem from="1767307945669" duration="2124000" />
+      <workItem from="1767307945669" duration="2727000" />
     </task>
     <task id="LOCAL-00034" summary="changed wave animation">
       <option name="closed" value="true" />
