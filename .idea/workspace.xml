@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="34feb730-9a95-4458-bbb2-5826f1bd20ef" name="Default Changelist" comment="file changes">
+      <change afterPath="$PROJECT_DIR$/Media/projects/a_millet/1.webp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -29,12 +30,12 @@
   <component name="GitHubPullRequestSearchHistory">{
   &quot;lastFilter&quot;: {}
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git&quot;,
-    &quot;accountId&quot;: &quot;038ec871-f314-465f-8052-0c646f070f34&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/AadhavSivakumar/AadhavSivakumar.github.io.git",
+    "accountId": "b87e37e3-bee4-470a-ba7a-172a7b231723"
   }
-}</component>
+}]]></component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
   </component>
@@ -50,33 +51,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;JavaScript Debug.index.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.resume.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.tamiltest1.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.tempex.html.executor&quot;: &quot;Run&quot;,
-    &quot;JavaScript Debug.testfile.html.executor&quot;: &quot;Run&quot;,
-    &quot;Node.js.testreact.jsx.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/hiaad/Github/AadhavSivakumar.github.io&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultHtmlFileTemplate": "HTML File",
+    "JavaScript Debug.index.html.executor": "Run",
+    "JavaScript Debug.resume.html.executor": "Run",
+    "JavaScript Debug.tamiltest1.html.executor": "Run",
+    "JavaScript Debug.tempex.html.executor": "Run",
+    "JavaScript Debug.testfile.html.executor": "Run",
+    "Node.js.testreact.jsx.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/hiaad/Github/AadhavSivakumar.github.io/Media/projects/a_millet",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\hiaad\Github\AadhavSivakumar.github.io\Media\projects\a_millet" />
       <recent name="C:\Users\hiaad\OneDrive\Desktop\Staging area\AadhavSivakumar.github.io\Images\Resume" />
       <recent name="C:\Users\hiaad\OneDrive\Documents\GitHub\AadhavSivakumar.github.io" />
       <recent name="C:\Users\hiaad\Documents\GitHub\AadhavSivakumar.github.io\Projects" />
@@ -118,7 +120,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-WS-252.23892.411" />
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-WS-243.22562.222" />
       </set>
     </attachedChunks>
   </component>
@@ -190,6 +192,7 @@
       <workItem from="1764888849902" duration="5279000" />
       <workItem from="1765857730723" duration="4629000" />
       <workItem from="1765999485507" duration="3186000" />
+      <workItem from="1767307945669" duration="2124000" />
     </task>
     <task id="LOCAL-00034" summary="changed wave animation">
       <option name="closed" value="true" />
