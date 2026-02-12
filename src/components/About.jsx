@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import SineWave from './SineWave';
+import Lanyard from './Lanyard/Lanyard';
 import { aboutMeData } from '../data/siteData';
 import { useInView } from '../hooks/useInView';
 
@@ -44,6 +45,11 @@ export default function About({ onCardClick }) {
           </div>
         </div>
         <SineWave isLeft={false} />
+      </div>
+      <div className="lanyard-section">
+        <Suspense fallback={<div style={{ width: '100%', height: '400px' }} />}>
+          <Lanyard position={[0, 0, 30]} gravity={[0, -40, 0]} />
+        </Suspense>
       </div>
     </section>
   );
