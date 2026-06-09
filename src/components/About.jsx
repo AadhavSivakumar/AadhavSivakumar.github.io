@@ -3,6 +3,8 @@ import SineWave from './SineWave';
 import Lanyard from './Lanyard/Lanyard';
 import { aboutMeData } from '../data/siteData';
 import { useInView } from '../hooks/useInView';
+import researcherImg from '../../Media/lanyardimgs/Researcher.jpg';
+import nyuImg from '../../Media/lanyardimgs/NYU.jpg';
 
 export default function About({ onCardClick }) {
   const [sectionRef, sectionInView] = useInView();
@@ -48,7 +50,13 @@ export default function About({ onCardClick }) {
       </div>
       <div className="lanyard-section">
         <Suspense fallback={<div style={{ width: '100%', height: '400px' }} />}>
-          <Lanyard position={[0, 0, 30]} gravity={[0, -40, 0]} />
+          <Lanyard 
+            position={[0, 0, 30]} 
+            gravity={[0, -40, 0]} 
+            frontImage={researcherImg}
+            backImage={nyuImg}
+            lanyardWidth={1.2}
+          />
         </Suspense>
       </div>
     </section>
