@@ -43,6 +43,10 @@ const SWAY_STRENGTH = 0.12;
 // yaw target on the other side.
 const FLIP_KICK = 0.08;
 
+// Hover tilt: max lean (radians) toward the cursor while it rests on a card,
+// mirroring the 3D tilt the HTML cards used to have.
+const TILT_MAX = 0.35;
+
 export default function Lanyard({
   position = [0, 0, 30],
   gravity = [0, -40, 0],
@@ -223,6 +227,7 @@ function Band({
   const flipped = useRef(false);
   const press = useRef(null);
   const lastPointer = useRef({ x: 0, y: 0 });
+  const hoverTilt = useRef(null);
   const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
   const { nodes, materials } = useGLTF(cardGLB);
   
@@ -306,9 +311,10 @@ function Band({
       vec.add(dir.multiplyScalar(state.camera.position.length()));
       [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
       card.current?.setNextKinematicTranslation({ x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z });
-    } else if (card.current) {
+    } else if (card.current && !hovered) {
       // A moving cursor gently pushes nearby cards away, making the
       // lanyards sway as the mouse passes (like the live /portfolio badges).
+      // Skipped while hovering the card itself — the hover tilt takes over.
       const moved = state.pointer.x !== lastPointer.current.x || state.pointer.y !== lastPointer.current.y;
       if (moved) {
         lastPointer.current.x = state.pointer.x;
@@ -345,14 +351,17 @@ function Band({
       band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
 
       // Steer the card's yaw toward its front — or its back after a
-      // click-flip — along the shortest path.
+      // click-flip — along the shortest path. While the cursor rests on the
+      // card, lean the yaw/pitch targets toward it for a 3D hover tilt.
       ang.copy(card.current.angvel());
       const q = card.current.rotation();
       rotQ.set(q.x, q.y, q.z, q.w);
       rotE.setFromQuaternion(rotQ, 'YXZ');
-      let yawErr = rotE.y - (flipped.current ? Math.PI : 0);
+      const tilt = (!dragged && hovered && hoverTilt.current) || null;
+      let yawErr = rotE.y - ((flipped.current ? Math.PI : 0) + (tilt ? tilt.nx * TILT_MAX : 0));
       yawErr = Math.atan2(Math.sin(yawErr), Math.cos(yawErr));
-      card.current.setAngvel({ x: ang.x, y: ang.y - yawErr * 0.3, z: ang.z });
+      const pitchErr = rotE.x - (tilt ? -tilt.ny * TILT_MAX : 0);
+      card.current.setAngvel({ x: ang.x - pitchErr * 0.35, y: ang.y - yawErr * 0.35, z: ang.z });
     }
   });
 
@@ -378,7 +387,16 @@ function Band({
             scale={2.25}
             position={[0, -1.2, -0.05]}
             onPointerOver={() => hover(true)}
-            onPointerOut={() => hover(false)}
+            onPointerOut={() => { hover(false); hoverTilt.current = null; }}
+            onPointerMove={e => {
+              if (!card.current) return;
+              const pos = card.current.translation();
+              hoverTilt.current = {
+                nx: THREE.MathUtils.clamp((e.point.x - pos.x) / 0.9, -1, 1),
+                ny: THREE.MathUtils.clamp((e.point.y - pos.y) / 1.2, -1, 1),
+              };
+              card.current.wakeUp();
+            }}
             onPointerUp={e => {
               e.target.releasePointerCapture(e.pointerId);
               drag(false);

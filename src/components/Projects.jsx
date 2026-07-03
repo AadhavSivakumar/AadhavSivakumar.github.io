@@ -1,13 +1,14 @@
 import React from 'react';
 import ProjectCard from './ProjectCard';
 import Reveal from './Reveal';
+import SectionTitle from './SectionTitle';
 import { majorProjectsData, smallProjectsData } from '../data/siteData';
 
 export default function Projects({ onCardClick }) {
   return (
     <>
       <section id="projects">
-        <Reveal><h2 className="section-title">My Work</h2></Reveal>
+        <SectionTitle>My Work</SectionTitle>
         <Reveal delay={0.1}><h3>Major Projects</h3></Reveal>
         <div className="major-projects-grid">
           {majorProjectsData.map((project, i) => (

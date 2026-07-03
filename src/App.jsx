@@ -8,6 +8,7 @@ import Resume from './components/Resume';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
+import ScrollProgress from './components/ScrollProgress';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
@@ -50,6 +51,7 @@ function App() {
 
   return (
     <>
+      <ScrollProgress />
       <Header theme={theme} toggleTheme={toggleTheme} />
       <main>
         <Hero />

@@ -1,11 +1,11 @@
 import React from 'react';
-import TiltCard from './TiltCard';
+import LiftCard from './LiftCard';
 
 export default function SkillGroupCard({ group, onCardClick, index = 0 }) {
   const MAX_SKILLS = 8;
 
   return (
-    <TiltCard
+    <LiftCard
       className="skill-group-card project-modal-trigger"
       delay={(index % 3) * 0.09}
       onClick={(e) => onCardClick(e.currentTarget, group, 'skill-group')}
@@ -30,6 +30,6 @@ export default function SkillGroupCard({ group, onCardClick, index = 0 }) {
       {group.items.length > MAX_SKILLS && (
         <p className="skill-group-more-info">...and {group.items.length - MAX_SKILLS} more</p>
       )}
-    </TiltCard>
+    </LiftCard>
   );
 }

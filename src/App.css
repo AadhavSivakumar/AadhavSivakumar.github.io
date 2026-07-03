@@ -92,9 +92,41 @@ header nav { display: flex; align-items: center; gap: 6px; }
 }
 
 
+/* Scroll progress bar (anime.js scrubbed by scroll position) */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 1200;
+  pointer-events: none;
+}
+.scroll-progress-bar {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, var(--accent-color), #F0E8D0);
+}
+
 /* SECTION & CARD STYLES */
 section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relative; z-index: 10; }
 .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
+
+/* Section titles: anime.js letter cascade + underline draw */
+.st-word { display: inline-block; white-space: nowrap; }
+.st-letter { display: inline-block; opacity: 0; will-change: transform; }
+.st-underline {
+  display: block;
+  width: 72px;
+  height: 3px;
+  margin: 14px auto 0;
+  border-radius: 2px;
+  background-color: var(--accent-color);
+  transform: scaleX(0);
+  transform-origin: center;
+}
 
 /* HERO */
 #hero { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
@@ -522,23 +554,20 @@ html[data-theme="dark"] .skill-group-card-image {
 footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 50px; position: relative; z-index: 10; transition: border-color 0.3s ease, color 0.3s ease;}
 
 
-/* MODAL STYLES */
-.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none;}
+/* MODAL STYLES — position/size/opacity are animated by motion (phased
+   lift -> expand -> populate sequence in Modal.jsx); keep CSS transitions
+   off those properties. */
+.modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 2000; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
 html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.85); }
-.modal-backdrop.visible { opacity: 1; pointer-events: auto; }
-.modal-animator { position: fixed; background-color: var(--surface-color); border-radius: 10px; z-index: 2001; overflow: hidden;
-  transition: top var(--animation-duration) var(--animation-easing),
-  left var(--animation-duration) var(--animation-easing),
-  width var(--animation-duration) var(--animation-easing),
-  height var(--animation-duration) var(--animation-easing),
-  opacity var(--animation-duration) var(--animation-easing),
-  background-color 0.3s ease;
-  pointer-events: none; visibility: hidden; opacity: 0;
+.modal-animator {
+  position: fixed;
+  background-color: var(--surface-color);
+  border-radius: 10px;
+  z-index: 2001;
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+  will-change: top, left, width, height, transform;
 }
-.modal-animator.no-transition { transition: none !important; }
-.modal-animator.visible { pointer-events: auto; visibility: visible; opacity: 1; }
-.modal-animator .modal-content-wrapper { opacity: 0; transition: opacity 0.3s 0.2s ease; }
-.modal-animator.open .modal-content-wrapper { opacity: 1; }
 .modal-content { position: relative; width: 100%; height: 100%; }
 .modal-content-wrapper { width: 100%; height: 100%; overflow-y: auto; }
 .modal-image-container { width: 100%; padding: 50px 35px 0; }

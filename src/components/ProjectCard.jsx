@@ -1,5 +1,5 @@
 import React from 'react';
-import TiltCard from './TiltCard';
+import LiftCard from './LiftCard';
 
 export default function ProjectCard({ project, isMajor, itemType, onCardClick, index = 0 }) {
   const isMp4 = project.imageUrl?.toLowerCase().endsWith('.mp4');
@@ -34,7 +34,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
   }
 
   return (
-    <TiltCard
+    <LiftCard
       className={`${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`}
       delay={(index % 3) * 0.09}
       onClick={(e) => onCardClick(e.currentTarget, project, itemType)}
@@ -72,6 +72,6 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
           )}
         </div>
       )}
-    </TiltCard>
+    </LiftCard>
   );
 }

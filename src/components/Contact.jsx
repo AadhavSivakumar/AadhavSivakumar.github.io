@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import Reveal from './Reveal';
+import SectionTitle from './SectionTitle';
 
 const SOCIALS = [
   {
@@ -29,7 +30,7 @@ const SOCIALS = [
 export default function Contact() {
   return (
     <section id="contact">
-      <Reveal><h2 className="section-title">Get In Touch</h2></Reveal>
+      <SectionTitle>Get In Touch</SectionTitle>
       <Reveal delay={0.1}>
         <p>
           I'm always open to discussing new opportunities in Robotics, Machine Learning, and

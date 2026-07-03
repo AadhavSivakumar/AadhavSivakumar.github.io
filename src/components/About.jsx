@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import TiltCard from './TiltCard';
+import LiftCard from './LiftCard';
 import { aboutMeData } from '../data/siteData';
 import dhsImg from '../../Media/lanyardimgs/DHS.jpg';
 import ucscImg from '../../Media/lanyardimgs/UCSC.png';
@@ -52,7 +52,7 @@ export default function About({ onCardClick }) {
           </Suspense>
         )}
         <div className="about-card-wrapper">
-          <TiltCard
+          <LiftCard
             className="major-project-card project-modal-trigger about-me-card"
             onClick={(e) => onCardClick(e.currentTarget, aboutMeData, 'about')}
           >
@@ -65,7 +65,7 @@ export default function About({ onCardClick }) {
               <h4>{aboutMeData.cardTitle}</h4>
               <p>{aboutMeData.cardTeaser}</p>
             </div>
-          </TiltCard>
+          </LiftCard>
         </div>
       </div>
     </section>

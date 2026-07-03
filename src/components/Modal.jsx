@@ -1,102 +1,113 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { motion } from 'motion/react';
 
+const EXPAND_EASE = [0.22, 1, 0.36, 1];
+
+// Content population: children stagger in once the modal is fully expanded,
+// and stagger back out (quickly, in reverse) before it collapses.
+const contentContainer = {
+  hidden: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+const contentItem = {
+  hidden: { opacity: 0, y: 24, transition: { duration: 0.18, ease: 'easeIn' } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EXPAND_EASE } },
+};
+
+function finalRect() {
+  const width = Math.min(1280, window.innerWidth * 0.9);
+  const height = Math.min(window.innerHeight * 0.9, 1080);
+  return {
+    top: (window.innerHeight - height) / 2,
+    left: (window.innerWidth - width) / 2,
+    width,
+    height,
+  };
+}
+
+// Open: lift (card rises off the page) -> expand (grows to modal size)
+// -> open (content staggers in). Close runs the same steps in reverse:
+// departing (content staggers out) -> collapse (shrinks back to the card)
+// -> settle (drops back onto the page and hands off to the real card).
 export default function Modal({ isOpen, itemData, itemType, cardRect, onClose }) {
-  const backdropRef = useRef(null);
-  const animatorRef = useRef(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isContentVisible, setIsContentVisible] = useState(false);
-  const [isRendered, setIsRendered] = useState(false);
-  const savedCardRect = useRef(null);
-  const animationDuration = 650;
+  const [phase, setPhase] = useState('closed');
+  const savedRect = useRef(null);
 
-  // Open animation
   useEffect(() => {
-    if (isOpen && cardRect) {
-      savedCardRect.current = { ...cardRect };
-      setIsRendered(true);
-      setIsAnimating(true);
-
-      // Use requestAnimationFrame to ensure DOM is updated before animation
-      requestAnimationFrame(() => {
-        const modal = animatorRef.current;
-        if (!modal) return;
-
-        document.body.style.overflow = 'hidden';
-
-        // Set initial position (matching clicked card)
-        modal.style.transition = 'none';
-        modal.style.top = `${cardRect.top}px`;
-        modal.style.left = `${cardRect.left}px`;
-        modal.style.width = `${cardRect.width}px`;
-        modal.style.height = `${cardRect.height}px`;
-        modal.style.opacity = '1';
-        modal.style.visibility = 'visible';
-
-        // Force reflow
-        void modal.offsetHeight;
-
-        // Re-enable transitions and animate to final position
-        modal.style.transition = '';
-        const finalWidth = Math.min(1280, window.innerWidth * 0.9);
-        const finalHeight = Math.min(window.innerHeight * 0.9, 1080);
-        modal.style.top = `${(window.innerHeight - finalHeight) / 2}px`;
-        modal.style.left = `${(window.innerWidth - finalWidth) / 2}px`;
-        modal.style.width = `${finalWidth}px`;
-        modal.style.height = `${finalHeight}px`;
-
-        setTimeout(() => {
-          setIsAnimating(false);
-          setIsContentVisible(true);
-        }, animationDuration);
-      });
+    if (isOpen && cardRect && phase === 'closed') {
+      savedRect.current = { ...cardRect };
+      document.body.style.overflow = 'hidden';
+      setPhase('lift');
     }
-  }, [isOpen, cardRect]);
+  }, [isOpen, cardRect, phase]);
 
   const handleClose = useCallback(() => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-    setIsContentVisible(false);
+    setPhase((p) => (p === 'open' ? 'departing' : p));
+  }, []);
 
-    const modal = animatorRef.current;
-    const rect = savedCardRect.current;
-
-    if (modal && rect) {
-      modal.style.top = `${rect.top}px`;
-      modal.style.left = `${rect.left}px`;
-      modal.style.width = `${rect.width}px`;
-      modal.style.height = `${rect.height}px`;
-      modal.style.opacity = '0';
-    }
-
-    if (backdropRef.current) {
-      backdropRef.current.classList.remove('visible');
-    }
-
-    setTimeout(() => {
-      setIsAnimating(false);
-      setIsRendered(false);
-      document.body.style.overflow = '';
-      onClose();
-    }, animationDuration);
-  }, [isAnimating, onClose]);
-
-  // Escape key handler
+  // Give the content stagger-out a moment before collapsing the surface.
   useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape' && isOpen && !isAnimating) handleClose();
-    };
+    if (phase !== 'departing') return;
+    const t = setTimeout(() => setPhase('collapse'), 260);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') handleClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, isAnimating, handleClose]);
+  }, [handleClose]);
 
-  if (!isRendered && !isOpen) return null;
+  if (phase === 'closed') return null;
 
-  // Determine modal type class
-  let modalTypeClass = '';
+  const r = savedRect.current;
+  const expanded = {
+    ...finalRect(),
+    scale: 1,
+    opacity: 1,
+    boxShadow: '0 30px 80px rgba(0, 0, 0, 0.45)',
+    transition: { duration: 0.6, ease: EXPAND_EASE },
+  };
+  const lifted = {
+    top: r.top - 12,
+    left: r.left,
+    width: r.width,
+    height: r.height,
+    scale: 1.05,
+    opacity: 1,
+    boxShadow: '0 30px 60px rgba(0, 0, 0, 0.35)',
+    transition: { duration: 0.28, ease: 'easeOut' },
+  };
+  const animatorTargets = {
+    lift: lifted,
+    expand: expanded,
+    open: expanded,
+    departing: expanded,
+    collapse: { ...lifted, transition: { duration: 0.5, ease: EXPAND_EASE } },
+    settle: {
+      top: r.top,
+      scale: 1,
+      opacity: 0,
+      boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
+      transition: { duration: 0.24, ease: 'easeIn' },
+    },
+  };
+
+  const advance = () => {
+    if (phase === 'lift') setPhase('expand');
+    else if (phase === 'expand') setPhase('open');
+    else if (phase === 'collapse') setPhase('settle');
+    else if (phase === 'settle') {
+      document.body.style.overflow = '';
+      setPhase('closed');
+      onClose();
+    }
+  };
+
+  let modalTypeClass = 'project-modal';
   if (itemType === 'skill-group') modalTypeClass = 'skill-group-modal';
   else if (itemType === 'skill') modalTypeClass = 'skill-modal';
   else if (itemType === 'resume') modalTypeClass = 'resume-modal';
-  else modalTypeClass = 'project-modal';
 
   const renderContent = () => {
     if (!itemData) return null;
@@ -104,29 +115,25 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     if (itemType === 'skill-group') {
       return (
         <>
-          <div className="modal-image-container" style={{ display: itemData.cardImageUrl ? 'block' : 'none' }}>
+          <motion.div variants={contentItem} className="modal-image-container" style={{ display: itemData.cardImageUrl ? 'block' : 'none' }}>
             <img
               src={itemData.cardImageUrl}
               alt={itemData.title}
               className="modal-image"
               onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error'; }}
             />
-          </div>
+          </motion.div>
           <div className="modal-text-content">
-            <h2>{itemData.title}</h2>
+            <motion.h2 variants={contentItem}>{itemData.title}</motion.h2>
             <div className="modal-skill-group-items-container">
               {itemData.items.map((skill, i) => {
                 let skillImageSrc = skill.imageUrl;
                 if (skillImageSrc.includes('iconify.design')) {
                   const iconColor = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#', '');
-                  if (skillImageSrc.includes('?')) {
-                    skillImageSrc += `&color=${iconColor}`;
-                  } else {
-                    skillImageSrc += `?color=${iconColor}`;
-                  }
+                  skillImageSrc += (skillImageSrc.includes('?') ? '&' : '?') + `color=${iconColor}`;
                 }
                 return (
-                  <div key={i} className="skill-group-item">
+                  <motion.div key={i} variants={contentItem} className="skill-group-item">
                     <img
                       src={skillImageSrc}
                       alt={skill.name}
@@ -137,7 +144,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
                       <h4 className="skill-group-item-name">{skill.name}</h4>
                       <p className="skill-group-item-description">{skill.description}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -146,7 +153,6 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
       );
     }
 
-    // Project / About / Resume modals
     const title = itemData.title || itemData.modalTitle;
     const isResume = itemType === 'resume';
     const isMp4 = itemData.imageUrl?.toLowerCase().endsWith('.mp4');
@@ -170,25 +176,26 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     return (
       <>
         {!isResume && (
-          <div className="modal-image-container">
+          <motion.div variants={contentItem} className="modal-image-container">
             {mediaEl}
-          </div>
+          </motion.div>
         )}
         <div className="modal-text-content">
-          <h2>{title}</h2>
+          <motion.h2 variants={contentItem}>{title}</motion.h2>
           {itemData.modalContent?.map((content, i) => {
             if (content.type === 'text') {
-              return <p key={i} className="modal-dynamic-text">{content.value}</p>;
+              return <motion.p key={i} variants={contentItem} className="modal-dynamic-text">{content.value}</motion.p>;
             } else if (content.type === 'button') {
               return (
-                <a key={i} href={content.link} className="modal-dynamic-button" target="_blank" rel="noopener noreferrer">
+                <motion.a key={i} variants={contentItem} href={content.link} className="modal-dynamic-button" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
                   {content.text}
-                </a>
+                </motion.a>
               );
             } else if (content.type === 'embed') {
               return (
-                <iframe
+                <motion.iframe
                   key={i}
+                  variants={contentItem}
                   src={content.value}
                   title={content.title || 'Embedded Content'}
                   className="modal-dynamic-embed"
@@ -200,12 +207,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
               );
             } else if (content.type === 'image') {
               return (
-                <img
-                  key={i}
-                  src={content.value}
-                  alt={content.alt || ''}
-                  className="modal-dynamic-image"
-                />
+                <motion.img key={i} variants={contentItem} src={content.value} alt={content.alt || ''} className="modal-dynamic-image" />
               );
             }
             return null;
@@ -215,24 +217,44 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     );
   };
 
+  const backdropOn = phase === 'lift' || phase === 'expand' || phase === 'open';
+
   return (
     <>
-      <div
-        ref={backdropRef}
-        className={`modal-backdrop ${isOpen && !isAnimating ? 'visible' : isOpen ? 'visible' : ''}`}
+      <motion.div
+        className="modal-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: backdropOn ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+        style={{ pointerEvents: phase === 'open' ? 'auto' : 'none' }}
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       />
-      <div
-        ref={animatorRef}
-        className={`modal-animator ${modalTypeClass} visible ${isContentVisible ? 'open' : ''}`}
+      <motion.div
+        className={`modal-animator ${modalTypeClass}`}
+        initial={{ ...r, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0.15)' }}
+        animate={animatorTargets[phase]}
+        onAnimationComplete={advance}
       >
         <div className="modal-content">
-          <button className="modal-close" onClick={handleClose} aria-label="Close modal">&times;</button>
-          <div className="modal-content-wrapper">
+          <motion.button
+            className="modal-close"
+            onClick={handleClose}
+            aria-label="Close modal"
+            animate={{ opacity: phase === 'open' ? 1 : 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            &times;
+          </motion.button>
+          <motion.div
+            className="modal-content-wrapper"
+            variants={contentContainer}
+            initial="hidden"
+            animate={phase === 'open' ? 'show' : 'hidden'}
+          >
             {renderContent()}
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

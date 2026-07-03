@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 
 // Fade-and-rise on scroll into view. Wraps section headings, paragraphs and
-// other one-off elements; cards use TiltCard instead.
+// other one-off elements; cards use LiftCard instead.
 export default function Reveal({ children, delay = 0, y = 28, className, ...rest }) {
   return (
     <motion.div

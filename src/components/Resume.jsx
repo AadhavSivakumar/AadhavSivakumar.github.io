@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import Reveal from './Reveal';
+import SectionTitle from './SectionTitle';
 import { resumeDocsData } from '../data/siteData';
 
 const DocIcon = () => (
@@ -24,7 +25,7 @@ export default function Resume({ onCardClick }) {
 
   return (
     <section id="resume">
-      <Reveal><h2 className="section-title">Resume, CV & Transcripts</h2></Reveal>
+      <SectionTitle>Resume, CV & Transcripts</SectionTitle>
       <Reveal delay={0.1}>
         <p>
           For a detailed overview of my work experience, education, and professional background,
