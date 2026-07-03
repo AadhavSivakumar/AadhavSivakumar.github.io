@@ -1,32 +1,14 @@
 import React from 'react';
-import { useInView } from '../hooks/useInView';
+import TiltCard from './TiltCard';
 
-export default function SkillGroupCard({ group, onCardClick }) {
-  const [ref, inView] = useInView();
+export default function SkillGroupCard({ group, onCardClick, index = 0 }) {
   const MAX_SKILLS = 8;
 
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const maxRotate = 8;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const rotateX = ((mouseY - rect.height / 2) / (rect.height / 2)) * -maxRotate;
-    const rotateY = ((mouseX - rect.width / 2) / (rect.width / 2)) * maxRotate;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
-  };
-
-  const handleMouseLeave = (e) => {
-    e.currentTarget.style.transform = '';
-  };
-
   return (
-    <div
-      ref={ref}
-      className={`skill-group-card project-modal-trigger ${inView ? 'in-view' : ''}`}
+    <TiltCard
+      className="skill-group-card project-modal-trigger"
+      delay={(index % 3) * 0.09}
       onClick={(e) => onCardClick(e.currentTarget, group, 'skill-group')}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
     >
       <div className="skill-group-card-image-wrapper">
         <div
@@ -48,6 +30,6 @@ export default function SkillGroupCard({ group, onCardClick }) {
       {group.items.length > MAX_SKILLS && (
         <p className="skill-group-more-info">...and {group.items.length - MAX_SKILLS} more</p>
       )}
-    </div>
+    </TiltCard>
   );
 }

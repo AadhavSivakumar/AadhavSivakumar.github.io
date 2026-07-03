@@ -44,30 +44,36 @@ h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; color
 a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
 a:hover { color: var(--primary-color); }
 
-/* ANIMATED OBJECTS & HEADER */
-.animated-object { position: fixed; background-color: var(--accent-color); opacity: 0.5; z-index: 100; transition: transform 0.1s linear, background-color 0.3s ease, opacity 0.3s ease; will-change: transform; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-.animated-object:hover {
-  opacity: 0.9;
-}
-.left-object {
-  width: 50px;
-  height: calc(50px * 0.866);
-  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-  left: 2vw;
-  top: 85vh;
-}
-.right-object {
-  width: 40px;
-  height: 40px;
-  right: 1vw;
-  top: 0;
-  transform: translateY(-100%);
-}
+/* HEADER */
 header { position: fixed; width: 100%; top: 0; left: 0; padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; z-index: 1000; transition: background-color 0.5s ease, box-shadow 0.5s ease; }
 header.scrolled { background-color: color-mix(in srgb, var(--surface-color) 80%, transparent); backdrop-filter: blur(10px); box-shadow: 0 2px 10px var(--shadow-color-ambient); }
 header .logo { font-size: 1.5rem; }
-header nav { display: flex; align-items: center; }
-header nav a { margin-left: 30px; }
+header nav { display: flex; align-items: center; gap: 6px; }
+
+/* Nav links with the animated metallic highlighter pill (motion layoutId) */
+.nav-link {
+  position: relative;
+  padding: 7px 14px;
+  border-radius: 999px;
+  color: var(--secondary-color);
+  font-size: 0.95rem;
+  transition: color 0.3s ease;
+}
+.nav-link:hover { color: var(--primary-color); }
+.nav-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #F0E8D0 0%, #D9C06C 50%, #B9A149 100%);
+  border: 1px solid #A08B3A;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+.nav-link-label { position: relative; z-index: 1; }
+.nav-link.active .nav-link-label {
+  color: #4a3311;
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+}
 
 #theme-toggle {
   background: none;
@@ -87,94 +93,107 @@ header nav a { margin-left: 30px; }
 
 
 /* SECTION & CARD STYLES */
-section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(30px); transition: opacity 0.8s ease, transform 0.8s ease; position: relative; z-index: 10; }
-section.visible { opacity: 1; transform: translateY(0); }
+section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relative; z-index: 10; }
 .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
-#hero { min-height: 50vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
+
+/* HERO */
+#hero { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
 #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
 #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
+.hero-word { display: inline-block; white-space: nowrap; }
+.hero-letter { display: inline-block; will-change: transform; }
 
+/* Soft animated aurora behind the hero */
+.hero-aurora { position: absolute; inset: 0; overflow: visible; pointer-events: none; z-index: -1; }
+.aurora-blob {
+  position: absolute;
+  width: 44vw;
+  height: 44vw;
+  max-width: 640px;
+  max-height: 640px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+}
+.aurora-a {
+  top: -10%;
+  left: -5%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-color) 55%, transparent) 0%, transparent 65%);
+  animation: aurora-drift-a 16s ease-in-out infinite alternate;
+}
+.aurora-b {
+  bottom: -20%;
+  right: -8%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-color) 35%, transparent) 0%, transparent 65%);
+  animation: aurora-drift-b 20s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(12vw, 8vh) scale(1.15); }
+}
+@keyframes aurora-drift-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-10vw, -6vh) scale(0.95); }
+}
+
+.hero-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
+.hero-chip {
+  background: linear-gradient(180deg, #F0E8D0 0%, #D9C06C 50%, #B9A149 100%);
+  border: 1px solid #A08B3A;
+  color: #4a3311;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.hero-scroll-cue {
+  background: none;
+  border: none;
+  color: var(--secondary-color);
+  cursor: pointer;
+  margin-top: 56px;
+  padding: 8px;
+  transition: color 0.3s ease;
+}
+.hero-scroll-cue:hover { color: var(--accent-color); }
+
+/* About stage: the about card sits centered with the lanyard badges hanging
+   on both sides. Full-bleed so the six lanyards have room beyond the 1200px
+   section width; overflow clips the canvas top so the straps appear to come
+   from offscreen. */
+.about-stage {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  min-height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
 .about-card-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+  z-index: 5;
 }
 
-/* Lanyard Section */
+/* Lanyard canvas: fills the stage, extended upward so the bands' fixed
+   anchors sit above the visible edge. */
 .lanyard-wrapper {
-  /* Full-height canvas pinned so its top (and the band's fixed anchor)
-     sits above the section edge — the strap appears to come from offscreen,
-     matching the ReactBits demo. */
   position: absolute;
   top: -18vh;
   left: 0;
-  z-index: 0;
+  z-index: 1;
   width: 100%;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transform: scale(1);
-  transform-origin: center;
-}
-.lanyard-section {
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  height: 62vh;
-  margin: 40px auto 0;
-  overflow: hidden;
+  height: calc(100% + 18vh);
   touch-action: pan-y;
-}
-
-/* SVG Sine Wave Animation Styles */
-.svg-sine-wave-container {
-  width: 200px;
-  height: 420px;
-  position: relative;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-.svg-sine-wave-container.left-wave {
-  -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 100%);
-  mask-image: linear-gradient(to left, transparent 0%, black 20%, black 80%, transparent 100%);
-}
-.svg-sine-wave-container.right-wave {
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0%, black 20%, black 80%, transparent 100%);
-}
-.svg-sine-wave-container svg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}
-.svg-sine-wave-container svg path {
-  stroke: var(--accent-color);
-  stroke-width: 2px;
-  fill: none;
-  transition: stroke 0.3s ease;
-  animation-duration: 5s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-.svg-sine-wave-container.left-wave svg path {
-  animation-name: move-left;
-}
-.svg-sine-wave-container.right-wave svg path {
-  animation-name: move-right;
-}
-
-@keyframes move-left {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-200px); }
-}
-
-@keyframes move-right {
-  from { transform: translateX(-200px); }
-  to   { transform: translateX(0); }
 }
 
 .about-me-card {
@@ -216,8 +235,7 @@ section.visible { opacity: 1; transform: translateY(0); }
 
 .major-project-card, .small-project-card, .skill-group-card, .about-me-card {
   cursor: pointer;
-  opacity: 0; visibility: hidden;
-  transition: opacity 0.5s ease-out, transform 0.3s ease-out, box-shadow 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
+  transition: transform 0.3s ease-out, box-shadow 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease;
   position: relative;
   overflow: hidden;
   background-color: color-mix(in srgb, var(--surface-color) 70%, transparent);
@@ -230,18 +248,6 @@ section.visible { opacity: 1; transform: translateY(0); }
 .project-modal-trigger.animating-out {
   opacity: 0 !important; transform: scale(0.95) !important; visibility: hidden;
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
-}
-
-/* Initial offset for slide-in */
-.major-project-card:nth-child(odd), .small-project-card:nth-child(odd), .skill-group-card:nth-child(odd) { transform: translateX(-50px); }
-.major-project-card:nth-child(even), .small-project-card:nth-child(even), .skill-group-card:nth-child(even) { transform: translateX(50px); }
-.about-me-card { transform: translateY(30px); }
-
-/* State when in view */
-.major-project-card.in-view, .small-project-card.in-view, .skill-group-card.in-view, .about-me-card.in-view {
-  opacity: 1;
-  transform: translateX(0) translateY(0);
-  visibility: visible;
 }
 
 .major-project-card:hover, .small-project-card:hover, .skill-group-card:hover, .about-me-card:hover {
@@ -453,6 +459,62 @@ html[data-theme="dark"] .skill-group-card-image {
 #contact p, #resume p {
   max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); text-align: center;
 }
+
+/* Resume / CV / Transcript document tiles */
+.docs-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 28px;
+  margin-top: 10px;
+}
+.doc-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 180px;
+  height: 180px;
+  border-radius: 14px;
+  cursor: pointer;
+  background-color: color-mix(in srgb, var(--surface-color) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 5px 15px var(--shadow-color-ambient);
+  color: var(--secondary-color);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+.doc-tile:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 12px 24px var(--shadow-color-ambient);
+  color: var(--accent-color);
+}
+.doc-tile-icon { transition: color 0.3s ease; }
+.doc-tile-label {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  padding: 0 12px;
+  line-height: 1.35;
+}
+.doc-tile-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(180deg, #F0E8D0 0%, #D9C06C 50%, #B9A149 100%);
+  border: 1px solid #A08B3A;
+  color: #4a3311;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+}
 #contact { text-align: center; }
 .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 35px; align-items: center; }
 .social-links a { color: var(--secondary-color); transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
@@ -555,15 +617,21 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 992px) {
+  .about-stage {
+    width: 100%;
+    margin-left: 0;
+    min-height: 0;
+  }
   .about-card-wrapper {
     flex-direction: column;
     align-items: center;
   }
-  .svg-sine-wave-container {
-    display: none;
-  }
   .about-me-card {
     max-width: 90%;
+  }
+  .nav-link {
+    padding: 6px 9px;
+    font-size: 0.9rem;
   }
 }
 

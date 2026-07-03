@@ -6,16 +6,16 @@ const deviconsBaseUrl = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/ico
 export const aboutMeData = {
   id: 'about-me-section',
   type: 'about',
-  cardTitle: 'About Me',
-  cardTeaser: 'A glimpse into my life experiences, skills, and the passions that drive my engineering pursuits. Click to learn more.',
-  imageUrl: 'https://aadhavsivakumar.github.io/Images/frontpagepfp.JPG',
+  cardTitle: 'Aadhav Sivakumar',
+  cardTeaser: "Hello! My name is Aadhav Sivakumar, and this website is meant to showcase projects I've worked on in the past and projects that I'm currently working on. Click to learn more.",
+  imageUrl: 'https://aadhavsivakumar.github.io/Media/Gradpic.png',
   modalTitle: 'Aadhav Sivakumar',
   modalContent: [
-    { type: 'text', value: "Hello! I'm Aadhav Sivakumar, a Robotics and Embedded Systems Engineer with a Master's in Mechatronics and Robotics from NYU Tandon and a Bachelor's from UC Santa Cruz. I specialize in designing and developing intelligent systems, from autonomous drones and telerobotic interfaces to advanced sensor technologies. My work is driven by a passion for solving complex challenges at the intersection of hardware and software." },
-    { type: 'text', value: "I thrive on developing cutting-edge solutions and have hands-on experience with the full project lifecycle, from conceptualization and PCB design to firmware development and AI integration. Beyond my core engineering work, I enjoy playing volleyball and biking, activities that fuel my creativity and problem-solving mindset." },
+    { type: 'text', value: "Hello! My name is Aadhav Sivakumar, and this website is meant to showcase projects I've worked on in the past, and projects that I'm currently working on. You're also able to view my resume, an extended CV, or look through the different skills, software, and hardware I have worked with previously." },
+    { type: 'text', value: "At the present, I am a Robot Technician at Starship Technologies, working at the Fordham University hub in the Bronx. I am currently located in Brooklyn, where I attend graduate school at NYU Tandon, working toward my Master's in Mechatronics and Robotics. I am also a TA at NYU, working with Professor Peng and helping with the Foundations of Robotics and Mathematics for Robotics courses. I was born and raised in the Bay Area in California, and I went to undergrad at the University of California, Santa Cruz campus, where I studied Robotics Engineering with a minor in Electrical Engineering." },
+    { type: 'text', value: "I believe that the most effective engineering happens at the intersection of rigorous theory and reliable application. My experiences, ranging from deep academic research to maintaining active robot fleets in the field, have taught me that building intelligent systems requires not just understanding the algorithms, but also the environmental and societal impact of new technologies. I am driven by the challenge of bridging this gap, ensuring that complex robots are robust, efficient, and capable of solving real-world problems." },
     { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
-    { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' },
-    { type: 'text', value: "Feel free to explore my projects or reach out if you'd like to collaborate!" }
+    { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' }
   ]
 };
 
@@ -41,17 +41,14 @@ export const smallProjectsData = [
   { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath + 'mechcomp.mp4', tags: ['STM32', 'C++', 'PID Control'], status: 'Completed', modalContent: [{ type: 'text', value: 'Built and programmed an autonomous robot on an STM32 platform for a mechatronics competition. Implemented C++ and fine-tuned PID control algorithms to achieve precise targeting and win a ping pong ball shooting tournament.' }, { type: 'embed', value: baseProjectPdfPath + 'ECE_118_Final_Project_Report.pdf', title: 'Project Documentation (Coming Soon)' }] },
 ];
 
-export const resumeData = {
-  id: 'resume-card',
-  type: 'resume',
-  title: 'View My Résumé',
-  cardDescription: 'An up-to-date overview of my professional journey, technical skills, and key projects. Click to open the PDF.',
-  imageUrl: 'https://placehold.co/600x400/F7F5F2/BFA181?text=View+R%C3%A9sum%C3%A9',
-  modalTitle: 'My Résumé',
-  modalContent: [
-    { type: 'embed', value: 'https://drive.google.com/file/d/1YHd3-1T750Vm32hwAeqEM8gU9rqQbu7r/preview', title: "Aadhav Sivakumar's Resume" }
-  ]
-};
+// The four documents from the live /portfolio "Resume, CV, and Transcripts"
+// section. Each opens the shared modal with a Google Drive preview embed.
+export const resumeDocsData = [
+  { id: 'doc-resume', title: 'Resume', embedUrl: 'https://drive.google.com/file/d/1JgvGUhWX4Na0Vs0gropdxC01tM2kRiXc/preview' },
+  { id: 'doc-cv', title: 'Extended CV', embedUrl: 'https://drive.google.com/file/d/11WRObmZOizFs6jlhbsQlfv-9DkBqSq0N/preview' },
+  { id: 'doc-ug-transcript', title: 'Undergraduate Transcript', badge: 'A', embedUrl: 'https://drive.google.com/file/d/1_QDb00FYIqoaMAUFQp8Ukwiw2WeaYVPg/preview' },
+  { id: 'doc-grad-transcript', title: 'Graduate Transcript', badge: 'A+', embedUrl: 'https://drive.google.com/file/d/1wwtghhqCJjWordYjrPYAK1M2VDtH3Nc3/preview' },
+];
 
 export const skillGroupsData = [
   {

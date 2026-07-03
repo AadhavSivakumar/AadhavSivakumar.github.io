@@ -8,7 +8,6 @@ import Resume from './components/Resume';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
-import AnimatedObjects from './components/AnimatedObjects';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
@@ -51,7 +50,6 @@ function App() {
 
   return (
     <>
-      <AnimatedObjects />
       <Header theme={theme} toggleTheme={toggleTheme} />
       <main>
         <Hero />

@@ -1,24 +1,7 @@
 import React from 'react';
-import { useInView } from '../hooks/useInView';
+import TiltCard from './TiltCard';
 
-export default function ProjectCard({ project, isMajor, itemType, onCardClick }) {
-  const [ref, inView] = useInView();
-
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const maxRotate = 8;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const rotateX = ((mouseY - rect.height / 2) / (rect.height / 2)) * -maxRotate;
-    const rotateY = ((mouseX - rect.width / 2) / (rect.width / 2)) * maxRotate;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
-  };
-
-  const handleMouseLeave = (e) => {
-    e.currentTarget.style.transform = '';
-  };
-
+export default function ProjectCard({ project, isMajor, itemType, onCardClick, index = 0 }) {
   const isMp4 = project.imageUrl?.toLowerCase().endsWith('.mp4');
   const isGif = !isMp4 && project.imageUrl?.toLowerCase().endsWith('.gif');
   const placeholder = isMajor
@@ -34,6 +17,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick })
         src={project.imageUrl}
         alt={project.title}
         className={isGif ? 'is-gif' : ''}
+        loading="lazy"
         onError={(e) => { e.target.onerror = null; e.target.src = placeholder; }}
       />
     );
@@ -50,12 +34,10 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick })
   }
 
   return (
-    <div
-      ref={ref}
-      className={`${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger ${inView ? 'in-view' : ''}`}
+    <TiltCard
+      className={`${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`}
+      delay={(index % 3) * 0.09}
       onClick={(e) => onCardClick(e.currentTarget, project, itemType)}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
     >
       {media}
       {isMajor ? (
@@ -90,6 +72,6 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick })
           )}
         </div>
       )}
-    </div>
+    </TiltCard>
   );
 }

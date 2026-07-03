@@ -1,63 +1,72 @@
-import React, { Suspense } from 'react';
-import SineWave from './SineWave';
-import Lanyard from './Lanyard/Lanyard';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
+import TiltCard from './TiltCard';
 import { aboutMeData } from '../data/siteData';
-import { useInView } from '../hooks/useInView';
-import researcherImg from '../../Media/lanyardimgs/Researcher.jpg';
+import dhsImg from '../../Media/lanyardimgs/DHS.jpg';
+import ucscImg from '../../Media/lanyardimgs/UCSC.png';
 import nyuImg from '../../Media/lanyardimgs/NYU.jpg';
+import roboflowImg from '../../Media/lanyardimgs/Roboflow.png';
+import starshipImg from '../../Media/lanyardimgs/Starship.jpg';
+import researcherImg from '../../Media/lanyardimgs/Researcher.jpg';
+
+// Lazy-loaded so the three.js/rapier bundle and card model are only
+// downloaded on wide screens — mobile gets just the about card.
+const Lanyard = lazy(() => import('./Lanyard/Lanyard'));
+
+// Badge content mirrors the hanging badges on the live /portfolio page:
+// education on the left of the about card, work on the right. `slot` 0 is
+// the badge closest to the card on each side.
+const badgeCards = [
+  { side: 'left', slot: 2, image: dhsImg, badge: { name: 'Dublin High', role: 'High School', id: '2016-2020', exp: '2020' } },
+  { side: 'left', slot: 1, image: ucscImg, badge: { name: 'UCSC', role: 'Undergraduate', id: '2020-2024', exp: '2024' } },
+  { side: 'left', slot: 0, image: nyuImg, badge: { name: 'NYU', role: 'Graduate', id: '2024-2026', exp: '2026' } },
+  { side: 'right', slot: 0, image: roboflowImg, badge: { name: 'Roboflow', role: 'Field Engineer', id: 'Universe', exp: '???' } },
+  { side: 'right', slot: 1, image: starshipImg, badge: { name: 'Starship', role: 'Robot Technician', id: 'Technician', exp: '2025' } },
+  { side: 'right', slot: 2, image: researcherImg, badge: { name: 'Researcher', role: 'TML @ UCSC, CREO @ NYU', id: 'Research', exp: '2024/6' } },
+];
+
+// Half the about card's width plus a gap — the lanyards keep this much
+// horizontal clearance from the canvas center so they hang beside the card.
+const CARD_CLEAR_PX = 270;
 
 export default function About({ onCardClick }) {
-  const [sectionRef, sectionInView] = useInView();
-  const [cardRef, cardInView] = useInView();
+  const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 992);
 
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    const maxRotate = 8;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const rotateX = ((mouseY - rect.height / 2) / (rect.height / 2)) * -maxRotate;
-    const rotateY = ((mouseX - rect.width / 2) / (rect.width / 2)) * maxRotate;
-    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
-  };
-
-  const handleMouseLeave = (e) => {
-    e.currentTarget.style.transform = '';
-  };
+  useEffect(() => {
+    const handleResize = () => setIsWide(window.innerWidth >= 992);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
-    <section id="about" ref={sectionRef} className={sectionInView ? 'visible' : ''} style={{ padding: '30px 5% 30px 5%' }}>
-      <div className="about-card-wrapper">
-        <SineWave isLeft={true} />
-        <div
-          className={`major-project-card project-modal-trigger about-me-card ${cardInView ? 'in-view' : ''}`}
-          ref={cardRef}
-          onClick={(e) => onCardClick(e.currentTarget, aboutMeData, 'about')}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <img
-            src={aboutMeData.imageUrl}
-            alt="Aadhav Sivakumar"
-            onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/480x420/F7F5F2/BFA181?text=Image+Not+Found'; }}
-          />
-          <div className="project-content">
-            <h4>{aboutMeData.cardTitle}</h4>
-            <p>{aboutMeData.cardTeaser}</p>
-          </div>
+    <section id="about" style={{ padding: '30px 5% 30px 5%' }}>
+      <div className="about-stage">
+        {isWide && (
+          <Suspense fallback={null}>
+            <Lanyard
+              position={[0, 0, 30]}
+              gravity={[0, -40, 0]}
+              cards={badgeCards}
+              clearCenterPx={CARD_CLEAR_PX}
+              lanyardWidth={0.35}
+            />
+          </Suspense>
+        )}
+        <div className="about-card-wrapper">
+          <TiltCard
+            className="major-project-card project-modal-trigger about-me-card"
+            onClick={(e) => onCardClick(e.currentTarget, aboutMeData, 'about')}
+          >
+            <img
+              src={aboutMeData.imageUrl}
+              alt="Aadhav Sivakumar"
+              onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/480x420/F7F5F2/BFA181?text=Image+Not+Found'; }}
+            />
+            <div className="project-content">
+              <h4>{aboutMeData.cardTitle}</h4>
+              <p>{aboutMeData.cardTeaser}</p>
+            </div>
+          </TiltCard>
         </div>
-        <SineWave isLeft={false} />
-      </div>
-      <div className="lanyard-section">
-        <Suspense fallback={<div style={{ width: '100%', height: '400px' }} />}>
-          <Lanyard 
-            position={[0, 0, 30]} 
-            gravity={[0, -40, 0]} 
-            frontImage={researcherImg}
-            backImage={nyuImg}
-            lanyardWidth={1.2}
-          />
-        </Suspense>
       </div>
     </section>
   );

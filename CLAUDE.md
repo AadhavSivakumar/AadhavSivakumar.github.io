@@ -4,59 +4,84 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository overview
 
-This is Aadhav Sivakumar's personal portfolio site, served via GitHub Pages from `https://aadhavsivakumar.github.io/`. It is a static site with no build system, no package manager, and no test suite. Edits to HTML/CSS/JS files take effect on push to `master`.
+This is Aadhav Sivakumar's personal portfolio — a React 18 + Vite single-page app. It is a modernized, animation-heavy rebuild of the older static portfolio that still lives at `https://aadhavsivakumar.github.io/portfolio` (that path serves a separately built bundle; this repo is the successor).
 
-To preview locally, open `index.html` directly in a browser or serve the repo root with any static server (e.g. `python -m http.server`).
+There is no test suite or linter. Validate changes by running the app and exercising the affected section.
 
-## Top-level layout
+```
+npm run dev        # Vite dev server
+npm run build      # production build to dist/ (dist/ is gitignored)
+npm run preview    # serve the production build locally
+```
 
-- `index.html` — the active portfolio. It both contains the full single-page portfolio markup/CSS/JS *and* opens with `<meta http-equiv="refresh" content="0; URL=https://aadhavsivakumar.github.io/portfolio" />`. The redirect is what the root URL actually does in production; the inline content below it is the source of truth for the portfolio that lives at the `/portfolio` path. When editing the portfolio, edit this file.
-- `legacy/` — older versions of the portfolio (`legacyindex.html`, `legacyindex20250725.html`, `old_index.html`) plus per-project legacy pages under `legacy/Projects/` and `legacy/Home/`. Don't edit these to make changes to the current site — they are kept for archive only.
-- `Media/` — local image/video assets (`Media/projects/`, `Media/skills/`, profile photos).
-- `projectpdf/` — PDF reports linked from project modals.
-- `Resume/` — dated resume PDFs.
-- `misc/` — unrelated data files (e.g. `Gmatquantquestions.json`, `highqworldmap.json`).
+## Tech stack
 
-## Architecture of `index.html`
+- **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
+- **motion** (`motion/react`, the framer-motion successor) — scroll-into-view reveals, hover/tap micro-interactions, the header's `layoutId` nav pill, theme-toggle icon swap.
+- **animejs v4** — the hero name's per-letter cascade (`animate` + `stagger`; note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` values).
+- **three.js / @react-three/fiber / drei / rapier / meshline** — the 3D lanyard badges in the About section. This whole stack is **lazy-loaded** (see Performance below).
 
-The site is a single self-contained HTML file (~1500 lines) split into three regions:
+## Source layout
 
-1. **`<style>` block** — all CSS, including CSS variables under `:root` and `html[data-theme="dark"]` that drive light/dark theming. Theme tokens: `--primary-color`, `--accent-color` (`#C5A35C` / `#D4B47C`), `--background-color`, `--surface-color`. Tailwind is included via CDN but most styling is hand-written CSS.
-2. **`<main>` markup** — `hero`, `about`, `projects`, `additional-projects`, `skills`, `resume`, `contact` sections. The about card, project grids, skill grids, and resume card are empty containers populated by JS on load.
-3. **`<script>` block (after `</main>`)** — all data and logic. The pattern is data-driven: arrays of plain JS objects feed render functions that build DOM nodes and attach modal handlers.
+```
+src/
+  App.jsx                 # section composition + modal open/close state
+  App.css                 # ALL styling: theme tokens, sections, cards, modal, hero, nav
+  data/siteData.js        # ALL page content (see "Editing content")
+  hooks/useTheme.js       # light/dark via data-theme attr + localStorage
+  components/
+    Header.jsx            # fixed nav, scroll-spy + animated gold pill (layoutId)
+    Hero.jsx              # anime.js letter cascade, aurora bg, keyword chips
+    About.jsx             # about card centered in the 3D lanyard stage
+    Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
+    Projects.jsx, ProjectCard.jsx
+    Skills.jsx, SkillGroupCard.jsx
+    Resume.jsx            # Resume / Extended CV / Transcript tiles (Drive embeds)
+    Contact.jsx, Footer.jsx
+    Modal.jsx             # single reusable modal, FLIP-animates from clicked card
+    TiltCard.jsx          # shared card: motion entrance + pointer 3D tilt
+    Reveal.jsx            # shared fade/rise-on-scroll wrapper
+```
 
-### Where to edit content (not markup)
+`legacy/` holds pre-React versions of the site — archive only, never edit to change the current site. `Media/` holds local images (`Media/lanyardimgs/` for badge photos, `Media/projects/`, `Media/skills/`). `projectpdf/` and `Resume/` hold PDFs served from this repo.
 
-Project, skill, about, and resume content all live as JS object arrays near the top of the `<script>` block — search by variable name:
+## Editing content (not markup)
 
-- `aboutMeData` — about-me modal content.
-- `majorProjectsData` — large project cards (`#projects` section). Each entry: `{ id, title, cardDescription, imageUrl, tags, status, modalContent }`. `modalContent` is an array of `{ type: 'text' | 'button' | 'embed', ... }` blocks.
-- `smallProjectsData` — additional project cards (`#additional-projects` section), same shape but `id` is a letter.
-- `resumeData` — the resume card and its modal.
-- `skillGroupsData` — skill category cards on `#skills`; each group has `items` with `{ name, imageUrl, description }`.
+All page content lives in `src/data/siteData.js`:
 
-To add a project: append an object to the appropriate array. The render functions (`populateProjects`, etc.) pick it up on next load — no other wiring needed.
+- `aboutMeData` — about card + modal (title, teaser, `modalContent` blocks).
+- `majorProjectsData` / `smallProjectsData` — project cards. Shape: `{ id, title, cardDescription, imageUrl, tags, status, modalContent }`. `modalContent` is an array of `{ type: 'text' | 'button' | 'embed' | 'image', ... }` blocks rendered by `Modal.jsx`. Preserve existing `id` values.
+- `skillGroupsData` — skill category cards; each group has `items` of `{ name, imageUrl, description }`.
+- `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
-### Asset URL conventions (important gotcha)
+The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `badgeCards` at the top of `src/components/About.jsx`, with photos imported from `Media/lanyardimgs/`.
 
-`majorProjectsData`/`smallProjectsData`/`skillGroupsData` reference images via these base paths:
+To add a project or skill: append to the relevant array — the components map over the data, no other wiring needed.
 
-- `baseProjectImagePath = 'https://aadhavsivakumar.github.io/Images/projectcovers/'`
-- `baseProjectPdfPath  = 'https://aadhavsivakumar.github.io/projectpdf/'`
-- `baseSkillImagePath  = 'https://aadhavsivakumar.github.io/Images/skills/'`
+### Asset URL gotcha
 
-Note that the live site reads project/skill images from `/Images/projectcovers/` and `/Images/skills/`, but the repo stores them under `Media/projects/` and `Media/skills/`. There is no `Images/` directory in this repo — those URLs resolve against assets hosted in a different location/branch of GitHub Pages. When adding a new project image, you must place the file where the `Images/...` URL actually resolves (not just under `Media/`), or the card will 404. Confirm with the user where new assets need to live before assuming `Media/` is sufficient.
+`majorProjectsData`/`smallProjectsData`/`skillGroupsData` reference images via `https://aadhavsivakumar.github.io/Images/projectcovers/` and `.../Images/skills/`. There is **no `Images/` directory in this repo** — those URLs resolve against assets deployed elsewhere on the GitHub Pages site, while this repo stores similar files under `Media/`. When adding a new project/skill image, confirm with the user where it must live; putting it in `Media/` alone will 404 for those URLs. Locally-imported assets (lanyard badge photos, GLB, textures) are bundled by Vite and are not affected.
 
-PDFs under `projectpdf/` *are* served from this repo, so those URLs match the local directory.
+## The 3D lanyard (`src/components/Lanyard/`)
 
-### Modal, theme, and scroll behavior
+Six ID badges (3 education left, 3 work right) hang on physics ropes around the about card, one shared Canvas/physics world. Ported from the ReactBits lanyard and heavily extended. Key invariants learned the hard way — keep them:
 
-- A single modal (`.modal-backdrop` → `.modal-animator` → `.modal-content`) is reused for all cards. Clicking a card calls into the modal logic at the bottom of the script; the renderer reads `modalContent` blocks and injects text/buttons/embeds into `#modal-dynamic-content-area`.
-- Theme toggle (`#theme-toggle`) flips `data-theme` on `<html>` and is the only mechanism for dark mode — CSS variables do the rest.
-- Two floating "animated objects" (`#scroll-down-btn`, `#scroll-up-btn`) provide section-to-section scrolling. The next-section logic explicitly skips `#about` when scrolling down from hero (see the `if (nextSection.id === 'about') ...` branch ~line 1427) — preserve this if you reorder sections.
+- **Rope joint offsets are module constants** (`J1_POS`…`CARD_POS`). Passing fresh arrays on re-render makes rapier teleport bodies and tears the straps.
+- **The chain spawns vertically at equilibrium.** A horizontal spawn makes neighboring cards collide mid-drop and fall asleep at a diagonal.
+- **`BandField` debounces resizes (300ms) then remounts bands via key** — physics bodies don't follow anchors when the canvas aspect changes.
+- **The strap-smoothing lerp alpha is clamped to 1.** Unclamped, `delta * 50` exceeds 1 below 50fps and `Vector3.lerp` extrapolates, exploding the straps into screen-height streaks.
+- When the viewport can't fit 3 badges per side (`MIN_STEP` spacing), outermost badges are dropped instead of stacking.
+- Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
+- Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway).
 
-## Editing guidance
+## Performance rules
 
-- Keep all changes in `index.html` unless you are explicitly working on a legacy page. Do not duplicate the portfolio into new top-level HTML files.
-- When changing data arrays, preserve the existing `id` values — they are used by the modal lookup logic (`majorProjectsData.find(p => p.id.toString() === itemId)`).
-- The site has no linter, formatter, or tests. Validate changes by opening `index.html` in a browser and exercising the affected card/modal/theme/scroll path.
+- The Lanyard is imported with `React.lazy` in `About.jsx` and only rendered at ≥992px. Combined with the `manualChunks` function in `vite.config.js` (which isolates three/@react-three/meshline into a `three` chunk and everything else into `vendor`), mobile never downloads the 3D stack or the 2.4MB `card.glb`. **If you touch `vite.config.js`, re-verify that `dist/assets/index-*.js` has no static import of the `three-*` chunk** — react/helpers leaking into the three chunk silently makes it eager.
+
+## Theming
+
+Light/dark is driven by CSS variables under `:root` and `html[data-theme="dark"]` in `App.css` (`--accent-color` gold `#C5A35C`/`#D4B47C`), toggled by `useTheme`. The metallic gold gradient (nav pill, hero chips, tags) is hard-coded to match the live portfolio's look and works in both themes.
+
+## Deployment
+
+GitHub Pages serves this repo; the React app must be built (`npm run build`) — `dist/` is gitignored, so pushing source alone does not update a Pages deployment that expects built output. Confirm the intended deployment flow with the user before assuming pushes go live.
