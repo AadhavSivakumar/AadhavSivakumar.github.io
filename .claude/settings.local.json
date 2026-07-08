@@ -4,7 +4,8 @@
       "Bash(py --version)",
       "PowerShell($cargo = Get-Command cargo -ErrorAction SilentlyContinue; if \\($cargo\\) { \"cargo: $\\($cargo.Source\\)\"; cargo --version } else { \"cargo: NOT FOUND\" })",
       "PowerShell($base = \"D:\\\\a\\\\claude-cli-internal\\\\claude-cli-internal\\\\node_modules\\\\@anthropic-ai\\\\sandbox-runtime\"; if \\(Test-Path $base\\) { \"package dir EXISTS: $base\"; Get-ChildItem -Path $base -Filter \"srt-win.exe\" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName; \"--- Cargo.toml files ---\"; Get-ChildItem -Path $base -Filter \"Cargo.toml\" -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName } else { \"package dir NOT FOUND at: $base\" })",
-      "Skill(run)"
+      "Skill(run)",
+      "Bash(git fetch *)"
     ]
   }
 }

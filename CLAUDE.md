@@ -88,7 +88,7 @@ during the sequence via the `animating-out` class that `App.jsx` toggles.
 
 ## Performance rules
 
-- The Lanyard is imported with `React.lazy` in `About.jsx` and only rendered at ≥992px. Combined with the `manualChunks` function in `vite.config.js` (which isolates three/@react-three/meshline into a `three` chunk and everything else into `vendor`), mobile never downloads the 3D stack or the 2.4MB `card.glb`. **If you touch `vite.config.js`, re-verify that `dist/assets/index-*.js` has no static import of the `three-*` chunk** — react/helpers leaking into the three chunk silently makes it eager.
+- The Lanyard is imported with `React.lazy` in `About.jsx` and only rendered at ≥992px, so mobile never downloads the three.js stack or the 2.4MB `card.glb`. `vite.config.js` deliberately has **no `manualChunks`** — Rollup's automatic splitting keeps the 3D stack inside the lazy Lanyard chunk. A hand-rolled split was tried and created a vendor↔three chunk cycle that broke React at runtime; don't reintroduce one. After touching `vite.config.js`, re-verify `dist/assets/index-*.js` has no static `from"./..."` import of a chunk containing three.js.
 
 ## Theming
 
@@ -97,3 +97,22 @@ Light/dark is driven by CSS variables under `:root` and `html[data-theme="dark"]
 ## Deployment
 
 GitHub Pages serves this repo; the React app must be built (`npm run build`) — `dist/` is gitignored, so pushing source alone does not update a Pages deployment that expects built output. Confirm the intended deployment flow with the user before assuming pushes go live.
+
+## Current progress (as of 2026-07-03)
+
+**Done and committed locally** (commits `lanyard update 1`, `lanyard 3d change 2`):
+
+- Full rebuild of the site as a modern, animated version of the live `/portfolio`: motion + anime.js installed and wired throughout.
+- 3D lanyard About section: six physics badges (education left / work right, content matching the live site's badges) around the about card; drag, click-to-flip, cursor sway, and hover tilt interactions; resize-safe layout; low-fps strap fix; vertical-equilibrium spawn.
+- Content parity with live `/portfolio`: about card + modal bio, Resume/CV/Transcript Drive documents, contact text.
+- Hero (anime.js letter cascade, aurora, keyword chips, scroll cue), scroll-spy nav with metallic pill, LiftCard/Reveal card entrances, SectionTitle letter cascades, scroll-scrubbed progress bar.
+- Phased modal: lift → expand → content stagger, reversed on close.
+- Teardown: AnimatedObjects (hexagons), SineWave, useInView hook, old class-based reveal CSS, old resume card.
+- Mobile stays light: 3D stack only loads ≥992px via lazy chunk; production build verified clean (no console errors).
+
+**Open items:**
+
+- `git push` to origin/master blocked by stale GitHub auth (VS Code askpass served an expired token). Fix in flight: `env -u GIT_ASKPASS git push origin master` + browser sign-in as AadhavSivakumar, or restart VS Code after re-auth and use Sync. Local is 2 commits ahead.
+- Visual QA pass pending — the Chrome window was hidden during automated checks, which suspends all animation. Eyeball: modal open/close feel, lanyard hover-tilt direction (sign flip in `Lanyard.jsx` `pitchErr`/`tilt.nx` if it leans the wrong way), section-title cascades, both themes, mobile layout.
+- Spline not integrated (user's requested stack item) — needs a scene designed at spline.design first; wire via `@splinetool/react-spline`, lazy-loaded like the Lanyard.
+- Deployment flow for the built `dist/` is undecided (see Deployment above).
