@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import Reveal from './Reveal';
 import SectionTitle from './SectionTitle';
+import useScrollReveal from '../hooks/useScrollReveal';
 
 const SOCIALS = [
   {
@@ -27,6 +27,21 @@ const SOCIALS = [
   },
 ];
 
+function SocialLink({ social, index }) {
+  const ref = useScrollReveal({ y: 20, delay: 0.2 + index * 0.1, duration: 500, amount: 0.2 });
+  return (
+    <a
+      ref={ref}
+      href={social.href}
+      target={social.href.startsWith('http') ? '_blank' : undefined}
+      rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+      aria-label={social.label}
+    >
+      {social.icon}
+    </a>
+  );
+}
+
 export default function Contact() {
   return (
     <section id="contact">
@@ -40,21 +55,7 @@ export default function Contact() {
       </Reveal>
       <div className="social-links">
         {SOCIALS.map((s, i) => (
-          <motion.a
-            key={s.label}
-            href={s.href}
-            target={s.href.startsWith('http') ? '_blank' : undefined}
-            rel={s.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-            aria-label={s.label}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 + i * 0.1, duration: 0.5 }}
-            whileHover={{ scale: 1.25, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {s.icon}
-          </motion.a>
+          <SocialLink key={s.label} social={s} index={i} />
         ))}
       </div>
     </section>

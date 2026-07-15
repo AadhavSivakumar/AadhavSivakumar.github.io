@@ -283,11 +283,19 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 }
 
 .major-project-card:hover, .small-project-card:hover, .skill-group-card:hover, .about-me-card:hover {
+  transform: translateY(-8px) scale(1.015);
   box-shadow: 0 12px 24px var(--shadow-color-ambient);
   background-color: color-mix(in srgb, var(--surface-color) 60%, transparent);
   border-color: color-mix(in srgb, var(--primary-color) 30%, transparent);
   backdrop-filter: blur(16px) saturate(120%);
   -webkit-backdrop-filter: blur(16px) saturate(120%);
+}
+
+/* Tap press — mirrors the old motion whileTap. :active must beat :hover, so
+   it follows the hover rule. The entrance suppresses these transitions inline
+   (see useScrollReveal), so they never fight the anime reveal. */
+.lift-card:active {
+  transform: translateY(-4px) scale(0.985);
 }
 
 /* Card content needs to be on top of the shine pseudo-element */
@@ -517,12 +525,16 @@ html[data-theme="dark"] .skill-group-card-image {
   -webkit-backdrop-filter: blur(4px);
   box-shadow: 0 5px 15px var(--shadow-color-ambient);
   color: var(--secondary-color);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+  transition: transform 0.3s ease-out, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }
 .doc-tile:hover {
+  transform: translateY(-6px);
   border-color: var(--accent-color);
   box-shadow: 0 12px 24px var(--shadow-color-ambient);
   color: var(--accent-color);
+}
+.doc-tile:active {
+  transform: translateY(-3px) scale(0.97);
 }
 .doc-tile-icon { transition: color 0.3s ease; }
 .doc-tile-label {

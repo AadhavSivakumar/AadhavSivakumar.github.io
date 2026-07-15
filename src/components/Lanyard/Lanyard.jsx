@@ -47,6 +47,21 @@ const FLIP_KICK = 0.08;
 // mirroring the 3D tilt the HTML cards used to have.
 const TILT_MAX = 0.35;
 
+// Recency gradient: `slot` 0 is the present badge (NYU / Roboflow) and renders
+// full size; each step further into the past shrinks the badge and lifts its
+// anchor higher, so older badges float smaller and above the about card while
+// the present ones hang large beside it. Indexed by slot; slots beyond the
+// list fall back to the last (smallest) entry.
+const SLOT_SCALE = [1, 0.82, 0.66];
+// Anchor height for the present (slot 0) badge; each older slot is raised
+// SLOT_RISE world units higher so past badges arc up above the about card.
+const SLOT_BASE_Y = 3.3;
+const SLOT_RISE = 0.7;
+
+function slotScale(slot) {
+  return SLOT_SCALE[slot] ?? SLOT_SCALE[SLOT_SCALE.length - 1];
+}
+
 export default function Lanyard({
   position = [0, 0, 30],
   gravity = [0, -40, 0],
@@ -136,7 +151,8 @@ function BandField({ cards, clearCenterPx = 0, ...bandProps }) {
         key={`${c.badge?.name || i}@${stamp}`}
         {...bandProps}
         anchorX={(inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1)}
-        anchorY={4 - (maxSlots - 1 - (c.slot || 0)) * 0.4}
+        anchorY={SLOT_BASE_Y + (c.slot || 0) * SLOT_RISE}
+        scale={slotScale(c.slot || 0)}
         image={c.image}
         badge={c.badge}
       />
@@ -208,6 +224,7 @@ function Band({
   isMobile = false,
   anchorX = 0,
   anchorY = 4,
+  scale = 1,
   image = null,
   badge = null,
   lanyardImage = null,
@@ -294,7 +311,7 @@ function Band({
   useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
   useSphericalJoint(j3, card, [
     [0, 0, 0],
-    [0, 1.5, 0]
+    [0, 1.5 * scale, 0]
   ]);
 
   useEffect(() => {
@@ -382,18 +399,18 @@ function Band({
           <BallCollider args={[0.1]} />
         </RigidBody>
         <RigidBody position={CARD_POS} ref={card} {...segmentProps} type={dragged ? 'kinematicPosition' : 'dynamic'}>
-          <CuboidCollider args={[0.8, 1.125, 0.01]} />
+          <CuboidCollider args={[0.8 * scale, 1.125 * scale, 0.01]} />
           <group
-            scale={2.25}
-            position={[0, -1.2, -0.05]}
+            scale={2.25 * scale}
+            position={[0, -1.2 * scale, -0.05]}
             onPointerOver={() => hover(true)}
             onPointerOut={() => { hover(false); hoverTilt.current = null; }}
             onPointerMove={e => {
               if (!card.current) return;
               const pos = card.current.translation();
               hoverTilt.current = {
-                nx: THREE.MathUtils.clamp((e.point.x - pos.x) / 0.9, -1, 1),
-                ny: THREE.MathUtils.clamp((e.point.y - pos.y) / 1.2, -1, 1),
+                nx: THREE.MathUtils.clamp((e.point.x - pos.x) / (0.9 * scale), -1, 1),
+                ny: THREE.MathUtils.clamp((e.point.y - pos.y) / (1.2 * scale), -1, 1),
               };
               card.current.wakeUp();
             }}

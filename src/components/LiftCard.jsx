@@ -1,22 +1,16 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import useScrollReveal from '../hooks/useScrollReveal';
 
-// Shared interactive card: motion handles the scroll-into-view entrance and
-// a clean lift on hover (the 3D tilt now lives on the lanyard badges only).
+// Shared interactive card. anime.js handles the scroll-into-view entrance
+// (via useScrollReveal, which suppresses CSS transitions during the entrance);
+// the hover lift / tap press live in CSS on `.lift-card`. (The 3D tilt now
+// lives on the lanyard badges only.)
 export default function LiftCard({ className = '', delay = 0, onClick, children, ...rest }) {
+  const ref = useScrollReveal({ y: 40, scale: 0.97, delay, duration: 650, amount: 0.15 });
+
   return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 40, scale: 0.97 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.65, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -8, scale: 1.015, transition: { duration: 0.25, delay: 0, ease: 'easeOut' } }}
-      whileTap={{ scale: 0.985, transition: { duration: 0.15, delay: 0 } }}
-      onClick={onClick}
-      {...rest}
-    >
+    <div ref={ref} className={`lift-card ${className}`} onClick={onClick} {...rest}>
       {children}
-    </motion.div>
+    </div>
   );
 }

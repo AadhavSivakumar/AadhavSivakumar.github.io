@@ -1,7 +1,7 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import Reveal from './Reveal';
 import SectionTitle from './SectionTitle';
+import useScrollReveal from '../hooks/useScrollReveal';
 import { resumeDocsData } from '../data/siteData';
 
 const DocIcon = () => (
@@ -13,6 +13,17 @@ const DocIcon = () => (
     <polyline points="10 9 9 9 8 9" />
   </svg>
 );
+
+function DocTile({ doc, index, onOpen }) {
+  const ref = useScrollReveal({ y: 30, scale: 0.95, delay: index * 0.09, duration: 550, amount: 0.3 });
+  return (
+    <button ref={ref} className="doc-tile project-modal-trigger" onClick={(e) => onOpen(e, doc)}>
+      {doc.badge && <span className="doc-tile-badge">{doc.badge}</span>}
+      <DocIcon />
+      <span className="doc-tile-label">{doc.title}</span>
+    </button>
+  );
+}
 
 export default function Resume({ onCardClick }) {
   const openDoc = (e, doc) => {
@@ -35,21 +46,7 @@ export default function Resume({ onCardClick }) {
       </Reveal>
       <div className="docs-grid">
         {resumeDocsData.map((doc, i) => (
-          <motion.button
-            key={doc.id}
-            className="doc-tile project-modal-trigger"
-            onClick={(e) => openDoc(e, doc)}
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.55, delay: i * 0.09, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -6 }}
-            whileTap={{ scale: 0.97 }}
-          >
-            {doc.badge && <span className="doc-tile-badge">{doc.badge}</span>}
-            <DocIcon />
-            <span className="doc-tile-label">{doc.title}</span>
-          </motion.button>
+          <DocTile key={doc.id} doc={doc} index={i} onOpen={openDoc} />
         ))}
       </div>
     </section>
