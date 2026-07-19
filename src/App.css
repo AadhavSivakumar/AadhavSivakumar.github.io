@@ -198,15 +198,17 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
    on both sides. Full-bleed so the six lanyards have room beyond the 1200px
    section width; overflow clips the canvas top so the straps appear to come
    from offscreen. */
-.about-stage {
+/* Top row of the About section: the card centered, flanked by the two
+   anime.js flourishes in the wide space beside it. */
+.about-top {
   position: relative;
   width: 100vw;
   margin-left: calc(50% - 50vw);
-  min-height: 80vh;
+  min-height: 480px;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
+  padding: 24px 0 8px;
 }
 .about-card-wrapper {
   display: flex;
@@ -216,7 +218,50 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
   z-index: 5;
 }
 
-/* Lanyard canvas: fills the stage, extended upward so the bands' fixed
+/* Decorative anime.js motifs flanking the card (gold rings/lines/dots). Purely
+   ambient — no pointer interaction; mirrored on the right. */
+.about-flourish {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 150px;
+  height: 440px;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.about-flourish svg { width: 100%; height: 100%; overflow: visible; }
+.about-flourish--left { left: clamp(16px, 8vw, 340px); }
+.about-flourish--right { right: clamp(16px, 8vw, 340px); }
+.about-flourish--right svg { transform: scaleX(-1); }
+
+.flr-ring, .flr-hex, .flr-dot { transform-box: fill-box; transform-origin: center; }
+.flr-ring-shape, .flr-hex {
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 1.2;
+  opacity: 0.55;
+}
+.flr-line {
+  stroke: var(--accent-color);
+  stroke-width: 1.4;
+  stroke-dasharray: 6 10;
+  stroke-linecap: round;
+  opacity: 0.22;
+}
+.flr-dot { fill: var(--accent-color); }
+
+/* The 3D lanyards span their own full-width horizontal strip below the card. */
+.about-lanyard-strip {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  height: 58vh;
+  min-height: 440px;
+  overflow: hidden;
+}
+
+/* Lanyard canvas: fills the strip, extended upward so the bands' fixed
    anchors sit above the visible edge. */
 .lanyard-wrapper {
   position: absolute;
@@ -658,10 +703,11 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 992px) {
-  .about-stage {
+  .about-top {
     width: 100%;
     margin-left: 0;
     min-height: 0;
+    padding: 0;
   }
   .about-card-wrapper {
     flex-direction: column;

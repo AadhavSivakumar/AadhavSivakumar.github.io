@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import LiftCard from './LiftCard';
+import AboutFlourish from './AboutFlourish';
 import { aboutMeData } from '../data/siteData';
 import dhsImg from '../../Media/lanyardimgs/DHS.jpg';
 import ucscImg from '../../Media/lanyardimgs/UCSC.png';
@@ -24,10 +25,6 @@ const badgeCards = [
   { side: 'right', slot: 2, image: researcherImg, badge: { name: 'Researcher', role: 'TML @ UCSC, CREO @ NYU', id: 'Research', exp: '2024/6' } },
 ];
 
-// Half the about card's width plus a gap — the lanyards keep this much
-// horizontal clearance from the canvas center so they hang beside the card.
-const CARD_CLEAR_PX = 270;
-
 export default function About({ onCardClick }) {
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 992);
 
@@ -39,18 +36,10 @@ export default function About({ onCardClick }) {
 
   return (
     <section id="about" style={{ padding: '30px 5% 30px 5%' }}>
-      <div className="about-stage">
-        {isWide && (
-          <Suspense fallback={null}>
-            <Lanyard
-              position={[0, 0, 30]}
-              gravity={[0, -40, 0]}
-              cards={badgeCards}
-              clearCenterPx={CARD_CLEAR_PX}
-              lanyardWidth={0.35}
-            />
-          </Suspense>
-        )}
+      {/* Top row: the about card centered, flanked by the two anime.js
+          flourishes in the space the lanyards used to occupy. */}
+      <div className="about-top">
+        {isWide && <AboutFlourish side="left" />}
         <div className="about-card-wrapper">
           <LiftCard
             className="major-project-card project-modal-trigger about-me-card"
@@ -67,7 +56,25 @@ export default function About({ onCardClick }) {
             </div>
           </LiftCard>
         </div>
+        {isWide && <AboutFlourish side="right" />}
       </div>
+
+      {/* The 3D lanyards now span their own full-width horizontal strip below
+          the card (clearCenterPx 0 → badges spread across the whole width,
+          education left / work right). */}
+      {isWide && (
+        <div className="about-lanyard-strip">
+          <Suspense fallback={null}>
+            <Lanyard
+              position={[0, 0, 30]}
+              gravity={[0, -40, 0]}
+              cards={badgeCards}
+              clearCenterPx={0}
+              lanyardWidth={0.35}
+            />
+          </Suspense>
+        </div>
+      )}
     </section>
   );
 }
