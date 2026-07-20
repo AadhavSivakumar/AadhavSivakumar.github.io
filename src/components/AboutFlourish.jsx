@@ -55,8 +55,6 @@ export default function AboutFlourish({ side = 'left' }) {
       }),
     ];
 
-    const section = root.closest('#about');
-
     // 2. Scroll-scrubbed shape morph: hexagon -> triangle -> diamond.
     const morphEl = root.querySelector('.flr-morph');
     const triEl = root.querySelector('.flr-target-tri');
@@ -69,19 +67,14 @@ export default function AboutFlourish({ side = 'left' }) {
         .add(morphEl, { d: svg.morphTo(diaEl), duration: MORPH_DUR / 2 });
     }
 
-    // Follow-the-screen-down travel + morph scrub. The motif tries to stay
-    // centered in the viewport (so it follows you down through the section),
-    // bounded to the section box; the same 0..1 progress drives the morph.
-    // Kept synchronous — a single rect read + transform write + morph seek per
-    // side is cheap, and it stays responsive even when rAF is throttled.
+    // The motif is fixed to the viewport (so it stays visible across the whole
+    // page) and its shape morphs as you scroll, scrubbed by total page-scroll
+    // progress. A small vertical drift keeps it from feeling pinned. Kept
+    // synchronous — one transform write + morph seek per side is cheap.
     const onScroll = () => {
-      if (!section) return;
-      const rect = section.getBoundingClientRect();
-      const travel = Math.max(section.offsetHeight - FLOURISH_H, 1);
-      const tyRaw = (window.innerHeight - FLOURISH_H) / 2 - rect.top;
-      const ty = clamp(tyRaw, 0, travel);
-      const p = clamp(tyRaw / travel, 0, 1);
-      root.style.transform = `translateY(${ty}px)`;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? clamp(window.scrollY / max, 0, 1) : 0;
+      root.style.transform = `translateY(${(p - 0.5) * 50}px)`;
       if (morphTl) morphTl.seek(p * MORPH_DUR);
     };
     onScroll();

@@ -1,6 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import LiftCard from './LiftCard';
-import AboutFlourish from './AboutFlourish';
 import { aboutMeData } from '../data/siteData';
 import dhsImg from '../../Media/lanyardimgs/DHS.jpg';
 import ucscImg from '../../Media/lanyardimgs/UCSC.png';
@@ -36,15 +35,6 @@ export default function About({ onCardClick }) {
 
   return (
     <section id="about" style={{ padding: '30px 5% 30px 5%' }}>
-      {/* Full-height decorative layer: the two anime.js flourishes travel down
-          this layer (following the screen) and morph as the section scrolls. */}
-      {isWide && (
-        <div className="about-flourish-layer" aria-hidden="true">
-          <AboutFlourish side="left" />
-          <AboutFlourish side="right" />
-        </div>
-      )}
-
       {/* Top row: the about card, centered. */}
       <div className="about-top">
         <div className="about-card-wrapper">
@@ -77,8 +67,8 @@ export default function About({ onCardClick }) {
               gravity={[0, -40, 0]}
               cards={badgeCards}
               clearCenterPx={0}
-              spreadStep={2.2}
-              lanyardWidth={0.35}
+              sizeMul={1.5}
+              lanyardWidth={0.5}
             />
           </Suspense>
         </div>

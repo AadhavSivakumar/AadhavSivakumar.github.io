@@ -9,10 +9,12 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
+import AboutFlourish from './components/AboutFlourish';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 992);
   const lastClickedCardRef = useRef(null);
   const [modalState, setModalState] = useState({
     isOpen: false,
@@ -26,6 +28,12 @@ function App() {
       history.scrollRestoration = 'manual';
     }
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setIsWide(window.innerWidth >= 992);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
@@ -52,6 +60,15 @@ function App() {
   return (
     <>
       <ScrollProgress />
+      {/* Page-wide decorative anime.js flourishes: fixed to the viewport, one
+          per side, behind all content — visible across every section and
+          morphing as the whole page scrolls. */}
+      {isWide && (
+        <div className="page-flourish-layer" aria-hidden="true">
+          <AboutFlourish side="left" />
+          <AboutFlourish side="right" />
+        </div>
+      )}
       <Header theme={theme} toggleTheme={toggleTheme} />
       <main>
         <Hero />

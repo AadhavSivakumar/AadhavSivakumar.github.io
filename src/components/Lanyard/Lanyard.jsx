@@ -48,15 +48,21 @@ const FLIP_KICK = 0.08;
 const TILT_MAX = 0.35;
 
 // Recency gradient: `slot` 0 is the present badge (NYU / Roboflow) and renders
-// full size; each step further into the past shrinks the badge and lifts its
-// anchor higher, so older badges float smaller and above the about card while
-// the present ones hang large beside it. Indexed by slot; slots beyond the
-// list fall back to the last (smallest) entry.
-const SLOT_SCALE = [1, 0.82, 0.66];
-// Anchor height for the present (slot 0) badge; each older slot is raised
-// SLOT_RISE world units higher so past badges arc up above the about card.
-const SLOT_BASE_Y = 3.3;
-const SLOT_RISE = 0.7;
+// largest; each step into the past is a touch smaller. The gradient is gentle
+// so the run reads as a premium row of similar badges. Indexed by slot; slots
+// beyond the list fall back to the last (smallest) entry.
+const SLOT_SCALE = [1, 0.9, 0.82];
+// All badges hang from the same overhead rail (flat top). Size differences
+// alone give a subtle arc — larger cards hang a little lower via the card
+// joint — so no per-slot rise is needed.
+const SLOT_BASE_Y = 3.2;
+const SLOT_RISE = 0;
+
+// Overhead rail the lanyards hang from: a horizontal metal rod with one ring
+// per badge, so the straps read as looped over a display rack. Radii are in
+// world units at sizeMul 1 and scale with the badge size.
+const RING_RADIUS = 0.26;
+const ROD_RADIUS = 0.1;
 
 function slotScale(slot) {
   return SLOT_SCALE[slot] ?? SLOT_SCALE[SLOT_SCALE.length - 1];
@@ -70,6 +76,7 @@ export default function Lanyard({
   cards = [],
   clearCenterPx = 0,
   spreadStep = null,
+  sizeMul = 1,
   lanyardImage = null,
   lanyardWidth = 1
 }) {
@@ -95,6 +102,7 @@ export default function Lanyard({
             cards={cards}
             clearCenterPx={clearCenterPx}
             spreadStep={spreadStep}
+            sizeMul={sizeMul}
             isMobile={isMobile}
             lanyardImage={lanyardImage}
             lanyardWidth={lanyardWidth}
@@ -115,7 +123,7 @@ export default function Lanyard({
 // center: `slot` 0 is the innermost badge on each `side`, higher slots step
 // outward toward the viewport edge. Inner badges hang slightly lower,
 // mirroring the staggered badges on the live /portfolio page.
-function BandField({ cards, clearCenterPx = 0, spreadStep = null, ...bandProps }) {
+function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, ...bandProps }) {
   const { viewport, size } = useThree();
   const [layout, setLayout] = useState(null);
 
@@ -133,43 +141,73 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, ...bandProps }
 
   if (!layout) return null;
 
-  // Each card needs ~1.75 world units of strap-to-strap spacing; when the
-  // viewport can't fit a side's full run, drop the outermost badges rather
-  // than stacking them on top of each other.
-  const MIN_STEP = 1.75;
   const worldPerPx = layout.world / layout.px;
   const slots = cards.length ? Math.max(...cards.map(c => c.slot || 0)) + 1 : 1;
-  const inner = clearCenterPx * worldPerPx + 1.1;
-  const outer = Math.max(layout.world / 2 - 1, inner);
+  // Card half-width in world units for a slot (0.8 is the card's half width at
+  // scale 1 — matches the collider), so spacing is derived from real size.
+  const half = s => 0.8 * slotScale(s) * sizeMul;
+  // Center half-gap between the two innermost badges, plus the spacing between
+  // adjacent slots. `spreadStep` overrides the auto (size-based) spacing.
+  const inner = clearCenterPx * worldPerPx + half(0) + 0.4;
+  const step = spreadStep || half(0) + half(1) + 0.6;
+  // Drop the outermost badges that would run off-screen rather than stacking.
+  const edgeLimit = layout.world / 2 - 0.4;
+  let maxSlots = slots;
+  while (maxSlots > 1 && inner + (maxSlots - 1) * step + half(maxSlots - 1) > edgeLimit) maxSlots--;
+  const stamp = `${layout.world.toFixed(1)}x${layout.px}@${sizeMul}`;
 
-  // `spreadStep` (world units between adjacent badges) keeps the run grouped
-  // near the center at a fixed spacing; without it the badges stretch to fill
-  // the space out to the viewport edge. Either way, drop the outermost badges
-  // that would fall off-screen rather than stacking them.
-  let step, maxSlots;
-  if (spreadStep) {
-    step = Math.max(spreadStep, MIN_STEP);
-    maxSlots = Math.min(slots, Math.max(1, Math.floor((outer - inner) / step) + 1));
-  } else {
-    const span = outer - inner;
-    maxSlots = Math.min(slots, Math.floor(span / MIN_STEP) + 1);
-    step = maxSlots > 1 ? span / (maxSlots - 1) : 0;
-  }
-  const stamp = `${layout.world.toFixed(1)}x${layout.px}`;
+  const shown = cards.filter(c => (c.slot || 0) < maxSlots);
+  const anchorXOf = c => (inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1);
+  const anchorXs = shown.map(anchorXOf);
 
-  return cards
-    .filter(c => (c.slot || 0) < maxSlots)
-    .map((c, i) => (
-      <Band
-        key={`${c.badge?.name || i}@${stamp}`}
-        {...bandProps}
-        anchorX={(inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1)}
-        anchorY={SLOT_BASE_Y + (c.slot || 0) * SLOT_RISE}
-        scale={slotScale(c.slot || 0)}
-        image={c.image}
-        badge={c.badge}
-      />
-    ));
+  return (
+    <>
+      <LanyardRack anchorXs={anchorXs} sizeMul={sizeMul} />
+      {shown.map((c, i) => (
+        <Band
+          key={`${c.badge?.name || i}@${stamp}`}
+          {...bandProps}
+          anchorX={anchorXOf(c)}
+          anchorY={SLOT_BASE_Y + (c.slot || 0) * SLOT_RISE}
+          scale={slotScale(c.slot || 0) * sizeMul}
+          image={c.image}
+          badge={c.badge}
+        />
+      ))}
+    </>
+  );
+}
+
+// The overhead display rail the lanyards hang from: a horizontal metal rod with
+// rounded end caps, and one ring per badge positioned so each strap loops over
+// its ring (rod at the ring tops, strap starting at the ring bottom).
+function LanyardRack({ anchorXs = [], sizeMul = 1 }) {
+  const ringR = RING_RADIUS * sizeMul;
+  const rodR = ROD_RADIUS * sizeMul;
+  const rodY = SLOT_BASE_Y + 2 * ringR;
+  const rodHalf = (anchorXs.length ? Math.max(...anchorXs.map(Math.abs)) : 1) + 0.9;
+  const metal = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 1, roughness: 0.3 }),
+    []
+  );
+  return (
+    <group>
+      <mesh position={[0, rodY, -0.15]} rotation={[0, 0, Math.PI / 2]} material={metal}>
+        <cylinderGeometry args={[rodR, rodR, rodHalf * 2, 20]} />
+      </mesh>
+      <mesh position={[-rodHalf, rodY, -0.15]} material={metal}>
+        <sphereGeometry args={[rodR * 1.7, 20, 20]} />
+      </mesh>
+      <mesh position={[rodHalf, rodY, -0.15]} material={metal}>
+        <sphereGeometry args={[rodR * 1.7, 20, 20]} />
+      </mesh>
+      {anchorXs.map((x, i) => (
+        <mesh key={i} position={[x, SLOT_BASE_Y + ringR, -0.05]} material={metal}>
+          <torusGeometry args={[ringR, rodR * 0.7, 14, 28]} />
+        </mesh>
+      ))}
+    </group>
+  );
 }
 
 // Draws an ID-badge face (photo, name, role, ID/EXP rows) into the card's
@@ -190,7 +228,7 @@ function drawBadgeFace(ctx, rect, badge, img, W, H) {
 
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(rx, ry, rw, rh);
-  ctx.fillStyle = '#f3f4f6';
+  ctx.fillStyle = '#f5f1e9';
   ctx.fillRect(rx, ry, rw, 80 * u);
 
   if (img) {
@@ -207,6 +245,10 @@ function drawBadgeFace(ctx, rect, badge, img, W, H) {
     ctx.restore();
   }
 
+  // premium gold accent divider under the photo
+  ctx.fillStyle = '#c5a35c';
+  ctx.fillRect(rx + 22 * u, ry + 131 * u, rw - 44 * u, 1.6 * u);
+
   ctx.textAlign = 'center';
   ctx.fillStyle = '#111827';
   ctx.font = `600 ${15 * u}px Poppins, sans-serif`;
@@ -217,8 +259,8 @@ function drawBadgeFace(ctx, rect, badge, img, W, H) {
 
   const drawRow = (label, value, y) => {
     ctx.textAlign = 'right';
-    ctx.font = `600 ${10 * u}px Poppins, sans-serif`;
-    ctx.fillStyle = '#6b7280';
+    ctx.font = `700 ${10 * u}px Poppins, sans-serif`;
+    ctx.fillStyle = '#b0872f';
     ctx.fillText(label, cx - 5 * u, y);
     ctx.textAlign = 'left';
     ctx.font = `600 ${11 * u}px Poppins, sans-serif`;
@@ -450,9 +492,9 @@ function Band({
                 map={cardMap}
                 map-anisotropy={16}
                 clearcoat={isMobile ? 0 : 1}
-                clearcoatRoughness={0.15}
-                roughness={0.9}
-                metalness={0.8}
+                clearcoatRoughness={0.1}
+                roughness={0.55}
+                metalness={0.35}
               />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
