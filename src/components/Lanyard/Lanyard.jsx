@@ -69,6 +69,7 @@ export default function Lanyard({
   transparent = true,
   cards = [],
   clearCenterPx = 0,
+  spreadStep = null,
   lanyardImage = null,
   lanyardWidth = 1
 }) {
@@ -93,6 +94,7 @@ export default function Lanyard({
           <BandField
             cards={cards}
             clearCenterPx={clearCenterPx}
+            spreadStep={spreadStep}
             isMobile={isMobile}
             lanyardImage={lanyardImage}
             lanyardWidth={lanyardWidth}
@@ -113,7 +115,7 @@ export default function Lanyard({
 // center: `slot` 0 is the innermost badge on each `side`, higher slots step
 // outward toward the viewport edge. Inner badges hang slightly lower,
 // mirroring the staggered badges on the live /portfolio page.
-function BandField({ cards, clearCenterPx = 0, ...bandProps }) {
+function BandField({ cards, clearCenterPx = 0, spreadStep = null, ...bandProps }) {
   const { viewport, size } = useThree();
   const [layout, setLayout] = useState(null);
 
@@ -139,9 +141,20 @@ function BandField({ cards, clearCenterPx = 0, ...bandProps }) {
   const slots = cards.length ? Math.max(...cards.map(c => c.slot || 0)) + 1 : 1;
   const inner = clearCenterPx * worldPerPx + 1.1;
   const outer = Math.max(layout.world / 2 - 1, inner);
-  const span = outer - inner;
-  const maxSlots = Math.min(slots, Math.floor(span / MIN_STEP) + 1);
-  const step = maxSlots > 1 ? span / (maxSlots - 1) : 0;
+
+  // `spreadStep` (world units between adjacent badges) keeps the run grouped
+  // near the center at a fixed spacing; without it the badges stretch to fill
+  // the space out to the viewport edge. Either way, drop the outermost badges
+  // that would fall off-screen rather than stacking them.
+  let step, maxSlots;
+  if (spreadStep) {
+    step = Math.max(spreadStep, MIN_STEP);
+    maxSlots = Math.min(slots, Math.max(1, Math.floor((outer - inner) / step) + 1));
+  } else {
+    const span = outer - inner;
+    maxSlots = Math.min(slots, Math.floor(span / MIN_STEP) + 1);
+    step = maxSlots > 1 ? span / (maxSlots - 1) : 0;
+  }
   const stamp = `${layout.world.toFixed(1)}x${layout.px}`;
 
   return cards

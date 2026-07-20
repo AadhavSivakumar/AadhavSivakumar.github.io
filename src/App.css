@@ -198,8 +198,11 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
    on both sides. Full-bleed so the six lanyards have room beyond the 1200px
    section width; overflow clips the canvas top so the straps appear to come
    from offscreen. */
-/* Top row of the About section: the card centered, flanked by the two
-   anime.js flourishes in the wide space beside it. */
+/* The About section is the positioning context for the full-height flourish
+   layer that sits behind the card and lanyards. */
+#about { position: relative; }
+
+/* Top row of the About section: the card, centered. */
 .about-top {
   position: relative;
   width: 100vw;
@@ -218,30 +221,47 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
   z-index: 5;
 }
 
-/* Decorative anime.js motifs flanking the card (gold rings/lines/dots). Purely
-   ambient — no pointer interaction; mirrored on the right. */
+/* Full-height, full-width layer the flourishes live in. It spans the whole
+   About section so the motifs can travel down it as the section scrolls;
+   z-index 0 keeps them behind the card (z 5) and the lanyard badges (z 1). */
+.about-flourish-layer {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Decorative anime.js motifs (gold rings/lines/dots + a morphing shape). Purely
+   ambient — no pointer interaction; mirrored on the right. `top`/`transform`
+   are driven by scroll in AboutFlourish.jsx (follow-the-screen-down travel). */
 .about-flourish {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
   width: 150px;
   height: 440px;
-  z-index: 1;
   pointer-events: none;
   opacity: 0.85;
+  will-change: transform;
 }
 .about-flourish svg { width: 100%; height: 100%; overflow: visible; }
-.about-flourish--left { left: clamp(16px, 8vw, 340px); }
-.about-flourish--right { right: clamp(16px, 8vw, 340px); }
+.about-flourish--left { left: clamp(16px, 6vw, 300px); }
+.about-flourish--right { right: clamp(16px, 6vw, 300px); }
 .about-flourish--right svg { transform: scaleX(-1); }
 
-.flr-ring, .flr-hex, .flr-dot { transform-box: fill-box; transform-origin: center; }
+.flr-ring, .flr-dot { transform-box: fill-box; transform-origin: center; }
 .flr-ring-shape, .flr-hex {
   fill: none;
   stroke: var(--accent-color);
   stroke-width: 1.2;
   opacity: 0.55;
 }
+/* Morph targets are geometry-only — invisible but present in the DOM. */
+.flr-target { fill: none; stroke: none; }
 .flr-line {
   stroke: var(--accent-color);
   stroke-width: 1.4;

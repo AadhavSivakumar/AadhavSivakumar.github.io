@@ -36,10 +36,17 @@ export default function About({ onCardClick }) {
 
   return (
     <section id="about" style={{ padding: '30px 5% 30px 5%' }}>
-      {/* Top row: the about card centered, flanked by the two anime.js
-          flourishes in the space the lanyards used to occupy. */}
+      {/* Full-height decorative layer: the two anime.js flourishes travel down
+          this layer (following the screen) and morph as the section scrolls. */}
+      {isWide && (
+        <div className="about-flourish-layer" aria-hidden="true">
+          <AboutFlourish side="left" />
+          <AboutFlourish side="right" />
+        </div>
+      )}
+
+      {/* Top row: the about card, centered. */}
       <div className="about-top">
-        {isWide && <AboutFlourish side="left" />}
         <div className="about-card-wrapper">
           <LiftCard
             className="major-project-card project-modal-trigger about-me-card"
@@ -56,12 +63,12 @@ export default function About({ onCardClick }) {
             </div>
           </LiftCard>
         </div>
-        {isWide && <AboutFlourish side="right" />}
       </div>
 
-      {/* The 3D lanyards now span their own full-width horizontal strip below
-          the card (clearCenterPx 0 → badges spread across the whole width,
-          education left / work right). */}
+      {/* The 3D lanyards span their own full-width horizontal strip below the
+          card. `spreadStep` groups the badges at a fixed spacing near the
+          center (education left / work right) instead of stretching them out
+          to the viewport edges. */}
       {isWide && (
         <div className="about-lanyard-strip">
           <Suspense fallback={null}>
@@ -70,6 +77,7 @@ export default function About({ onCardClick }) {
               gravity={[0, -40, 0]}
               cards={badgeCards}
               clearCenterPx={0}
+              spreadStep={2.2}
               lanyardWidth={0.35}
             />
           </Suspense>
