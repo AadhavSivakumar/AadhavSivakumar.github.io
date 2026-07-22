@@ -129,11 +129,62 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 }
 
 /* HERO */
-#hero { min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
+#hero { position: relative; overflow: hidden; min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
 #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
 #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
 .hero-word { display: inline-block; white-space: nowrap; }
 .hero-letter { display: inline-block; will-change: transform; }
+
+/* Staggered sine-wave curtains flanking the hero (port of the /portfolio look).
+   Each row carries a negative animation-delay so the stack ripples. */
+.sine-wave-container {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 300px;
+  height: 420px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.75;
+}
+.sine-wave--left {
+  left: 0;
+  -webkit-mask-image: linear-gradient(to left, transparent 0%, black 22%, black 78%, transparent 100%);
+  mask-image: linear-gradient(to left, transparent 0%, black 22%, black 78%, transparent 100%);
+}
+.sine-wave--right {
+  right: 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%);
+}
+.sine-wave-container svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.sine-wave-container svg path {
+  stroke: var(--accent-color);
+  stroke-width: 2px;
+  fill: none;
+  animation-duration: 3s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.sine-wave--left svg path { animation-name: sine-move-left; }
+.sine-wave--right svg path { animation-name: sine-move-right; }
+
+@keyframes sine-move-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-200px); }
+}
+@keyframes sine-move-right {
+  from { transform: translateX(-200px); }
+  to   { transform: translateX(0); }
+}
+
+@media (max-width: 992px) {
+  .sine-wave-container { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sine-wave-container svg path { animation: none; }
+}
 
 /* Soft animated aurora behind the hero */
 .hero-aurora { position: absolute; inset: 0; overflow: visible; pointer-events: none; z-index: -1; }
@@ -268,6 +319,9 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 .flr-stage .flr-fillsoft { fill: var(--accent-color); fill-opacity: 0.18; }
 .flr-stage .flr-thin { stroke-width: 0.9; opacity: 0.65; }
 .flr-spin, .flr-pulse { transform-box: fill-box; transform-origin: center; }
+/* Direct children of a scene are the "parts" the exploded-view assembly moves;
+   they must rotate about their own centre, not the SVG origin. */
+.flr-stage > * { transform-box: fill-box; transform-origin: center; }
 
 /* The 3D lanyards span their own full-width horizontal strip below the card. */
 .about-lanyard-strip {

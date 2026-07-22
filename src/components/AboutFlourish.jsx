@@ -232,6 +232,41 @@ export default function AboutFlourish({ side = 'left' }) {
       }),
     ];
 
+    // Exploded-view assembly (right/robotics side): every part of a scene is
+    // measured once, then flown in radially from outside the scene's centre as
+    // that scene becomes active, and blown back apart as the next one takes
+    // over. Parts that carry their own transform (pre-rotated groups) or an
+    // anime.js loop (.flr-spin/.flr-pulse) are skipped so we never fight them.
+    const explode = side === 'right'
+      ? stages.map(stage =>
+          Array.from(stage.children)
+            .filter(el =>
+              !el.hasAttribute('transform') &&
+              !el.classList.contains('flr-spin') &&
+              !el.classList.contains('flr-pulse') &&
+              !el.querySelector?.('.flr-spin, .flr-pulse')
+            )
+            .map(el => {
+              let box;
+              try { box = el.getBBox(); } catch { box = null; }
+              const cx = box ? box.x + box.width / 2 : 90;
+              const cy = box ? box.y + box.height / 2 : 110;
+              // Radial direction away from the scene's nominal centre, with a
+              // deterministic minimum so parts sitting dead-centre still move.
+              let dx = cx - 90;
+              let dy = cy - 110;
+              const len = Math.hypot(dx, dy) || 1;
+              const push = 42 + 18 * (len / 90);
+              return {
+                el,
+                ox: (dx / len) * push,
+                oy: (dy / len) * push,
+                rot: (cx > 90 ? 1 : -1) * (10 + (len % 9)),
+              };
+            })
+        )
+      : null;
+
     // Scroll-scrubbed storyboard: total page-scroll progress maps onto a stage
     // position; each scene crossfades into the next (with a small scale-in).
     const onScroll = () => {
@@ -239,9 +274,35 @@ export default function AboutFlourish({ side = 'left' }) {
       const p = max > 0 ? clamp(window.scrollY / max, 0, 1) : 0;
       const pos = p * (stages.length - 1);
       stages.forEach((el, i) => {
-        const o = clamp(1 - Math.abs(pos - i), 0, 1);
+        // Signed distance: negative = this scene is still ahead (waiting
+        // below), positive = it has been handed off and is drifting away.
+        const d = clamp(pos - i, -1, 1);
+        const a = Math.abs(d);
+        // Smoothstep the fade and hold the middle, so neighbouring scenes
+        // overlap for longer and the handoff reads as one continuous
+        // transformation rather than a hard swap.
+        const t = clamp((1 - a) / 0.75, 0, 1);
+        const o = t * t * (3 - 2 * t);
+        // Each scene rises into place, then keeps travelling upward and
+        // opening up as the next one takes over — so the motion flows through
+        // the whole storyboard in one direction.
+        const y = d * -26;
+        const s = 0.82 + 0.18 * o + (d > 0 ? d * 0.14 : 0);
+        const r = d * 5;
         el.style.opacity = o;
-        el.style.transform = `scale(${0.8 + 0.2 * o})`;
+        el.style.transform = `translateY(${y}px) rotate(${r}deg) scale(${s})`;
+        // Drop fully-faded scenes out of hit/paint work entirely.
+        el.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
+
+        if (explode) {
+          // 0 at the scene's peak (fully assembled), 1 at the extremes
+          // (fully exploded). Eased so the last of the assembly snaps together.
+          const k = a * a;
+          explode[i].forEach(part => {
+            part.el.style.transform =
+              `translate(${part.ox * k * Math.sign(d || -1)}px, ${part.oy * k}px) rotate(${part.rot * k}deg)`;
+          });
+        }
       });
     };
     onScroll();

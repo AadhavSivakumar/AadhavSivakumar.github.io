@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
+import SineWave from './SineWave';
 
 // Keyword chips under the tagline, like the live /portfolio hero — clicking
 // one jumps to the section where that topic lives.
@@ -37,6 +38,10 @@ export default function Hero() {
         <div className="aurora-blob aurora-a" />
         <div className="aurora-blob aurora-b" />
       </div>
+
+      {/* Staggered sine-wave curtains flanking the name, as on /portfolio. */}
+      <SineWave side="left" />
+      <SineWave side="right" />
 
       <h1 ref={nameRef} aria-label={NAME}>
         {NAME.split(' ').map((word, wi, words) => (
