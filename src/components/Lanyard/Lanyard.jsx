@@ -20,6 +20,12 @@ const BLANK_PIXEL =
 // atlas and the back face to the RIGHT half (measured from card.glb). Each
 // custom image is composited into its own half so the two faces render
 // independently, aspect-preserving (no stretching).
+// Physical size of the card's printed face, in world units (matches the card
+// collider: 0.8 x 1.125 half-extents). Used to undo the aspect difference
+// between the UV rect and the badge artwork so nothing renders stretched.
+const CARD_FACE_W = 1.6;
+const CARD_FACE_H = 2.25;
+
 const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.755 };
 const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 
@@ -210,6 +216,47 @@ function LanyardRack({ anchorXs = [], sizeMul = 1 }) {
   );
 }
 
+// Tracks the site theme so the strap can invert against the page: a dark strap
+// on the light theme, a light strap on the dark theme.
+function useSiteTheme() {
+  const [theme, setTheme] = useState(
+    () => (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'light'
+  );
+  useEffect(() => {
+    const el = document.documentElement;
+    const read = () => setTheme(el.getAttribute('data-theme') || 'light');
+    const obs = new MutationObserver(read);
+    obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
+    read();
+    return () => obs.disconnect();
+  }, []);
+  return theme;
+}
+
+// The strap artwork is a near-black webbing, which is right on the light theme
+// but disappears on the dark one. Tinting can't fix that (the material colour
+// only multiplies the map), so on the dark theme we render an inverted copy of
+// the texture: a light strap with dark hardware.
+function useStrapTexture(texture, theme) {
+  return useMemo(() => {
+    if (theme !== 'dark' || !texture?.image) return texture;
+    const img = texture.image;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return texture;
+    ctx.filter = 'invert(1)';
+    ctx.drawImage(img, 0, 0);
+    const inverted = new THREE.CanvasTexture(canvas);
+    inverted.colorSpace = texture.colorSpace;
+    inverted.wrapS = inverted.wrapT = THREE.RepeatWrapping;
+    inverted.flipY = texture.flipY;
+    inverted.needsUpdate = true;
+    return inverted;
+  }, [texture, theme]);
+}
+
 // Draws an ID-badge face (photo, name, role, ID/EXP rows) into the card's
 // front UV rect, matching the badge design on the live /portfolio page.
 // Proportions are expressed against the live badge's 160x260 canvas card.
@@ -228,8 +275,18 @@ function drawBadgeFace(ctx, rect, badge, img, W, H) {
 
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(rx, ry, rw, rh);
+  // Full-bleed header band is drawn untransformed so it still reaches both
+  // edges of the card.
   ctx.fillStyle = '#f5f1e9';
-  ctx.fillRect(rx, ry, rw, 80 * u);
+  ctx.fillRect(rx, ry, rw, 80 * (rh / 260));
+
+  // The UV rect is squarer than the 160x260 badge design it carries, so a
+  // naive draw stretches every glyph horizontally. Compress x about the card's
+  // centre line by exactly that ratio so text and the photo stay true.
+  const squash = (CARD_FACE_W / CARD_FACE_H) * (260 / 160);
+  ctx.translate(cx, 0);
+  ctx.scale(1 / squash, 1);
+  ctx.translate(-cx, 0);
 
   if (img) {
     const r = 50 * u;
@@ -304,6 +361,8 @@ function Band({
   const { nodes, materials } = useGLTF(cardGLB);
   
   const texture = useTexture(lanyardImage || lanyardTexture);
+  const theme = useSiteTheme();
+  const strapTex = useStrapTexture(texture, theme);
   const photoTex = useTexture(image || BLANK_PIXEL);
 
   // Composite this badge into the card's texture atlas: the front face gets
@@ -323,6 +382,31 @@ function Band({
     if (!ctx) return baseMap;
     // Keep the original baked atlas for the card edges and any untouched face.
     ctx.drawImage(baseImg, 0, 0, W, H);
+
+    // Back face: fit the whole logo inside the card ("contain") on a clean
+    // white field. A cover-fit crops wide wordmarks so they run off the edges.
+    const drawContain = (img, rect) => {
+      const rx = rect.x * W;
+      const ry = rect.y * H;
+      const rw = rect.w * W;
+      const rh = rect.h * H;
+      // Aspect of the rect as it actually appears on the physical card face.
+      const faceScaleX = rw / (rh * (CARD_FACE_W / CARD_FACE_H)) ;
+      const pad = 0.14;
+      const availW = rw * (1 - 2 * pad) / faceScaleX;
+      const availH = rh * (1 - 2 * pad);
+      const s = Math.min(availW / img.width, availH / img.height);
+      const dw = img.width * s * faceScaleX;
+      const dh = img.height * s;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rx, ry, rw, rh);
+      ctx.clip();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(rx, ry, rw, rh);
+      ctx.drawImage(img, rx + (rw - dw) / 2, ry + (rh - dh) / 2, dw, dh);
+      ctx.restore();
+    };
 
     const drawCover = (img, rect) => {
       const rx = rect.x * W;
@@ -345,7 +429,7 @@ function Band({
     const photo = image ? photoTex.image : null;
     if (badge) drawBadgeFace(ctx, FRONT_UV_RECT, badge, photo, W, H);
     else if (photo) drawCover(photo, FRONT_UV_RECT);
-    if (photo) drawCover(photo, BACK_UV_RECT);
+    if (photo) drawContain(photo, BACK_UV_RECT);
 
     const composite = new THREE.CanvasTexture(canvas);
     composite.colorSpace = THREE.SRGBColorSpace;
@@ -509,7 +593,7 @@ function Band({
           depthTest={false}
           resolution={isMobile ? [1000, 2000] : [1000, 1000]}
           useMap
-          map={texture}
+          map={strapTex}
           repeat={[-4, 1]}
           lineWidth={lanyardWidth}
         />

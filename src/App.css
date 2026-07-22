@@ -318,6 +318,10 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 .flr-stage .flr-fill { fill: var(--accent-color); stroke: none; }
 .flr-stage .flr-fillsoft { fill: var(--accent-color); fill-opacity: 0.18; }
 .flr-stage .flr-thin { stroke-width: 0.9; opacity: 0.65; }
+/* Shaded bodies and wireframe hatch fills (gradient/pattern ids are injected
+   per side as custom properties so the two SVGs stay independent). */
+.flr-stage .flr-shade { fill: var(--flr-shade); }
+.flr-stage .flr-hatch { fill: var(--flr-hatch); fill-opacity: 0.5; }
 .flr-spin, .flr-pulse { transform-box: fill-box; transform-origin: center; }
 /* Direct children of a scene are the "parts" the exploded-view assembly moves;
    they must rotate about their own centre, not the SVG origin. */

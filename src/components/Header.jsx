@@ -9,6 +9,67 @@ const LINKS = [
   { id: 'contact', label: 'Contact' },
 ];
 
+// Animated sun <-> moon: the disc shrinks and a masking circle slides across to
+// carve out a crescent, while the eight rays retract into the disc. Everything
+// is one continuous transition, so the toggle morphs rather than swapping
+// glyphs.
+const RAYS = Array.from({ length: 8 }, (_, i) => (i * Math.PI) / 4);
+
+function ThemeIcon({ theme }) {
+  const dark = theme === 'dark';
+  const spring = { type: 'spring', stiffness: 220, damping: 22 };
+  return (
+    <motion.svg
+      className="theme-icon"
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      animate={{ rotate: dark ? -40 : 0 }}
+      transition={spring}
+    >
+      <mask id="theme-icon-mask">
+        <rect x="0" y="0" width="24" height="24" fill="white" />
+        <motion.circle
+          r="9"
+          fill="black"
+          animate={{ cx: dark ? 16 : 26, cy: dark ? 6 : -6 }}
+          transition={spring}
+        />
+      </mask>
+      <motion.circle
+        cx="12"
+        cy="12"
+        fill="currentColor"
+        stroke="none"
+        mask="url(#theme-icon-mask)"
+        animate={{ r: dark ? 10 : 5.2 }}
+        transition={spring}
+      />
+      <motion.g animate={{ opacity: dark ? 0 : 1, rotate: dark ? 45 : 0 }} transition={spring} style={{ originX: '12px', originY: '12px' }}>
+        {RAYS.map((a, i) => {
+          const x = 12 + Math.cos(a);
+          const y = 12 + Math.sin(a);
+          return (
+            <motion.line
+              key={i}
+              x1={12 + Math.cos(a) * 8}
+              y1={12 + Math.sin(a) * 8}
+              x2={12 + Math.cos(a) * 10.5}
+              y2={12 + Math.sin(a) * 10.5}
+              animate={{ opacity: dark ? 0 : 1, x: dark ? (x - 12) * -6 : 0, y: dark ? (y - 12) * -6 : 0 }}
+              transition={{ ...spring, delay: dark ? 0 : 0.04 * i }}
+            />
+          );
+        })}
+      </motion.g>
+    </motion.svg>
+  );
+}
+
 export default function Header({ theme, toggleTheme }) {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState(null);
@@ -61,18 +122,7 @@ export default function Header({ theme, toggleTheme }) {
           </a>
         ))}
         <button id="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={theme}
-              style={{ display: 'inline-block' }}
-              initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
-              animate={{ rotate: 0, opacity: 1, scale: 1 }}
-              exit={{ rotate: 90, opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.25 }}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </motion.span>
-          </AnimatePresence>
+          <ThemeIcon theme={theme} />
         </button>
       </nav>
     </header>
