@@ -230,6 +230,13 @@ export default function AboutFlourish({ side = 'left' }) {
         opacity: [0.25, 1], scale: [0.7, 1.15],
         duration: 1500, delay: stagger(180), loop: true, alternate: true, ease: 'inOutSine',
       }),
+      // Gentle continuous 3D orbit of the whole assembly so it reads as a solid
+      // object turning in space even when the scroll position is at rest.
+      animate(root.querySelector('.flr-orbit'), {
+        rotateY: side === 'left' ? [-14, 14] : [14, -14],
+        rotateX: [6, -4],
+        duration: 6000, loop: true, alternate: true, ease: 'inOutSine',
+      }),
     ];
 
     // Exploded-view assembly (right/robotics side): every part of a scene is
@@ -259,10 +266,17 @@ export default function AboutFlourish({ side = 'left' }) {
           // Outline length, so each part can also draw itself on as it seats.
           let draw = 0;
           try { draw = el.getTotalLength ? el.getTotalLength() : 0; } catch { draw = 0; }
+          // Alternate parts explode toward vs. away from the viewer in depth,
+          // and spin about the X/Y axes, so the blow-apart reads as a true 3D
+          // exploded view rather than a flat scatter.
+          const zDir = idx % 2 === 0 ? 1 : -1;
           return {
             el,
             ox: (dx / len) * push,
             oy: (dy / len) * push,
+            oz: zDir * (90 + (len % 40)),
+            rx: (idx % 3 - 1) * 40,
+            ry: (cx > 90 ? 1 : -1) * (35 + (len % 20)),
             rot: (cx > 90 ? 1 : -1) * (26 + (len % 14)),
             draw,
             // Parts seat in sequence (outermost last), like an assembly diagram.
@@ -298,9 +312,16 @@ export default function AboutFlourish({ side = 'left' }) {
         // the whole storyboard in one direction.
         const y = d * -26;
         const s = 0.82 + 0.18 * o + (d > 0 ? d * 0.14 : 0);
-        const r = d * 5;
+        // Each scene sits on a tilted plane: it swings in from a steep angle
+        // (rotateX/rotateY), squares up to face the viewer at its peak, and
+        // tips away as it hands off — a 3D turn rather than a flat rotate.
+        const rotX = d * 42;
+        const rotY = (side === 'left' ? -1 : 1) * d * 34;
+        const tz = -Math.abs(d) * 120;
         el.style.opacity = o;
-        el.style.transform = `translateY(${y}px) rotate(${r}deg) scale(${s})`;
+        el.style.transform =
+          `translateY(${y}px) translateZ(${tz}px) ` +
+          `rotateX(${rotX}deg) rotateY(${rotY}deg) scale(${s})`;
         // Drop fully-faded scenes out of hit/paint work entirely.
         el.style.visibility = o <= 0.001 ? 'hidden' : 'visible';
 
@@ -314,8 +335,9 @@ export default function AboutFlourish({ side = 'left' }) {
           if (explode) {
             const dir = d > 0 ? 1 : -1;
             part.el.style.transform =
-              `translate(${part.ox * k * dir}px, ${part.oy * k}px) ` +
-              `rotate(${part.rot * k * dir}deg) scale(${1 - 0.25 * k})`;
+              `translate3d(${part.ox * k * dir}px, ${part.oy * k}px, ${part.oz * k}px) ` +
+              `rotateX(${part.rx * k}deg) rotateY(${part.ry * k * dir}deg) ` +
+              `rotateZ(${part.rot * k * dir}deg) scale(${1 - 0.25 * k})`;
           }
         });
       });
@@ -345,7 +367,7 @@ export default function AboutFlourish({ side = 'left' }) {
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--accent-color)" strokeWidth="0.7" strokeOpacity="0.5" />
           </pattern>
         </defs>
-        <g style={{ '--flr-shade': `url(#flr-shade-${side})`, '--flr-hatch': `url(#flr-hatch-${side})` }}>
+        <g className="flr-orbit" style={{ '--flr-shade': `url(#flr-shade-${side})`, '--flr-hatch': `url(#flr-hatch-${side})` }}>
           {side === 'left' ? <AiStages /> : <RoboticsStages />}
         </g>
       </svg>
