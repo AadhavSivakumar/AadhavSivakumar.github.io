@@ -215,8 +215,12 @@ export default function AboutFlourish({ side = 'left' }) {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (reduce) {
-      // No motion: show only the final (most complete) scene, static.
+      // Show only the final scene, static — but hold a small yaw so the depth
+      // planes still read as volume with no animation.
       stages.forEach((el, i) => { el.style.opacity = i === stages.length - 1 ? 1 : 0; });
+      const orbit = root.querySelector('.flr-orbit');
+      if (orbit) orbit.style.transform =
+        `rotateX(6deg) rotateY(${side === 'left' ? -18 : 18}deg)`;
       return;
     }
 
@@ -230,14 +234,36 @@ export default function AboutFlourish({ side = 'left' }) {
         opacity: [0.25, 1], scale: [0.7, 1.15],
         duration: 1500, delay: stagger(180), loop: true, alternate: true, ease: 'inOutSine',
       }),
-      // Gentle continuous 3D orbit of the whole assembly so it reads as a solid
-      // object turning in space even when the scroll position is at rest.
-      animate(root.querySelector('.flr-orbit'), {
-        rotateY: side === 'left' ? [-14, 14] : [14, -14],
-        rotateX: [6, -4],
-        duration: 6000, loop: true, alternate: true, ease: 'inOutSine',
-      }),
     ];
+
+    // Ambient 3D orbit + yaw-driven specular light, on our own rAF so the sheen
+    // highlight tracks the LIVE yaw (light fixed in space; faces sweep through
+    // it as the assembly tumbles). Wider swing + rotateZ + translateZ "breathing"
+    // give a stronger volumetric read than the old anime orbit loop.
+    const orbitEl = root.querySelector('.flr-orbit');
+    const sheenEl = root.querySelector('.flr-sheen');
+    const swingY = side === 'left' ? -1 : 1;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now) => {
+      const t = (now - t0) / 1000;
+      const oy = Math.sin(t / 3.1) * 26 * swingY;      // yaw  ±26 (was ±14)
+      const ox = Math.cos(t / 4.3) * 9 - 2;            // pitch
+      const oz = Math.sin(t / 5.0) * 3 * swingY;       // slight roll
+      const tzB = 3 + Math.sin(t / 4.0) * 9;           // z "breathing"
+      if (orbitEl) {
+        orbitEl.style.transform =
+          `translateZ(${tzB.toFixed(2)}px) rotateY(${oy.toFixed(2)}deg) ` +
+          `rotateX(${ox.toFixed(2)}deg) rotateZ(${oz.toFixed(2)}deg)`;
+      }
+      if (sheenEl) {
+        sheenEl.style.setProperty('--sx', `${(50 + oy * 1.7).toFixed(1)}%`);
+        sheenEl.style.setProperty('--sheen-a',
+          (0.5 + 0.4 * Math.cos(oy * Math.PI / 180)).toFixed(3));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
 
     // Exploded-view assembly (right/robotics side): every part of a scene is
     // measured once, then flown in radially from outside the scene's centre as
@@ -270,22 +296,34 @@ export default function AboutFlourish({ side = 'left' }) {
           // and spin about the X/Y axes, so the blow-apart reads as a true 3D
           // exploded view rather than a flat scatter.
           const zDir = idx % 2 === 0 ? 1 : -1;
+
+          // Persistent resting depth so the assembly has real thickness even
+          // when fully seated (k=0). Solid bodies/hatch form the far plane;
+          // linework & nodes float toward the viewer. Per-index spread fans the
+          // parts across the gap so nothing sits co-planar.
+          const isBody =
+            el.classList.contains('flr-shade') ||
+            el.classList.contains('flr-hatch') ||
+            el.classList.contains('flr-fillsoft');
+          const isThin = el.classList.contains('flr-thin');
+          const spread = all.length > 1 ? (idx / (all.length - 1) - 0.5) : 0;
+          const baseZ = (isBody ? -40 : 26) + spread * 40;   // ~ -60 (far) .. +46 (near)
+
           return {
-            el,
+            el, isThin,
             ox: (dx / len) * push,
             oy: (dy / len) * push,
             oz: zDir * (90 + (len % 40)),
             rx: (idx % 3 - 1) * 40,
             ry: (cx > 90 ? 1 : -1) * (35 + (len % 20)),
             rot: (cx > 90 ? 1 : -1) * (26 + (len % 14)),
-            draw,
+            draw, baseZ,
             // Parts seat in sequence (outermost last), like an assembly diagram.
             lead: all.length > 1 ? (idx / (all.length - 1)) * 0.45 : 0,
           };
         });
 
-    const explode = side === 'right' ? stages.map(partsOf) : null;
-    // Both sides draw their outlines on; only the right side explodes.
+    const explode = side === 'right';          // boolean, not a second measure pass
     const drawParts = stages.map(partsOf);
     drawParts.forEach(parts => parts.forEach(p => {
       if (p.draw > 0) p.el.style.strokeDasharray = `${p.draw}`;
@@ -310,14 +348,14 @@ export default function AboutFlourish({ side = 'left' }) {
         // Each scene rises into place, then keeps travelling upward and
         // opening up as the next one takes over — so the motion flows through
         // the whole storyboard in one direction.
-        const y = d * -26;
+        const y = d * -30;
         const s = 0.82 + 0.18 * o + (d > 0 ? d * 0.14 : 0);
         // Each scene sits on a tilted plane: it swings in from a steep angle
         // (rotateX/rotateY), squares up to face the viewer at its peak, and
         // tips away as it hands off — a 3D turn rather than a flat rotate.
-        const rotX = d * 42;
-        const rotY = (side === 'left' ? -1 : 1) * d * 34;
-        const tz = -Math.abs(d) * 120;
+        const rotX = d * 55;
+        const rotY = (side === 'left' ? -1 : 1) * d * 50;
+        const tz = -Math.abs(d) * 170;
         el.style.opacity = o;
         el.style.transform =
           `translateY(${y}px) translateZ(${tz}px) ` +
@@ -327,20 +365,45 @@ export default function AboutFlourish({ side = 'left' }) {
 
         // Per-part assembly. `k` is 0 at the scene's peak (fully seated) and 1
         // at the extremes (fully exploded / not yet drawn). Each part gets its
-        // own lead-in window so the object assembles piece by piece.
-        drawParts[i].forEach(part => {
-          const kRaw = clamp((a - part.lead) / (1 - part.lead), 0, 1);
-          const k = kRaw * kRaw;
-          if (part.draw > 0) part.el.style.strokeDashoffset = `${part.draw * k}`;
-          if (explode) {
+        // own lead-in window so the object assembles piece by piece, and a
+        // persistent resting depth plane (baseZ) so it has thickness at rest.
+        if (o > 0.002) {
+          drawParts[i].forEach(part => {
+            const kRaw = clamp((a - part.lead) / (1 - part.lead), 0, 1);
+            const k = kRaw * kRaw;
+            if (part.draw > 0) part.el.style.strokeDashoffset = `${part.draw * k}`;
+
             const dir = d > 0 ? 1 : -1;
+            const ez = explode ? part.oz * k : 0;
+            const z  = part.baseZ + ez;                        // resting plane + explode lift
+            const ex = explode ? part.ox * k * dir : 0;
+            const ey = explode ? part.oy * k : 0;
+            const rX = explode ? part.rx * k : 0;
+            const rY = explode ? part.ry * k * dir : 0;
+            const rZ = explode ? part.rot * k * dir : 0;
+            const sc = explode ? (1 - 0.22 * k) : 1;
+
             part.el.style.transform =
-              `translate3d(${part.ox * k * dir}px, ${part.oy * k}px, ${part.oz * k}px) ` +
-              `rotateX(${part.rx * k}deg) rotateY(${part.ry * k * dir}deg) ` +
-              `rotateZ(${part.rot * k * dir}deg) scale(${1 - 0.25 * k})`;
-          }
-        });
+              `translate3d(${ex.toFixed(2)}px, ${ey.toFixed(2)}px, ${z.toFixed(2)}px) ` +
+              `rotateX(${rX.toFixed(2)}deg) rotateY(${rY.toFixed(2)}deg) ` +
+              `rotateZ(${rZ.toFixed(2)}deg) scale(${sc.toFixed(3)})`;
+
+            // Depth cueing: far parts dim + soften; exploded parts cast a shadow
+            // that deepens as they lift clear. Thin helper lines keep their 0.65
+            // base fade (multiply rather than override it).
+            const depthN = clamp((z + 60) / 120, 0, 1);        // 0 far .. 1 near
+            const base = part.isThin ? 0.65 : 1;
+            part.el.style.opacity = (base * (0.55 + 0.45 * depthN)).toFixed(3);
+            const f = [];
+            if (z < -6) f.push(`blur(${(-(z + 6) * 0.014).toFixed(2)}px)`);
+            if (explode && k > 0.03)
+              f.push(`drop-shadow(0 ${(2 + 5 * k).toFixed(1)}px ${(3 + 7 * k).toFixed(1)}px rgba(0,0,0,0.30))`);
+            part.el.style.filter = f.length ? f.join(' ') : 'none';
+          });
+        }
       });
+      // Container scroll-parallax: the whole flourish drifts against the page.
+      root.style.transform = `translateY(${(0.5 - p) * 40}px)`;
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -349,6 +412,7 @@ export default function AboutFlourish({ side = 'left' }) {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       loops.forEach(a => a && a.revert && a.revert());
+      cancelAnimationFrame(raf);
     };
   }, [side]);
 
@@ -371,6 +435,7 @@ export default function AboutFlourish({ side = 'left' }) {
           {side === 'left' ? <AiStages /> : <RoboticsStages />}
         </g>
       </svg>
+      <div className="flr-sheen" aria-hidden="true" />
     </div>
   );
 }

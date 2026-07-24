@@ -27,7 +27,7 @@ function wavePath(i) {
   return d;
 }
 
-export default function SineWave({ side = 'left' }) {
+export default function SineWave({ side = 'left', variant = 'edge' }) {
   const rows = useMemo(
     () =>
       Array.from({ length: NUM_WAVES - 2 }, (_, n) => {
@@ -36,6 +36,21 @@ export default function SineWave({ side = 'left' }) {
       }),
     []
   );
+
+  if (variant === 'field') {
+    // Full-bleed wave field that fills the hero and paints into its backdrop so
+    // the glass chips refract it. preserveAspectRatio="none" stretches the
+    // 300x420 field across the whole hero width.
+    return (
+      <div className="hero-wavefield" aria-hidden="true">
+        <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="none">
+          {rows.map((r, i) => (
+            <path key={i} d={r.d} style={{ animationDelay: r.delay }} />
+          ))}
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div className={`sine-wave-container sine-wave--${side}`} aria-hidden="true">

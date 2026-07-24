@@ -219,19 +219,177 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
   to   { transform: translate(-10vw, -6vh) scale(0.95); }
 }
 
+/* Full-width hero wave field — paints into the hero backdrop (z-index:-1) so
+   the glass chips can refract it. A soft radial hole keeps the headline crisp
+   while the lower band (behind the chips) stays at full strength. */
+.hero-wavefield {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.55;
+  -webkit-mask-image:
+    radial-gradient(120% 42% at 50% 40%, transparent 0%, transparent 30%, #000 62%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(120% 42% at 50% 40%, transparent 0%, transparent 30%, #000 62%),
+    linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  mask-composite: intersect;
+}
+.hero-wavefield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-wavefield path {
+  stroke: var(--accent-color);
+  stroke-width: 1.5px;
+  fill: none;
+  animation: sine-move-left 3s linear infinite;
+}
+html[data-theme="dark"] .hero-wavefield { opacity: 0.6; }
+@media (max-width: 992px) { .hero-wavefield { opacity: 0.32; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-wavefield path { animation: none; }
+}
+
 .hero-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
+/* ---- Liquid-glass chip tokens (readable on light + dark) ---- */
+:root {
+  --chip-ink:       #4a3311;
+  --chip-fill: linear-gradient(180deg,
+                 rgba(255,251,238,0.50) 0%,
+                 rgba(228,199,116,0.38) 46%,
+                 rgba(190,163,73,0.38) 100%);
+  --chip-border:    rgba(160,139,58,0.70);
+  --chip-top-hi:    0.80;
+  --chip-rim:       rgba(255,255,255,0.55);
+  --chip-shade:     rgba(120,90,20,0.32);
+  --chip-txtshadow: 0 1px 1px rgba(255,255,255,0.35);
+  --chip-sheen:     rgba(255,255,255,0.85);
+}
+html[data-theme="dark"] {
+  --chip-ink:       #f4e9cf;
+  --chip-fill: linear-gradient(180deg,
+                 rgba(255,240,205,0.18) 0%,
+                 rgba(212,180,124,0.15) 50%,
+                 rgba(150,120,60,0.16) 100%);
+  --chip-border:    rgba(212,180,124,0.48);
+  --chip-top-hi:    0.34;
+  --chip-rim:       rgba(255,236,196,0.30);
+  --chip-shade:     rgba(0,0,0,0.35);
+  --chip-txtshadow: 0 1px 2px rgba(0,0,0,0.45);
+  --chip-sheen:     rgba(255,244,214,0.65);
+}
+
 .hero-chip {
-  background: linear-gradient(180deg, #F0E8D0 0%, #D9C06C 50%, #B9A149 100%);
-  border: 1px solid #A08B3A;
-  color: #4a3311;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
-  padding: 8px 18px;
+  letter-spacing: 0.01em;
+  padding: 9px 20px;
   border-radius: 999px;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.4);
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+  color: var(--chip-ink);
+  border: 1px solid var(--chip-border);
+  background: var(--chip-fill);
+  text-shadow: var(--chip-txtshadow);
+  transform-style: preserve-3d;
+  will-change: transform;
+  box-shadow:
+    inset 0 1px 0.5px rgba(255,255,255,var(--chip-top-hi)),
+    inset 0 -7px 11px -8px var(--chip-shade),
+    0 2px 10px -3px rgba(60,45,10,0.34),
+    0 0 0 0.5px var(--chip-rim);
+  -webkit-backdrop-filter: blur(3px) saturate(1.65) brightness(1.04);
+          backdrop-filter: blur(3px) saturate(1.65) brightness(1.04);
+  transition:
+    background .35s ease, border-color .35s ease, box-shadow .35s ease,
+    backdrop-filter .35s ease, -webkit-backdrop-filter .35s ease, color .3s ease;
+}
+
+.hero-chip__label { position: relative; z-index: 2; }
+
+/* cursor-tracked specular highlight (bg-image + opacity driven by motion) */
+.hero-chip__sheen {
+  position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+/* curved top-edge specular rim */
+.hero-chip::before {
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.06) 22%, transparent 46%);
+  opacity: calc(0.35 + var(--chip-top-hi) * 0.5);
+  mix-blend-mode: screen;
+}
+/* hover specular streak (graft C), parked off-screen until hover */
+.hero-chip::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -60%;
+  width: 45%; z-index: 1; pointer-events: none;
+  transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent 0%, var(--chip-sheen) 50%, transparent 100%);
+  opacity: 0;
+}
+
+/* Progressive enhancement: only engines that honor an SVG url() inside
+   backdrop-filter (Chromium, Firefox) add the wave-warping refraction. */
+@supports (backdrop-filter: url(#hero-liquid-glass)) or (-webkit-backdrop-filter: url(#hero-liquid-glass)) {
+  .hero-chip {
+    -webkit-backdrop-filter: blur(3px) saturate(1.65) brightness(1.04) url(#hero-liquid-glass);
+            backdrop-filter: blur(3px) saturate(1.65) brightness(1.04) url(#hero-liquid-glass);
+  }
+}
+
+.hero-chip:hover,
+.hero-chip:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-color) 70%, var(--chip-border));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,calc(var(--chip-top-hi) + 0.15)),
+    inset 0 -8px 13px -8px var(--chip-shade),
+    0 6px 18px -4px rgba(60,45,10,0.42),
+    0 0 0 1px var(--chip-rim),
+    0 0 14px -2px color-mix(in srgb, var(--accent-color) 55%, transparent);
+  -webkit-backdrop-filter: blur(5px) saturate(2.1) brightness(1.08) url(#hero-liquid-glass);
+          backdrop-filter: blur(5px) saturate(2.1) brightness(1.08) url(#hero-liquid-glass);
+}
+.hero-chip:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
+.hero-chip:hover::before,
+.hero-chip:focus-visible::before { opacity: calc(0.5 + var(--chip-top-hi) * 0.5); }
+.hero-chip:hover::after,
+.hero-chip:focus-visible::after { animation: chip-sheen 0.9s cubic-bezier(0.22,1,0.36,1); }
+@keyframes chip-sheen {
+  0%   { left: -60%; opacity: 0; }
+  18%  { opacity: 0.9; }
+  100% { left: 120%; opacity: 0; }
+}
+
+/* FALLBACK — no backdrop-filter at all: restore the original opaque gold pill. */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .hero-chip {
+    background: linear-gradient(180deg, #F0E8D0 0%, #D9C06C 50%, #B9A149 100%);
+    border-color: #A08B3A; color: #4a3311;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.4);
+  }
+  html[data-theme="dark"] .hero-chip { color: #4a3311; }
+  .hero-chip::before, .hero-chip::after, .hero-chip__sheen { display: none; }
+}
+
+/* REDUCED MOTION — filter is frozen in JS; kill the sweep + transitions. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-chip { transition: none; will-change: auto; }
+  .hero-chip::after { display: none; }
+  .hero-chip:hover::after, .hero-chip:focus-visible::after { animation: none; }
+  .hero-chip__sheen { display: none; }
 }
 
 .hero-scroll-cue {
@@ -297,7 +455,10 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 }
 /* A shared perspective so the scene tilts, the ambient orbit, and the depth of
    the exploded parts all render as true 3D rather than flat skew. */
-.about-flourish { perspective: 620px; }
+.about-flourish {
+  perspective: 500px;      /* deeper foreshortening for the wider z-range */
+  isolation: isolate;      /* contain the sheen's screen-blend to the artwork */
+}
 .about-flourish svg { width: 100%; height: 100%; overflow: visible; transform-style: preserve-3d; }
 .about-flourish .flr-orbit { transform-box: fill-box; transform-origin: center; transform-style: preserve-3d; }
 .about-flourish--left { left: clamp(8px, 4.5vw, 230px); }
@@ -331,6 +492,27 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 /* Direct children of a scene are the "parts" the exploded-view assembly moves;
    they must rotate about their own centre, not the SVG origin. */
 .flr-stage > * { transform-box: fill-box; transform-origin: center; }
+
+/* Rotation-driven specular sheen. --sx (highlight x) and --sheen-a (intensity)
+   are written every frame from the live orbit yaw in AboutFlourish.jsx, so the
+   gold glint sweeps across faces as they turn — the strongest volume cue.
+   color-mix keeps it gold in both themes; screen-blend reads as a light hit. */
+.flr-sheen {
+  position: absolute;
+  inset: -6% -12%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: var(--sheen-a, 0.55);
+  background:
+    radial-gradient(130% 90% at var(--sx, 50%) 30%,
+      color-mix(in srgb, var(--accent-color) 62%, transparent) 0%,
+      color-mix(in srgb, var(--accent-color) 20%, transparent) 34%,
+      transparent 64%);
+  transition: opacity 0.2s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flr-sheen { opacity: 0.30; }
+}
 
 /* The 3D lanyards span their own full-width horizontal strip below the card. */
 .about-lanyard-strip {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
 import SineWave from './SineWave';
+import HeroChip from './HeroChip';
 
 // Keyword chips under the tagline, like the live /portfolio hero — clicking
 // one jumps to the section where that topic lives.
@@ -17,6 +18,7 @@ const NAME = 'Aadhav Sivakumar';
 
 export default function Hero() {
   const nameRef = useRef(null);
+  const glassRef = useRef(null);
 
   useEffect(() => {
     if (!nameRef.current) return;
@@ -30,6 +32,54 @@ export default function Hero() {
     });
   }, []);
 
+  // Ambient "living glass": slowly modulate the shared SVG displacement filter
+  // the chips reference from backdrop-filter, so the refracted wave field
+  // ripples. Frozen under reduced-motion; paused when the hero scrolls away
+  // (backdrop-filter over a moving field is GPU-costly off-screen).
+  useEffect(() => {
+    const svg = glassRef.current;
+    if (!svg) return;
+    const turb = svg.querySelector('feTurbulence');
+    const disp = svg.querySelector('feDisplacementMap');
+    if (!turb || !disp) return;
+
+    const reduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduce) {
+      disp.setAttribute('scale', '9');
+      turb.setAttribute('baseFrequency', '0.011 0.017');
+      return;
+    }
+
+    const state = { s: 12, f: 0.009 };
+    const loop = animate(state, {
+      s: [10, 16],
+      f: [0.008, 0.014],
+      duration: 5600,
+      ease: 'inOutSine',
+      loop: true,
+      alternate: true,
+      onUpdate: () => {
+        disp.setAttribute('scale', state.s.toFixed(2));
+        turb.setAttribute('baseFrequency', `${state.f.toFixed(4)} ${(state.f * 1.6).toFixed(4)}`);
+      },
+    });
+
+    const section = svg.closest('#hero');
+    let io;
+    if (section && 'IntersectionObserver' in window) {
+      io = new IntersectionObserver(
+        ([e]) => { e.isIntersecting ? loop.play?.() : loop.pause?.(); },
+        { threshold: 0.01 }
+      );
+      io.observe(section);
+    }
+    return () => { io && io.disconnect(); loop && loop.revert && loop.revert(); };
+  }, []);
+
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
@@ -39,9 +89,41 @@ export default function Hero() {
         <div className="aurora-blob aurora-b" />
       </div>
 
-      {/* Staggered sine-wave curtains flanking the name, as on /portfolio. */}
-      <SineWave side="left" />
-      <SineWave side="right" />
+      {/* Full-width animated sine field behind everything — the glass chips
+          refract this through backdrop-filter. */}
+      <SineWave variant="field" />
+
+      {/* Shared liquid-glass displacement filter. As a backdrop-filter, its
+          SourceGraphic IS the backdrop, so feDisplacementMap warps the wave
+          field seen through every chip. */}
+      <svg
+        ref={glassRef}
+        className="hero-glass-defs"
+        aria-hidden="true"
+        width="0" height="0"
+        style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
+      >
+        <defs>
+          <filter
+            id="hero-liquid-glass"
+            x="-25%" y="-25%" width="150%" height="150%"
+            colorInterpolationFilters="sRGB"
+            primitiveUnits="userSpaceOnUse"
+          >
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.010 0.016"
+              numOctaves="2" seed="7" stitchTiles="stitch"
+              result="noise"
+            />
+            <feGaussianBlur in="noise" stdDeviation="0.5" result="softNoise" />
+            <feDisplacementMap
+              in="SourceGraphic" in2="softNoise"
+              scale="13" xChannelSelector="R" yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
 
       <h1 ref={nameRef} aria-label={NAME}>
         {NAME.split(' ').map((word, wi, words) => (
@@ -66,18 +148,12 @@ export default function Hero() {
 
       <div className="hero-chips">
         {KEYWORDS.map((k, i) => (
-          <motion.button
+          <HeroChip
             key={k.label}
-            className="hero-chip"
+            label={k.label}
+            index={i}
             onClick={() => scrollTo(k.target)}
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1 + i * 0.09, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-            whileHover={{ y: -3, scale: 1.06 }}
-            whileTap={{ scale: 0.96 }}
-          >
-            {k.label}
-          </motion.button>
+          />
         ))}
       </div>
 
