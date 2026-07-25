@@ -58,16 +58,31 @@ const TILT_MAX = 0.35;
 // so the run reads as a premium row of similar badges. Indexed by slot; slots
 // beyond the list fall back to the last (smallest) entry.
 const SLOT_SCALE = [1, 0.9, 0.82];
-// All badges hang from the same overhead rail (flat top). Size differences
-// alone give a subtle arc — larger cards hang a little lower via the card
-// joint — so no per-slot rise is needed.
-const SLOT_BASE_Y = 3.2;
-const SLOT_RISE = 0;
+// Baseline hang height of the innermost badge. Badges deliberately do NOT sit
+// in one flat rank — a flat rank of equal-length vertical straps under a
+// straight crossbar reads as prison bars. Each badge rides at a staggered
+// height (slotRise + hangJitter) and the overhead rail curves to follow them.
+const SLOT_BASE_Y = 2.4;
 
-// Overhead rail the lanyards hang from: a horizontal metal rod with one ring
-// per badge, so the straps read as looped over a display rack. Radii are in
-// world units at sizeMul 1 and scale with the badge size.
-const RING_RADIUS = 0.26;
+// Per-slot vertical stagger: inner/recent badges hang low (focal, up close),
+// older ones ride progressively higher, so the six badges sweep through a
+// shallow valley instead of a flat row. A small deterministic per-badge jitter
+// breaks the residual left/right symmetry so the set reads hand-hung. Kept
+// modest so the raised outer rings stay clear of the frame's top edge.
+const SLOT_RISE_BY = [0, 0.55, 0.9];
+function slotRise(slot) {
+  return SLOT_RISE_BY[slot] ?? SLOT_RISE_BY[SLOT_RISE_BY.length - 1];
+}
+function hangJitter(name) {
+  let h = 2166136261;
+  for (const ch of name || 'x') { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return (((h >>> 0) % 1000) / 1000 - 0.5) * 0.4; // ±0.2 world units
+}
+
+// Overhead rail the lanyards hang from: a thin metal rail that CURVES through
+// one ring per badge, so the straps read as looped over a flowing hanging rack
+// rather than a straight cell crossbar. Radii are world units at sizeMul 1.
+const RING_RADIUS = 0.24;
 const ROD_RADIUS = 0.1;
 
 function slotScale(slot) {
@@ -164,17 +179,20 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, .
 
   const shown = cards.filter(c => (c.slot || 0) < maxSlots);
   const anchorXOf = c => (inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1);
-  const anchorXs = shown.map(anchorXOf);
+  // Staggered hang height (see slotRise/hangJitter). The delta scales with the
+  // badge size so the cascade stays proportional across sizeMul values.
+  const anchorYOf = c => SLOT_BASE_Y + (slotRise(c.slot || 0) + hangJitter(c.badge?.name)) * sizeMul;
+  const anchors = shown.map(c => ({ x: anchorXOf(c), y: anchorYOf(c) }));
 
   return (
     <>
-      <LanyardRack anchorXs={anchorXs} sizeMul={sizeMul} />
+      <LanyardRack anchors={anchors} sizeMul={sizeMul} />
       {shown.map((c, i) => (
         <Band
           key={`${c.badge?.name || i}@${stamp}`}
           {...bandProps}
           anchorX={anchorXOf(c)}
-          anchorY={SLOT_BASE_Y + (c.slot || 0) * SLOT_RISE}
+          anchorY={anchorYOf(c)}
           scale={slotScale(c.slot || 0) * sizeMul}
           image={c.image}
           badge={c.badge}
@@ -184,32 +202,57 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, .
   );
 }
 
-// The overhead display rail the lanyards hang from: a horizontal metal rod with
-// rounded end caps, and one ring per badge positioned so each strap loops over
-// its ring (rod at the ring tops, strap starting at the ring bottom).
-function LanyardRack({ anchorXs = [], sizeMul = 1 }) {
+// The overhead display rack the lanyards hang from: a thin metal rail that
+// curves through the staggered ring tops (a flowing hanging rack, not a
+// straight cell crossbar), with one ring per badge — each strap loops over its
+// ring (rail above, strap starting at the ring bottom) — and small rounded end
+// caps where the rail runs off past the outermost badges.
+function LanyardRack({ anchors = [], sizeMul = 1 }) {
   const ringR = RING_RADIUS * sizeMul;
-  const rodR = ROD_RADIUS * sizeMul;
-  const rodY = SLOT_BASE_Y + 2 * ringR;
-  const rodHalf = (anchorXs.length ? Math.max(...anchorXs.map(Math.abs)) : 1) + 0.9;
+  const rodR = ROD_RADIUS * sizeMul * 0.62; // thinner than before — less "bar"
   const metal = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 1, roughness: 0.3 }),
+    () => new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 1, roughness: 0.35 }),
     []
   );
+
+  // A CatmullRom rail through the ring tops (sorted left→right) with short
+  // horizontal end runs, tubed into a slim rod that dips and rises with the
+  // staggered badges. Re-derived only when the anchor set actually changes.
+  const sig = anchors.map(a => `${a.x.toFixed(2)},${a.y.toFixed(2)}`).join('|');
+  const { railGeo, ends, rings } = useMemo(() => {
+    const rodZ = -0.15;
+    const sorted = [...anchors].sort((a, b) => a.x - b.x);
+    const pts = sorted.map(a => new THREE.Vector3(a.x, a.y + 2 * ringR + rodR, rodZ));
+    if (pts.length) {
+      const f = pts[0], l = pts[pts.length - 1];
+      pts.unshift(new THREE.Vector3(f.x - 0.95, f.y, rodZ));
+      pts.push(new THREE.Vector3(l.x + 0.95, l.y, rodZ));
+    }
+    let geo = null;
+    if (pts.length >= 2) {
+      const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+      geo = new THREE.TubeGeometry(curve, 96, rodR, 14, false);
+    }
+    return {
+      railGeo: geo,
+      ends: pts.length ? [pts[0].toArray(), pts[pts.length - 1].toArray()] : [],
+      rings: sorted.map(a => [a.x, a.y + ringR, -0.05]),
+    };
+  }, [sig, ringR, rodR]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => railGeo?.dispose(), [railGeo]);
+
+  if (!railGeo) return null;
   return (
     <group>
-      <mesh position={[0, rodY, -0.15]} rotation={[0, 0, Math.PI / 2]} material={metal}>
-        <cylinderGeometry args={[rodR, rodR, rodHalf * 2, 20]} />
-      </mesh>
-      <mesh position={[-rodHalf, rodY, -0.15]} material={metal}>
-        <sphereGeometry args={[rodR * 1.7, 20, 20]} />
-      </mesh>
-      <mesh position={[rodHalf, rodY, -0.15]} material={metal}>
-        <sphereGeometry args={[rodR * 1.7, 20, 20]} />
-      </mesh>
-      {anchorXs.map((x, i) => (
-        <mesh key={i} position={[x, SLOT_BASE_Y + ringR, -0.05]} material={metal}>
-          <torusGeometry args={[ringR, rodR * 0.7, 14, 28]} />
+      <mesh geometry={railGeo} material={metal} />
+      {ends.map((p, i) => (
+        <mesh key={`cap${i}`} position={p} material={metal}>
+          <sphereGeometry args={[rodR * 1.9, 16, 16]} />
+        </mesh>
+      ))}
+      {rings.map((p, i) => (
+        <mesh key={`ring${i}`} position={p} material={metal}>
+          <torusGeometry args={[ringR, rodR * 1.1, 14, 28]} />
         </mesh>
       ))}
     </group>

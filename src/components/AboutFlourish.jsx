@@ -236,30 +236,33 @@ export default function AboutFlourish({ side = 'left' }) {
       }),
     ];
 
-    // Ambient 3D orbit + yaw-driven specular light, on our own rAF so the sheen
-    // highlight tracks the LIVE yaw (light fixed in space; faces sweep through
-    // it as the assembly tumbles). Wider swing + rotateZ + translateZ "breathing"
-    // give a stronger volumetric read than the old anime orbit loop.
+    // SVG cannot do real 3D — translateZ on an SVG element is ignored and a
+    // rotateY only squashes it in 2D. So each solid part is given genuine 3D
+    // *thickness* by stacking dim outline copies behind it (built after the
+    // parts are measured, below). The whole assembly gently turns (rotateY/X)
+    // and the extrusion offset is driven by that live yaw, so every part's
+    // "side wall" swings out as it turns — reading as a real extruded solid.
     const orbitEl = root.querySelector('.flr-orbit');
-    const sheenEl = root.querySelector('.flr-sheen');
     const swingY = side === 'left' ? -1 : 1;
+    let extParts = [];                       // populated after drawParts
     const t0 = performance.now();
     let raf = 0;
     const tick = (now) => {
       const t = (now - t0) / 1000;
-      const oy = Math.sin(t / 3.1) * 26 * swingY;      // yaw  ±26 (was ±14)
-      const ox = Math.cos(t / 4.3) * 9 - 2;            // pitch
-      const oz = Math.sin(t / 5.0) * 3 * swingY;       // slight roll
-      const tzB = 3 + Math.sin(t / 4.0) * 9;           // z "breathing"
+      const oy = Math.sin(t / 3.1) * 24 * swingY;      // yaw
+      const ox = Math.cos(t / 4.3) * 8 - 2;            // pitch
       if (orbitEl) {
-        orbitEl.style.transform =
-          `translateZ(${tzB.toFixed(2)}px) rotateY(${oy.toFixed(2)}deg) ` +
-          `rotateX(${ox.toFixed(2)}deg) rotateZ(${oz.toFixed(2)}deg)`;
+        orbitEl.style.transform = `rotateY(${oy.toFixed(2)}deg) rotateX(${ox.toFixed(2)}deg)`;
       }
-      if (sheenEl) {
-        sheenEl.style.setProperty('--sx', `${(50 + oy * 1.7).toFixed(1)}%`);
-        sheenEl.style.setProperty('--sheen-a',
-          (0.5 + 0.4 * Math.cos(oy * Math.PI / 180)).toFixed(3));
+      // Drive every part's extruded side-wall. A constant isometric depth keeps
+      // the solid reading as 3D even head-on, and the yaw modulates the wall's
+      // horizontal lean so it swings around as the assembly turns.
+      const dx = 1.1 + Math.sin(oy * Math.PI / 180) * 1.4;
+      const dy = 0.7;
+      for (const p of extParts) {
+        for (const c of p.clones) {
+          c.el.setAttribute('transform', `translate(${(-dx * c.i).toFixed(2)} ${(dy * c.i).toFixed(2)})`);
+        }
       }
       raf = requestAnimationFrame(tick);
     };
@@ -329,6 +332,36 @@ export default function AboutFlourish({ side = 'left' }) {
       if (p.draw > 0) p.el.style.strokeDasharray = `${p.draw}`;
     }));
 
+    // Build the extrusion stacks: for every solid body (shaded/hatched/filled),
+    // insert a group of dim outline copies just behind it. tick() offsets them
+    // by the live yaw so they form a moving 3D side wall. Thin linework and
+    // nodes are left flat — extruding them would only muddy the read.
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+    const EXT_N = 3;
+    drawParts.forEach(parts => parts.forEach(part => {
+      const el = part.el;
+      // Extrude every structural part into a 3D body. Skip only the faint
+      // helper connectors (.flr-thin) and the tiny signal dots (.flr-node),
+      // which would just add noise.
+      if (el.classList.contains('flr-thin') || el.classList.contains('flr-node')) return;
+      const g = document.createElementNS(SVG_NS, 'g');
+      g.setAttribute('class', 'flr-ext');
+      const clones = [];
+      for (let i = EXT_N; i >= 1; i--) {
+        const c = el.cloneNode(true);
+        c.removeAttribute('style');
+        c.removeAttribute('stroke-dasharray');
+        c.setAttribute('class', 'flr-ext-face');
+        c.style.opacity = (0.5 - i * 0.09).toFixed(3);
+        // Resting isometric depth (yaw 0) so thickness shows before rAF starts.
+        c.setAttribute('transform', `translate(${(-1.1 * i).toFixed(2)} ${(0.7 * i).toFixed(2)})`);
+        g.appendChild(c);
+        clones.push({ el: c, i });
+      }
+      el.parentNode.insertBefore(g, el);       // render behind the face
+      extParts.push({ clones });
+    }));
+
     // Scroll-scrubbed storyboard: total page-scroll progress maps onto a stage
     // position; each scene crossfades into the next (with a small scale-in).
     const onScroll = () => {
@@ -395,7 +428,6 @@ export default function AboutFlourish({ side = 'left' }) {
             const base = part.isThin ? 0.65 : 1;
             part.el.style.opacity = (base * (0.55 + 0.45 * depthN)).toFixed(3);
             const f = [];
-            if (z < -6) f.push(`blur(${(-(z + 6) * 0.014).toFixed(2)}px)`);
             if (explode && k > 0.03)
               f.push(`drop-shadow(0 ${(2 + 5 * k).toFixed(1)}px ${(3 + 7 * k).toFixed(1)}px rgba(0,0,0,0.30))`);
             part.el.style.filter = f.length ? f.join(' ') : 'none';
@@ -419,23 +451,17 @@ export default function AboutFlourish({ side = 'left' }) {
   return (
     <div className={`about-flourish about-flourish--${side}`} ref={ref} aria-hidden="true">
       <svg viewBox="0 0 180 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Shading + wireframe hatch, scoped per side so the two SVGs don't
-            share gradient/pattern ids. */}
+        {/* Wireframe hatch (line pattern, not a gradient), scoped per side so
+            the two SVGs don't share the pattern id. */}
         <defs>
-          <linearGradient id={`flr-shade-${side}`} x1="0" y1="0" x2="0.7" y2="1">
-            <stop offset="0%" stopColor="var(--accent-color)" stopOpacity="0.34" />
-            <stop offset="55%" stopColor="var(--accent-color)" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="var(--accent-color)" stopOpacity="0.03" />
-          </linearGradient>
           <pattern id={`flr-hatch-${side}`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--accent-color)" strokeWidth="0.7" strokeOpacity="0.5" />
           </pattern>
         </defs>
-        <g className="flr-orbit" style={{ '--flr-shade': `url(#flr-shade-${side})`, '--flr-hatch': `url(#flr-hatch-${side})` }}>
+        <g className="flr-orbit" style={{ '--flr-hatch': `url(#flr-hatch-${side})` }}>
           {side === 'left' ? <AiStages /> : <RoboticsStages />}
         </g>
       </svg>
-      <div className="flr-sheen" aria-hidden="true" />
     </div>
   );
 }

@@ -486,33 +486,18 @@ html[data-theme="dark"] {
 .flr-stage .flr-thin { stroke-width: 0.9; opacity: 0.65; }
 /* Shaded bodies and wireframe hatch fills (gradient/pattern ids are injected
    per side as custom properties so the two SVGs stay independent). */
-.flr-stage .flr-shade { fill: var(--flr-shade); }
+/* Solid bodies are a FLAT translucent gold (no gradient) — clean line-art in
+   the anime.js style; the extruded outline stack behind them supplies depth. */
+.flr-stage .flr-shade { fill: color-mix(in srgb, var(--accent-color) 12%, transparent); }
 .flr-stage .flr-hatch { fill: var(--flr-hatch); fill-opacity: 0.5; }
+/* Extrusion side-wall copies: dim gold outlines, thinner than the face. */
+.flr-stage .flr-ext { pointer-events: none; }
+.flr-stage .flr-ext-face { fill: none; stroke: var(--accent-color); }
 .flr-spin, .flr-pulse { transform-box: fill-box; transform-origin: center; }
 /* Direct children of a scene are the "parts" the exploded-view assembly moves;
    they must rotate about their own centre, not the SVG origin. */
 .flr-stage > * { transform-box: fill-box; transform-origin: center; }
 
-/* Rotation-driven specular sheen. --sx (highlight x) and --sheen-a (intensity)
-   are written every frame from the live orbit yaw in AboutFlourish.jsx, so the
-   gold glint sweeps across faces as they turn — the strongest volume cue.
-   color-mix keeps it gold in both themes; screen-blend reads as a light hit. */
-.flr-sheen {
-  position: absolute;
-  inset: -6% -12%;
-  pointer-events: none;
-  mix-blend-mode: screen;
-  opacity: var(--sheen-a, 0.55);
-  background:
-    radial-gradient(130% 90% at var(--sx, 50%) 30%,
-      color-mix(in srgb, var(--accent-color) 62%, transparent) 0%,
-      color-mix(in srgb, var(--accent-color) 20%, transparent) 34%,
-      transparent 64%);
-  transition: opacity 0.2s linear;
-}
-@media (prefers-reduced-motion: reduce) {
-  .flr-sheen { opacity: 0.30; }
-}
 
 /* The 3D lanyards span their own full-width horizontal strip below the card. */
 .about-lanyard-strip {
