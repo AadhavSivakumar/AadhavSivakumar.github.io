@@ -79,11 +79,13 @@ function hangJitter(name) {
   return (((h >>> 0) % 1000) / 1000 - 0.5) * 0.4; // ±0.2 world units
 }
 
-// Overhead rail the lanyards hang from: a thin metal rail that CURVES through
-// one ring per badge, so the straps read as looped over a flowing hanging rack
-// rather than a straight cell crossbar. Radii are world units at sizeMul 1.
-const RING_RADIUS = 0.24;
-const ROD_RADIUS = 0.1;
+// The lanyards hang from a PEGBOARD: a perforated panel behind the badges with
+// a ball-headed metal pin per badge that the strap loops over. Because the
+// badges are staggered, the pins land at different heights — reading as pins
+// pushed into different holes. Sizes are world units at sizeMul 1.
+const PIN_SHAFT_R = 0.055;
+const PIN_HEAD_R = 0.12;
+const PEG_BOARD_Z = -0.35; // panel sits just behind the strap plane
 
 function slotScale(slot) {
   return SLOT_SCALE[slot] ?? SLOT_SCALE[SLOT_SCALE.length - 1];
@@ -202,58 +204,123 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, .
   );
 }
 
-// The overhead display rack the lanyards hang from: a thin metal rail that
-// curves through the staggered ring tops (a flowing hanging rack, not a
-// straight cell crossbar), with one ring per badge — each strap loops over its
-// ring (rail above, strap starting at the ring bottom) — and small rounded end
-// caps where the rail runs off past the outermost badges.
+// A tiling "perforated board" texture for the pegboard panel: a regular grid of
+// recessed holes, tinted to the site theme so the board reads on both.
+function usePegboardTexture(theme) {
+  const tex = useMemo(() => {
+    const S = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = S;
+    const ctx = canvas.getContext('2d');
+    const dark = theme === 'dark';
+    // Perforated-metal panel (graphite in dark, brushed steel in light) — reads
+    // more premium/tech than masonite and sits with the gold-accent theme.
+    const board = dark ? '#2b2f35' : '#d6dade';
+    const hole = dark ? '#14171b' : '#a6acb4';
+    const holeHi = dark ? '#3e444c' : '#eef1f4'; // lit lower rim, fakes depth
+    ctx.fillStyle = board;
+    ctx.fillRect(0, 0, S, S);
+    const step = S / 4; // 4×4 holes per tile
+    const r = step * 0.17;
+    for (let gy = 0; gy < 4; gy++) {
+      for (let gx = 0; gx < 4; gx++) {
+        const x = (gx + 0.5) * step;
+        const y = (gy + 0.5) * step;
+        ctx.beginPath();
+        ctx.arc(x, y + r * 0.22, r * 1.12, 0, Math.PI * 2);
+        ctx.fillStyle = holeHi;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = hole;
+        ctx.fill();
+      }
+    }
+    const t = new THREE.CanvasTexture(canvas);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    t.needsUpdate = true;
+    return t;
+  }, [theme]);
+  useEffect(() => () => tex.dispose(), [tex]);
+  return tex;
+}
+
+// The pegboard the lanyards hang from: a perforated panel behind the badge
+// cluster with one ball-headed metal pin per badge. Each strap's fixed anchor
+// sits at its pin, so the lanyard reads as looped over the pin and hanging down
+// past the board. The panel spans only the upper region (behind the pins and
+// upper straps) so the badges dangle in front of / below its lower edge and
+// never clip through it when they swing or flip.
 function LanyardRack({ anchors = [], sizeMul = 1 }) {
-  const ringR = RING_RADIUS * sizeMul;
-  const rodR = ROD_RADIUS * sizeMul * 0.62; // thinner than before — less "bar"
-  const metal = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#c9ccd4', metalness: 1, roughness: 0.35 }),
+  const theme = useSiteTheme();
+  const pegTex = usePegboardTexture(theme);
+  const pinR = PIN_SHAFT_R * sizeMul;
+  const headR = PIN_HEAD_R * sizeMul;
+
+  const boardMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ metalness: 0.35, roughness: 0.58 }),
+    []
+  );
+  const frameMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: theme === 'dark' ? '#1b1e22' : '#b7bcc4', metalness: 0.6, roughness: 0.4 }),
+    [theme]
+  );
+  const shaftMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#b8bcc4', metalness: 1, roughness: 0.32 }),
+    []
+  );
+  const headMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#d8b268', metalness: 1, roughness: 0.3, emissive: '#3a2c12', emissiveIntensity: 0.35 }),
     []
   );
 
-  // A CatmullRom rail through the ring tops (sorted left→right) with short
-  // horizontal end runs, tubed into a slim rod that dips and rises with the
-  // staggered badges. Re-derived only when the anchor set actually changes.
-  const sig = anchors.map(a => `${a.x.toFixed(2)},${a.y.toFixed(2)}`).join('|');
-  const { railGeo, ends, rings } = useMemo(() => {
-    const rodZ = -0.15;
-    const sorted = [...anchors].sort((a, b) => a.x - b.x);
-    const pts = sorted.map(a => new THREE.Vector3(a.x, a.y + 2 * ringR + rodR, rodZ));
-    if (pts.length) {
-      const f = pts[0], l = pts[pts.length - 1];
-      pts.unshift(new THREE.Vector3(f.x - 0.95, f.y, rodZ));
-      pts.push(new THREE.Vector3(l.x + 0.95, l.y, rodZ));
-    }
-    let geo = null;
-    if (pts.length >= 2) {
-      const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
-      geo = new THREE.TubeGeometry(curve, 96, rodR, 14, false);
-    }
-    return {
-      railGeo: geo,
-      ends: pts.length ? [pts[0].toArray(), pts[pts.length - 1].toArray()] : [],
-      rings: sorted.map(a => [a.x, a.y + ringR, -0.05]),
-    };
-  }, [sig, ringR, rodR]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => railGeo?.dispose(), [railGeo]);
+  const geom = useMemo(() => {
+    if (!anchors.length) return null;
+    const xs = anchors.map(a => a.x);
+    const ys = anchors.map(a => a.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const tile = 1.5; // world units per 4-hole tile
+    const w = maxX - minX + 3.2 * sizeMul;
+    const top = maxY + 0.8 * sizeMul; // clears the highest pin
+    const bottom = minY - 1.2 * sizeMul; // above the badge tops, below lowest pin
+    const h = top - bottom;
+    return { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2, tile };
+  }, [anchors, sizeMul]);
 
-  if (!railGeo) return null;
+  if (!geom) return null;
+  boardMat.map = pegTex;
+  boardMat.needsUpdate = true;
+  pegTex.repeat.set(geom.w / geom.tile, geom.h / geom.tile);
+
+  const shaftLen = 0.12 - PEG_BOARD_Z; // board face → just in front of the straps
+  const bezel = 0.28 * sizeMul;
   return (
     <group>
-      <mesh geometry={railGeo} material={metal} />
-      {ends.map((p, i) => (
-        <mesh key={`cap${i}`} position={p} material={metal}>
-          <sphereGeometry args={[rodR * 1.9, 16, 16]} />
-        </mesh>
-      ))}
-      {rings.map((p, i) => (
-        <mesh key={`ring${i}`} position={p} material={metal}>
-          <torusGeometry args={[ringR, rodR * 1.1, 14, 28]} />
-        </mesh>
+      {/* mounting bezel/frame behind the panel so it reads as a mounted board */}
+      <mesh position={[geom.cx, geom.cy, PEG_BOARD_Z - 0.06]} material={frameMat}>
+        <planeGeometry args={[geom.w + bezel, geom.h + bezel]} />
+      </mesh>
+      <mesh position={[geom.cx, geom.cy, PEG_BOARD_Z]} material={boardMat}>
+        <planeGeometry args={[geom.w, geom.h]} />
+      </mesh>
+      {anchors.map((a, i) => (
+        <group key={i} position={[a.x, a.y, 0]}>
+          {/* pin shaft: a stub pushed through the board toward the viewer */}
+          <mesh
+            position={[0, 0, PEG_BOARD_Z + shaftLen / 2]}
+            rotation={[Math.PI / 2, 0, 0]}
+            material={shaftMat}
+          >
+            <cylinderGeometry args={[pinR, pinR, shaftLen, 16]} />
+          </mesh>
+          {/* ball head that keeps the loop from slipping off */}
+          <mesh position={[0, 0, 0.16]} material={headMat}>
+            <sphereGeometry args={[headR, 20, 20]} />
+          </mesh>
+        </group>
       ))}
     </group>
   );
