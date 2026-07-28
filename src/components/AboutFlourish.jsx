@@ -14,6 +14,45 @@ import { animate, stagger } from 'animejs';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+// --- CAD-informed robot arm (Universal Robots UR5e) ---
+// Proportions taken from the official UR5e datasheet's dimensioned drawing:
+// upper arm 425 mm, forearm 392.2 mm, base Ø149; six cylindrical joint modules
+// (base, shoulder, elbow, wrist 1/2/3) joined by tube links. In the side view
+// the "can" joints read as circles (rotation axis toward the viewer) and the
+// links as tubes between them — the extrusion pass below then gives each a real
+// 3D wall. Laid out in the 180×220 viewBox in the UR's signature reach pose.
+const UR_JOINTS = [
+  { cx: 86, cy: 190, r: 10 },   // J1 base rotation
+  { cx: 86, cy: 172, r: 12 },   // J2 shoulder
+  { cx: 56, cy: 120, r: 11 },   // J3 elbow
+  { cx: 101, cy: 88, r: 8.5 },  // J4 wrist 1
+  { cx: 114, cy: 77, r: 7.5 },  // J5 wrist 2
+  { cx: 125, cy: 68, r: 7 },    // J6 wrist 3 / tool flange
+];
+// [x1, y1, x2, y2, radius] — link tubes, lengths in UR proportion (upper arm ≈
+// forearm, both ~7× the wrist links).
+const UR_LINKS = [
+  [86, 190, 86, 172, 8.5],  // base column
+  [86, 172, 56, 120, 8.5],  // upper arm  (425 mm)
+  [56, 120, 101, 88, 8],    // forearm    (392 mm)
+  [101, 88, 114, 77, 6.5],  // wrist link 1
+  [114, 77, 125, 68, 6],    // wrist link 2
+];
+
+// A capsule/stadium outline between two points = one robot link "tube".
+function tubePath(x1, y1, x2, y2, r) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = (-dy / len) * r, uy = (dx / len) * r; // perpendicular * r
+  const f = n => n.toFixed(1);
+  return (
+    `M ${f(x1 + ux)} ${f(y1 + uy)} L ${f(x2 + ux)} ${f(y2 + uy)} ` +
+    `A ${r} ${r} 0 0 1 ${f(x2 - ux)} ${f(y2 - uy)} ` +
+    `L ${f(x1 - ux)} ${f(y1 - uy)} ` +
+    `A ${r} ${r} 0 0 1 ${f(x1 + ux)} ${f(y1 + uy)} Z`
+  );
+}
+
 // Fully-connected layers (edges + open nodes) for the neural-network scenes.
 function Net({ xs, layers }) {
   const edges = [];
@@ -89,18 +128,25 @@ function RoboticsStages() {
         <path className="flr-fill" d="M122 122 l-2 -9 l8 4 z" />
       </g>
 
-      {/* 4 · 6-DOF arm with gripper */}
+      {/* 4 · CAD-accurate 6-DOF arm (UR5e proportions) — see UR_JOINTS/UR_LINKS */}
       <g className="flr-stage">
-        <path d="M72 188 h36 l6 12 h-48 z" className="flr-hatch" />
-        <polyline points="90,188 90,158 66,128 98,102 84,74" />
-        <circle cx="90" cy="188" r="5.5" />
-        <circle cx="90" cy="158" r="5" />
-        <circle cx="66" cy="128" r="5" />
-        <circle cx="98" cy="102" r="5" />
-        <line x1="84" y1="74" x2="74" y2="62" />
-        <line x1="84" y1="74" x2="94" y2="62" />
-        <line x1="74" y1="62" x2="72" y2="55" />
-        <line x1="94" y1="62" x2="96" y2="55" />
+        {/* base mount (Ø149 footprint) */}
+        <path d="M70 206 h32 l-4 -15 h-24 z" className="flr-hatch" />
+        {/* link tubes (behind the joint modules) */}
+        {UR_LINKS.map((l, i) => (
+          <path key={`ul${i}`} d={tubePath(...l)} />
+        ))}
+        {/* cylindrical joint modules — circles = axis toward the viewer */}
+        {UR_JOINTS.map((j, i) => (
+          <circle key={`uj${i}`} cx={j.cx} cy={j.cy} r={j.r} />
+        ))}
+        {/* tool flange + two-finger gripper */}
+        <path d="M125 68 L135 59" />
+        <path d="M135 59 l7 -1 M135 59 l1 -7" className="flr-thin" />
+        {/* joint-axis markers */}
+        {[1, 2, 3].map(i => (
+          <circle key={`ua${i}`} cx={UR_JOINTS[i].cx} cy={UR_JOINTS[i].cy} r="2.2" className="flr-node flr-pulse" />
+        ))}
       </g>
 
       {/* 5 · bimanual robot with a head */}
