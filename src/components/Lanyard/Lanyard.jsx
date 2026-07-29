@@ -64,19 +64,18 @@ const SLOT_SCALE = [1, 0.9, 0.82];
 // height (slotRise + hangJitter) and the overhead rail curves to follow them.
 const SLOT_BASE_Y = 2.4;
 
-// Per-slot vertical stagger: inner/recent badges hang low (focal, up close),
-// older ones ride progressively higher, so the six badges sweep through a
-// shallow valley instead of a flat row. A small deterministic per-badge jitter
-// breaks the residual left/right symmetry so the set reads hand-hung. Kept
-// modest so the raised outer rings stay clear of the frame's top edge.
-const SLOT_RISE_BY = [0, 0.55, 0.9];
+// Per-slot vertical stagger: inner/recent badges hang a touch lower, older ones
+// a touch higher, so the pins aren't a dead-flat rank — but kept subtle (the
+// pins sit almost level, just a gentle step out toward the edges) plus a tiny
+// per-badge jitter so the set still reads hand-hung rather than mechanical.
+const SLOT_RISE_BY = [0, 0.25, 0.45];
 function slotRise(slot) {
   return SLOT_RISE_BY[slot] ?? SLOT_RISE_BY[SLOT_RISE_BY.length - 1];
 }
 function hangJitter(name) {
   let h = 2166136261;
   for (const ch of name || 'x') { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
-  return (((h >>> 0) % 1000) / 1000 - 0.5) * 0.4; // ±0.2 world units
+  return (((h >>> 0) % 1000) / 1000 - 0.5) * 0.2; // ±0.1 world units
 }
 
 // The lanyards hang from a PEGBOARD: a perforated panel behind the badges with
@@ -213,11 +212,11 @@ function usePegboardTexture(theme) {
     canvas.width = canvas.height = S;
     const ctx = canvas.getContext('2d');
     const dark = theme === 'dark';
-    // Perforated-metal panel (graphite in dark, brushed steel in light) — reads
-    // more premium/tech than masonite and sits with the gold-accent theme.
-    const board = dark ? '#2b2f35' : '#d6dade';
-    const hole = dark ? '#14171b' : '#a6acb4';
-    const holeHi = dark ? '#3e444c' : '#eef1f4'; // lit lower rim, fakes depth
+    // Classic beige pegboard (masonite): a warm tan panel with recessed holes,
+    // toned a little deeper in dark mode so it still sits on the page.
+    const board = dark ? '#8a7856' : '#e2d3b3';
+    const hole = dark ? '#4f4636' : '#bfa87f';
+    const holeHi = dark ? '#7a6a4d' : '#f2e8d2'; // lit lower rim, fakes depth
     ctx.fillStyle = board;
     ctx.fillRect(0, 0, S, S);
     const step = S / 4; // 4×4 holes per tile
@@ -260,11 +259,11 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
   const headR = PIN_HEAD_R * sizeMul;
 
   const boardMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ metalness: 0.35, roughness: 0.58 }),
+    () => new THREE.MeshStandardMaterial({ metalness: 0, roughness: 0.85 }),
     []
   );
   const frameMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: theme === 'dark' ? '#1b1e22' : '#b7bcc4', metalness: 0.6, roughness: 0.4 }),
+    () => new THREE.MeshStandardMaterial({ color: theme === 'dark' ? '#5c4f38' : '#c9b78f', metalness: 0.15, roughness: 0.6 }),
     [theme]
   );
   const shaftMat = useMemo(
