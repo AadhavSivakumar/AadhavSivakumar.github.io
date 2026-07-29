@@ -9,7 +9,7 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
-import AboutFlourish from './components/AboutFlourish';
+import Flourish3D from './components/Flourish3D';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
@@ -60,13 +60,13 @@ function App() {
   return (
     <>
       <ScrollProgress />
-      {/* Page-wide decorative anime.js flourishes: fixed to the viewport, one
-          per side, behind all content — visible across every section and
-          morphing as the whole page scrolls. */}
+      {/* Page-wide decorative 3D flourishes: real CSS-3D assemblies driven by
+          anime.js, fixed to the viewport one per side, behind all content —
+          exploding and reassembling as the whole page scrolls. */}
       {isWide && (
         <div className="page-flourish-layer" aria-hidden="true">
-          <AboutFlourish side="left" />
-          <AboutFlourish side="right" />
+          <Flourish3D side="left" />
+          <Flourish3D side="right" />
         </div>
       )}
       <Header theme={theme} toggleTheme={toggleTheme} />

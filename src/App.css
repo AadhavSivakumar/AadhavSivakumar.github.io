@@ -545,6 +545,125 @@ html[data-theme="dark"] {
 .flr-stage > * { transform-box: fill-box; transform-origin: center; }
 
 
+/* ── Genuinely-3D side flourishes (Flourish3D.jsx) ─────────────────────────
+   HTML in a real CSS 3D context: `perspective` on the stage + an unbroken
+   `transform-style: preserve-3d` chain, so translateZ gives TRUE perspective
+   foreshortening and the browser depth-sorts intersecting planes. (SVG cannot:
+   it ignores translateZ outright.) Flat gold linework only — no gradients. */
+.f3d {
+  position: absolute;
+  top: calc(50vh - 200px);
+  width: 200px;
+  height: 400px;
+  perspective: 720px;
+  pointer-events: none;
+  opacity: 0.85;
+  will-change: transform;
+}
+/* Bias each stage's vanishing point toward the page centre, so the two objects
+   read as seen from the reader's seat and visually frame the content. */
+.f3d--left { left: clamp(8px, 4.5vw, 230px); perspective-origin: 118% 50%; }
+.f3d--right { right: clamp(8px, 4.5vw, 230px); perspective-origin: -18% 50%; }
+
+/* Every wrapper must keep the 3D context alive — one `flat` here collapses the
+   whole assembly back to 2D. All wrappers are zero-size anchor points so their
+   children centre on the stage origin via negative margins. */
+.f3d__world,
+.f3d__idle,
+.f3d__part,
+.f3d__module,
+.f3d__rotor,
+.f3d__pivot,
+.f3d__toolwrap,
+.f3d__cellwrap,
+.f3d__tokwrap,
+.f3d__axiswrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+}
+
+/* Box faces + rings: 1px gold wireframe with a flat 5% wash (no gradient). */
+.f3d__face {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 1px solid var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 5%, transparent);
+}
+.f3d__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-style: solid;
+  border-color: var(--accent-color);
+  border-radius: 50%;
+}
+
+/* LEFT — conv stack */
+.f3d__spine {
+  position: absolute; left: 50%; top: 50%;
+  width: 1px; height: 380px; margin-left: -0.5px; margin-top: -190px;
+  background: var(--accent-color); opacity: 0.16;
+}
+.f3d__cell {
+  position: absolute; left: 50%; top: 50%;
+  width: 19px; height: 19px; margin-left: -9.5px; margin-top: -9.5px;
+  border: 1px solid var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+}
+.f3d__kernel {
+  position: absolute; left: 50%; top: 50%;
+  width: 25px; height: 25px; margin-left: -12.5px; margin-top: -12.5px;
+  border: 1.5px solid var(--accent-color);
+}
+.f3d__token {
+  position: absolute; left: 50%; top: 50%;
+  width: 22px; height: 22px; margin-left: -11px; margin-top: -11px;
+  border: 1px solid var(--accent-color);
+}
+/* Depth rail: lies along the Z axis, so it projects to zero width head-on and
+   splays open as the world yaws. transform-origin pins it to its near end. */
+.f3d__rail {
+  position: absolute; left: 50%; top: 50%;
+  width: 53px; height: 1px; margin-top: -0.5px;
+  transform-origin: 0 50%;
+  background: var(--accent-color); opacity: 0.3;
+}
+
+/* RIGHT — joint module. The static tilt lays the joint's rotation axis
+   up-and-back into the screen, so exploding separates parts in depth too. */
+.f3d__module { transform: translateY(34px) rotateX(64deg) rotateZ(-16deg); }
+.f3d__axiswrap { transform: rotateX(90deg); }
+.f3d__axis {
+  position: absolute; left: 0; top: 0;
+  width: 0; height: 330px; margin-top: -80px;
+  border-left: 1px dashed var(--accent-color); opacity: 0.34;
+}
+.f3d__hexside {
+  position: absolute; left: 50%; top: 50%;
+  width: 44px; height: 48px; margin-left: -22px; margin-top: -24px;
+  border: 1px solid var(--accent-color); opacity: 0.5;
+  background: color-mix(in srgb, var(--accent-color) 4%, transparent);
+}
+.f3d__coil {
+  position: absolute; left: 50%; top: 50%;
+  width: 16px; height: 5px; margin-left: -8px; margin-top: -2.5px;
+  border: 1px solid var(--accent-color);
+}
+.f3d__spoke {
+  position: absolute; left: 50%; top: 50%;
+  width: 26px; height: 2px; margin-top: -1px;
+  transform-origin: 0 50%;
+  background: var(--accent-color); opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
+
+
 /* The 3D lanyards span their own full-width horizontal strip below the card. */
 .about-lanyard-strip {
   position: relative;
