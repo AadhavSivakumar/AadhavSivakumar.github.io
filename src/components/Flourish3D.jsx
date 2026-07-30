@@ -196,15 +196,50 @@ function Wire() {
   );
 }
 
-// RIGHT — robotics. Starts as a bare wire; the motor then builds itself around
-// it, part by part from the core outward, each part flying in along the axis on
-// its OWN scroll window. The windows are wider than the gap between them, so a
-// part starts arriving well before the previous one has seated (see BUILD_SPAN).
+// Radial detail ring (gear teeth, magnet segments, bolts) — placed by
+// rotate-then-translate, which anime can never reproduce, so STATIC ONLY.
+function Radial({ n, r, cls, from = 0 }) {
+  return Array.from({ length: n }, (_, k) => (
+    <div key={k} className={cls} style={{ transform: `rotateZ(${from + (k * 360) / n}deg) translateX(${r}px)` }} />
+  ));
+}
+
+// RIGHT — a Franka Emika Research 3 style joint module. The FR3 is a 7-DOF
+// cobot whose every joint is an integrated harmonic-drive actuator: a frameless
+// BLDC rotor/stator, a strain-wave (harmonic) gear — elliptical wave generator
+// inside a toothed flexspline inside a rigid circular spline — plus a brake, an
+// encoder and, the FR3's signature, a strain-gauge torque-sensor flexure ring,
+// all inside a CYLINDRICAL housing (not a hexagonal can).
+//
+// It starts as a bare wire (the motor phase leads) and the joint assembles
+// around it from the axis outward. Each part has its OWN scroll window; the
+// windows are far wider than the gaps between them, so ~3 parts are always in
+// flight. Parts arrive from six different directions and spin as they seat.
+const FR3_PARTS = [
+  // lead, seatZ, incoming direction (unit-ish), spin-in degrees
+  { id: 'wavegen', lead: 0.08, sz: 74, dir: [0, 0, 1], spin: -300 },
+  { id: 'flexspline', lead: 0.18, sz: 78, dir: [-1, -0.3, 0.2], spin: 260 },
+  { id: 'circspline', lead: 0.28, sz: 82, dir: [0.4, 1, 0], spin: -240 },
+  { id: 'rotor', lead: 0.38, sz: 86, dir: [1, -0.4, 0.3], spin: 320 },
+  { id: 'stator', lead: 0.48, sz: 86, dir: [-0.5, 1, -0.4], spin: -280 },
+  { id: 'torque', lead: 0.58, sz: 122, dir: [0, -1, 0.5], spin: 300 },
+  { id: 'housing', lead: 0.68, sz: 88, dir: [0, 0, -1], spin: -200 },
+  { id: 'endcap', lead: 0.78, sz: 140, dir: [0.8, 0.6, 0.6], spin: 240 },
+];
+const partAttrs = id => {
+  const p = FR3_PARTS.find(x => x.id === id);
+  return {
+    'data-lead': p.lead,
+    'data-sz': p.sz,
+    'data-fx': p.dir[0],
+    'data-fy': p.dir[1],
+    'data-fz': p.dir[2],
+    'data-spin': p.spin,
+    style: { transform: `translate3d(0,0,${p.sz}px)` },
+  };
+};
+
 function MotorBuild() {
-  const HEX = 6;
-  const COILS = 8;
-  const SPOKES = 6;
-  const BOLTS = 6;
   return (
     <div className="f3d__module">
       {/* dashed centreline — the signature of a real engineering assembly view */}
@@ -212,59 +247,83 @@ function MotorBuild() {
         <div className="f3d__axis" />
       </div>
 
-      {/* 0 · the wire, present from the start */}
-      <Wire />
+      {/* The whole joint turns about its own axis as it assembles. */}
+      <div className="f3d__spin">
+        {/* 0 · the motor phase wire, present from the start */}
+        <Wire />
 
-      {/* 1 · commutator — the first collar to close on the wire */}
-      <div className="f3d__part f3d__build" data-lead="0.10" data-sz="79" style={{ transform: 'translate3d(0,0,79px)' }}>
-        <Ring d={30} z={-17} op={0.75} />
-        <Ring d={30} z={17} op={0.75} />
-        {Array.from({ length: SPOKES }, (_, k) => (
-          <div key={k} className="f3d__bar" style={{ transform: `rotateZ(${k * 60}deg) translateX(15px) rotateY(90deg)` }} />
-        ))}
-      </div>
+        {/* 1 · WAVE GENERATOR — the harmonic drive's elliptical cam + bearing.
+             The ellipse is the instantly-readable "this is a strain wave gear". */}
+        <div className="f3d__part f3d__build" {...partAttrs('wavegen')}>
+          <div className="f3d__ellipse" />
+          <div className="f3d__ellipse f3d__ellipse--inner" />
+          <Ring d={16} op={0.9} />
+        </div>
 
-      {/* 2 · rotor — spins continuously on its own nested wrapper */}
-      <div className="f3d__part f3d__build" data-lead="0.22" data-sz="83" style={{ transform: 'translate3d(0,0,83px)' }}>
-        <div className="f3d__rotor">
-          <Ring d={54} z={-17} op={0.8} />
-          <Ring d={54} z={17} op={0.8} />
-          {Array.from({ length: SPOKES }, (_, k) => (
-            <div key={k} className="f3d__spoke" style={{ transform: `rotateZ(${k * 60}deg)` }} />
+        {/* 2 · FLEXSPLINE — flexible externally-toothed cup deformed by the cam */}
+        <div className="f3d__part f3d__build" {...partAttrs('flexspline')}>
+          <Ring d={62} z={-16} op={0.7} />
+          <Ring d={62} z={16} op={0.55} />
+          <Radial n={10} r={31} cls="f3d__tooth" />
+        </div>
+
+        {/* 3 · CIRCULAR SPLINE — rigid internally-toothed outer ring (2 more
+             teeth than the flexspline: that difference IS the gear ratio) */}
+        <div className="f3d__part f3d__build" {...partAttrs('circspline')}>
+          <Ring d={80} z={-14} op={0.7} />
+          <Ring d={80} z={14} op={0.7} />
+          <Radial n={12} r={36} cls="f3d__tooth" from={15} />
+        </div>
+
+        {/* 4 · ROTOR — frameless BLDC rotor, magnet segments on a back iron */}
+        <div className="f3d__part f3d__build" {...partAttrs('rotor')}>
+          <div className="f3d__rotor">
+            <Ring d={92} z={-18} op={0.75} />
+            <Ring d={92} z={18} op={0.75} />
+            <Radial n={8} r={44} cls="f3d__magnet" />
+          </div>
+        </div>
+
+        {/* 5 · STATOR — laminated core with the windings the phase wire feeds */}
+        <div className="f3d__part f3d__build" {...partAttrs('stator')}>
+          <Ring d={108} z={-22} op={0.6} />
+          <Ring d={108} z={22} op={0.6} />
+          {Array.from({ length: 10 }, (_, k) => (
+            <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 36}deg) translateX(50px) rotateY(90deg)` }} />
           ))}
         </div>
-      </div>
 
-      {/* 3 · stator ring + windings, enclosing the rotor */}
-      <div className="f3d__part f3d__build" data-lead="0.34" data-sz="82" style={{ transform: 'translate3d(0,0,82px)' }}>
-        <Ring d={78} z={-22} op={0.55} />
-        <Ring d={78} z={22} op={0.55} />
-        {Array.from({ length: COILS }, (_, k) => (
-          <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 45}deg) translateX(35px) rotateY(90deg)` }} />
-        ))}
-      </div>
+        {/* 6 · TORQUE SENSOR — the FR3 signature: a spoked strain-gauge flexure
+             ring in the output path, giving every joint true torque feedback */}
+        <div className="f3d__part f3d__build" {...partAttrs('torque')}>
+          <Ring d={86} op={0.8} thick={1.5} />
+          <Ring d={34} op={0.8} />
+          <Radial n={6} r={30} cls="f3d__flexspoke" />
+          <Radial n={6} r={40} cls="f3d__gauge" from={30} />
+        </div>
 
-      {/* 4 · the can — a real hexagonal prism that closes over everything */}
-      <div className="f3d__part f3d__build" data-lead="0.46" data-sz="83" style={{ transform: 'translate3d(0,0,83px)' }}>
-        {Array.from({ length: HEX }, (_, k) => (
-          <div key={k} className="f3d__hexside" style={{ transform: `rotateZ(${k * 60}deg) translateX(52px) rotateY(90deg)` }} />
-        ))}
-      </div>
+        {/* 7 · HOUSING — the cylindrical shell that closes over the whole joint,
+             built from 14 flat slats around the axis (near slats spread apart,
+             far ones bunch: textbook perspective convergence) */}
+        <div className="f3d__part f3d__build" {...partAttrs('housing')}>
+          {Array.from({ length: 14 }, (_, k) => (
+            <div
+              key={k}
+              className="f3d__slat"
+              style={{ transform: `rotateZ(${(k * 360) / 14}deg) translateX(58px) rotateY(90deg)` }}
+            />
+          ))}
+        </div>
 
-      {/* 5 · end bell + bolt circle */}
-      <div className="f3d__part f3d__build" data-lead="0.58" data-sz="140" style={{ transform: 'translate3d(0,0,140px)' }}>
-        <Ring d={48} op={0.85} thick={1.5} />
-        {Array.from({ length: BOLTS }, (_, k) => (
-          <div key={k} className="f3d__bolt" style={{ transform: `rotateZ(${k * 60}deg) translateX(18px)` }} />
-        ))}
-      </div>
-
-      {/* 6 · output shaft + articulating link arm */}
-      <div className="f3d__part f3d__build" data-lead="0.68" data-sz="152" style={{ transform: 'translate3d(0,0,152px)' }}>
-        <div className="f3d__pivot">
-          <Box w={20} h={92} d={15} y={-52} z={6} />
-          <div className="f3d__toolwrap" style={{ transform: 'translate3d(0,-100px,6px)' }}>
-            <Ring d={18} op={0.9} />
+        {/* 8 · END CAP + output flange feeding the next link */}
+        <div className="f3d__part f3d__build" {...partAttrs('endcap')}>
+          <Ring d={58} op={0.85} thick={1.5} />
+          <Radial n={6} r={22} cls="f3d__bolt" />
+          <div className="f3d__pivot">
+            <Box w={22} h={80} d={16} y={-46} z={6} />
+            <div className="f3d__toolwrap" style={{ transform: 'translate3d(0,-88px,6px)' }}>
+              <Ring d={20} op={0.9} />
+            </div>
           </div>
         </div>
       </div>
@@ -288,19 +347,29 @@ export default function Flourish3D({ side = 'left' }) {
     // SPAN is much wider than the 0.12 gap between leads, so ~3 parts are in
     // flight at once — a part starts arriving long before the previous seats.
     const BUILD_SPAN = 0.32;
-    const LEAF_SEL = '.f3d__face,.f3d__ring,.f3d__hexside,.f3d__coil,.f3d__spoke,.f3d__bar,.f3d__bolt';
+    // EVERY leaf a build part can contain must be listed here — the build owns
+    // their opacity, and anything omitted stays fully visible before its part
+    // has arrived. Keep in sync when adding parts.
+    const LEAF_SEL =
+      '.f3d__face,.f3d__ring,.f3d__slat,.f3d__coil,.f3d__spoke,.f3d__bolt,' +
+      '.f3d__ellipse,.f3d__tooth,.f3d__magnet,.f3d__flexspoke,.f3d__gauge';
     const builds = isLeft
       ? []
       : Array.from(root.querySelectorAll('.f3d__build')).map(el => ({
           el,
           lead: +el.dataset.lead,
           sz: +el.dataset.sz,
+          fx: +el.dataset.fx,
+          fy: +el.dataset.fy,
+          fz: +el.dataset.fz,
+          spin: +el.dataset.spin,
           // Base opacity must be sampled BEFORE we ever write an inline one.
           leaves: Array.from(el.querySelectorAll(LEAF_SEL)).map(l => ({
             l,
             base: parseFloat(getComputedStyle(l).opacity) || 1,
           })),
         }));
+    const spinner = isLeft ? null : root.querySelector('.f3d__spin');
     const wirePaths = isLeft
       ? []
       : Array.from(root.querySelectorAll('.f3d__wirepath')).map(p => {
@@ -328,16 +397,26 @@ export default function Flourish3D({ side = 'left' }) {
       for (const w of wirePaths) {
         w.p.style.strokeDashoffset = `${(w.len * (1 - wireP)).toFixed(1)}`;
       }
-      // Each part eases from "away" (far up the axis toward the viewer, larger
-      // and twisted) onto its seat. Opacity is written on LEAVES only — putting
-      // it on the part wrapper would trip the grouping-property rule and flatten
-      // that part's 3D children.
+      // The whole joint turns about its own axis while it assembles — a bit over
+      // a full revolution across the page.
+      if (spinner) spinner.style.transform = `rotateZ(${(B * 400).toFixed(1)}deg)`;
+
+      // Each part eases in from its OWN direction (data-fx/fy/fz), tumbling and
+      // spinning as it seats. Opacity is written on LEAVES only — putting it on
+      // the part wrapper would trip the grouping-property rule and flatten that
+      // part's 3D children.
       for (const b of builds) {
         const e = smooth(clamp((B - b.lead) / BUILD_SPAN, 0, 1));
-        const z = b.sz + (1 - e) * 190;
-        const s = 1 + (1 - e) * 0.55;
-        const r = (1 - e) * -52;
-        b.el.style.transform = `translate3d(0,0,${z.toFixed(1)}px) rotateZ(${r.toFixed(1)}deg) scale(${s.toFixed(3)})`;
+        const away = 1 - e;
+        const D = 210;
+        const x = b.fx * away * D;
+        const y = b.fy * away * D;
+        const z = b.sz + b.fz * away * D;
+        const s = 1 + away * 0.5;
+        b.el.style.transform =
+          `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
+          `rotateX(${(away * b.fy * 52).toFixed(1)}deg) rotateY(${(away * -b.fx * 52).toFixed(1)}deg) ` +
+          `rotateZ(${(away * b.spin).toFixed(1)}deg) scale(${s.toFixed(3)})`;
         for (const lf of b.leaves) lf.l.style.opacity = (lf.base * e).toFixed(3);
       }
     };

@@ -578,6 +578,7 @@ html[data-theme="dark"] {
 .f3d__cellwrap,
 .f3d__tokwrap,
 .f3d__wirewrap,
+.f3d__spin,
 .f3d__axiswrap {
   position: absolute;
   left: 50%;
@@ -644,15 +645,50 @@ html[data-theme="dark"] {
   width: 0; height: 330px; margin-top: -80px;
   border-left: 1px dashed var(--accent-color); opacity: 0.34;
 }
-/* Motor-can side panel. After rotateY(90deg) the element's WIDTH maps to the
-   axial (Z) direction and its HEIGHT stays tangential, so for an apothem of
-   52px the panel must be 2*52*tan(30°) = 60px tall or the hexagon won't close.
-   Width is simply the can's length along its axis. */
-.f3d__hexside {
+/* Cylindrical-housing slat. After rotateY(90deg) the element's WIDTH maps to
+   the axial (Z) direction and its HEIGHT stays tangential, so for radius r and
+   n slats the panel must be 2*r*tan(180°/n) tall or the shell won't close
+   (r=58, n=14 → 26px). Width is the housing's length along its axis. */
+.f3d__slat {
   position: absolute; left: 50%; top: 50%;
-  width: 100px; height: 60px; margin-left: -50px; margin-top: -30px;
-  border: 1px solid var(--accent-color); opacity: 0.5;
+  width: 108px; height: 26px; margin-left: -54px; margin-top: -13px;
+  border: 1px solid var(--accent-color); opacity: 0.45;
   background: color-mix(in srgb, var(--accent-color) 4%, transparent);
+}
+
+/* Harmonic-drive wave generator: a true ellipse (border-radius on a non-square
+   box) — the shape that makes a strain wave gear instantly recognisable. */
+.f3d__ellipse {
+  position: absolute; left: 50%; top: 50%;
+  width: 56px; height: 30px; margin-left: -28px; margin-top: -15px;
+  border: 1.5px solid var(--accent-color); border-radius: 50%;
+  opacity: 0.85;
+}
+.f3d__ellipse--inner {
+  width: 40px; height: 20px; margin-left: -20px; margin-top: -10px;
+  border-width: 1px; opacity: 0.6;
+}
+
+/* Gear teeth (flexspline / circular spline), rotor magnets, sensor flexures. */
+.f3d__tooth {
+  position: absolute; left: 50%; top: 50%;
+  width: 8px; height: 3px; margin-left: -4px; margin-top: -1.5px;
+  background: var(--accent-color); opacity: 0.7;
+}
+.f3d__magnet {
+  position: absolute; left: 50%; top: 50%;
+  width: 7px; height: 16px; margin-left: -3.5px; margin-top: -8px;
+  border: 1px solid var(--accent-color); opacity: 0.65;
+}
+.f3d__flexspoke {
+  position: absolute; left: 50%; top: 50%;
+  width: 26px; height: 2px; margin-left: -13px; margin-top: -1px;
+  background: var(--accent-color); opacity: 0.6;
+}
+.f3d__gauge {
+  position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 8px; margin-left: -3px; margin-top: -4px;
+  border: 1px solid var(--accent-color); opacity: 0.75;
 }
 .f3d__coil {
   position: absolute; left: 50%; top: 50%;

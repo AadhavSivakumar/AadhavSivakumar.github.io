@@ -101,23 +101,45 @@ Two decorative assemblies fixed to the viewport, one per side, mounted in the
 LEFT is "Conv Stack" (AI/ML: wireframe feature volumes that explode into their own
 faces, an activation plane, a convolution kernel, a receding token row).
 
-RIGHT is "Motor Build" — it **starts as a bare wire and the motor assembles around
-it**. The wire (a serpentine winding, drawn on via `stroke-dashoffset` over the first
-10% of scroll) is two flat SVG planes 90° apart about the module axis — the one
-sanctioned use of SVG here: flat detail inside a div that is itself placed in 3D.
-Six parts then close on it from the core outward — commutator → rotor → stator +
-windings → hex can → end bell → output shaft/arm — each flying in from up the axis
-(larger, twisted, transparent) onto its seat.
+RIGHT is "Motor Build" — it **starts as a bare wire and a motor assembles around
+it**, modelled on a **Franka Emika Research 3 joint**. The FR3 is a 7-DOF cobot whose
+every joint is an integrated harmonic-drive actuator, so the part list is deliberately
+anatomical, not generic: wave generator → flexspline → circular spline → BLDC rotor →
+stator → torque-sensor flexure ring → cylindrical housing → end cap + output flange.
+Details that carry the likeness and should survive any restyle:
 
-**The arrivals deliberately overlap.** Each part carries a `data-lead`; its progress
-is `smoothstep((scroll - lead) / BUILD_SPAN)`. `BUILD_SPAN` (0.32) is much wider than
-the 0.12 gap between leads, so ~2–3 parts are always in flight — a part starts
-arriving long before the previous one seats. Widen the gap or shrink the span and it
-degenerates into a stiff one-at-a-time queue.
+- The **housing is CYLINDRICAL, not a hexagonal can** — FR3 joints are round. It is
+  built from 14 flat slats around the axis, which also buys real perspective
+  convergence (near slats spread, far ones bunch).
+- The **wave generator is a true ellipse** (`border-radius: 50%` on a non-square box).
+  That ellipse is what makes a strain wave gear instantly readable.
+- The **circular spline carries 2 more teeth than the flexspline** — that difference
+  *is* the gear ratio.
+- The **torque-sensor flexure ring** is the FR3 signature (torque feedback in all 7
+  joints); do not drop it for being subtle.
 
-Hex-can geometry: after `rotateY(90deg)` a side panel's **width** maps to the axial
-(Z) direction and its **height** stays tangential, so for apothem `a` the panel must
-be `2*a*tan(30°)` tall or the hexagon will not close (a=52 → 60px).
+The wire (the motor phase leads — a serpentine winding drawn on via
+`stroke-dashoffset` over the first 10% of scroll) is two flat SVG planes 90° apart
+about the module axis — the one sanctioned use of SVG here: flat detail inside a div
+that is itself placed in 3D.
+
+**The arrivals deliberately overlap, and come from different directions.** Each part
+carries `data-lead` plus a `data-fx/fy/fz` incoming direction and a `data-spin`.
+Progress is `smoothstep((scroll - lead) / BUILD_SPAN)`; `BUILD_SPAN` (0.32) is much
+wider than the 0.10 gap between leads, so ~3 parts are always in flight — a part
+starts arriving long before the previous one seats. Widen the gap or shrink the span
+and it degenerates into a stiff one-at-a-time queue. Each part also tumbles and spins
+in (up to ~320°), and the whole joint turns just over a full revolution about its own
+axis while assembling (`.f3d__spin`, scroll-driven).
+
+Cylinder geometry: after `rotateY(90deg)` a slat's **width** maps to the axial (Z)
+direction and its **height** stays tangential, so for radius `r` and `n` slats the
+panel must be `2*r*tan(180°/n)` tall or the shell will not close (r=58, n=14 → 26px).
+
+**`LEAF_SEL` must list every leaf class a build part can contain.** The build owns
+those leaves' opacity; anything missing from that selector never gets faded and sits
+fully visible before its part has arrived. This bit once when the part list was
+rewritten and `.f3d__hexside` was left in while the new classes were left out.
 
 **These are HTML divs, not SVG, and that is the entire point.** Invariants learned
 the hard way; breaking any one silently flattens the piece back to 2D:
