@@ -158,66 +158,112 @@ function ConvStack() {
   );
 }
 
-// RIGHT — robotics. A revolute joint exploded along its own axis. The module
-// wrapper lays that axis up-and-back into the screen, so exploding separates
-// the parts in depth as well as on screen.
-function JointModule() {
+// The bare wire the motor builds itself around: a serpentine winding running
+// along the module axis. Drawn as a flat SVG path inside a div that is itself
+// placed in 3D (the one sanctioned use of SVG here) so it can draw on via
+// stroke-dashoffset; two copies 90° apart about the axis give it volume.
+const WIRE_W = 120;
+const WIRE_H = 240;
+function coilPath() {
+  const cx = WIRE_W / 2;
+  const turns = 9;
+  const amp = 26;
+  const yTop = 34;
+  const yBot = 206;
+  const step = (yBot - yTop) / turns;
+  let d = `M ${cx} ${WIRE_H - 6} L ${cx} ${yBot}`;
+  for (let i = 0; i < turns; i++) {
+    const ya = yBot - i * step;
+    const yb = yBot - (i + 1) * step;
+    const dir = i % 2 === 0 ? 1 : -1;
+    d += ` Q ${cx + dir * amp} ${(ya + yb) / 2} ${cx} ${yb}`;
+  }
+  return d + ` L ${cx} 8`;
+}
+const WIRE_D = coilPath();
+
+function Wire() {
+  return (
+    <>
+      {['a', 'b'].map(k => (
+        <div key={k} className={`f3d__wirewrap f3d__wirewrap--${k}`}>
+          <svg className="f3d__wire" viewBox={`0 0 ${WIRE_W} ${WIRE_H}`} fill="none">
+            <path className="f3d__wirepath" d={WIRE_D} />
+          </svg>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// RIGHT — robotics. Starts as a bare wire; the motor then builds itself around
+// it, part by part from the core outward, each part flying in along the axis on
+// its OWN scroll window. The windows are wider than the gap between them, so a
+// part starts arriving well before the previous one has seated (see BUILD_SPAN).
+function MotorBuild() {
   const HEX = 6;
   const COILS = 8;
   const SPOKES = 6;
+  const BOLTS = 6;
   return (
     <div className="f3d__module">
-      {/* dashed centreline — the signature of a real exploded engineering view */}
+      {/* dashed centreline — the signature of a real engineering assembly view */}
       <div className="f3d__axiswrap">
         <div className="f3d__axis" />
       </div>
 
-      {/* 1 · base bracket (the datum — never moves) */}
-      <div className="f3d__part f3d__seat" data-sz="0" data-ez="0" style={{ transform: 'translate3d(0,0,0)' }}>
-        <Box w={104} h={78} d={24} />
-      </div>
+      {/* 0 · the wire, present from the start */}
+      <Wire />
 
-      {/* 2 · motor can — a real hexagonal prism */}
-      <div className="f3d__part f3d__seat" data-sz="44" data-ez="126" style={{ transform: 'translate3d(0,0,44px)' }}>
-        {Array.from({ length: HEX }, (_, k) => (
-          <div
-            key={k}
-            className="f3d__hexside"
-            style={{ transform: `rotateZ(${k * 60}deg) translateX(41.6px) rotateY(90deg)` }}
-          />
+      {/* 1 · commutator — the first collar to close on the wire */}
+      <div className="f3d__part f3d__build" data-lead="0.10" data-sz="79" style={{ transform: 'translate3d(0,0,79px)' }}>
+        <Ring d={30} z={-17} op={0.75} />
+        <Ring d={30} z={17} op={0.75} />
+        {Array.from({ length: SPOKES }, (_, k) => (
+          <div key={k} className="f3d__bar" style={{ transform: `rotateZ(${k * 60}deg) translateX(15px) rotateY(90deg)` }} />
         ))}
       </div>
 
-      {/* 3 · stator ring + windings */}
-      <div className="f3d__part f3d__seat" data-sz="84" data-ez="206" style={{ transform: 'translate3d(0,0,84px)' }}>
-        <Ring d={74} z={-9} op={0.55} />
-        <Ring d={74} z={9} op={0.55} />
-        {Array.from({ length: COILS }, (_, k) => (
-          <div
-            key={k}
-            className="f3d__coil"
-            style={{ transform: `rotateZ(${k * 45}deg) translateX(33px) rotateY(90deg)` }}
-          />
-        ))}
-      </div>
-
-      {/* 4 · rotor — spins continuously on its own nested wrapper */}
-      <div className="f3d__part f3d__seat" data-sz="110" data-ez="286" style={{ transform: 'translate3d(0,0,110px)' }}>
+      {/* 2 · rotor — spins continuously on its own nested wrapper */}
+      <div className="f3d__part f3d__build" data-lead="0.22" data-sz="83" style={{ transform: 'translate3d(0,0,83px)' }}>
         <div className="f3d__rotor">
-          <Ring d={52} z={-7} op={0.8} />
-          <Ring d={52} z={7} op={0.8} />
+          <Ring d={54} z={-17} op={0.8} />
+          <Ring d={54} z={17} op={0.8} />
           {Array.from({ length: SPOKES }, (_, k) => (
             <div key={k} className="f3d__spoke" style={{ transform: `rotateZ(${k * 60}deg)` }} />
           ))}
         </div>
       </div>
 
-      {/* 5 · output flange + articulating link arm */}
-      <div className="f3d__part f3d__seat" data-sz="132" data-ez="360" style={{ transform: 'translate3d(0,0,132px)' }}>
-        <Ring d={44} op={0.85} thick={1.5} />
+      {/* 3 · stator ring + windings, enclosing the rotor */}
+      <div className="f3d__part f3d__build" data-lead="0.34" data-sz="82" style={{ transform: 'translate3d(0,0,82px)' }}>
+        <Ring d={78} z={-22} op={0.55} />
+        <Ring d={78} z={22} op={0.55} />
+        {Array.from({ length: COILS }, (_, k) => (
+          <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 45}deg) translateX(35px) rotateY(90deg)` }} />
+        ))}
+      </div>
+
+      {/* 4 · the can — a real hexagonal prism that closes over everything */}
+      <div className="f3d__part f3d__build" data-lead="0.46" data-sz="83" style={{ transform: 'translate3d(0,0,83px)' }}>
+        {Array.from({ length: HEX }, (_, k) => (
+          <div key={k} className="f3d__hexside" style={{ transform: `rotateZ(${k * 60}deg) translateX(52px) rotateY(90deg)` }} />
+        ))}
+      </div>
+
+      {/* 5 · end bell + bolt circle */}
+      <div className="f3d__part f3d__build" data-lead="0.58" data-sz="140" style={{ transform: 'translate3d(0,0,140px)' }}>
+        <Ring d={48} op={0.85} thick={1.5} />
+        {Array.from({ length: BOLTS }, (_, k) => (
+          <div key={k} className="f3d__bolt" style={{ transform: `rotateZ(${k * 60}deg) translateX(18px)` }} />
+        ))}
+      </div>
+
+      {/* 6 · output shaft + articulating link arm */}
+      <div className="f3d__part f3d__build" data-lead="0.68" data-sz="152" style={{ transform: 'translate3d(0,0,152px)' }}>
         <div className="f3d__pivot">
-          <Box w={20} h={98} d={15} y={-56} z={8} />
-          <div className="f3d__toolwrap" style={{ transform: 'translate3d(0,-108px,8px)' }}>
+          <Box w={20} h={92} d={15} y={-52} z={6} />
+          <div className="f3d__toolwrap" style={{ transform: 'translate3d(0,-100px,6px)' }}>
             <Ring d={18} op={0.9} />
           </div>
         </div>
@@ -234,8 +280,34 @@ export default function Flourish3D({ side = 'left' }) {
     const root = ref.current;
     if (!root) return;
     const world = root.querySelector('.f3d__world');
-    const faces = Array.from(root.querySelectorAll('.f3d__face'));
-    const seats = Array.from(root.querySelectorAll('.f3d__seat'));
+    // Only the left stack explodes into its own faces; the right side's faces
+    // ride their parent part in, so they must stay seated.
+    const faces = isLeft ? Array.from(root.querySelectorAll('.f3d__face')) : [];
+
+    // Right side: each motor part gets its own scroll window [lead, lead+SPAN].
+    // SPAN is much wider than the 0.12 gap between leads, so ~3 parts are in
+    // flight at once — a part starts arriving long before the previous seats.
+    const BUILD_SPAN = 0.32;
+    const LEAF_SEL = '.f3d__face,.f3d__ring,.f3d__hexside,.f3d__coil,.f3d__spoke,.f3d__bar,.f3d__bolt';
+    const builds = isLeft
+      ? []
+      : Array.from(root.querySelectorAll('.f3d__build')).map(el => ({
+          el,
+          lead: +el.dataset.lead,
+          sz: +el.dataset.sz,
+          // Base opacity must be sampled BEFORE we ever write an inline one.
+          leaves: Array.from(el.querySelectorAll(LEAF_SEL)).map(l => ({
+            l,
+            base: parseFloat(getComputedStyle(l).opacity) || 1,
+          })),
+        }));
+    const wirePaths = isLeft
+      ? []
+      : Array.from(root.querySelectorAll('.f3d__wirepath')).map(p => {
+          const len = p.getTotalLength ? p.getTotalLength() : 0;
+          p.style.strokeDasharray = `${len}`;
+          return { p, len };
+        });
 
     const reduce =
       typeof window !== 'undefined' &&
@@ -245,14 +317,28 @@ export default function Flourish3D({ side = 'left' }) {
     // --- scroll: explode/assemble + camera -------------------------------
     // k = 0 fully seated, 1 fully exploded. Two smooth cycles across the page
     // so the assembly breathes apart and back together as you scroll.
-    const place = k => {
+    const smooth = t => t * t * (3 - 2 * t);
+
+    const place = (k, B) => {
       for (const el of faces) {
         el.style.transform = `${el.dataset.rot} translateZ(${(+el.dataset.z + +el.dataset.ex * k).toFixed(1)}px)`;
       }
-      for (const el of seats) {
-        const sz = +el.dataset.sz;
-        const ez = +el.dataset.ez;
-        el.style.transform = `translate3d(0,0,${(sz + (ez - sz) * k).toFixed(1)}px)`;
+      // The wire draws itself on first, before any motor part arrives.
+      const wireP = clamp(B / 0.1, 0, 1);
+      for (const w of wirePaths) {
+        w.p.style.strokeDashoffset = `${(w.len * (1 - wireP)).toFixed(1)}`;
+      }
+      // Each part eases from "away" (far up the axis toward the viewer, larger
+      // and twisted) onto its seat. Opacity is written on LEAVES only — putting
+      // it on the part wrapper would trip the grouping-property rule and flatten
+      // that part's 3D children.
+      for (const b of builds) {
+        const e = smooth(clamp((B - b.lead) / BUILD_SPAN, 0, 1));
+        const z = b.sz + (1 - e) * 190;
+        const s = 1 + (1 - e) * 0.55;
+        const r = (1 - e) * -52;
+        b.el.style.transform = `translate3d(0,0,${z.toFixed(1)}px) rotateZ(${r.toFixed(1)}deg) scale(${s.toFixed(3)})`;
+        for (const lf of b.leaves) lf.l.style.opacity = (lf.base * e).toFixed(3);
       }
     };
 
@@ -260,7 +346,7 @@ export default function Flourish3D({ side = 'left' }) {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const p = max > 0 ? clamp(window.scrollY / max, 0, 1) : 0;
       const k = 0.5 - 0.5 * Math.cos(p * TAU * 2);
-      place(k);
+      place(k, p);
       // Camera. Yaw deliberately crosses 0 so every box's left/right side wall
       // foreshortens to nothing and swaps over — a tell no 2D fake can produce.
       const yaw = (isLeft ? 1 : -1) * (26 - p * 48);
@@ -269,7 +355,7 @@ export default function Flourish3D({ side = 'left' }) {
     };
 
     if (reduce) {
-      place(0.5); // a composed, half-exploded static view
+      place(0.5, 1); // composed: left half-exploded, right fully built
       if (world) world.style.transform = `rotateX(9deg) rotateY(${isLeft ? 20 : -20}deg)`;
       return;
     }
@@ -320,10 +406,14 @@ export default function Flourish3D({ side = 'left' }) {
           rotateZ: [-16, 16],
           duration: 5200, loop: true, alternate: true, ease: 'inOutSine',
         }),
-        animate(q('.f3d__coil'), {
-          opacity: [0.25, 0.7],
-          delay: stagger(70),
-          duration: 1500, loop: true, alternate: true, ease: 'inOutSine',
+        // NB: nothing here may animate `.f3d__coil` (or any build leaf). Their
+        // opacity is owned by the scroll-driven build, and a second writer makes
+        // parts glow before they have arrived. A transform loop is worse still:
+        // the coils use rotate-then-translate placement, which anime cannot
+        // reproduce in its fixed component order and would destroy.
+        animate(q('.f3d__wirepath'), {
+          opacity: [0.5, 0.9],
+          duration: 2200, loop: true, alternate: true, ease: 'inOutSine',
         })
       );
     }
@@ -338,7 +428,7 @@ export default function Flourish3D({ side = 'left' }) {
   return (
     <div className={`f3d f3d--${side}`} ref={ref} aria-hidden="true">
       <div className="f3d__world">
-        <div className="f3d__idle">{isLeft ? <ConvStack /> : <JointModule />}</div>
+        <div className="f3d__idle">{isLeft ? <ConvStack /> : <MotorBuild />}</div>
       </div>
     </div>
   );

@@ -577,6 +577,7 @@ html[data-theme="dark"] {
 .f3d__toolwrap,
 .f3d__cellwrap,
 .f3d__tokwrap,
+.f3d__wirewrap,
 .f3d__axiswrap {
   position: absolute;
   left: 50%;
@@ -643,9 +644,13 @@ html[data-theme="dark"] {
   width: 0; height: 330px; margin-top: -80px;
   border-left: 1px dashed var(--accent-color); opacity: 0.34;
 }
+/* Motor-can side panel. After rotateY(90deg) the element's WIDTH maps to the
+   axial (Z) direction and its HEIGHT stays tangential, so for an apothem of
+   52px the panel must be 2*52*tan(30°) = 60px tall or the hexagon won't close.
+   Width is simply the can's length along its axis. */
 .f3d__hexside {
   position: absolute; left: 50%; top: 50%;
-  width: 44px; height: 48px; margin-left: -22px; margin-top: -24px;
+  width: 100px; height: 60px; margin-left: -50px; margin-top: -30px;
   border: 1px solid var(--accent-color); opacity: 0.5;
   background: color-mix(in srgb, var(--accent-color) 4%, transparent);
 }
@@ -659,6 +664,36 @@ html[data-theme="dark"] {
   width: 26px; height: 2px; margin-top: -1px;
   transform-origin: 0 50%;
   background: var(--accent-color); opacity: 0.55;
+}
+/* commutator bars (short axial segments on the core collar) */
+.f3d__bar {
+  position: absolute; left: 50%; top: 50%;
+  width: 34px; height: 4px; margin-left: -17px; margin-top: -2px;
+  border: 1px solid var(--accent-color); opacity: 0.6;
+}
+.f3d__bolt {
+  position: absolute; left: 50%; top: 50%;
+  width: 5px; height: 5px; margin-left: -2.5px; margin-top: -2.5px;
+  border-radius: 50%;
+  background: var(--accent-color); opacity: 0.7;
+}
+
+/* The wire the motor builds around. Two flat SVG planes 90° apart about the
+   module axis — the sanctioned use of SVG here: flat detail inside a div that
+   is itself placed in 3D. rotateX(90deg) lays each plane along the axis. */
+.f3d__wirewrap--a { transform: translateZ(70px) rotateX(90deg); }
+.f3d__wirewrap--b { transform: translateZ(70px) rotateX(90deg) rotateY(90deg); }
+.f3d__wire {
+  position: absolute; left: 50%; top: 50%;
+  width: 120px; height: 240px; margin-left: -60px; margin-top: -120px;
+  overflow: visible;
+}
+.f3d__wirepath {
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.75;
 }
 
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }

@@ -8,6 +8,15 @@ This is Aadhav Sivakumar's personal portfolio — a React 18 + Vite single-page 
 
 There is no test suite or linter. Validate changes by running the app and exercising the affected section.
 
+**Gotcha when validating animation via automated browser screenshots:** a backgrounded
+or hidden Chrome tab (`document.visibilityState === 'hidden'`) throttles timers and
+stops `requestAnimationFrame`, so the R3F lanyard canvas screenshots **completely blank**
+and motion/anime.js entrance animations stay frozen at `opacity: 0`. That is an
+environment artifact, not a bug — do not go debugging the scene. Either bring the tab to
+the foreground, or force-visible the elements and spoof visibility from the page before
+capturing. Prefer *measuring* the DOM (`getBoundingClientRect`, computed transforms) over
+eyeballing screenshots; it works regardless of tab state.
+
 ```
 npm run dev        # Vite dev server
 npm run build      # production build to dist/ (dist/ is gitignored)
@@ -32,6 +41,9 @@ src/
   components/
     Header.jsx            # fixed nav, scroll-spy + animated gold pill (layoutId)
     Hero.jsx              # anime.js letter cascade, aurora bg, keyword chips
+    HeroChip.jsx          # liquid-glass keyword pill (backdrop-filter + SVG refraction)
+    SineWave.jsx          # staggered sine field behind the hero (variant="field")
+    Flourish3D.jsx        # the two real-CSS-3D side flourishes (see below)
     About.jsx             # about card centered in the 3D lanyard stage
     Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
     Projects.jsx, ProjectCard.jsx
@@ -44,6 +56,11 @@ src/
     SectionTitle.jsx      # anime.js letter-cascade h2 + underline draw
     ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
 ```
+
+`AboutFlourish.jsx` (the older SVG side storyboards) and `AnimeEmblem.jsx` (a remake
+of the anime.js homepage gauge, briefly used as a hero centrepiece) are still on disk
+but **no longer imported** — kept only as fallbacks. Delete them once the current
+flourishes are settled.
 
 `legacy/` holds pre-React versions of the site — archive only, never edit to change the current site. `Media/` holds local images (`Media/lanyardimgs/` for badge photos, `Media/projects/`, `Media/skills/`). `projectpdf/` and `Resume/` hold PDFs served from this repo.
 
@@ -75,6 +92,84 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 - When the viewport can't fit 3 badges per side (`MIN_STEP` spacing), outermost badges are dropped instead of stacking.
 - Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
+- **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
+
+## The 3D side flourishes (`src/components/Flourish3D.jsx`)
+
+Two decorative assemblies fixed to the viewport, one per side, mounted in the
+`page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by total page scroll.
+LEFT is "Conv Stack" (AI/ML: wireframe feature volumes that explode into their own
+faces, an activation plane, a convolution kernel, a receding token row).
+
+RIGHT is "Motor Build" — it **starts as a bare wire and the motor assembles around
+it**. The wire (a serpentine winding, drawn on via `stroke-dashoffset` over the first
+10% of scroll) is two flat SVG planes 90° apart about the module axis — the one
+sanctioned use of SVG here: flat detail inside a div that is itself placed in 3D.
+Six parts then close on it from the core outward — commutator → rotor → stator +
+windings → hex can → end bell → output shaft/arm — each flying in from up the axis
+(larger, twisted, transparent) onto its seat.
+
+**The arrivals deliberately overlap.** Each part carries a `data-lead`; its progress
+is `smoothstep((scroll - lead) / BUILD_SPAN)`. `BUILD_SPAN` (0.32) is much wider than
+the 0.12 gap between leads, so ~2–3 parts are always in flight — a part starts
+arriving long before the previous one seats. Widen the gap or shrink the span and it
+degenerates into a stiff one-at-a-time queue.
+
+Hex-can geometry: after `rotateY(90deg)` a side panel's **width** maps to the axial
+(Z) direction and its **height** stays tangential, so for apothem `a` the panel must
+be `2*a*tan(30°)` tall or the hexagon will not close (a=52 → 60px).
+
+**These are HTML divs, not SVG, and that is the entire point.** Invariants learned
+the hard way; breaking any one silently flattens the piece back to 2D:
+
+- **SVG cannot do 3D.** `translateZ` on an SVG `<g>`/child is ignored outright
+  (measured: ±150px produced a size ratio of exactly 1.0), and `rotateY` yields only
+  a flat cos() x-squash. Real depth needs HTML + CSS `perspective` +
+  `transform-style: preserve-3d`. Three earlier attempts to fake it in SVG (stacked
+  offset outline clones) were all rejected as "not 3D".
+- **The `preserve-3d` chain must be unbroken.** Every wrapper between the perspective
+  root and a 3D-placed leaf needs it (`.f3d__world`, `__idle`, `__part`, `__module`,
+  `__rotor`, `__pivot`, `__toolwrap`, `__cellwrap`, `__tokwrap`, `__axiswrap`). A
+  single `flat` collapses everything below it.
+- **Grouping properties force `flat`.** On an element carrying `preserve-3d`, any of
+  `opacity` < 1, `filter`, `clip-path`, `mask`, `mix-blend-mode`, `isolation`,
+  `overflow != visible`, or `contain` flattens its 3D children. So **animate
+  `opacity` only on leaves** with no 3D-positioned children. `.f3d` itself is exempt
+  (it is the perspective root and already flat). This is why the old
+  `.about-flourish { isolation: isolate }` must never be ported over.
+- **anime.js emits transform components in a fixed order** (translate → rotate →
+  scale → skew), so it can *never* produce a rotate-**then**-translate placement like
+  `rotateZ(k) translateX(r) rotateY(90deg)` — the cylinder-wall placement used by
+  `.f3d__hexside`, `.f3d__coil`, `.f3d__rail`. Those stay **static inline styles**.
+  Animating a non-transform property (opacity) on them is safe: anime only rewrites
+  `transform` when it animates a transform property.
+- **Scroll and anime.js must never write the same element's transform.** Scroll drives
+  `.f3d__world` (camera yaw/pitch) plus per-face/per-part depth; anime.js drives
+  `.f3d__idle` and the leaves. That split is what the nested wrappers exist for.
+- **One writer per property.** The right side's build owns `opacity` on every build
+  leaf (`.f3d__ring/__hexside/__coil/__spoke/__bar/__bolt/__face`), because opacity is
+  how a part fades in as it arrives. An anime.js loop on those same leaves makes parts
+  glow *before* they arrive — this already happened once with a `.f3d__coil` opacity
+  shimmer. And you cannot swap such a loop to a transform property either: those leaves
+  use rotate-then-translate placement, which anime cannot reproduce (see above) and
+  would destroy. Give a leaf life via its parent wrapper, or not at all.
+- Camera yaw deliberately **crosses 0°** across the scroll range so each box's left and
+  right side walls foreshorten to nothing and swap over — a tell no 2D fake produces.
+
+Verify depth by **measuring, not by eye**: identically-sized elements spread along Z
+must render at different widths (currently ~1.18× near/far across `.f3d__token`), and
+the `rotateY(90deg)` `.f3d__rail` ribbons must project far narrower than their 53px
+width (~5–12px). A ratio of 1.0 means the 3D context is broken somewhere above.
+
+### anime.js v4.5 API notes
+
+- `ease: 'steps(4)'` **as a string was removed.** It matches a deprecated list in
+  `easings/eases/parser.js`, logs a console warning, and silently falls back to
+  linear. Import the function instead: `import { steps } from 'animejs'` →
+  `ease: steps(4)`. Same for `irregular(`, `linear(`, `cubicBezier(`.
+- `stagger()` supports genuine 3D grids: `stagger(90, { grid: [x, y, z], from: 'center' })`
+  computes true 3D Euclidean distance, so ripples radiate spherically through a volume.
+- `loop` / `alternate` are animation-level options, not per-property ones.
 
 ## Modal animation contract
 
@@ -98,7 +193,31 @@ Light/dark is driven by CSS variables under `:root` and `html[data-theme="dark"]
 
 GitHub Pages serves this repo; the React app must be built (`npm run build`) — `dist/` is gitignored, so pushing source alone does not update a Pages deployment that expects built output. Confirm the intended deployment flow with the user before assuming pushes go live.
 
-## Current progress (as of 2026-07-03)
+## Current progress (as of 2026-07-29)
+
+**Uncommitted working changes** — the current animation pass. The owner has signed off
+on the direction ("this looks much more like what I want") but **explicitly expects
+further improvements**, so treat all of this as in-flight rather than final:
+
+- **Real-CSS-3D side flourishes** (`Flourish3D.jsx`, new) replacing the SVG
+  `AboutFlourish` storyboards — one per side, scroll-scrubbed explode/assemble, real
+  perspective (verified ~1.18× near/far). See "The 3D side flourishes" above; that
+  section's invariants are the expensive part, do not relearn them.
+- **Beige pegboard lanyard rack** replacing the straight overhead rail (see the lanyard
+  section) — pins per badge, gentle non-rigid stagger.
+- **Hero**: liquid-glass keyword chips (`HeroChip.jsx`, backdrop-filter + an SVG
+  `feDisplacementMap` that refracts the wave field), and the `/portfolio`-style sine
+  field restored behind the hero via `<SineWave variant="field" />` (wide 1000×350
+  viewBox so `preserveAspectRatio="none"` does not stretch the waves).
+- **Lanyard badges**: aspect-corrected front-face text (`squash` in `drawBadgeFace`),
+  `drawContain` back faces so wide logos stop running off the edge, and a theme-inverted
+  strap texture so the webbing is visible in dark mode.
+- **Header**: animated sun↔moon theme toggle (mask-carved crescent + retracting rays)
+  instead of an emoji swap.
+
+Known open threads on this pass: the flourishes' explode range / rotation speeds and the
+pegboard's tone are the obvious tuning knobs; `AboutFlourish.jsx` and `AnimeEmblem.jsx`
+are dead code awaiting deletion.
 
 **Done and committed locally** (commits `lanyard update 1`, `lanyard 3d change 2`):
 
@@ -112,7 +231,6 @@ GitHub Pages serves this repo; the React app must be built (`npm run build`) —
 
 **Open items:**
 
-- `git push` to origin/master blocked by stale GitHub auth (VS Code askpass served an expired token). Fix in flight: `env -u GIT_ASKPASS git push origin master` + browser sign-in as AadhavSivakumar, or restart VS Code after re-auth and use Sync. Local is 2 commits ahead.
-- Visual QA pass pending — the Chrome window was hidden during automated checks, which suspends all animation. Eyeball: modal open/close feel, lanyard hover-tilt direction (sign flip in `Lanyard.jsx` `pitchErr`/`tilt.nx` if it leans the wrong way), section-title cascades, both themes, mobile layout.
+- Visual QA pass pending on the current animation work: modal open/close feel, lanyard hover-tilt direction (sign flip in `Lanyard.jsx` `pitchErr`/`tilt.nx` if it leans the wrong way), section-title cascades, both themes, mobile layout.
 - Spline not integrated (user's requested stack item) — needs a scene designed at spline.design first; wire via `@splinetool/react-spline`, lazy-loaded like the Lanyard.
 - Deployment flow for the built `dist/` is undecided (see Deployment above).
