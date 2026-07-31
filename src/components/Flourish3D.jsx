@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 // `steps` must be imported and passed as a FUNCTION: anime v4.5 removed the
 // string form (ease: 'steps(4)' hits the deprecated list in easings/eases/
 // parser.js, warns, and silently falls back to linear).
-import { animate, stagger, steps } from 'animejs';
+import { animate, stagger, steps, createTimeline } from 'animejs';
 
 // Page-wide decorative 3D flourishes — one per side, fixed to the viewport and
 // scrubbed by page scroll. Unlike the old SVG storyboards these are built from
@@ -91,10 +91,30 @@ function Ring({ d, z = 0, op = 0.7, thick = 1, cls = '' }) {
   );
 }
 
-// LEFT — AI / ML. Feature volumes + activation plane + a token row that exists
-// only because of perspective (identical CSS sizes, spread along Z).
+// The activation field is a real 4x4x2 VOXEL LATTICE, not a flat grid — two
+// slices separated along Z. That is what lets anime.js's 3D grid stagger
+// (`grid: [4, 4, 2]`) compute a true 3D Euclidean distance from the centre, so
+// the activation wave radiates SPHERICALLY through a volume instead of rippling
+// across a plane. It is anime.js's signature 3D move and needs real depth to read.
+//
+// EMISSION ORDER IS LOAD-BEARING: stagger derives toX = i%4, toY = floor(i/4)%4,
+// toZ = floor(i/16), so cells must be emitted slice-outer, row-middle,
+// column-inner (index = s*16 + iy*4 + ix). Any other order sends the wave down
+// the wrong axis.
+//
+// The mask keeps every one of the 32 grid slots occupied (the indices must stay
+// aligned) but renders the quiet ones as small dots — a dense input slice and a
+// sparse feature slice. A full 4x4x2 of identical cells reads as rigid
+// repetition; sparsity makes it read as activations.
+const ACT_MASK = [
+  ['####', '####', '.###', '##.#'], // slice 0 — input (dense)
+  ['.#..', '.##.', '..#.', '.#..'], // slice 1 — features (sparse)
+];
+const SLICE_Z = [0, 46];
+
+// LEFT — AI / ML. Feature volumes + activation voxel lattice + a token row that
+// exists only because of perspective (identical CSS sizes, spread along Z).
 function ConvStack() {
-  const CELLS = 16; // 4x4 activation grid
   const TOKENS = 7;
   return (
     <>
@@ -123,32 +143,37 @@ function ConvStack() {
         ))}
       </div>
 
-      {/* activation plane floating in front of the input volume */}
-      <div className="f3d__part f3d__actplane" style={{ transform: 'translate3d(0, -150px, 62px)' }}>
-        {Array.from({ length: CELLS }, (_, i) => {
-          const cx = i % 4;
-          const cy = Math.floor(i / 4);
-          return (
-            <div
-              key={i}
-              className="f3d__cellwrap"
-              style={{ transform: `translate3d(${(cx - 1.5) * 26}px, ${(cy - 1.5) * 26}px, 0)` }}
-            >
-              <div className="f3d__cell" />
-            </div>
-          );
-        })}
-        {/* convolution kernel that rasters across the grid */}
+      {/* activation VOLUME floating in front of the input volume — two slices
+          along Z so the anime.js grid:[4,4,2] stagger ripples spherically. */}
+      <div className="f3d__part f3d__actplane" style={{ transform: 'translate3d(0, -150px, 40px)' }}>
+        {ACT_MASK.map((slice, s) => (
+          <div key={s} className="f3d__slice" style={{ transform: `translate3d(0, 0, ${SLICE_Z[s]}px)` }}>
+            {slice.map((row, iy) =>
+              row.split('').map((ch, ix) => (
+                <div
+                  key={`${iy}-${ix}`}
+                  className="f3d__cellwrap"
+                  style={{ transform: `translate3d(${(ix - 1.5) * 26}px, ${(iy - 1.5) * 26}px, 0)` }}
+                >
+                  <div className={`f3d__cell${ch === '#' ? '' : ' f3d__cell--dot'}`} />
+                </div>
+              ))
+            )}
+          </div>
+        ))}
+        {/* convolution kernel that rasters across the input slice */}
         <div className="f3d__kernel" />
       </div>
 
-      {/* token row — identical sizes, spread purely along Z */}
-      <div className="f3d__part" style={{ transform: 'translate3d(0, 172px, 0)' }}>
+      {/* Token row — identical CSS sizes, spread purely along Z, so perspective
+          alone does 100% of the size variation. Held at a static yaw so the row
+          is never seen edge-on as the camera crosses 0. */}
+      <div className="f3d__part" style={{ transform: 'translate3d(0, 176px, 0) rotateY(26deg)' }}>
         {Array.from({ length: TOKENS }, (_, i) => (
           <div
             key={i}
             className="f3d__tokwrap"
-            style={{ transform: `translate3d(${(i - 3) * 5}px, 0, ${(i - 3) * 32}px)` }}
+            style={{ transform: `translate3d(${(i - 3) * 6}px, 0, ${(i - 3) * 38}px)` }}
           >
             <div className="f3d__token" />
           </div>
@@ -162,25 +187,32 @@ function ConvStack() {
 // along the module axis. Drawn as a flat SVG path inside a div that is itself
 // placed in 3D (the one sanctioned use of SVG here) so it can draw on via
 // stroke-dashoffset; two copies 90° apart about the axis give it volume.
-const WIRE_W = 120;
-const WIRE_H = 240;
-function coilPath() {
+// The wire is a magnet-wire LEAD that runs in from outside and then winds into
+// the stator's slots: a long straight tail, then a tight coil whose amplitude
+// (WIRE_AMP) sits in the stator slot band — between the rotor OD and the stator
+// OD — so the winding visibly occupies the slots rather than floating on the
+// axis. Because it draws on from the tail end, you watch the wire arrive and
+// then wind itself into the coils.
+const WIRE_W = 150;
+const WIRE_H = 260;
+const WIRE_AMP = 46; // stator slot radius (rotor OD 30 < 46 < stator OD 58)
+function windingPath() {
   const cx = WIRE_W / 2;
-  const turns = 9;
-  const amp = 26;
-  const yTop = 34;
-  const yBot = 206;
-  const step = (yBot - yTop) / turns;
-  let d = `M ${cx} ${WIRE_H - 6} L ${cx} ${yBot}`;
+  const turns = 7;
+  const yLead = 254; // outside the machine — the lead-in
+  const yCoilStart = 176;
+  const yCoilEnd = 84;
+  const step = (yCoilStart - yCoilEnd) / turns;
+  let d = `M ${cx} ${yLead} L ${cx} ${yCoilStart}`;
   for (let i = 0; i < turns; i++) {
-    const ya = yBot - i * step;
-    const yb = yBot - (i + 1) * step;
+    const ya = yCoilStart - i * step;
+    const yb = yCoilStart - (i + 1) * step;
     const dir = i % 2 === 0 ? 1 : -1;
-    d += ` Q ${cx + dir * amp} ${(ya + yb) / 2} ${cx} ${yb}`;
+    d += ` Q ${cx + dir * WIRE_AMP} ${(ya + yb) / 2} ${cx} ${yb}`;
   }
-  return d + ` L ${cx} 8`;
+  return d + ` L ${cx} 62`;
 }
-const WIRE_D = coilPath();
+const WIRE_D = windingPath();
 
 function Wire() {
   return (
@@ -215,16 +247,19 @@ function Radial({ n, r, cls, from = 0 }) {
 // around it from the axis outward. Each part has its OWN scroll window; the
 // windows are far wider than the gaps between them, so ~3 parts are always in
 // flight. Parts arrive from six different directions and spin as they seat.
+// Assembly order tells the story: the wire winds into the STATOR slots first,
+// the ROTOR drops inside it, the harmonic-drive stage and torque sensor follow
+// down the axis, and the CASING closes over everything last.
 const FR3_PARTS = [
   // lead, seatZ, incoming direction (unit-ish), spin-in degrees
-  { id: 'wavegen', lead: 0.08, sz: 74, dir: [0, 0, 1], spin: -300 },
-  { id: 'flexspline', lead: 0.18, sz: 78, dir: [-1, -0.3, 0.2], spin: 260 },
-  { id: 'circspline', lead: 0.28, sz: 82, dir: [0.4, 1, 0], spin: -240 },
-  { id: 'rotor', lead: 0.38, sz: 86, dir: [1, -0.4, 0.3], spin: 320 },
-  { id: 'stator', lead: 0.48, sz: 86, dir: [-0.5, 1, -0.4], spin: -280 },
-  { id: 'torque', lead: 0.58, sz: 122, dir: [0, -1, 0.5], spin: 300 },
-  { id: 'housing', lead: 0.68, sz: 88, dir: [0, 0, -1], spin: -200 },
-  { id: 'endcap', lead: 0.78, sz: 140, dir: [0.8, 0.6, 0.6], spin: 240 },
+  { id: 'stator', lead: 0.10, sz: 80, dir: [0, 0, 1], spin: -260 },
+  { id: 'rotor', lead: 0.19, sz: 80, dir: [0, -1, 0.3], spin: 340 },
+  { id: 'wavegen', lead: 0.28, sz: 134, dir: [-1, 0.2, 0.3], spin: -300 },
+  { id: 'flexspline', lead: 0.37, sz: 142, dir: [0.5, 1, 0], spin: 280 },
+  { id: 'circspline', lead: 0.46, sz: 142, dir: [1, -0.3, 0.2], spin: -240 },
+  { id: 'torque', lead: 0.55, sz: 180, dir: [-0.6, -1, 0.4], spin: 300 },
+  { id: 'endcap', lead: 0.64, sz: 202, dir: [0.8, 0.5, 0.6], spin: -220 },
+  { id: 'housing', lead: 0.74, sz: 108, dir: [0, 0, -1], spin: 200 },
 ];
 const partAttrs = id => {
   const p = FR3_PARTS.find(x => x.id === id);
@@ -252,7 +287,29 @@ function MotorBuild() {
         {/* 0 · the motor phase wire, present from the start */}
         <Wire />
 
-        {/* 1 · WAVE GENERATOR — the harmonic drive's elliptical cam + bearing.
+        {/* 1 · STATOR — the laminated core the wire winds into. Its slot teeth
+             sit at r=48, straddling the wire's own coil band (WIRE_AMP 46), so
+             the winding reads as lying IN the slots. */}
+        <div className="f3d__part f3d__build" {...partAttrs('stator')}>
+          <Ring d={116} z={-26} op={0.6} />
+          <Ring d={116} z={26} op={0.6} />
+          <Ring d={72} z={-26} op={0.4} />
+          <Ring d={72} z={26} op={0.4} />
+          {Array.from({ length: 12 }, (_, k) => (
+            <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 30}deg) translateX(48px) rotateY(90deg)` }} />
+          ))}
+        </div>
+
+        {/* 2 · ROTOR — drops inside the wound stator; magnets on a back iron */}
+        <div className="f3d__part f3d__build" {...partAttrs('rotor')}>
+          <div className="f3d__rotor">
+            <Ring d={60} z={-22} op={0.8} />
+            <Ring d={60} z={22} op={0.8} />
+            <Radial n={8} r={28} cls="f3d__magnet" />
+          </div>
+        </div>
+
+        {/* 3 · WAVE GENERATOR — the harmonic drive's elliptical cam + bearing.
              The ellipse is the instantly-readable "this is a strain wave gear". */}
         <div className="f3d__part f3d__build" {...partAttrs('wavegen')}>
           <div className="f3d__ellipse" />
@@ -260,71 +317,53 @@ function MotorBuild() {
           <Ring d={16} op={0.9} />
         </div>
 
-        {/* 2 · FLEXSPLINE — flexible externally-toothed cup deformed by the cam */}
+        {/* 4 · FLEXSPLINE — flexible externally-toothed cup deformed by the cam */}
         <div className="f3d__part f3d__build" {...partAttrs('flexspline')}>
-          <Ring d={62} z={-16} op={0.7} />
-          <Ring d={62} z={16} op={0.55} />
-          <Radial n={10} r={31} cls="f3d__tooth" />
+          <Ring d={64} z={-16} op={0.7} />
+          <Ring d={64} z={16} op={0.55} />
+          <Radial n={10} r={32} cls="f3d__tooth" />
         </div>
 
-        {/* 3 · CIRCULAR SPLINE — rigid internally-toothed outer ring (2 more
+        {/* 5 · CIRCULAR SPLINE — rigid internally-toothed outer ring (2 more
              teeth than the flexspline: that difference IS the gear ratio) */}
         <div className="f3d__part f3d__build" {...partAttrs('circspline')}>
-          <Ring d={80} z={-14} op={0.7} />
-          <Ring d={80} z={14} op={0.7} />
-          <Radial n={12} r={36} cls="f3d__tooth" from={15} />
-        </div>
-
-        {/* 4 · ROTOR — frameless BLDC rotor, magnet segments on a back iron */}
-        <div className="f3d__part f3d__build" {...partAttrs('rotor')}>
-          <div className="f3d__rotor">
-            <Ring d={92} z={-18} op={0.75} />
-            <Ring d={92} z={18} op={0.75} />
-            <Radial n={8} r={44} cls="f3d__magnet" />
-          </div>
-        </div>
-
-        {/* 5 · STATOR — laminated core with the windings the phase wire feeds */}
-        <div className="f3d__part f3d__build" {...partAttrs('stator')}>
-          <Ring d={108} z={-22} op={0.6} />
-          <Ring d={108} z={22} op={0.6} />
-          {Array.from({ length: 10 }, (_, k) => (
-            <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 36}deg) translateX(50px) rotateY(90deg)` }} />
-          ))}
+          <Ring d={84} z={-14} op={0.7} />
+          <Ring d={84} z={14} op={0.7} />
+          <Radial n={12} r={38} cls="f3d__tooth" from={15} />
         </div>
 
         {/* 6 · TORQUE SENSOR — the FR3 signature: a spoked strain-gauge flexure
              ring in the output path, giving every joint true torque feedback */}
         <div className="f3d__part f3d__build" {...partAttrs('torque')}>
-          <Ring d={86} op={0.8} thick={1.5} />
+          <Ring d={88} op={0.8} thick={1.5} />
           <Ring d={34} op={0.8} />
-          <Radial n={6} r={30} cls="f3d__flexspoke" />
-          <Radial n={6} r={40} cls="f3d__gauge" from={30} />
+          <Radial n={6} r={31} cls="f3d__flexspoke" />
+          <Radial n={6} r={41} cls="f3d__gauge" from={30} />
         </div>
 
-        {/* 7 · HOUSING — the cylindrical shell that closes over the whole joint,
-             built from 14 flat slats around the axis (near slats spread apart,
-             far ones bunch: textbook perspective convergence) */}
-        <div className="f3d__part f3d__build" {...partAttrs('housing')}>
-          {Array.from({ length: 14 }, (_, k) => (
-            <div
-              key={k}
-              className="f3d__slat"
-              style={{ transform: `rotateZ(${(k * 360) / 14}deg) translateX(58px) rotateY(90deg)` }}
-            />
-          ))}
-        </div>
-
-        {/* 8 · END CAP + output flange feeding the next link */}
+        {/* 7 · END CAP + output flange feeding the next link */}
         <div className="f3d__part f3d__build" {...partAttrs('endcap')}>
-          <Ring d={58} op={0.85} thick={1.5} />
-          <Radial n={6} r={22} cls="f3d__bolt" />
+          <Ring d={60} op={0.85} thick={1.5} />
+          <Radial n={6} r={23} cls="f3d__bolt" />
           <div className="f3d__pivot">
             <Box w={22} h={80} d={16} y={-46} z={6} />
             <div className="f3d__toolwrap" style={{ transform: 'translate3d(0,-88px,6px)' }}>
               <Ring d={20} op={0.9} />
             </div>
           </div>
+        </div>
+
+        {/* 8 · CASING — LAST. The cylindrical shell closes over the whole joint,
+             built from 16 flat slats around the axis (near slats spread apart,
+             far ones bunch: textbook perspective convergence). */}
+        <div className="f3d__part f3d__build" {...partAttrs('housing')}>
+          {Array.from({ length: 16 }, (_, k) => (
+            <div
+              key={k}
+              className="f3d__slat"
+              style={{ transform: `rotateZ(${(k * 360) / 16}deg) translateX(68px) rotateY(90deg)` }}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -346,7 +385,7 @@ export default function Flourish3D({ side = 'left' }) {
     // Right side: each motor part gets its own scroll window [lead, lead+SPAN].
     // SPAN is much wider than the 0.12 gap between leads, so ~3 parts are in
     // flight at once — a part starts arriving long before the previous seats.
-    const BUILD_SPAN = 0.32;
+    const BUILD_SPAN = 0.26;
     // EVERY leaf a build part can contain must be listed here — the build owns
     // their opacity, and anything omitted stays fully visible before its part
     // has arrived. Keep in sync when adding parts.
@@ -421,16 +460,18 @@ export default function Flourish3D({ side = 'left' }) {
       }
     };
 
+    // The camera is an anime.js timeline parked at autoplay:false and scrubbed by
+    // scroll via seek() — the same idiom ScrollProgress uses — instead of
+    // hand-writing a transform string. anime is then the single writer on
+    // `.f3d__world`, and the tween interpolation/easing is anime's, not ours.
+    let cam = null;
+
     const onScroll = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const p = max > 0 ? clamp(window.scrollY / max, 0, 1) : 0;
       const k = 0.5 - 0.5 * Math.cos(p * TAU * 2);
       place(k, p);
-      // Camera. Yaw deliberately crosses 0 so every box's left/right side wall
-      // foreshortens to nothing and swaps over — a tell no 2D fake can produce.
-      const yaw = (isLeft ? 1 : -1) * (26 - p * 48);
-      const pitch = 7 + p * 9;
-      if (world) world.style.transform = `rotateX(${pitch.toFixed(2)}deg) rotateY(${yaw.toFixed(2)}deg)`;
+      if (cam) cam.seek(1000 * p);
     };
 
     if (reduce) {
@@ -438,6 +479,19 @@ export default function Flourish3D({ side = 'left' }) {
       if (world) world.style.transform = `rotateX(9deg) rotateY(${isLeft ? 20 : -20}deg)`;
       return;
     }
+
+    // Camera yaw deliberately CROSSES 0 across the scroll range, so every box's
+    // left and right side wall foreshortens to nothing and swaps over — a tell
+    // no 2D fake can produce. Pitch deepens as the page descends.
+    cam = createTimeline({ autoplay: false, defaults: { ease: 'linear' } }).add(
+      world,
+      {
+        rotateX: [7, 16],
+        rotateY: [(isLeft ? 1 : -1) * 26, (isLeft ? 1 : -1) * -22],
+        duration: 1000,
+      },
+      0
+    );
 
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -455,13 +509,24 @@ export default function Flourish3D({ side = 'left' }) {
 
     if (isLeft) {
       anims.push(
-        // spherical ripple through the activation plane (anime.js grid stagger)
+        // TRUE spherical ripple through the activation VOLUME. `grid: [4, 4, 2]`
+        // makes anime.js compute a 3D Euclidean distance from the centre, so the
+        // wave expands as a sphere through the two slices rather than sweeping
+        // across a plane — and each cell also pops toward the camera in real Z.
         animate(q('.f3d__cell'), {
-          translateZ: [0, 15],
-          opacity: [0.3, 1],
-          scale: [0.72, 1.06],
-          delay: stagger(90, { grid: [4, 4], from: 'center' }),
-          duration: 1400, loop: true, alternate: true, ease: 'inOutQuad',
+          translateZ: [0, 16],
+          opacity: [0.16, 1],
+          scale: [0.55, 1.06],
+          delay: stagger(90, { grid: [4, 4, 2], from: 'center' }),
+          duration: 900, loop: true, alternate: true, ease: 'inOutSine',
+        }),
+        // Depth rails breathe. Opacity ONLY — these use rotate-then-translate
+        // placement, which anime can never reproduce in its fixed component
+        // order, so it must never own their transform.
+        animate(q('.f3d__rail'), {
+          opacity: [0.16, 0.42],
+          delay: stagger(90, { from: 'center' }),
+          duration: 2600, loop: true, alternate: true, ease: 'inOutSine',
         }),
         // the kernel rasters the grid with a stepped stride (a real convolution)
         animate(q('.f3d__kernel'), {
@@ -501,6 +566,7 @@ export default function Flourish3D({ side = 'left' }) {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       anims.forEach(a => a && a.revert && a.revert());
+      if (cam && cam.revert) cam.revert();
     };
   }, [isLeft]);
 
