@@ -1,8 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-// `steps` must be imported and passed as a FUNCTION: anime v4.5 removed the
-// string form (ease: 'steps(4)' hits the deprecated list in easings/eases/
-// parser.js, warns, and silently falls back to linear).
-import { animate, stagger, steps, createTimeline } from 'animejs';
+// NB: deliberately NO `steps` import. A stepped ease cannot drive the kernel
+// raster: `ease` is an ANIMATION-level option, so translateX and translateY
+// share one eased t — x === y on every frame, which traces the diagonal rather
+// than scanning the grid — and floor-stepping the range parks 3 of its 4 dwells
+// off the 26px cell pitch. Per-tween `modifier` snaps each axis to the real grid
+// instead. (If a stepped ease is ever needed, import steps as a FUNCTION: v4.5
+// removed the 'steps(4)' string form, which silently falls back to linear.)
+import { animate, stagger, createTimeline } from 'animejs';
 
 // Page-wide decorative 3D flourishes — one per side, fixed to the viewport and
 // scrubbed by page scroll. Unlike the old SVG storyboards these are built from
@@ -111,6 +115,16 @@ const ACT_MASK = [
   ['.#..', '.##.', '..#.', '.#..'], // slice 1 — features (sparse)
 ];
 const SLICE_Z = [0, 46];
+
+// Kernel raster slot -> lattice position. Slot 0..31 = slice*16 + iy*4 + ix, the
+// same ordering the cells are emitted in, so the kernel walks the grid in step
+// with the stagger's own indexing. The clamp is load-bearing: the tween reaches
+// exactly 32 on its terminal frame, and an unclamped floor would throw the kernel
+// a whole slice past the volume for one frame on every loop.
+const kslot = v => Math.min(31, Math.floor(v));
+const KX = i => (i % 4) * 26 - 39;
+const KY = i => (Math.floor(i / 4) % 4) * 26 - 39;
+const KZ = i => Math.floor(i / 16) * SLICE_Z[1] + 9; // sits just in front of its slice
 
 // LEFT — AI / ML. Feature volumes + activation voxel lattice + a token row that
 // exists only because of perspective (identical CSS sizes, spread along Z).
@@ -425,7 +439,12 @@ export default function Flourish3D({ side = 'left' }) {
     // --- scroll: explode/assemble + camera -------------------------------
     // k = 0 fully seated, 1 fully exploded. Two smooth cycles across the page
     // so the assembly breathes apart and back together as you scroll.
-    const smooth = t => t * t * (3 - 2 * t);
+    // Machined snap-into-place: each part overshoots its seat by ~7% and settles,
+    // rather than easing to a dead stop the way a smoothstep does. This is
+    // out-back with s = 1.4, written out rather than imported — `eases` is not in
+    // anime 4.5's public type exports, and this is one line.
+    // seat(0) === 0 and seat(1) === 1 exactly; it peaks at ~1.07 near t = 0.73.
+    const seat = t => { const u = t - 1; return 1 + 2.4 * u * u * u + 1.4 * u * u; };
 
     const place = (k, B) => {
       for (const el of faces) {
@@ -445,7 +464,7 @@ export default function Flourish3D({ side = 'left' }) {
       // the part wrapper would trip the grouping-property rule and flatten that
       // part's 3D children.
       for (const b of builds) {
-        const e = smooth(clamp((B - b.lead) / BUILD_SPAN, 0, 1));
+        const e = seat(clamp((B - b.lead) / BUILD_SPAN, 0, 1));
         const away = 1 - e;
         const D = 210;
         const x = b.fx * away * D;
@@ -456,7 +475,9 @@ export default function Flourish3D({ side = 'left' }) {
           `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
           `rotateX(${(away * b.fy * 52).toFixed(1)}deg) rotateY(${(away * -b.fx * 52).toFixed(1)}deg) ` +
           `rotateZ(${(away * b.spin).toFixed(1)}deg) scale(${s.toFixed(3)})`;
-        for (const lf of b.leaves) lf.l.style.opacity = (lf.base * e).toFixed(3);
+        // clamp: `seat` overshoots past 1, and an unclamped multiply would flash
+        // the leaf brighter than its designed base opacity as the part settles.
+        for (const lf of b.leaves) lf.l.style.opacity = (lf.base * clamp(e, 0, 1)).toFixed(3);
       }
     };
 
@@ -476,7 +497,8 @@ export default function Flourish3D({ side = 'left' }) {
 
     if (reduce) {
       place(0.5, 1); // composed: left half-exploded, right fully built
-      if (world) world.style.transform = `rotateX(9deg) rotateY(${isLeft ? 20 : -20}deg)`;
+      // Parked mid-dolly so the static pose matches the middle of the scroll range.
+      if (world) world.style.transform = `translateZ(20px) rotateX(9deg) rotateY(${isLeft ? 20 : -20}deg)`;
       return;
     }
 
@@ -486,6 +508,13 @@ export default function Flourish3D({ side = 'left' }) {
     cam = createTimeline({ autoplay: false, defaults: { ease: 'linear' } }).add(
       world,
       {
+        // Dolly along the view axis as the page descends, so the perspective
+        // DIVERGENCE itself changes — near parts gain size faster than far ones
+        // and the depth spread visibly stretches, which orbiting alone can't do.
+        // With perspective:720px this runs 720/800 = 0.90x at the top of the page
+        // to 720/600 = 1.20x at the bottom; the deepest geometry still sits well
+        // short of the camera plane, so nothing inverts.
+        translateZ: [-80, 120],
         rotateX: [7, 16],
         rotateY: [(isLeft ? 1 : -1) * 26, (isLeft ? 1 : -1) * -22],
         duration: 1000,
@@ -529,10 +558,18 @@ export default function Flourish3D({ side = 'left' }) {
           duration: 2600, loop: true, alternate: true, ease: 'inOutSine',
         }),
         // the kernel rasters the grid with a stepped stride (a real convolution)
+        // The convolution kernel rasters each 4x4 slice row-major and then steps
+        // BACK to the next slice, so the scan window travels through the lattice
+        // VOLUME rather than across one plane — and visibly shrinks as it recedes.
+        // One linear tween per axis, each snapped onto the real 26px cell pitch by
+        // a per-tween `modifier` (see the import note for why a stepped ease
+        // cannot do this). Indices 0..31 = slice*16 + row*4 + col, matching the
+        // lattice's own emission order.
         animate(q('.f3d__kernel'), {
-          translateX: [-39, 39],
-          translateY: [-39, 39],
-          duration: 5200, loop: true, alternate: true, ease: steps(4),
+          translateX: { from: 0, to: 32, modifier: v => KX(kslot(v)) },
+          translateY: { from: 0, to: 32, modifier: v => KY(kslot(v)) },
+          translateZ: { from: 0, to: 32, modifier: v => KZ(kslot(v)) },
+          duration: 12800, loop: true, ease: 'linear',
         }),
         // token row breathes in depth
         animate(q('.f3d__token'), {
