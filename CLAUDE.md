@@ -57,11 +57,6 @@ src/
     ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
 ```
 
-`AboutFlourish.jsx` (the older SVG side storyboards) and `AnimeEmblem.jsx` (a remake
-of the anime.js homepage gauge, briefly used as a hero centrepiece) are still on disk
-but **no longer imported** — kept only as fallbacks. Delete them once the current
-flourishes are settled.
-
 `legacy/` holds pre-React versions of the site — archive only, never edit to change the current site. `Media/` holds local images (`Media/lanyardimgs/` for badge photos, `Media/projects/`, `Media/skills/`). `projectpdf/` and `Resume/` hold PDFs served from this repo.
 
 ## Editing content (not markup)
@@ -99,7 +94,20 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 Two decorative assemblies fixed to the viewport, one per side, mounted in the
 `page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by total page scroll.
 LEFT is "Conv Stack" (AI/ML: wireframe feature volumes that explode into their own
-faces, an activation plane, a convolution kernel, a receding token row).
+faces, a two-slice activation *lattice*, a convolution kernel that rasters through it,
+a receding token row).
+
+The kernel's scan is the one piece of this that is easy to silently break. It must
+visit 32 discrete cell centres (4×4 across, ×2 slices in Z), and it is driven by three
+tweens sharing a single `[0, 32]` ramp, each with its own `modifier` (`KX`/`KY`/`KZ`)
+that floors the ramp to a slot index and returns that slot's real offset. **Do not
+rewrite it as plain `[from, to]` ranges.** `ease` is an *animation*-level option in
+anime.js, so every property shares one eased `t` — give X and Y the same range and
+`x === y` on every frame, which traces the **diagonal** and never rasters. That was
+the original bug here, and three code comments described it as a raster for months
+before anyone measured it. For the same reason `ease` must stay `'linear'`: the
+modifier does the quantising, so a stepped ease would only re-quantise off-grid.
+`kslot` clamps to 31 so the terminal frame (`v === 32`) does not overrun the volume.
 
 RIGHT is "Motor Build" — it **starts as a bare wire and a motor assembles around
 it**, modelled on a **Franka Emika Research 3 joint**. The FR3 is a 7-DOF cobot whose
@@ -191,7 +199,17 @@ width (~5–12px). A ratio of 1.0 means the 3D context is broken somewhere above
   `ease: steps(4)`. Same for `irregular(`, `linear(`, `cubicBezier(`.
 - `stagger()` supports genuine 3D grids: `stagger(90, { grid: [x, y, z], from: 'center' })`
   computes true 3D Euclidean distance, so ripples radiate spherically through a volume.
-- `loop` / `alternate` are animation-level options, not per-property ones.
+  (Verified in `dist/modules/utils/stagger.js`: `toZ = dims === 3 ? floor(i / (gx*gy)) : 0`,
+  distance `sqrt(dx²+dy²+dz²)`. Element emission order must match `z*gx*gy + y*gx + x`.)
+- `ease`, `loop`, and `alternate` are **animation-level** options, not per-property ones.
+  This is not a style nit: one `ease` means one eased `t` shared by every property, so
+  two tweens over the same numeric range are *always* equal frame-for-frame. When
+  properties must advance independently, give each its own per-tween `modifier`
+  (`{ from, to, modifier }`) — that IS supported per property, and is what the conv
+  kernel uses.
+- **`eases` is not a public type export.** `import { eases } from 'animejs'` fails
+  typecheck in 4.5 even though the runtime object exists. Write the curve inline
+  (e.g. `Flourish3D`'s `seat`, an out-back with s≈1.4).
 
 ## Modal animation contract
 
@@ -237,9 +255,19 @@ further improvements**, so treat all of this as in-flight rather than final:
 - **Header**: animated sun↔moon theme toggle (mask-carved crescent + retracting rays)
   instead of an emoji swap.
 
+A second pass on the flourishes (in response to "make the side scrolling animations more
+anime.js-3D like") added: the two-slice voxel activation lattice with a true 3D spherical
+`stagger` grid, the fixed volume-raster kernel (see above — it used to trace a diagonal),
+an anime.js `createTimeline` camera that is `seek()`-ed by scroll and now **dollies**
+(`translateZ: [-80, 120]`) as well as orbiting, and out-back "seating" on the FR3 parts
+so they overshoot ~7% and settle instead of gliding to a dead stop.
+
 Known open threads on this pass: the flourishes' explode range / rotation speeds and the
-pegboard's tone are the obvious tuning knobs; `AboutFlourish.jsx` and `AnimeEmblem.jsx`
-are dead code awaiting deletion.
+pegboard's tone are the obvious tuning knobs. `AboutFlourish.jsx` and `AnimeEmblem.jsx`
+have been **deleted** (unimported dead code), along with their `.about-flourish`/`.flr-*`
+and `.anime-emblem`/`.emblem-*` rules in `App.css`. Note this means the UR5e CAD-derived
+arm geometry, which only ever lived in `AboutFlourish.jsx`, is gone from the tree — the
+live right-hand flourish is FR3-derived instead.
 
 **Done and committed locally** (commits `lanyard update 1`, `lanyard 3d change 2`):
 

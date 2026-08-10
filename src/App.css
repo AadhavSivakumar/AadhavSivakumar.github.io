@@ -251,52 +251,6 @@ html[data-theme="dark"] .hero-wavefield { opacity: 0.6; }
   .hero-wavefield path { animation: none; }
 }
 
-/* anime.js homepage emblem remake — a large animated gauge centred behind the
-   hero content (replaces the sine field). Ring/ticks live at the perimeter
-   (clear of the headline); the central diamond is dimmed so the name reads. */
-.anime-emblem {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(96vw, 660px);
-  aspect-ratio: 1 / 1;
-  transform: translate(-50%, -50%);
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.92;
-}
-.anime-emblem svg { width: 100%; height: 100%; overflow: visible; display: block; }
-
-/* whole layers rotate about the emblem centre; per-element pulses scale about
-   their own centre */
-.anime-emblem .emblem-rot { transform-box: view-box; transform-origin: 260px 260px; }
-.anime-emblem .emblem-tick,
-.anime-emblem .emblem-dline,
-.anime-emblem .emblem-dot { transform-box: fill-box; transform-origin: center; }
-
-.anime-emblem .emblem-gridfill { opacity: 0.12; }
-.anime-emblem .emblem-dialring { stroke: color-mix(in srgb, var(--accent-color) 20%, transparent); stroke-width: 1; }
-.anime-emblem .emblem-gloss { stroke: rgba(255, 255, 255, 0.06); stroke-width: 30; stroke-linecap: round; }
-
-/* central lens/diamond — dimmed as a group so it sits behind the headline */
-.anime-emblem .emblem-diamond { opacity: 0.5; }
-.anime-emblem .emblem-dline { fill: #e6484b; }
-html[data-theme="dark"] .anime-emblem .emblem-dline { fill: #ff5658; }
-
-.anime-emblem .emblem-dot { fill: #e6484b; }
-html[data-theme="dark"] .anime-emblem .emblem-dot { fill: #ff5658; }
-.anime-emblem .emblem-scan { opacity: 0.85; }
-
-.anime-emblem .emblem-arc { stroke: #f3c6a4; stroke-width: 3; stroke-linecap: round; }
-
-.anime-emblem .emblem-tick { stroke: #d94b4b; stroke-width: 1.6; stroke-linecap: round; }
-html[data-theme="dark"] .anime-emblem .emblem-tick { stroke: #ff5c5c; }
-
-.anime-emblem .emblem-seg { stroke-width: 5; stroke-linecap: round; }
-
-@media (prefers-reduced-motion: reduce) { .anime-emblem { opacity: 0.7; } }
-@media (max-width: 992px) { .anime-emblem { width: 128vw; opacity: 0.5; } }
-
 .hero-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
 /* ---- Liquid-glass chip tokens (readable on light + dark) ---- */
 :root {
@@ -486,64 +440,6 @@ html[data-theme="dark"] {
   pointer-events: none;
   overflow: hidden;
 }
-
-/* Line-art "blueprint" storyboards (robotics right / AI left). Purely ambient;
-   the 220-tall motif is vertically centered in the viewport, and each scene's
-   opacity + scale are driven by scroll in AboutFlourish.jsx. */
-.about-flourish {
-  position: absolute;
-  top: calc(50vh - 120px);
-  width: 196px;
-  height: 240px;
-  pointer-events: none;
-  opacity: 0.85;
-  will-change: transform;
-}
-/* A shared perspective so the scene tilts, the ambient orbit, and the depth of
-   the exploded parts all render as true 3D rather than flat skew. */
-.about-flourish {
-  perspective: 500px;      /* deeper foreshortening for the wider z-range */
-  isolation: isolate;      /* contain the sheen's screen-blend to the artwork */
-}
-.about-flourish svg { width: 100%; height: 100%; overflow: visible; transform-style: preserve-3d; }
-.about-flourish .flr-orbit { transform-box: fill-box; transform-origin: center; transform-style: preserve-3d; }
-.about-flourish--left { left: clamp(8px, 4.5vw, 230px); }
-.about-flourish--right { right: clamp(8px, 4.5vw, 230px); }
-
-/* Each scene is stacked in the same box; the scroll handler cross-dissolves
-   them. Scale is applied about the scene's own centre. */
-.flr-stage {
-  transform-box: fill-box;
-  transform-origin: center;
-  transform-style: preserve-3d;
-  opacity: 0;
-}
-.flr-stage :where(path, line, circle, rect, polyline, polygon) {
-  fill: none;
-  stroke: var(--accent-color);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
-}
-.flr-stage .flr-node { fill: var(--accent-color); stroke: none; }
-.flr-stage .flr-fill { fill: var(--accent-color); stroke: none; }
-.flr-stage .flr-fillsoft { fill: var(--accent-color); fill-opacity: 0.18; }
-.flr-stage .flr-thin { stroke-width: 0.9; opacity: 0.65; }
-/* Shaded bodies and wireframe hatch fills (gradient/pattern ids are injected
-   per side as custom properties so the two SVGs stay independent). */
-/* Solid bodies are a FLAT translucent gold (no gradient) — clean line-art in
-   the anime.js style; the extruded outline stack behind them supplies depth. */
-.flr-stage .flr-shade { fill: color-mix(in srgb, var(--accent-color) 12%, transparent); }
-.flr-stage .flr-hatch { fill: var(--flr-hatch); fill-opacity: 0.5; }
-/* Extrusion side-wall copies: dim gold outlines, thinner than the face. */
-.flr-stage .flr-ext { pointer-events: none; }
-.flr-stage .flr-ext-face { fill: none; stroke: var(--accent-color); }
-.flr-spin, .flr-pulse { transform-box: fill-box; transform-origin: center; }
-/* Direct children of a scene are the "parts" the exploded-view assembly moves;
-   they must rotate about their own centre, not the SVG origin. */
-.flr-stage > * { transform-box: fill-box; transform-origin: center; }
-
 
 /* ── Genuinely-3D side flourishes (Flourish3D.jsx) ─────────────────────────
    HTML in a real CSS 3D context: `perspective` on the stage + an unbroken
