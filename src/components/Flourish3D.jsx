@@ -197,48 +197,98 @@ function ConvStack() {
   );
 }
 
-// The bare wire the motor builds itself around: a serpentine winding running
-// along the module axis. Drawn as a flat SVG path inside a div that is itself
-// placed in 3D (the one sanctioned use of SVG here) so it can draw on via
-// stroke-dashoffset; two copies 90° apart about the axis give it volume.
-// The wire is a magnet-wire LEAD that runs in from outside and then winds into
-// the stator's slots: a long straight tail, then a tight coil whose amplitude
-// (WIRE_AMP) sits in the stator slot band — between the rotor OD and the stator
-// OD — so the winding visibly occupies the slots rather than floating on the
-// axis. Because it draws on from the tail end, you watch the wire arrive and
-// then wind itself into the coils.
-const WIRE_W = 150;
-const WIRE_H = 260;
-const WIRE_AMP = 46; // stator slot radius (rotor OD 30 < 46 < stator OD 58)
-function windingPath() {
-  const cx = WIRE_W / 2;
-  const turns = 7;
-  const yLead = 254; // outside the machine — the lead-in
-  const yCoilStart = 176;
-  const yCoilEnd = 84;
-  const step = (yCoilStart - yCoilEnd) / turns;
-  let d = `M ${cx} ${yLead} L ${cx} ${yCoilStart}`;
-  for (let i = 0; i < turns; i++) {
-    const ya = yCoilStart - i * step;
-    const yb = yCoilStart - (i + 1) * step;
-    const dir = i % 2 === 0 ? 1 : -1;
-    d += ` Q ${cx + dir * WIRE_AMP} ${(ya + yb) / 2} ${cx} ${yb}`;
+// ── The magnet wire: a REAL 3D HELIX wound around the rotor core ────────────
+//
+// This used to be an SVG path — a serpentine of alternating quadratic curves in
+// ONE FLAT PLANE, cloned onto a second plane 90° away. That is a sine wave, not
+// a winding: it waggles from side to side along the axis and never encircles
+// anything. (SVG could not have fixed it either — an SVG node ignores
+// translateZ outright, so a path can never leave its own plane.)
+//
+// A winding is a HELIX, and the thing that makes a helix read as a helix is
+// that it passes IN FRONT OF the core on the near side and BEHIND it on the far
+// side. That is a depth fact, so it needs real 3D: the coil is built from short
+// straight chord segments, each an HTML div placed on the helix by
+//
+//     translateZ(z) rotateZ(θ) translateX(r) rotateY(90deg) rotateZ(φ)
+//
+// Working the frames through: rotateZ(θ) translateX(r) puts the segment on the
+// cylinder at angle θ; rotateY(90deg) then maps the element's WIDTH axis onto
+// the module's axial (−Z) direction and leaves its HEIGHT axis tangential (the
+// same fact the housing slats rely on); so the final rotateZ(φ) — which is now
+// about the RADIAL axis — swings the segment's long axis within the
+// axial/tangential plane, i.e. sets the helix PITCH.
+//
+// Matching the chord direction (tangential 2r·sin(Δθ/2), axial Δz) against that
+// basis gives φ = atan2(2r·sin(Δθ/2), −Δz). Worth keeping the two degenerate
+// checks that pin the sign: zero twist ⇒ φ = 180° (a straight axial run, which
+// is exactly what the lead-in reuses), and zero pitch ⇒ φ = 90° (a flat ring).
+//
+// Using the true CHORD length (not the arc) makes consecutive segments share
+// endpoints, so the polyline is continuous with no gaps at the joints.
+//
+// This is rotate-THEN-translate placement, so it is STATIC inline style only:
+// anime.js emits transform components in a fixed order and can never reproduce
+// it. The scroll handler animates these segments' OPACITY (a leaf property,
+// safe under the grouping rule) to wind the wire on turn by turn.
+const COIL_R = 45; // in the stator slot band: rotor OD 30 < 45 < stator OD 58
+const COIL_TURNS = 5;
+const COIL_SEG_PER_TURN = 16;
+const COIL_ZC = 80; // the rotor/stator station on the module axis
+const COIL_HALF = 34;
+const LEAD_SEGS = 3;
+const LEAD_LEN = 22;
+const DEG = 180 / Math.PI;
+
+function wireSegments() {
+  const N = COIL_TURNS * COIL_SEG_PER_TURN;
+  const z0 = COIL_ZC - COIL_HALF;
+  const dz = (2 * COIL_HALF) / N;
+  const dTheta = (COIL_TURNS * 360) / N;
+  // Chord across one segment: tangential component + axial component.
+  const half = (Math.PI * COIL_TURNS) / N; // half the angle subtended by one segment
+  const chord = 2 * COIL_R * Math.sin(half);
+  const len = Math.hypot(chord, dz);
+  const phi = Math.atan2(chord, -dz) * DEG;
+  // A chord's MIDPOINT lies inside the circle, at r·cos(half). Seat the segment
+  // centres there so the endpoints land exactly on radius COIL_R and the turns
+  // are a true inscribed polygon — otherwise every joint bulges ~0.9px proud.
+  const rMid = COIL_R * Math.cos(half);
+
+  const segs = [];
+  // Lead-in first, so the draw-on reveal starts outside the machine: the tail
+  // runs up the axis at θ = 0 and hands straight over to the first turn.
+  for (let i = LEAD_SEGS; i > 0; i--) {
+    const zm = z0 - (i - 0.5) * LEAD_LEN;
+    segs.push({
+      len: LEAD_LEN,
+      t: `translateZ(${zm.toFixed(2)}px) translateX(${COIL_R}px) rotateY(90deg) rotateZ(180deg)`,
+    });
   }
-  return d + ` L ${cx} 62`;
+  for (let k = 0; k < N; k++) {
+    segs.push({
+      len,
+      t:
+        `translateZ(${(z0 + (k + 0.5) * dz).toFixed(2)}px) ` +
+        `rotateZ(${((k + 0.5) * dTheta).toFixed(2)}deg) translateX(${rMid.toFixed(3)}px) ` +
+        `rotateY(90deg) rotateZ(${phi.toFixed(2)}deg)`,
+    });
+  }
+  return segs;
 }
-const WIRE_D = windingPath();
+const WIRE_SEGS = wireSegments();
 
 function Wire() {
   return (
-    <>
-      {['a', 'b'].map(k => (
-        <div key={k} className={`f3d__wirewrap f3d__wirewrap--${k}`}>
-          <svg className="f3d__wire" viewBox={`0 0 ${WIRE_W} ${WIRE_H}`} fill="none">
-            <path className="f3d__wirepath" d={WIRE_D} />
-          </svg>
-        </div>
+    <div className="f3d__part f3d__wire">
+      {WIRE_SEGS.map((s, i) => (
+        <div
+          key={i}
+          className="f3d__wireseg"
+          style={{ width: `${s.len.toFixed(2)}px`, marginLeft: `${(-s.len / 2).toFixed(2)}px`, transform: s.t }}
+        />
       ))}
-    </>
+    </div>
   );
 }
 
@@ -301,16 +351,18 @@ function MotorBuild() {
         {/* 0 · the motor phase wire, present from the start */}
         <Wire />
 
-        {/* 1 · STATOR — the laminated core the wire winds into. Its slot teeth
-             sit at r=48, straddling the wire's own coil band (WIRE_AMP 46), so
-             the winding reads as lying IN the slots. */}
+        {/* 1 · STATOR — the laminated core the wire is wound into. The radial
+             stack reads outward as a real machine section: rotor OD 30 | bore 36
+             | WINDING 45 (the helix) | slot walls 52 | stator OD 58. The slot
+             walls sit just OUTSIDE the coil so the winding visibly lies in the
+             slots; they used to be at r=48, which put them on top of the wire. */}
         <div className="f3d__part f3d__build" {...partAttrs('stator')}>
           <Ring d={116} z={-26} op={0.6} />
           <Ring d={116} z={26} op={0.6} />
           <Ring d={72} z={-26} op={0.4} />
           <Ring d={72} z={26} op={0.4} />
           {Array.from({ length: 12 }, (_, k) => (
-            <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 30}deg) translateX(48px) rotateY(90deg)` }} />
+            <div key={k} className="f3d__coil" style={{ transform: `rotateZ(${k * 30}deg) translateX(52px) rotateY(90deg)` }} />
           ))}
         </div>
 
@@ -423,13 +475,7 @@ export default function Flourish3D({ side = 'left' }) {
           })),
         }));
     const spinner = isLeft ? null : root.querySelector('.f3d__spin');
-    const wirePaths = isLeft
-      ? []
-      : Array.from(root.querySelectorAll('.f3d__wirepath')).map(p => {
-          const len = p.getTotalLength ? p.getTotalLength() : 0;
-          p.style.strokeDasharray = `${len}`;
-          return { p, len };
-        });
+    const wireSegs = isLeft ? [] : Array.from(root.querySelectorAll('.f3d__wireseg'));
 
     const reduce =
       typeof window !== 'undefined' &&
@@ -450,10 +496,15 @@ export default function Flourish3D({ side = 'left' }) {
       for (const el of faces) {
         el.style.transform = `${el.dataset.rot} translateZ(${(+el.dataset.z + +el.dataset.ex * k).toFixed(1)}px)`;
       }
-      // The wire draws itself on first, before any motor part arrives.
+      // The wire winds itself on first, before any motor part arrives: a front
+      // travels along the segment list (lead-in, then turn after turn), so you
+      // watch the wire run in from outside and wrap the core. `nW * wireP - i`
+      // is the front's position relative to segment i, clamped to a 1-segment
+      // fade so the leading edge is soft rather than a hard on/off.
       const wireP = clamp(B / 0.1, 0, 1);
-      for (const w of wirePaths) {
-        w.p.style.strokeDashoffset = `${(w.len * (1 - wireP)).toFixed(1)}`;
+      const nW = wireSegs.length;
+      for (let i = 0; i < nW; i++) {
+        wireSegs[i].style.opacity = (0.8 * clamp(nW * wireP - i, 0, 1)).toFixed(3);
       }
       // The whole joint turns about its own axis while it assembles — a bit over
       // a full revolution across the page.
@@ -586,16 +637,15 @@ export default function Flourish3D({ side = 'left' }) {
         animate(q('.f3d__pivot'), {
           rotateZ: [-16, 16],
           duration: 5200, loop: true, alternate: true, ease: 'inOutSine',
-        }),
-        // NB: nothing here may animate `.f3d__coil` (or any build leaf). Their
-        // opacity is owned by the scroll-driven build, and a second writer makes
-        // parts glow before they have arrived. A transform loop is worse still:
-        // the coils use rotate-then-translate placement, which anime cannot
-        // reproduce in its fixed component order and would destroy.
-        animate(q('.f3d__wirepath'), {
-          opacity: [0.5, 0.9],
-          duration: 2200, loop: true, alternate: true, ease: 'inOutSine',
         })
+        // NB: nothing here may animate `.f3d__coil` or `.f3d__wireseg` (or any
+        // build leaf). Their opacity is owned by the scroll-driven build/wind-on,
+        // and a second writer makes parts glow before they have arrived. A
+        // transform loop is worse still: both use rotate-then-translate
+        // placement, which anime cannot reproduce in its fixed component order
+        // and would destroy. (Nor may anything animate a transform on
+        // `.f3d__module` itself: its tilt comes from the STYLESHEET, and anime
+        // only merges *inline* static components — it would wipe the tilt.)
       );
     }
 

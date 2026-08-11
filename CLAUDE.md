@@ -126,10 +126,37 @@ Details that carry the likeness and should survive any restyle:
 - The **torque-sensor flexure ring** is the FR3 signature (torque feedback in all 7
   joints); do not drop it for being subtle.
 
-The wire (the motor phase leads — a serpentine winding drawn on via
-`stroke-dashoffset` over the first 10% of scroll) is two flat SVG planes 90° apart
-about the module axis — the one sanctioned use of SVG here: flat detail inside a div
-that is itself placed in 3D.
+The wire (the motor phase winding) is a **true 3D helix wound around the rotor core**,
+built from 80 short chord segments plus a 3-segment axial lead-in, and wound on by
+scroll over the first 10%. **Do not re-attempt this in SVG.** It was an SVG path
+once — a serpentine of alternating quadratic curves in ONE flat plane, cloned onto a
+second plane 90° away — and it read (correctly) as a sine wave: a squiggle that
+waggles beside the axis and never encircles anything. SVG cannot be rescued here,
+because a path can never leave its own plane. What makes a winding legible is a depth
+fact: it passes in FRONT of the core on the near side and BEHIND it on the far side.
+
+Each segment is placed by `translateZ(z) rotateZ(θ) translateX(r) rotateY(90deg)
+rotateZ(φ)`. Reading the frames outward: `rotateZ(θ) translateX(r)` puts it on the
+cylinder; `rotateY(90deg)` maps the element's WIDTH onto the axial direction and
+leaves its HEIGHT tangential (the same fact the housing slats use); so the final
+`rotateZ(φ)` is about the RADIAL axis and sets the helix PITCH. Matching the chord
+direction against that basis gives **φ = atan2(2r·sin(Δθ/2), −Δz)**. Two degenerate
+cases pin the sign — zero twist ⇒ φ = 180° (a straight axial run, which the lead-in
+reuses), zero pitch ⇒ φ = 90° (a flat ring). Segment centres sit at `r·cos(Δθ/2)`,
+not `r`: a chord's midpoint lies inside the circle, and seating them at `r` bulges
+every joint ~0.9px proud.
+
+Verified numerically (`translateZ`/`rotateZ` composed as 4×4 matrices in Node, then
+measured live): joint gaps **0.0000px**, all endpoints at radius exactly **45.0000**,
+total winding **1777.5°** (5 turns less one segment), and x-excursion **−45..+45** —
+that last one is the whole point, since it straddles the axis where the old squiggle
+never did. In the browser the identical 17.58px chords project between 5.27px and
+17.91px (3.4× at rest, 4.9× at mid-scroll dolly), which is what proves the
+`preserve-3d` chain is intact; a flat chain would collapse them to one width.
+
+Radial stack, outward — keep these from colliding: rotor OD 30 | stator bore 36 |
+**winding 45** | slot walls 52 | stator OD 58 | housing 68. The slot walls were at 48
+and sat right on top of the wire.
 
 **The arrivals deliberately overlap, and come from different directions.** Each part
 carries `data-lead` plus a `data-fx/fy/fz` incoming direction and a `data-spin`.

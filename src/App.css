@@ -474,7 +474,7 @@ html[data-theme="dark"] {
 .f3d__cellwrap,
 .f3d__slice,
 .f3d__tokwrap,
-.f3d__wirewrap,
+.f3d__wire,
 .f3d__spin,
 .f3d__axiswrap {
   position: absolute;
@@ -628,19 +628,18 @@ html[data-theme="dark"] {
    is itself placed in 3D. rotateX(90deg) lays each plane along the axis. */
 /* Centred on the stator's seat (z=80) so the coil section of the wire lands
    exactly in the stator slots, with the straight lead running out the back. */
-.f3d__wirewrap--a { transform: translateZ(80px) rotateX(90deg); }
-.f3d__wirewrap--b { transform: translateZ(80px) rotateX(90deg) rotateY(90deg); }
-.f3d__wire {
+/* Magnet wire: one chord of the 3D helix wound around the rotor core. Width is
+   set per-segment inline (the true chord length, so consecutive segments share
+   endpoints); height is the wire gauge. Leaf element — no 3D children — so the
+   scroll-driven wind-on may own its opacity without tripping the grouping rule
+   that would flatten a preserve-3d subtree. Starts invisible: the wind-on
+   writes every segment's opacity on the first scroll pass. */
+.f3d__wireseg {
   position: absolute; left: 50%; top: 50%;
-  width: 150px; height: 260px; margin-left: -75px; margin-top: -130px;
-  overflow: visible;
-}
-.f3d__wirepath {
-  fill: none;
-  stroke: var(--accent-color);
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0.75;
+  height: 2px; margin-top: -1px;
+  background: var(--accent-color);
+  border-radius: 1px;
+  opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
