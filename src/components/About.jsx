@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import LiftCard from './LiftCard';
+import ErrorBoundary from './ErrorBoundary';
 import { aboutMeData } from '../data/siteData';
 import dhsImg from '../../Media/lanyardimgs/DHS.jpg';
 import ucscImg from '../../Media/lanyardimgs/UCSC.png';
@@ -64,16 +65,23 @@ export default function About({ onCardClick }) {
           to the viewport edges. */}
       {isWide && (
         <div className="about-lanyard-strip">
-          <Suspense fallback={null}>
-            <Lanyard
-              position={[0, 0, 30]}
-              gravity={[0, -40, 0]}
-              cards={badgeCards}
-              clearCenterPx={0}
-              sizeMul={1.5}
-              lanyardWidth={0.5}
-            />
-          </Suspense>
+          {/* The boundary sits OUTSIDE the Suspense so it catches both ways
+              this can fail: the WebGL context that THREE.WebGLRenderer cannot
+              create on a machine without a usable GPU, and a failed fetch of
+              the lazy chunk. Either one used to unmount the entire page. The
+              fallback is the same empty strip mobile already gets. */}
+          <ErrorBoundary label="Lanyard">
+            <Suspense fallback={null}>
+              <Lanyard
+                position={[0, 0, 30]}
+                gravity={[0, -40, 0]}
+                cards={badgeCards}
+                clearCenterPx={0}
+                sizeMul={1.5}
+                lanyardWidth={0.5}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       )}
     </section>

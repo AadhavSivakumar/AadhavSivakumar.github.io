@@ -395,6 +395,18 @@ found the deployed portfolio materially broken; fixed in one pass:
 - Content: the `???` badge EXP, five "(Coming Soon)" labels on PDFs that are live,
   and an empty `<iframe>` in the FPGA modal.
 
+**Landed: error boundary around the lanyard** (2026-08-12). A browser that
+cannot create a WebGL context used to render the site **completely blank**: the
+lazy `Lanyard` `<Canvas>` throws synchronously inside `THREE.WebGLRenderer`, and
+with nothing to catch it React unmounted the whole tree — empty `#root`, no
+hero, no content, on every screen ≥992px. `ErrorBoundary.jsx` now wraps it, and
+sits OUTSIDE the `<Suspense>` so it also catches a failed fetch of the ~3MB
+lazy chunk, which had the same consequence. Verified in headless Firefox (no GL
+drivers): all 7 sections, 17 project cards, 6 skill cards and both flourishes
+render, the lanyard strip is simply empty, and the boundary logs one warning.
+Note error boundaries catch render/lifecycle throws only — a WebGL context lost
+LATER, inside r3f's animation loop, still would not be caught.
+
 **Landed: both flourishes redone** (2026-08-12), to the brief "one should look
 like a motor assembling, the other like the process of machine learning". The
 Conv-Stack and FR3-harmonic-drive artwork is gone; see "The 3D side flourishes"
@@ -414,14 +426,6 @@ above for what replaced it and why. Two structural changes came with it:
   somewhere a reader can actually read it (a label, or the About copy).
 
 **Open items:**
-
-- **A browser that cannot create a WebGL context renders the site BLANK.** Found
-  while measuring in headless Firefox: the lazy `Lanyard` `<Canvas>` throws
-  inside `THREE.WebGLRenderer`, and because nothing wraps it in an error
-  boundary the whole React tree unmounts — `#root` is empty, no hero, no
-  content. The ≥992px gate does not help; it is desktop-only code. Fix by
-  wrapping the lazy Lanyard in an error boundary (and ideally a WebGL capability
-  check) so it degrades to the no-lanyard layout mobile already uses.
 
 - **The About bio is stale and contradicts the site.** `siteData.js` says "Robot
   Technician at Starship Technologies … TA at NYU", while the nearest work badge
