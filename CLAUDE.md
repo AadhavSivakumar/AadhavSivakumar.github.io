@@ -131,157 +131,180 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 ## The 3D side flourishes (`src/components/Flourish3D.jsx`)
 
 Two decorative assemblies fixed to the viewport, one per side, mounted in the
-`page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by total page scroll.
-LEFT is "Conv Stack" (AI/ML: wireframe feature volumes that explode into their own
-faces, a two-slice activation *lattice*, a convolution kernel that rasters through it,
-a receding token row).
+`page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by page scroll.
 
-The kernel's scan is the one piece of this that is easy to silently break. It must
-visit 32 discrete cell centres (4×4 across, ×2 slices in Z), and it is driven by three
-tweens sharing a single `[0, 32]` ramp, each with its own `modifier` (`KX`/`KY`/`KZ`)
-that floors the ramp to a slot index and returns that slot's real offset. **Do not
-rewrite it as plain `[from, to]` ranges.** `ease` is an *animation*-level option in
-anime.js, so every property shares one eased `t` — give X and Y the same range and
-`x === y` on every frame, which traces the **diagonal** and never rasters. That was
-the original bug here, and three code comments described it as a raster for months
-before anyone measured it. For the same reason `ease` must stay `'linear'`: the
-modifier does the quantising, so a stepped ease would only re-quantise off-grid.
-`kslot` clamps to 31 so the terminal frame (`v === 32`) does not overrun the volume.
+- **LEFT — "Train Loop"** (machine learning): a four-layer network standing in
+  real depth. A packet runs down it, the answer comes out wrong against a target
+  chip, a **backprop** packet crawls back UP, the wires it passes visibly thicken
+  or thin behind it, a loss curve steps downward, and a decision panel resolves
+  from mottled noise into a clean two-tone split.
+- **RIGHT — "Down the Shaft"** (a motor): shaft → rotor → wound stator → two end
+  bells → vented can, every part threading in along the SAME axis in assembly
+  order, then the rotor spins up and runs.
 
-RIGHT is "Motor Build" — it **starts as a bare wire and a motor assembles around
-it**, modelled on a **Franka Emika Research 3 joint**. The FR3 is a 7-DOF cobot whose
-every joint is an integrated harmonic-drive actuator, so the part list is deliberately
-anatomical, not generic: wave generator → flexspline → circular spline → BLDC rotor →
-stator → torque-sensor flexure ring → cylindrical housing → end cap + output flange.
-Details that carry the likeness and should survive any restyle:
+### The driver: one scroll-linked anime.js timeline per side
 
-- The **housing is CYLINDRICAL, not a hexagonal can** — FR3 joints are round. It is
-  built from 16 flat slats around the axis (r=68), which also buys real perspective
-  convergence (near slats spread, far ones bunch).
-- The **wave generator is a true ellipse** (`border-radius: 50%` on a non-square box).
-  That ellipse is what makes a strain wave gear instantly readable.
-- The **circular spline carries 2 more teeth than the flexspline** — that difference
-  *is* the gear ratio.
-- The **torque-sensor flexure ring** is the FR3 signature (torque feedback in all 7
-  joints); do not drop it for being subtle.
+Each side is a single `createTimeline({ autoplay: onScroll({...}) })`. There is
+no hand-rolled scroll listener — anime v4.5 ships its own `ScrollObserver`, which
+keeps one rAF-batched listener per container with cached bounds.
 
-The wire (the motor phase winding) is a **true 3D helix wound around the rotor core**,
-built from 80 short chord segments plus a 3-segment axial lead-in, and wound on by
-scroll over the first 10%. **Do not re-attempt this in SVG.** It was an SVG path
-once — a serpentine of alternating quadratic curves in ONE flat plane, cloned onto a
-second plane 90° away — and it read (correctly) as a sine wave: a squiggle that
-waggles beside the axis and never encircles anything. SVG cannot be rescued here,
-because a path can never leave its own plane. What makes a winding legible is a depth
-fact: it passes in FRONT of the core on the near side and BEHIND it on the far side.
+- Timeline time **0…1000ms maps to page scroll 0…1**, so a beat "at 0.46" is
+  literally `.add(..., 460)`. `tl.add({ duration: 1000 }, 0)` pins the total so
+  that mapping holds no matter where the last tween ends.
+- Thresholds are `'<container> <target>'`, **container first**. `enter: 'start
+  start'` / `leave: 'end end'` reproduces `scrollY / (scrollHeight -
+  innerHeight)` exactly. Reversing the pair silently gives a plausible-but-wrong
+  range.
+- `sync: 0.2` smooths the playhead toward the scroll position (lerp per frame)
+  instead of welding it there — the assembly keeps settling after you stop
+  scrolling, which is most of why it feels like it has mass. **Omitting `sync`
+  is not "no smoothing", it is play/pause mode** and nothing scrubs at all.
+- **Never pass `.f3d` as the observer `target`.** It is `position: fixed`, so its
+  `getBoundingClientRect()` is the viewport and the scroll range collapses. Pass
+  `document.body`.
+- `prefers-reduced-motion` builds the same timeline with `autoplay: false` and
+  `tl.seek()`s one representative frame — same code path, no second renderer.
 
-Each segment is placed by `translateZ(z) rotateZ(θ) translateX(r) rotateY(90deg)
-rotateZ(φ)`. Reading the frames outward: `rotateZ(θ) translateX(r)` puts it on the
-cylinder; `rotateY(90deg)` maps the element's WIDTH onto the axial direction and
-leaves its HEIGHT tangential (the same fact the housing slats use); so the final
-`rotateZ(φ)` is about the RADIAL axis and sets the helix PITCH. Matching the chord
-direction against that basis gives **φ = atan2(2r·sin(Δθ/2), −Δz)**. Two degenerate
-cases pin the sign — zero twist ⇒ φ = 180° (a straight axial run, which the lead-in
-reuses), zero pitch ⇒ φ = 90° (a flat ring). Segment centres sit at `r·cos(Δθ/2)`,
-not `r`: a chord's midpoint lies inside the circle, and seating them at `r` bulges
-every joint ~0.9px proud.
+### The invariant that makes it all work: CSS variables inside a static transform
 
-Verified numerically (`translateZ`/`rotateZ` composed as 4×4 matrices in Node, then
-measured live): joint gaps **0.0000px**, all endpoints at radius exactly **45.0000**,
-total winding **1777.5°** (5 turns less one segment), and x-excursion **−45..+45** —
-that last one is the whole point, since it straddles the axis where the old squiggle
-never did. In the browser the identical 17.58px chords project between 5.27px and
-17.91px (3.4× at rest, 4.9× at mid-scroll dolly), which is what proves the
-`preserve-3d` chain is intact; a flat chain would collapse them to one width.
+anime emits transform components in a **fixed order** (`validTransforms` in
+`node_modules/animejs/dist/modules/core/consts.js`: translate → rotate → scale),
+so it can *never* produce a rotate-THEN-translate placement. Everything placed
+that way — helix chords, radial arrays, cylinder ribs, network edges — therefore
+carries a **static inline `transform`**, and anime animates a **CSS variable
+inside that string** instead of the transform itself:
 
-Radial stack, outward — keep these from colliding: rotor OD 30 | stator bore 36 |
-**winding 45** | slot walls 52 | stator OD 58 | housing 68. The slot walls were at 48
-and sat right on top of the wire.
+```
+.f3d__mledge { transform: <static> scaleY(calc(var(--k) + var(--swell))); }
+tl.add(edges, { '--k': ..., '--swell': ... })
+```
 
-**The arrivals deliberately overlap, and come from different directions.** Each part
-carries `data-lead` plus a `data-fx/fy/fz` incoming direction and a `data-spin`.
-Progress is `smoothstep((scroll - lead) / BUILD_SPAN)`; `BUILD_SPAN` (0.26) is much
-wider than the 0.09 gap between leads, so ~3 parts are always in flight — a part
-starts arriving long before the previous one seats. Widen the gap or shrink the span
-and it degenerates into a stiff one-at-a-time queue. Each part also tumbles and spins
-in (up to ~320°), and the whole joint turns just over a full revolution about its own
-axis while assembling (`.f3d__spin`, scroll-driven).
+The string stays ours; the numbers inside it are anime's. This is what lets an
+edge re-weight and pulse at the same time — `--k` and `--swell` are two
+properties with one writer each, so overlapping tweens never fight. anime writes
+CSS vars via `style.setProperty` (`core/render.js:266`) and infers the unit from
+the declared value, so **declare each var with its default in the stylesheet**
+(`--k: 0.17`) or the tween has nothing to read.
 
-Cylinder geometry: after `rotateY(90deg)` a slat's **width** maps to the axial (Z)
-direction and its **height** stays tangential, so for radius `r` and `n` slats the
-panel must be `2*r*tan(180°/n)` tall or the shell will not close — currently
-r=68, n=16 → 27px (`.f3d__slat`). Recompute it if you change either number; an
-older revision of this file quoted r=58/n=14/26px, which would leave the shell open.
+Same rule for colour: leaf translucency lives in a `color-mix` percentage, never
+in `opacity`, because **the build timeline owns every leaf's opacity** to fade
+parts in as they arrive. A second writer there makes a part glow before it lands
+(this has happened once already).
 
-**`LEAF_SEL` must list every leaf class a build part can contain.** The build owns
-those leaves' opacity; anything missing from that selector never gets faded and sits
-fully visible before its part has arrived. This bit once when the part list was
-rewritten and the old class was left in while the new ones were left out. The
-selector itself (`Flourish3D.jsx`, `LEAF_SEL`) is the source of truth — read it
-there rather than trusting any list written down elsewhere, including this one.
+### Connecting two 3D points with a div
 
-**These are HTML divs, not SVG, and that is the entire point.** Invariants learned
-the hard way; breaking any one silently flattens the piece back to 2D:
+A div is a plane, not a line. `link(p1, p2)` gives width `L = |p2-p1|` and
 
-- **SVG cannot do 3D.** `translateZ` on an SVG `<g>`/child is ignored outright
-  (measured: ±150px produced a size ratio of exactly 1.0), and `rotateY` yields only
-  a flat cos() x-squash. Real depth needs HTML + CSS `perspective` +
-  `transform-style: preserve-3d`. Three earlier attempts to fake it in SVG (stacked
-  offset outline clones) were all rejected as "not 3D".
-- **The `preserve-3d` chain must be unbroken.** Every wrapper between the perspective
-  root and a 3D-placed leaf needs it (`.f3d__world`, `__idle`, `__part`, `__module`,
-  `__rotor`, `__pivot`, `__toolwrap`, `__cellwrap`, `__tokwrap`, `__axiswrap`). A
-  single `flat` collapses everything below it.
-- **Grouping properties force `flat`.** On an element carrying `preserve-3d`, any of
-  `opacity` < 1, `filter`, `clip-path`, `mask`, `mix-blend-mode`, `isolation`,
+```
+translate3d(P1) rotateY(atan2(-dz, dx)) rotateZ(asin(dy/L))
+```
+
+which is rotateY-BEFORE-rotateZ — deliberately the one order anime *can* emit,
+so the form stays valid if a tween ever touches it. Verified by composing the
+matrices: worst tip error **2.9e-14 px** over 8 cases including all three
+degenerate axes. The ribbon's thickness direction keeps an in-screen-plane
+component of ≥0.88 across the whole camera sweep, so an edge can never
+foreshorten to a hairline and vanish.
+
+### The winding, and why it is not SVG
+
+The motor's phase winding is a **true 3D helix**, 63 divs (3 axial lead-in + 60
+chords). It was an SVG path once — a serpentine of quadratic curves in ONE flat
+plane, cloned onto a second plane 90° away — and it read (correctly) as a sine
+wave: a squiggle that waggles beside the axis and never encircles anything. SVG
+cannot be rescued here, because a path can never leave its own plane, and
+`translateZ` on an SVG node is ignored outright (measured: ±150px gave a size
+ratio of exactly 1.0).
+
+Each chord is placed by `translateZ(z) rotateZ(θ) translateX(r) rotateY(90deg)
+rotateZ(φ)`. Reading outward: `rotateZ(θ) translateX(r)` puts it on the cylinder;
+`rotateY(90deg)` maps the element's WIDTH onto the axial direction and leaves its
+HEIGHT tangential; so the final `rotateZ(φ)` is about the RADIAL axis and sets
+the helix PITCH, giving **φ = atan2(2r·sin(Δθ/2), −Δz)**. Two degenerate cases
+pin the sign — zero twist ⇒ φ = 180° (a straight axial run, which the lead-in
+reuses), zero pitch ⇒ φ = 90° (a flat ring). Segment centres sit at
+`r·cos(Δθ/2)`, not `r`: a chord's midpoint lies inside the circle, and seating
+them at `r` bulges every joint proud.
+
+Verified numerically at r=44, 5 turns × 12: joint gaps **1.4e-13 px**, every
+endpoint on radius **44.0000**, total winding **1800°**, x-excursion **−44…+44**
+— that last one is the whole point, since it straddles the axis where the old
+squiggle never did.
+
+### Geometry rules that are easy to break silently
+
+- **Cylinder pitch.** After `rotateY(90deg)`, for radius `r` and `n` elements a
+  CLOSED shell needs height `2*r*tan(180°/n)`. The can is r=78, n=16 → **31.03px
+  closed**; the ribs are 12px, so it is deliberately **vented** (39% fill) and the
+  copper stays visible through the gaps. Recompute this if you change `n` or `r`
+  — do not copy the number. An older revision of this file quoted r=58/n=14/26px,
+  which would leave the shell open.
+- **Radial stack, outward, verified clear** (min gap 2.5px): shaft OD 6.5 | rotor
+  core 20 | magnets 21.5–28.5 | stator bore 31 | **winding 44** | pole bars 54 |
+  stator OD 62 | can ribs 78 | bell flange 82.
+- **Every part arrives along the SAME axis** (`|fz| = 1`, lateral jitter ≤0.12).
+  Six different arrival directions is *convergence*, which reads as a pile of
+  boxes meeting; one shared axis in assembly order is what reads as assembly.
+- `BUILD_SPAN` (260ms) is much wider than the 0.09 gap between part leads, so ~3
+  parts are always in flight. Widen the gap or shrink the span and it degenerates
+  into a stiff one-at-a-time queue.
+- **Ghosts must stay OUTSIDE every `.f3d__build`.** They are dashed phantoms of
+  each part's seat, and they are what makes an incoming part read as heading for
+  a named socket. Put one inside a build and the leaf query claims its opacity
+  and flies it in with the part it is supposed to be waiting for.
+- The rotor's scroll spin-up lives on `.f3d__rotor`; its ambient idle lives on
+  the nested `.f3d__rotorlife`. **Two writers on one rotateZ jitter.** Nested
+  rotations about the same axis simply add.
+
+### These are HTML divs, not SVG, and that is the entire point
+
+- **The `preserve-3d` chain must be unbroken.** Every wrapper between the
+  perspective root and a 3D-placed leaf needs it — 18 classes share one rule in
+  `App.css`. A single `flat` collapses everything below it.
+- **Grouping properties force `flat`.** On an element carrying `preserve-3d`, any
+  of `opacity` < 1, `filter`, `clip-path`, `mask`, `mix-blend-mode`, `isolation`,
   `overflow != visible`, or `contain` flattens its 3D children. So **animate
-  `opacity` only on leaves** with no 3D-positioned children. `.f3d` itself is exempt
-  (it is the perspective root and already flat). This is why the old
-  `.about-flourish { isolation: isolate }` must never be ported over.
-- **anime.js emits transform components in a fixed order** (translate → rotate →
-  scale → skew), so it can *never* produce a rotate-**then**-translate placement like
-  `rotateZ(k) translateX(r) rotateY(90deg)` — the cylinder-wall placement used by
-  `.f3d__slat`, `.f3d__coil`, `.f3d__rail`. Those stay **static inline styles**.
-  Animating a non-transform property (opacity) on them is safe: anime only rewrites
-  `transform` when it animates a transform property.
-- **Scroll and anime.js must never write the same element's transform.** Scroll drives
-  `.f3d__world` (camera yaw/pitch) plus per-face/per-part depth; anime.js drives
-  `.f3d__idle` and the leaves. That split is what the nested wrappers exist for.
-- **One writer per property.** The right side's build owns `opacity` on every build
-  leaf — the set named by `LEAF_SEL` in `Flourish3D.jsx`, currently
-  `__face/__ring/__slat/__coil/__spoke/__bolt/__ellipse/__tooth/__magnet/__flexspoke/__gauge`
-  — because opacity is
-  how a part fades in as it arrives. An anime.js loop on those same leaves makes parts
-  glow *before* they arrive — this already happened once with a `.f3d__coil` opacity
-  shimmer. And you cannot swap such a loop to a transform property either: those leaves
-  use rotate-then-translate placement, which anime cannot reproduce (see above) and
-  would destroy. Give a leaf life via its parent wrapper, or not at all.
-- Camera yaw deliberately **crosses 0°** across the scroll range so each box's left and
-  right side walls foreshorten to nothing and swap over — a tell no 2D fake produces.
+  `opacity` only on leaves**. `.f3d` itself is exempt (perspective root, already
+  flat). This is why `isolation: isolate` must never be added here.
+- `.f3d__module`'s tilt lives in the STYLESHEET and must never be animated:
+  anime merges only *inline* static components and would wipe it.
+- Camera yaw deliberately **crosses 0°** across the scroll range so each box's
+  left and right side walls foreshorten to nothing and swap over — a tell no 2D
+  fake and no pre-rendered image sequence produces.
 
-Verify depth by **measuring, not by eye**: identically-sized elements spread along Z
-must render at different widths (currently ~1.18× near/far across `.f3d__token`), and
-the `rotateY(90deg)` `.f3d__rail` ribbons must project far narrower than their 53px
-width (~5–12px). A ratio of 1.0 means the 3D context is broken somewhere above.
+**Verify depth by MEASURING, not by eye** (a backgrounded tab throttles rAF and
+screenshots blank — that is an environment artifact, not a bug). Measured live in
+Firefox at `perspective: 600px`: the 63 identical-width wire chords project
+**1.5–32.9px** and the 16 identical can ribs **2.1–98.0px** across the scroll
+range; per-layer near/far ratio on the ML network is **1.15–1.20×**. A ratio of
+**1.0 anywhere means the 3D context is broken above**. Depth headroom: the
+deepest in-flight point reaches 213px of the 600px camera plane (1.55×
+magnification), so nothing inverts.
+
+To measure the flourishes without WebGL (the lazy Lanyard cannot start headless,
+see Open items), render them alone: a throwaway `probe.html` + `src/__probe.jsx`
+mounting only `<Flourish3D>` on the dev server, driven by geckodriver.
 
 ### anime.js v4.5 API notes
 
-- `ease: 'steps(4)'` **as a string was removed.** It matches a deprecated list in
-  `easings/eases/parser.js`, logs a console warning, and silently falls back to
-  linear. Import the function instead: `import { steps } from 'animejs'` →
-  `ease: steps(4)`. Same for `irregular(`, `linear(`, `cubicBezier(`.
-- `stagger()` supports genuine 3D grids: `stagger(90, { grid: [x, y, z], from: 'center' })`
-  computes true 3D Euclidean distance, so ripples radiate spherically through a volume.
-  (Verified in `dist/modules/utils/stagger.js`: `toZ = dims === 3 ? floor(i / (gx*gy)) : 0`,
-  distance `sqrt(dx²+dy²+dz²)`. Element emission order must match `z*gx*gy + y*gx + x`.)
-- `ease`, `loop`, and `alternate` are **animation-level** options, not per-property ones.
-  This is not a style nit: one `ease` means one eased `t` shared by every property, so
-  two tweens over the same numeric range are *always* equal frame-for-frame. When
-  properties must advance independently, give each its own per-tween `modifier`
-  (`{ from, to, modifier }`) — that IS supported per property, and is what the conv
-  kernel uses.
-- **`eases` is not a public type export.** `import { eases } from 'animejs'` fails
-  typecheck in 4.5 even though the runtime object exists. Write the curve inline
-  (e.g. `Flourish3D`'s `seat`, an out-back with s≈1.4).
+- `ease: 'steps(4)'` **as a string was removed** — it matches a deprecated list
+  in `easings/eases/parser.js`, warns, and silently falls back to **linear**.
+  Import the function instead. The same applies to `irregular(`, `linear(` and
+  `cubicBezier(`. Every OTHER parameterised string ease is fine: `'outBack(1.4)'`
+  parses normally, and is what gives parts their ~7% seating overshoot.
+- **`ease` IS legal per property** in 4.5 (`animation/animation.js`: `const
+  easeToParse = key.ease || tEasing`). An earlier revision of this file claimed
+  otherwise; the claim was wrong even though the conclusion it supported was not.
+- Property **keyframes** are an array of objects — `'--swell': [{ to: .55,
+  duration: 38 }, { to: 0, duration: 38 }]` — which is how one tween both raises
+  and lowers a pulse.
+- `stagger()` supports `grid: [x, y]`/`[x, y, z]` with true Euclidean distance,
+  plus `jitter` and `seed` for reproducible scatter (the panel resolves cell by
+  cell that way). Element emission order must match the grid's own indexing.
+- `loop` and `alternate` are **animation-level** options.
+- The runtime export is **`easings`**, not `eases`, and `createSpring` is
+  deprecated in favour of `spring`.
+
 
 ## Modal animation contract
 
@@ -372,7 +395,33 @@ found the deployed portfolio materially broken; fixed in one pass:
 - Content: the `???` badge EXP, five "(Coming Soon)" labels on PDFs that are live,
   and an empty `<iframe>` in the FPGA modal.
 
+**Landed: both flourishes redone** (2026-08-12), to the brief "one should look
+like a motor assembling, the other like the process of machine learning". The
+Conv-Stack and FR3-harmonic-drive artwork is gone; see "The 3D side flourishes"
+above for what replaced it and why. Two structural changes came with it:
+
+- The hand-rolled scroll listener is gone — each side is now ONE anime.js
+  timeline driven by v4.5's own `onScroll` ScrollObserver, with `sync: 0.2`
+  smoothing. That removes two of the four unbatched scroll listeners the audit
+  flagged, and the per-scroll style writes with them.
+- Choreography that used to be hand-computed per frame is now declared as
+  timeline positions, and anime drives statically-placed elements by animating
+  **CSS variables inside their transform strings** rather than the transform.
+- The FR3 harmonic-drive anatomy (wave generator, flexspline, circular spline,
+  torque flexure) was **deliberately dropped**: at 6–8px in a page margin those
+  parts are illegible in principle, and a harmonic drive signifies *gearbox* to
+  specialists rather than *motor* to anyone. If that specificity matters, put it
+  somewhere a reader can actually read it (a label, or the About copy).
+
 **Open items:**
+
+- **A browser that cannot create a WebGL context renders the site BLANK.** Found
+  while measuring in headless Firefox: the lazy `Lanyard` `<Canvas>` throws
+  inside `THREE.WebGLRenderer`, and because nothing wraps it in an error
+  boundary the whole React tree unmounts — `#root` is empty, no hero, no
+  content. The ≥992px gate does not help; it is desktop-only code. Fix by
+  wrapping the lazy Lanyard in an error boundary (and ideally a WebGL capability
+  check) so it degrades to the no-lanyard layout mobile already uses.
 
 - **The About bio is stale and contradicts the site.** `siteData.js` says "Robot
   Technician at Starship Technologies … TA at NYU", while the nearest work badge
@@ -391,7 +440,8 @@ found the deployed portfolio materially broken; fixed in one pass:
   mobile layout. On the lanyard hover tilt — the rest-state signs are correct; the
   real defect is that after a click-flip the pitch damper becomes positive feedback,
   so fix it with a flip-aware sign rather than flipping `pitchErr` outright.
-- Flourish tuning knobs (the owner's open thread): explode range and rotation speeds,
-  plus the pegboard's tone.
+- Flourish tuning after the redo: the beat leads/spans at the top of each branch
+  of the timeline, `perspective: 600px`, and the copper token. The pegboard's
+  tone is still an open thread from the owner.
 - Spline not integrated (owner's requested stack item) — needs a scene designed at
   spline.design first; wire via `@splinetool/react-spline`, lazy-loaded like the Lanyard.

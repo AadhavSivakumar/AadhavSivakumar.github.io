@@ -11,6 +11,23 @@
   --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
   --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 8%, transparent);
   --shadow-color-accent: color-mix(in srgb, var(--accent-color) 50%, transparent);
+
+  /* Flourish3D palette. The gold accent carries positive weights and every
+     mechanical line; these are the only other hues on the two pieces, and each
+     one means exactly one thing:
+       --ml-neg    negative weights (the other side of zero)
+       --ml-back   the backprop wave — deliberately unlike both weight colours,
+                   because a corrective pulse travelling BACK up the graph is
+                   the one mechanic no other domain owns and it must be read
+                   as different, not as brighter
+       --ml-err    the wrong output and the error bar; three elements only, so
+                   it stays a signal rather than a palette
+       --f3d-copper  the motor winding, and nothing else */
+  --ml-pos: var(--accent-color);
+  --ml-neg: #4E7C8C;
+  --ml-back: #2FA8B8;
+  --ml-err: #A8503B;
+  --f3d-copper: #A85A2A;
 }
 
 html[data-theme="dark"] {
@@ -23,6 +40,10 @@ html[data-theme="dark"] {
   --border-color: #444;
   --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
   --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
+  --ml-neg: #79A9B9;
+  --ml-back: #5FD3E2;
+  --ml-err: #C97A64;
+  --f3d-copper: #E08A48;
 }
 
 /* GLOBAL STYLES */
@@ -451,7 +472,7 @@ html[data-theme="dark"] {
   top: calc(50vh - 200px);
   width: 200px;
   height: 400px;
-  perspective: 720px;
+  perspective: 600px;
   pointer-events: none;
   opacity: 0.85;
   will-change: transform;
@@ -462,21 +483,29 @@ html[data-theme="dark"] {
 .f3d--right { right: clamp(8px, 4.5vw, 230px); perspective-origin: -18% 50%; }
 
 /* Every wrapper must keep the 3D context alive — one `flat` here collapses the
-   whole assembly back to 2D. All wrappers are zero-size anchor points so their
-   children centre on the stage origin via negative margins. */
+   whole assembly back to 2D. Equally: never put a GROUPING property (opacity<1,
+   filter, clip-path, mask, mix-blend-mode, isolation, contain, overflow) on any
+   of these — each one forces `flat` on its children. All are zero-size anchor
+   points so their children centre on the stage origin via negative margins. */
 .f3d__world,
 .f3d__idle,
 .f3d__part,
+.f3d__build,
 .f3d__module,
+.f3d__ghosts,
 .f3d__rotor,
-.f3d__pivot,
-.f3d__toolwrap,
-.f3d__cellwrap,
-.f3d__slice,
-.f3d__tokwrap,
+.f3d__rotorlife,
 .f3d__wire,
 .f3d__spin,
-.f3d__axiswrap {
+.f3d__axiswrap,
+.f3d__mlpanel,
+.f3d__mlpanelspin,
+.f3d__mlnet,
+.f3d__mlpts,
+.f3d__mlptwrap,
+.f3d__mlchipwrap,
+.f3d__mlloss,
+.f3d__mllossspin {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -485,13 +514,17 @@ html[data-theme="dark"] {
   transform-style: preserve-3d;
 }
 
-/* Box faces + rings: 1px gold wireframe with a flat 5% wash (no gradient). */
+/* Box faces + rings: 1px gold wireframe with a flat 5% wash (no gradient).
+   Their translucency lives in `border-color` (a color-mix percentage), NOT in
+   `opacity` — the scroll timeline owns every leaf's opacity to fade parts in as
+   they arrive, and a second writer there makes a part glow before it lands. */
 .f3d__face {
   position: absolute;
   left: 50%;
   top: 50%;
   border: 1px solid var(--accent-color);
   background: color-mix(in srgb, var(--accent-color) 5%, transparent);
+  opacity: 0;
 }
 .f3d__ring {
   position: absolute;
@@ -500,144 +533,155 @@ html[data-theme="dark"] {
   border-style: solid;
   border-color: var(--accent-color);
   border-radius: 50%;
+  opacity: 0;
 }
 
-/* LEFT — conv stack */
+/* ── LEFT: "Train Loop" ─────────────────────────────────────────────────── */
 .f3d__spine {
   position: absolute; left: 50%; top: 50%;
   width: 1px; height: 380px; margin-left: -0.5px; margin-top: -190px;
   background: var(--accent-color); opacity: 0.16;
 }
-.f3d__cell {
+
+/* decision panel, floating above and behind the network */
+.f3d__mlpanel { transform: translate3d(0, -168px, -30px); }
+.f3d__mlframe {
   position: absolute; left: 50%; top: 50%;
-  width: 19px; height: 19px; margin-left: -9.5px; margin-top: -9.5px;
-  border: 1px solid var(--accent-color);
-  background: color-mix(in srgb, var(--accent-color) 12%, transparent);
+  width: 79px; height: 79px; margin-left: -39.5px; margin-top: -39.5px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
 }
-/* Quiet slot in the activation lattice. It still occupies its grid index (the
-   3D stagger's [4,4,2] indexing depends on every slot being emitted) but reads
-   as an inactive site, so the volume looks like activations rather than a rigid
-   block of identical cells. */
-.f3d__cell--dot {
-  width: 4px; height: 4px; margin-left: -2px; margin-top: -2px;
-  border-radius: 50%;
-  border-color: transparent;
-  background: var(--accent-color);
-}
-.f3d__kernel {
+.f3d__mlcell {
+  --r: 0;
   position: absolute; left: 50%; top: 50%;
-  width: 25px; height: 25px; margin-left: -12.5px; margin-top: -12.5px;
-  border: 1.5px solid var(--accent-color);
-}
-.f3d__token {
-  position: absolute; left: 50%; top: 50%;
-  width: 22px; height: 22px; margin-left: -11px; margin-top: -11px;
-  border: 1px solid var(--accent-color);
-}
-/* Depth rail: lies along the Z axis, so it projects to zero width head-on and
-   splays open as the world yaws. transform-origin pins it to its near end. */
-.f3d__rail {
-  position: absolute; left: 50%; top: 50%;
-  width: 53px; height: 1px; margin-top: -0.5px;
-  transform-origin: 0 50%;
-  background: var(--accent-color); opacity: 0.3;
+  width: 14px; height: 14px; margin-left: -7px; margin-top: -7px;
+  background-color: color-mix(in srgb, var(--cell-base) calc(4% + 34% * var(--r)), transparent);
 }
 
-/* RIGHT — joint module. The static tilt lays the joint's rotation axis
-   up-and-back into the screen, so exploding separates parts in depth too. */
-.f3d__module { transform: translateY(34px) rotateX(64deg) rotateZ(-16deg); }
+/* An edge is a PLANE, not a line: width is the 3D distance between its two
+   nodes, height is its weight. `--k` (learned magnitude) and `--swell` (the
+   travelling packet) are separate variables composed in one scaleY, so the
+   re-weight tween and the pulse tween each own exactly one property and can
+   overlap in time without fighting. anime never writes this transform — it
+   could not reproduce the rotate order — it writes the numbers inside it. */
+.f3d__mledge {
+  --k: 0.17; --swell: 0; --bwd: 0;
+  position: absolute; left: 50%; top: 50%;
+  height: 6px; margin-top: -3px;
+  transform-origin: 0 50%;
+  opacity: 0.28;
+  background-color: color-mix(in srgb, var(--ml-back) calc(var(--bwd) * 100%), var(--edge-base));
+}
+.f3d__mlnode {
+  --lit: 0.18; --err: 0;
+  position: absolute; left: 50%; top: 50%;
+  width: 9px; height: 9px; margin-left: -4.5px; margin-top: -4.5px;
+  border-radius: 50%;
+  background-color: color-mix(in srgb, var(--ml-err) calc(var(--err) * 100%),
+                    color-mix(in srgb, var(--ml-pos) calc(26% + 54% * var(--lit)), transparent));
+}
+/* the answer we wanted, next to the answer we got */
+.f3d__mlchip {
+  position: absolute; left: 50%; top: 50%;
+  width: 11px; height: 11px; margin-left: -5.5px; margin-top: -5.5px;
+  border: 1.5px solid var(--ml-pos);
+  border-radius: 50%;
+  opacity: 0;
+}
+.f3d__mldelta {
+  --k: 0.1;
+  position: absolute; left: 50%; top: 50%;
+  height: 6px; margin-top: -3px;
+  transform-origin: 0 50%;
+  background-color: var(--ml-err);
+  opacity: 0;
+}
+
+/* labelled training points */
+.f3d__mlpts { transform: translate3d(0, -168px, 26px); }
+.f3d__mlpt {
+  position: absolute; left: 50%; top: 50%;
+  width: 5px; height: 5px; margin-left: -2.5px; margin-top: -2.5px;
+  border-radius: 50%;
+  background-color: var(--pt-base);
+  opacity: 0;
+}
+
+/* loss curve */
+.f3d__mlloss { transform: translate3d(0, 150px, 34px); }
+.f3d__mlaxis {
+  position: absolute; left: 50%; top: 50%;
+  background: var(--accent-color); opacity: 0;
+}
+.f3d__mlaxis--y { width: 1px; height: 60px; margin-left: -48px; margin-top: -33px; }
+.f3d__mlaxis--x { width: 98px; height: 1px; margin-left: -48px; margin-top: 27px; }
+.f3d__mlseg {
+  position: absolute; left: 50%; top: 50%;
+  height: 1.5px; margin-top: -0.75px;
+  transform-origin: 0 50%;
+  background: var(--accent-color);
+  opacity: 0;
+}
+
+/* ── RIGHT: "Down the Shaft" ────────────────────────────────────────────── */
+/* The static tilt lays the motor's axis up-and-back into the screen, so parts
+   threading along that axis separate in real depth as they arrive. It lives in
+   the STYLESHEET and must never be animated: anime merges only *inline* static
+   components and would wipe it. */
+.f3d__module { transform: translateY(30px) rotateX(58deg) rotateZ(-16deg); }
 .f3d__axiswrap { transform: rotateX(90deg); }
 .f3d__axis {
   position: absolute; left: 0; top: 0;
-  width: 0; height: 330px; margin-top: -80px;
+  width: 0; height: 360px; margin-top: -90px;
   border-left: 1px dashed var(--accent-color); opacity: 0.34;
 }
-/* Cylindrical-housing slat. After rotateY(90deg) the element's WIDTH maps to
+/* Phantom outlines of each part's seat — the engineering-drawing convention
+   that makes an incoming part read as heading for a named socket. */
+.f3d__ghost {
+  position: absolute; left: 50%; top: 50%;
+  border: 1px dashed var(--accent-color);
+  opacity: 0.13;
+}
+/* Stator pole bar and can rib. After rotateY(90deg) an element's WIDTH maps to
    the axial (Z) direction and its HEIGHT stays tangential, so for radius r and
-   n slats the panel must be 2*r*tan(180°/n) tall or the shell won't close
-   (r=68, n=16 → 27px). Width is the housing's length along its axis. */
-.f3d__slat {
+   n elements a CLOSED shell needs height = 2*r*tan(180deg/n) — for the can,
+   2*78*tan(11.25deg) = 31.03px. The ribs are 12px, so the shell is deliberately
+   VENTED and the winding stays visible through it. Recompute that number if you
+   change n or r; do not copy it. */
+.f3d__pole {
   position: absolute; left: 50%; top: 50%;
-  width: 170px; height: 27px; margin-left: -85px; margin-top: -13.5px;
-  border: 1px solid var(--accent-color); opacity: 0.45;
+  width: 90px; height: 10px; margin-left: -45px; margin-top: -5px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 55%, transparent);
+  opacity: 0;
+}
+.f3d__rib {
+  position: absolute; left: 50%; top: 50%;
+  width: 190px; height: 12px; margin-left: -95px; margin-top: -6px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 45%, transparent);
   background: color-mix(in srgb, var(--accent-color) 4%, transparent);
-}
-
-/* Harmonic-drive wave generator: a true ellipse (border-radius on a non-square
-   box) — the shape that makes a strain wave gear instantly recognisable. */
-.f3d__ellipse {
-  position: absolute; left: 50%; top: 50%;
-  width: 56px; height: 30px; margin-left: -28px; margin-top: -15px;
-  border: 1.5px solid var(--accent-color); border-radius: 50%;
-  opacity: 0.85;
-}
-.f3d__ellipse--inner {
-  width: 40px; height: 20px; margin-left: -20px; margin-top: -10px;
-  border-width: 1px; opacity: 0.6;
-}
-
-/* Gear teeth (flexspline / circular spline), rotor magnets, sensor flexures. */
-.f3d__tooth {
-  position: absolute; left: 50%; top: 50%;
-  width: 8px; height: 3px; margin-left: -4px; margin-top: -1.5px;
-  background: var(--accent-color); opacity: 0.7;
+  opacity: 0;
 }
 .f3d__magnet {
   position: absolute; left: 50%; top: 50%;
   width: 7px; height: 16px; margin-left: -3.5px; margin-top: -8px;
-  border: 1px solid var(--accent-color); opacity: 0.65;
-}
-.f3d__flexspoke {
-  position: absolute; left: 50%; top: 50%;
-  width: 26px; height: 2px; margin-left: -13px; margin-top: -1px;
-  background: var(--accent-color); opacity: 0.6;
-}
-.f3d__gauge {
-  position: absolute; left: 50%; top: 50%;
-  width: 6px; height: 8px; margin-left: -3px; margin-top: -4px;
-  border: 1px solid var(--accent-color); opacity: 0.75;
-}
-/* Stator slot winding. After rotateY(90deg) width maps to the axial direction,
-   so these are long bundles lying along the core — the wire winds into them. */
-.f3d__coil {
-  position: absolute; left: 50%; top: 50%;
-  width: 46px; height: 9px; margin-left: -23px; margin-top: -4.5px;
-  border: 1px solid var(--accent-color);
-}
-.f3d__spoke {
-  position: absolute; left: 50%; top: 50%;
-  width: 26px; height: 2px; margin-top: -1px;
-  transform-origin: 0 50%;
-  background: var(--accent-color); opacity: 0.55;
-}
-/* commutator bars (short axial segments on the core collar) */
-.f3d__bar {
-  position: absolute; left: 50%; top: 50%;
-  width: 34px; height: 4px; margin-left: -17px; margin-top: -2px;
-  border: 1px solid var(--accent-color); opacity: 0.6;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
+  opacity: 0;
 }
 .f3d__bolt {
   position: absolute; left: 50%; top: 50%;
   width: 5px; height: 5px; margin-left: -2.5px; margin-top: -2.5px;
   border-radius: 50%;
-  background: var(--accent-color); opacity: 0.7;
+  background: color-mix(in srgb, var(--accent-color) 70%, transparent);
+  opacity: 0;
 }
-
-/* The wire the motor builds around. Two flat SVG planes 90° apart about the
-   module axis — the sanctioned use of SVG here: flat detail inside a div that
-   is itself placed in 3D. rotateX(90deg) lays each plane along the axis. */
-/* Centred on the stator's seat (z=80) so the coil section of the wire lands
-   exactly in the stator slots, with the straight lead running out the back. */
-/* Magnet wire: one chord of the 3D helix wound around the rotor core. Width is
-   set per-segment inline (the true chord length, so consecutive segments share
-   endpoints); height is the wire gauge. Leaf element — no 3D children — so the
-   scroll-driven wind-on may own its opacity without tripping the grouping rule
-   that would flatten a preserve-3d subtree. Starts invisible: the wind-on
-   writes every segment's opacity on the first scroll pass. */
+/* One chord of the 3D helix wound around the rotor core. Width is set inline
+   per segment (the true chord length, so consecutive segments share endpoints);
+   height is the wire gauge. Copper is the one second hue on the piece, and the
+   signifier that survives at any size — it is what says "this is the electrical
+   part". Do not spread it to the poles or magnets. */
 .f3d__wireseg {
   position: absolute; left: 50%; top: 50%;
   height: 2px; margin-top: -1px;
-  background: var(--accent-color);
+  background: var(--f3d-copper);
   border-radius: 1px;
   opacity: 0;
 }
