@@ -449,7 +449,7 @@ export default function Flourish3D({ side = 'left' }) {
     const faces = isLeft ? Array.from(root.querySelectorAll('.f3d__face')) : [];
 
     // Right side: each motor part gets its own scroll window [lead, lead+SPAN].
-    // SPAN is much wider than the 0.12 gap between leads, so ~3 parts are in
+    // SPAN is much wider than the 0.09 gap between leads, so ~3 parts are in
     // flight at once — a part starts arriving long before the previous seats.
     const BUILD_SPAN = 0.26;
     // EVERY leaf a build part can contain must be listed here — the build owns

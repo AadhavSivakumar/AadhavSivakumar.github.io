@@ -19,15 +19,22 @@ eyeballing screenshots; it works regardless of tab state.
 
 ```
 npm run dev        # Vite dev server
-npm run build      # production build to dist/ (dist/ is gitignored)
+npm run build      # vite build + scripts/copy-static.mjs, into dist/ (gitignored)
 npm run preview    # serve the production build locally
 ```
+
+`npm run build` runs `scripts/copy-static.mjs` after Vite. That script copies the
+static directories the app links to by URL (`Media/web`, `Media/skills`,
+`projectpdf`, `Resume`) into `dist/`, then **fails the build if any root-relative
+URL in `siteData.js` has no file behind it in `dist/`**. That check is the closest
+thing this repo has to a test — see "Asset URLs" below for the bug it exists to
+prevent.
 
 ## Tech stack
 
 - **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
-- **motion** (`motion/react`, the framer-motion successor) — scroll-into-view reveals, hover/tap micro-interactions, the header's `layoutId` nav pill, theme-toggle icon swap, and the modal's phased open/close sequence.
-- **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), and the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`). Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
+- **motion** (`motion/react`, the framer-motion successor) — only four files import it: the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), and the modal's phased open/close sequence (`Modal.jsx`). It does **not** drive the card reveals or the hover lift.
+- **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`), the side flourishes, and — via `src/hooks/useScrollReveal.js` — **every scroll-into-view card entrance** on the site (`LiftCard`, `Reveal`, `Resume`'s tiles, `Contact`'s links). The hook suppresses inline CSS transitions during the entrance and clears them on completion so the CSS hover/tap states resume. Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
 - **three.js / @react-three/fiber / drei / rapier / meshline** — the 3D lanyard badges in the About section. This whole stack is **lazy-loaded** (see Performance below).
 
 ## Source layout
@@ -38,6 +45,7 @@ src/
   App.css                 # ALL styling: theme tokens, sections, cards, modal, hero, nav
   data/siteData.js        # ALL page content (see "Editing content")
   hooks/useTheme.js       # light/dark via data-theme attr + localStorage
+  hooks/useScrollReveal.js # anime.js scroll-into-view entrance used by every card
   components/
     Header.jsx            # fixed nav, scroll-spy + animated gold pill (layoutId)
     Hero.jsx              # anime.js letter cascade, aurora bg, keyword chips
@@ -51,13 +59,22 @@ src/
     Resume.jsx            # Resume / Extended CV / Transcript tiles (Drive embeds)
     Contact.jsx, Footer.jsx
     Modal.jsx             # single reusable modal; phased lift->expand->populate
-    LiftCard.jsx          # shared card: motion entrance + hover lift (no tilt)
+    LiftCard.jsx          # shared card: anime.js entrance (useScrollReveal) + CSS hover lift (no tilt)
     Reveal.jsx            # shared fade/rise-on-scroll wrapper
     SectionTitle.jsx      # anime.js letter-cascade h2 + underline draw
     ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
+scripts/
+  copy-static.mjs         # post-build asset copy + referenced-asset existence check
 ```
 
-`legacy/` holds pre-React versions of the site — archive only, never edit to change the current site. `Media/` holds local images (`Media/lanyardimgs/` for badge photos, `Media/projects/`, `Media/skills/`). `projectpdf/` and `Resume/` hold PDFs served from this repo.
+`legacy/` holds pre-React versions of the site — archive only, never edit to change the current site, and **not deployed**. `misc/` is unreferenced data and is likewise not deployed. `Media/` holds local images:
+
+- `Media/lanyardimgs/` — badge photos, *imported* by `About.jsx` so Vite bundles them.
+- `Media/projects/` — the full-size originals (hundreds of MB, including per-project subdirectories of raw footage). **Not deployed, and nothing on the site links to them.**
+- `Media/web/` — the web-sized derivatives the site actually serves, built from those originals. Deployed.
+- `Media/skills/` — skill icons. Deployed.
+
+`projectpdf/` and `Resume/` hold PDFs served from this repo.
 
 ## Editing content (not markup)
 
@@ -72,9 +89,31 @@ The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `badgeCa
 
 To add a project or skill: append to the relevant array — the components map over the data, no other wiring needed.
 
-### Asset URL gotcha
+### Asset URLs
 
-`majorProjectsData`/`smallProjectsData`/`skillGroupsData` reference images via `https://aadhavsivakumar.github.io/Images/projectcovers/` and `.../Images/skills/`. There is **no `Images/` directory in this repo** — those URLs resolve against assets deployed elsewhere on the GitHub Pages site, while this repo stores similar files under `Media/`. When adding a new project/skill image, confirm with the user where it must live; putting it in `Media/` alone will 404 for those URLs. Locally-imported assets (lanyard badge photos, GLB, textures) are bundled by Vite and are not affected.
+Content images are referenced by **root-relative** URL — `/Media/web/projects/…`,
+`/Media/skills/…`, `/projectpdf/…` — from the three `base*Path` constants at the
+top of `siteData.js`. Root-relative means dev, `npm run preview` and production
+all fetch the same files; do not reintroduce absolute
+`https://aadhavsivakumar.github.io/…` URLs, which made local runs silently serve
+production assets. Locally *imported* assets (lanyard badge photos, GLB,
+textures) are bundled by Vite and are unaffected by any of this.
+
+**The bug this section used to describe, and how it is now prevented.** Commit
+`1c975e5` (Dec 2025) renamed `Images/` → `Media/`; `siteData.js` kept pointing at
+`/Images/…`, and an earlier version of this file asserted those URLs "resolve
+against assets deployed elsewhere". They did not — **50 covers and skill icons
+404'd in production for eight months** and nobody noticed, because a missing
+image degrades to a placeholder tile rather than an error. `npm run build` now
+fails when a referenced asset is missing (`scripts/copy-static.mjs`), so a
+repeat of that rename cannot reach production.
+
+**Adding a project/skill image.** Put the original in `Media/projects/` (or
+`Media/skills/`), then commit a web-sized derivative under `Media/web/projects/`
+and point `siteData.js` at the derivative. Covers should be ≲1 MB; the originals
+run to tens of MB each and are not deployed. A `.mp4` cover **must** ship a
+`<name>-poster.webp` beside it: `ProjectCard.jsx` derives the poster URL by that
+convention, uses it as the `poster`, and the build check enforces its existence.
 
 ## The 3D lanyard (`src/components/Lanyard/`)
 
@@ -84,7 +123,7 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 - **The chain spawns vertically at equilibrium.** A horizontal spawn makes neighboring cards collide mid-drop and fall asleep at a diagonal.
 - **`BandField` debounces resizes (300ms) then remounts bands via key** — physics bodies don't follow anchors when the canvas aspect changes.
 - **The strap-smoothing lerp alpha is clamped to 1.** Unclamped, `delta * 50` exceeds 1 below 50fps and `Vector3.lerp` extrapolates, exploding the straps into screen-height streaks.
-- When the viewport can't fit 3 badges per side (`MIN_STEP` spacing), outermost badges are dropped instead of stacking.
+- When the viewport can't fit 3 badges per side, outermost badges are dropped instead of stacking (the fit test is in `BandField`, comparing `inner + (n-1)*step` against the half-world width). Note the ≥992px gate in `About.jsx` admits widths where 2 of the 6 badges are already dropped.
 - Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
@@ -117,7 +156,7 @@ stator → torque-sensor flexure ring → cylindrical housing → end cap + outp
 Details that carry the likeness and should survive any restyle:
 
 - The **housing is CYLINDRICAL, not a hexagonal can** — FR3 joints are round. It is
-  built from 14 flat slats around the axis, which also buys real perspective
+  built from 16 flat slats around the axis (r=68), which also buys real perspective
   convergence (near slats spread, far ones bunch).
 - The **wave generator is a true ellipse** (`border-radius: 50%` on a non-square box).
   That ellipse is what makes a strain wave gear instantly readable.
@@ -160,8 +199,8 @@ and sat right on top of the wire.
 
 **The arrivals deliberately overlap, and come from different directions.** Each part
 carries `data-lead` plus a `data-fx/fy/fz` incoming direction and a `data-spin`.
-Progress is `smoothstep((scroll - lead) / BUILD_SPAN)`; `BUILD_SPAN` (0.32) is much
-wider than the 0.10 gap between leads, so ~3 parts are always in flight — a part
+Progress is `smoothstep((scroll - lead) / BUILD_SPAN)`; `BUILD_SPAN` (0.26) is much
+wider than the 0.09 gap between leads, so ~3 parts are always in flight — a part
 starts arriving long before the previous one seats. Widen the gap or shrink the span
 and it degenerates into a stiff one-at-a-time queue. Each part also tumbles and spins
 in (up to ~320°), and the whole joint turns just over a full revolution about its own
@@ -169,12 +208,16 @@ axis while assembling (`.f3d__spin`, scroll-driven).
 
 Cylinder geometry: after `rotateY(90deg)` a slat's **width** maps to the axial (Z)
 direction and its **height** stays tangential, so for radius `r` and `n` slats the
-panel must be `2*r*tan(180°/n)` tall or the shell will not close (r=58, n=14 → 26px).
+panel must be `2*r*tan(180°/n)` tall or the shell will not close — currently
+r=68, n=16 → 27px (`.f3d__slat`). Recompute it if you change either number; an
+older revision of this file quoted r=58/n=14/26px, which would leave the shell open.
 
 **`LEAF_SEL` must list every leaf class a build part can contain.** The build owns
 those leaves' opacity; anything missing from that selector never gets faded and sits
 fully visible before its part has arrived. This bit once when the part list was
-rewritten and `.f3d__hexside` was left in while the new classes were left out.
+rewritten and the old class was left in while the new ones were left out. The
+selector itself (`Flourish3D.jsx`, `LEAF_SEL`) is the source of truth — read it
+there rather than trusting any list written down elsewhere, including this one.
 
 **These are HTML divs, not SVG, and that is the entire point.** Invariants learned
 the hard way; breaking any one silently flattens the piece back to 2D:
@@ -197,14 +240,16 @@ the hard way; breaking any one silently flattens the piece back to 2D:
 - **anime.js emits transform components in a fixed order** (translate → rotate →
   scale → skew), so it can *never* produce a rotate-**then**-translate placement like
   `rotateZ(k) translateX(r) rotateY(90deg)` — the cylinder-wall placement used by
-  `.f3d__hexside`, `.f3d__coil`, `.f3d__rail`. Those stay **static inline styles**.
+  `.f3d__slat`, `.f3d__coil`, `.f3d__rail`. Those stay **static inline styles**.
   Animating a non-transform property (opacity) on them is safe: anime only rewrites
   `transform` when it animates a transform property.
 - **Scroll and anime.js must never write the same element's transform.** Scroll drives
   `.f3d__world` (camera yaw/pitch) plus per-face/per-part depth; anime.js drives
   `.f3d__idle` and the leaves. That split is what the nested wrappers exist for.
 - **One writer per property.** The right side's build owns `opacity` on every build
-  leaf (`.f3d__ring/__hexside/__coil/__spoke/__bar/__bolt/__face`), because opacity is
+  leaf — the set named by `LEAF_SEL` in `Flourish3D.jsx`, currently
+  `__face/__ring/__slat/__coil/__spoke/__bolt/__ellipse/__tooth/__magnet/__flexspoke/__gauge`
+  — because opacity is
   how a part fades in as it arrives. An anime.js loop on those same leaves makes parts
   glow *before* they arrive — this already happened once with a `.f3d__coil` opacity
   shimmer. And you cannot swap such a loop to a transform property either: those leaves
@@ -258,56 +303,95 @@ Light/dark is driven by CSS variables under `:root` and `html[data-theme="dark"]
 
 ## Deployment
 
-GitHub Pages serves this repo; the React app must be built (`npm run build`) — `dist/` is gitignored, so pushing source alone does not update a Pages deployment that expects built output. Confirm the intended deployment flow with the user before assuming pushes go live.
+**Every push to `master` is a production release.** `.github/workflows/deploy.yml`
+runs `npm ci` → `npm run build` on each push and publishes `dist/` to GitHub Pages
+via `actions/deploy-pages`; `gh api repos/:owner/:repo/pages` reports
+`build_type: workflow`, and the site is live at
+`https://aadhavsivakumar.github.io/`. Typical run time ~1m30s. There is no PR
+gate and no preview environment — if you push, it ships. `dist/` is gitignored
+and must NOT be committed; CI builds it.
 
-## Current progress (as of 2026-07-29)
+`https://aadhavsivakumar.github.io/portfolio` is served by a **different repo**
+(`AadhavSivakumar/portfolio`) and is unaffected by deploys here.
 
-**Uncommitted working changes** — the current animation pass. The owner has signed off
-on the direction ("this looks much more like what I want") but **explicitly expects
-further improvements**, so treat all of this as in-flight rather than final:
+What reaches the site root: everything Vite emits into `dist/`, plus the four
+directories `scripts/copy-static.mjs` copies (`Media/web`, `Media/skills`,
+`projectpdf`, `Resume`). `Media/projects`, `misc/` and `legacy/` are **not**
+deployed — an earlier workflow copied them and uploaded ~414 MB per push, ~390 MB
+of it unreferenced. Deployed size is now ~44 MB.
 
-- **Real-CSS-3D side flourishes** (`Flourish3D.jsx`, new) replacing the SVG
+## Current progress (as of 2026-08-12)
+
+Working tree is clean and everything below is committed and live. The owner has
+signed off on the animation direction ("this looks much more like what I want")
+but **explicitly expects further improvements**, so treat the animation work as
+in-flight rather than final.
+
+**Landed: the animation pass** (commits `flourish3d` → `unsine`, 2026-07-29 →
+2026-08-11):
+
+- **Real-CSS-3D side flourishes** (`Flourish3D.jsx`) replacing the SVG
   `AboutFlourish` storyboards — one per side, scroll-scrubbed explode/assemble, real
   perspective (verified ~1.18× near/far). See "The 3D side flourishes" above; that
-  section's invariants are the expensive part, do not relearn them.
+  section's invariants are the expensive part, do not relearn them. A second pass
+  added the two-slice voxel activation lattice with a true 3D spherical `stagger`
+  grid, the fixed volume-raster kernel (it used to trace a diagonal), a
+  `createTimeline` camera `seek()`-ed by scroll that dollies as well as orbits, and
+  out-back "seating" so FR3 parts overshoot ~7% and settle.
 - **Beige pegboard lanyard rack** replacing the straight overhead rail (see the lanyard
   section) — pins per badge, gentle non-rigid stagger.
 - **Hero**: liquid-glass keyword chips (`HeroChip.jsx`, backdrop-filter + an SVG
   `feDisplacementMap` that refracts the wave field), and the `/portfolio`-style sine
-  field restored behind the hero via `<SineWave variant="field" />` (wide 1000×350
+  field behind the hero via `<SineWave variant="field" />` (wide 1000×350
   viewBox so `preserveAspectRatio="none"` does not stretch the waves).
 - **Lanyard badges**: aspect-corrected front-face text (`squash` in `drawBadgeFace`),
   `drawContain` back faces so wide logos stop running off the edge, and a theme-inverted
   strap texture so the webbing is visible in dark mode.
 - **Header**: animated sun↔moon theme toggle (mask-carved crescent + retracting rays)
   instead of an emoji swap.
+- `AboutFlourish.jsx` and `AnimeEmblem.jsx` were **deleted** (unimported dead code)
+  with their `.about-flourish`/`.flr-*` and `.anime-emblem`/`.emblem-*` CSS. The UR5e
+  CAD-derived arm geometry only ever lived in `AboutFlourish.jsx` and is gone; the
+  live right-hand flourish is FR3-derived instead.
 
-A second pass on the flourishes (in response to "make the side scrolling animations more
-anime.js-3D like") added: the two-slice voxel activation lattice with a true 3D spherical
-`stagger` grid, the fixed volume-raster kernel (see above — it used to trace a diagonal),
-an anime.js `createTimeline` camera that is `seek()`-ed by scroll and now **dollies**
-(`translateZ: [-80, 120]`) as well as orbiting, and out-back "seating" on the FR3 parts
-so they overshoot ~7% and settle instead of gliding to a dead stop.
+**Landed: production asset repair** (2026-08-12). An audit against the live site
+found the deployed portfolio materially broken; fixed in one pass:
 
-Known open threads on this pass: the flourishes' explode range / rotation speeds and the
-pegboard's tone are the obvious tuning knobs. `AboutFlourish.jsx` and `AnimeEmblem.jsx`
-have been **deleted** (unimported dead code), along with their `.about-flourish`/`.flr-*`
-and `.anime-emblem`/`.emblem-*` rules in `App.css`. Note this means the UR5e CAD-derived
-arm geometry, which only ever lived in `AboutFlourish.jsx`, is gone from the tree — the
-live right-hand flourish is FR3-derived instead.
-
-**Done and committed locally** (commits `lanyard update 1`, `lanyard 3d change 2`):
-
-- Full rebuild of the site as a modern, animated version of the live `/portfolio`: motion + anime.js installed and wired throughout.
-- 3D lanyard About section: six physics badges (education left / work right, content matching the live site's badges) around the about card; drag, click-to-flip, cursor sway, and hover tilt interactions; resize-safe layout; low-fps strap fix; vertical-equilibrium spawn.
-- Content parity with live `/portfolio`: about card + modal bio, Resume/CV/Transcript Drive documents, contact text.
-- Hero (anime.js letter cascade, aurora, keyword chips, scroll cue), scroll-spy nav with metallic pill, LiftCard/Reveal card entrances, SectionTitle letter cascades, scroll-scrubbed progress bar.
-- Phased modal: lift → expand → content stagger, reversed on close.
-- Teardown: AnimatedObjects (hexagons), SineWave, useInView hook, old class-based reveal CSS, old resume card.
-- Mobile stays light: 3D stack only loads ≥992px via lazy chunk; production build verified clean (no console errors).
+- All 50 content image URLs 404'd in production (the `Images/` → `Media/` rename,
+  see "Asset URLs"). Now root-relative and verified at build time.
+- Covers are served from `Media/web/projects` as web-sized derivatives: five GIFs
+  transcoded to h264 (`tacmanipHQ` 48 MB → 1.5 MB), oversized MP4s re-encoded
+  (`mechcomp` 21 MB → 1.3 MB), stills to WebP. `Gradpic.png` 18.2 MB → 191 KB WebP.
+  The Projects grid costs ~350 KB of posters up front instead of 139 MB.
+- `ProjectCard` plays covers from an IntersectionObserver with `preload="none"` +
+  poster, falls back to a still under `prefers-reduced-motion`, and has an
+  `onError` path the `<video>` branch previously lacked.
+- Iconify skill icons were requesting two `color` params and getting HTTP 500;
+  the six sensor icons that were never committed, and the dead Wikimedia MATLAB
+  hotlink, are now Iconify/devicon URLs.
+- Content: the `???` badge EXP, five "(Coming Soon)" labels on PDFs that are live,
+  and an empty `<iframe>` in the FPGA modal.
 
 **Open items:**
 
-- Visual QA pass pending on the current animation work: modal open/close feel, lanyard hover-tilt direction (sign flip in `Lanyard.jsx` `pitchErr`/`tilt.nx` if it leans the wrong way), section-title cascades, both themes, mobile layout.
-- Spline not integrated (user's requested stack item) — needs a scene designed at spline.design first; wire via `@splinetool/react-spline`, lazy-loaded like the Lanyard.
-- Deployment flow for the built `dist/` is undecided (see Deployment above).
+- **The About bio is stale and contradicts the site.** `siteData.js` says "Robot
+  Technician at Starship Technologies … TA at NYU", while the nearest work badge
+  says Roboflow / Field Engineer. Needs the owner's current role, and past-tensing
+  the NYU master's if it has been conferred.
+- Accessibility gaps found in the same audit and NOT yet fixed: the 23 project /
+  skill / about cards are non-focusable `<div>`s (`LiftCard.jsx`), the modal has no
+  dialog semantics or focus management, `index.html` has no description/OG/Twitter
+  tags (a shared link unfurls blank), ~10 animations ignore `prefers-reduced-motion`,
+  and light-theme gold fails contrast where it carries text (header logo 2.20:1,
+  modal CTA buttons 2.40:1).
+- Runtime performance, also unfixed: the lanyard `<Canvas>` never pauses and never
+  disposes its composited textures (~90 MB of GPU textures per settled resize); four
+  unbatched scroll listeners force layout twice per event.
+- Visual QA pass pending: modal open/close feel, section-title cascades, both themes,
+  mobile layout. On the lanyard hover tilt — the rest-state signs are correct; the
+  real defect is that after a click-flip the pitch damper becomes positive feedback,
+  so fix it with a flip-aware sign rather than flipping `pitchErr` outright.
+- Flourish tuning knobs (the owner's open thread): explode range and rotation speeds,
+  plus the pegboard's tone.
+- Spline not integrated (owner's requested stack item) — needs a scene designed at
+  spline.design first; wire via `@splinetool/react-spline`, lazy-loaded like the Lanyard.

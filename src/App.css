@@ -555,7 +555,7 @@ html[data-theme="dark"] {
 /* Cylindrical-housing slat. After rotateY(90deg) the element's WIDTH maps to
    the axial (Z) direction and its HEIGHT stays tangential, so for radius r and
    n slats the panel must be 2*r*tan(180°/n) tall or the shell won't close
-   (r=58, n=14 → 26px). Width is the housing's length along its axis. */
+   (r=68, n=16 → 27px). Width is the housing's length along its axis. */
 .f3d__slat {
   position: absolute; left: 50%; top: 50%;
   width: 170px; height: 27px; margin-left: -85px; margin-top: -13.5px;

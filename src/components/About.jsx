@@ -19,7 +19,7 @@ const badgeCards = [
   { side: 'left', slot: 2, image: dhsImg, badge: { name: 'Dublin High', role: 'High School', id: '2016-2020', exp: '2020' } },
   { side: 'left', slot: 1, image: ucscImg, badge: { name: 'UCSC', role: 'Undergraduate', id: '2020-2024', exp: '2024' } },
   { side: 'left', slot: 0, image: nyuImg, badge: { name: 'NYU', role: 'Graduate', id: '2024-2026', exp: '2026' } },
-  { side: 'right', slot: 0, image: roboflowImg, badge: { name: 'Roboflow', role: 'Field Engineer', id: 'Universe', exp: '???' } },
+  { side: 'right', slot: 0, image: roboflowImg, badge: { name: 'Roboflow', role: 'Field Engineer', id: 'Universe', exp: 'Present' } },
   { side: 'right', slot: 1, image: starshipImg, badge: { name: 'Starship', role: 'Robot Technician', id: 'Technician', exp: '2025' } },
   { side: 'right', slot: 2, image: researcherImg, badge: { name: 'Researcher', role: 'TML @ UCSC, CREO @ NYU', id: 'Research', exp: '2024/6' } },
 ];
@@ -45,6 +45,9 @@ export default function About({ onCardClick }) {
             <img
               src={aboutMeData.imageUrl}
               alt="Aadhav Sivakumar"
+              width={480}
+              height={420}
+              loading="lazy"
               onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/480x420/F7F5F2/BFA181?text=Image+Not+Found'; }}
             />
             <div className="project-content">

@@ -130,7 +130,10 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
                 let skillImageSrc = skill.imageUrl;
                 if (skillImageSrc.includes('iconify.design')) {
                   const iconColor = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#', '');
-                  skillImageSrc += (skillImageSrc.includes('?') ? '&' : '?') + `color=${iconColor}`;
+                  // Strip any colour the data already carries: two `color`
+                  // params make the Iconify API answer 500, not a fallback SVG.
+                  const base = skillImageSrc.split('?')[0];
+                  skillImageSrc = `${base}?color=${iconColor}`;
                 }
                 return (
                   <motion.div key={i} variants={contentItem} className="skill-group-item">
@@ -160,7 +163,19 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     let mediaEl = null;
     if (!isResume) {
       if (isMp4) {
-        mediaEl = <video src={itemData.imageUrl} className="modal-image" controls autoPlay loop />;
+        // `muted` is required or the browser blocks the autoplay outright.
+        mediaEl = (
+          <video
+            src={itemData.imageUrl}
+            poster={itemData.imageUrl.replace(/\.(mp4|webm)$/i, '-poster.webp')}
+            className="modal-image"
+            controls
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+        );
       } else {
         mediaEl = (
           <img
@@ -192,6 +207,8 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
                 </motion.a>
               );
             } else if (content.type === 'embed') {
+              // An embed with no src rendered as a large empty bordered box.
+              if (!content.value) return null;
               return (
                 <motion.iframe
                   key={i}

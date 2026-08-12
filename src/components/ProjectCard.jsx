@@ -1,5 +1,68 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import LiftCard from './LiftCard';
+
+const reduceMotion = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Every .mp4 cover in Media/web/projects ships a `<name>-poster.webp` beside
+// it (see siteData.js). The poster is what the card actually costs until the
+// card scrolls into view: the video itself is preload="none" and only starts
+// fetching when we call play().
+const posterFor = (src) => src.replace(/\.(mp4|webm)$/i, '-poster.webp');
+
+// Autoplaying every cover on mount used to fetch several MB of video for cards
+// far below the fold — <video> has no `loading="lazy"` equivalent, so playback
+// has to be driven manually.
+function CoverVideo({ src, title, placeholder }) {
+  const ref = useRef(null);
+  const [failed, setFailed] = useState(false);
+  const poster = posterFor(src);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const p = el.play();
+          if (p && p.catch) p.catch(() => {});
+        } else {
+          el.pause();
+        }
+      },
+      { threshold: 0.25 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Under reduced motion the cover stays a still frame — no loop, no fetch.
+  if (reduceMotion() || failed) {
+    return (
+      <img
+        src={failed ? placeholder : poster}
+        alt={title}
+        loading="lazy"
+        onError={(e) => { e.target.onerror = null; e.target.src = placeholder; }}
+      />
+    );
+  }
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      poster={poster}
+      preload="none"
+      loop
+      muted
+      playsInline
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function ProjectCard({ project, isMajor, itemType, onCardClick, index = 0 }) {
   const isMp4 = project.imageUrl?.toLowerCase().endsWith('.mp4');
@@ -10,7 +73,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
 
   let media;
   if (isMp4) {
-    media = <video src={project.imageUrl} autoPlay loop muted playsInline />;
+    media = <CoverVideo src={project.imageUrl} title={project.title} placeholder={placeholder} />;
   } else {
     media = (
       <img
@@ -30,7 +93,10 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
   let cardDesc = '';
   if (!isMajor && project.modalContent?.[0]?.type === 'text') {
     const text = project.modalContent[0].value;
-    cardDesc = text.substring(0, 70) + (text.length > 70 ? '...' : '');
+    // Trim back to a word boundary — a raw substring(0, 70) cut mid-word.
+    cardDesc = text.length > 70
+      ? text.slice(0, 70).replace(/\s+\S*$/, '') + '…'
+      : text;
   }
 
   return (

@@ -33,16 +33,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # `npm run build` = vite build + scripts/copy-static.mjs, which places the
+      # static directories the app links to AND fails if any referenced asset is
+      # missing. The copying used to live here as `cp ... || true`, which both
+      # hid failures and shipped ~390MB of unreferenced originals every push.
       - name: Build
         run: npm run build
-
-      - name: Copy static assets to dist
-        run: |
-          cp -r projectpdf dist/ 2>/dev/null || true
-          cp -r Resume dist/ 2>/dev/null || true
-          cp -r Media dist/ 2>/dev/null || true
-          cp -r misc dist/ 2>/dev/null || true
-          cp -r legacy dist/ 2>/dev/null || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
