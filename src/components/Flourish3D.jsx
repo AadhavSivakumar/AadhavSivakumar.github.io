@@ -175,24 +175,62 @@ const tokPos = i => [(i - NTOK / 2) * 6.4, Math.abs(i - NTOK / 2) * -1.6, -74 + 
 
 const ATT_N = 4;  // 4x4 attention map
 
+
+// Outline clip for an arbitrary silhouette: the polygon, then the same polygon
+// shrunk about its centroid, with `evenodd` turning the inside into a hole. Same
+// idea as the meridian blades — a contour you can see through, rather than a
+// filled slab that hides everything behind it.
+function outlineClip(pts, k = 0.955) {
+  const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+  const cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  const fmt = ([x, y]) => `${x.toFixed(2)}% ${y.toFixed(2)}%`;
+  const inner = pts.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
+  return `polygon(evenodd, ${[...pts.map(fmt), ...inner.map(fmt)].join(', ')})`;
+}
+
+// A camera body seen side-on: pentaprism hump, grip swell, lens mount boss.
+const CAM_SIL = [
+  [3, 40], [3, 22], [16, 20], [22, 6], [44, 2], [52, 18], [78, 18],
+  [88, 24], [97, 26], [97, 74], [88, 84], [70, 88], [26, 90], [8, 82], [3, 62],
+];
+
+// A real lens is a turned stack of steps, not a cone: mount flange, barrel,
+// knurled focus ring, front step, filter thread, front element.
+const P_LENS = [
+  [10, 33], [16, 33], [18, 26], [30, 26], [32, 29], [48, 29],
+  [50, 25], [62, 25], [64, 27], [70, 27], [72, 20], [74, 0],
+];
+
 function VisionPipeline() {
   const cls = tokPos(-1);
   return (
     <>
       {/* ── the camera, and the image plane it forms an image on ─────────── */}
       <div className="f3d__vpstage" style={{ transform: `translate3d(0, ${IMG_Y}px, 0) scale(1.18)` }}>
-        {/* lens barrel: a cylinder as a ring stack, pointing at the viewer */}
+        <div className="f3d__vpcam">
+        {/* lens barrel, turned from a real stepped profile */}
         <div className="f3d__vpfront">
-          {[0, 1, 2, 3, 4].map(k => <Ring key={k} d={46 - k * 2} z={16 + k * 11} tone={70} />)}
-          <div className="f3d__vpglass" style={{ transform: 'translateZ(62px)' }} />
-          <Ring d={54} z={14} tone={85} thick={1.5} />
+          <Revolve prof={P_LENS} blades={6} tone={58}
+                   rings={[[16, 33, 78], [30, 26], [48, 29, 70], [62, 25], [70, 27, 78]]} />
+          {/* knurling on the focus ring */}
+          <div className="f3d__part" style={{ transform: 'translateZ(40px)' }}>
+            <Radial n={16} r={29} cls="f3d__knurl" extra="rotateY(90deg)" />
+          </div>
+          <div className="f3d__vpglass" style={{ transform: 'translateZ(72px)' }} />
         </div>
 
         {/* body shell */}
         <div className="f3d__vpshell">
-          <Box w={92} h={62} d={54} />
-          <div className="f3d__vpbump" style={{ transform: 'translate3d(-18px, -38px, 0)' }} />
-          <div className="f3d__vpshutter" style={{ transform: 'translate3d(28px, -34px, 6px)' }} />
+          {/* the body as its real side-on SILHOUETTE — pentaprism hump, grip
+              swell, mount boss — drawn at both faces so perspective separates
+              them into a solid, instead of a rectangular prism */}
+          {[-19, 19].map(z => (
+            <div key={z} className="f3d__vpbody"
+                 style={{ clipPath: outlineClip(CAM_SIL), transform: `translateZ(${z}px)` }} />
+          ))}
+          <div className="f3d__vpshutter" style={{ transform: 'translate3d(24px, -34px, 20px)' }} />
+          <div className="f3d__vpdial" style={{ transform: 'translate3d(-32px, -30px, 20px)' }} />
+        </div>
         </div>
 
         {/* THE SENSOR, sitting at the image plane inside the body, and the
@@ -276,6 +314,106 @@ function VisionPipeline() {
    RIGHT — "Down the Shaft"
    ══════════════════════════════════════════════════════════════════════════ */
 
+
+// ── Surfaces of revolution from a real meridian profile ────────────────────
+//
+// A div placed by `rotateZ(theta) rotateX(90deg)` lies in a plane that CONTAINS
+// the axis: rotateX(90) maps the element's local +Y onto world +Z and leaves
+// local X radial, so the element's own 2D box IS the lathe cross-section plane.
+// Verified numerically: local (x=r, y=z) lands at world radius r, axial z, for
+// every theta.
+//
+// That means `clip-path` can cut the REAL TURNED PROFILE out of it — tapers,
+// steps, flanges, bearing bosses, the serration of cooling fins — and a handful
+// of those blades rotated about the axis reads as a machined solid instead of a
+// stack of identical rings. clip-path is a grouping property, so it would flatten
+// a preserve-3d subtree; these are LEAVES with no children, so there is nothing
+// to flatten and the leaf itself is still placed in true 3D by its parents.
+//
+// Profiles are [axial, radius] pairs in units of roughly one millimetre of an
+// IEC D80 frame motor (AC 159 frame OD, D 19 shaft, E 40 shaft extension,
+// H 80 shaft height), so the proportions are a real machine's, not invented.
+
+// clip-path for one meridian blade. A FILLED cross-section builds into a solid
+// mass once several blades overlap and hides the machine inside, so this emits
+// a stroked OUTLINE instead: the closed cross-section, then the same shape
+// offset inward, with `evenodd` turning the inner loop into a hole. The seam
+// between the two loops is zero-width and invisible.
+function meridianClip(prof, rMax, z0, z1, w = 1.15) {
+  const H = z1 - z0, W = 2 * rMax;
+  const pct = (z, r) => `${(((r + rMax) / W) * 100).toFixed(3)}% ${(((z - z0) / H) * 100).toFixed(3)}%`;
+
+  // inward normal offset of the +r profile: for segment (dz, dr) the interior
+  // (toward the axis) is (dr, -dz) normalised
+  const inner = prof.map((pt, i) => {
+    const a = prof[Math.max(0, i - 1)], b = prof[Math.min(prof.length - 1, i + 1)];
+    const dz = b[0] - a[0], dr = b[1] - a[1];
+    const L = Math.hypot(dz, dr) || 1;
+    return [pt[0] + (w * dr) / L, Math.max(0, pt[1] - (w * dz) / L)];
+  });
+  // pull the end caps in so the ribbon closes across them too
+  inner[0] = [inner[0][0] + w, inner[0][1]];
+  inner[inner.length - 1] = [inner[inner.length - 1][0] - w, inner[inner.length - 1][1]];
+
+  const loop = (pts) => [
+    ...pts.map(([z, r]) => pct(z, r)),
+    ...[...pts].reverse().map(([z, r]) => pct(z, -r)),
+  ];
+  return `polygon(evenodd, ${[...loop(prof), ...loop(inner)].join(', ')})`;
+}
+
+function Revolve({ prof, blades = 6, rings = [], cls = '', tone = 30, ringTone = 62 }) {
+  const rMax = Math.max(...prof.map(p => p[1])) * 1.02;
+  const z0 = prof[0][0], z1 = prof[prof.length - 1][0];
+  const clip = meridianClip(prof, rMax, z0, z1);
+  return (
+    <>
+      {Array.from({ length: blades }, (_, k) => (
+        <div
+          key={k}
+          className={`f3d__blade3 ${cls}`}
+          style={{
+            width: `${(2 * rMax).toFixed(1)}px`, height: `${(z1 - z0).toFixed(1)}px`,
+            marginLeft: `${(-rMax).toFixed(1)}px`, marginTop: `${(-(z1 - z0) / 2).toFixed(1)}px`,
+            clipPath: clip,
+            background: wash(tone),   /* the stroke colour of the outline */
+            transform: `translateZ(${((z0 + z1) / 2).toFixed(1)}px) rotateZ(${((k * 180) / blades).toFixed(2)}deg) rotateX(90deg)`,
+          }}
+        />
+      ))}
+      {rings.map(([z, r, t], i) => (
+        <Ring key={`r${i}`} d={2 * r} z={z} tone={t || ringTone} />
+      ))}
+    </>
+  );
+}
+
+// Cooling fins, as a serration in the profile itself — so the blades show them
+// in section and the crest rings show them in plan. This is what a finned frame
+// actually looks like on a drawing.
+function finnedFrame(zA, zB, rRoot, rTip, n) {
+  const out = [[zA, rRoot]];
+  const step = (zB - zA) / n;
+  for (let k = 0; k < n; k++) {
+    const z = zA + k * step;
+    out.push([z + step * 0.16, rTip], [z + step * 0.74, rTip], [z + step * 0.9, rRoot]);
+  }
+  out.push([zB, rRoot]);
+  return out;
+}
+
+// IEC D80 proportions: frame OD 156 (AC 159), shaft 19 dia, 40 shaft extension.
+const P_SHAFT = [[-166, 9.5], [150, 9.5], [156, 8], [178, 8], [178, 0]];
+const P_COWL = [
+  [-166, 26], [-158, 32], [-150, 47], [-136, 63], [-126, 72],
+  [-118, 76], [-114, 82], [-104, 82], [-100, 78],
+];
+const P_FRAME = finnedFrame(-98, 98, 78, 88, 6);
+const P_FRONT = [
+  [98, 78], [102, 82], [112, 82], [116, 74], [122, 52],
+  [130, 38], [136, 27], [142, 22], [146, 14],
+];
+
 // A wound stator, the way a real one looks: copper bars lying IN the 12 slots
 // along the core, tied together by an end-turn ring bulging past each end of the
 // stack. This replaced a single big helix wound around the shaft axis — that is
@@ -287,12 +425,12 @@ function VisionPipeline() {
 // meeting rather than as an assembly. The two end bells are the one place ±fz
 // is used, and it is legible precisely because it is symmetric about the axis.
 const PARTS = [
-  { id: 'shaft', lead: 0.02, sz: 118, dir: [0.06, -0.10, 1], spin: -180, ghost: { w: 13, h: 236, r: 0, z: 118 } },
-  { id: 'rotor', lead: 0.11, sz: 105, dir: [-0.08, 0.12, 1], spin: 300, ghost: { w: 40, h: 40, r: 50, z: 105 } },
-  { id: 'stator', lead: 0.20, sz: 105, dir: [0.10, 0.05, 1], spin: -260, ghost: { w: 124, h: 124, r: 50, z: 105 } },
-  { id: 'rearbell', lead: 0.40, sz: 26, dir: [-0.05, -0.12, -1], spin: 220, ghost: { w: 164, h: 164, r: 50, z: 26 } },
-  { id: 'frontbell', lead: 0.49, sz: 190, dir: [0.08, 0.10, 1], spin: -240, ghost: { w: 164, h: 164, r: 50, z: 190 } },
-  { id: 'can', lead: 0.58, sz: 105, dir: [-0.10, 0.06, -1], spin: 200, ghost: { w: 156, h: 156, r: 50, z: 105 } },
+  { id: 'shaft', lead: 0.02, sz: 0, dir: [0.06, -0.10, 1], spin: -180, ghost: { w: 19, h: 344, r: 0, z: 6 } },
+  { id: 'rotor', lead: 0.11, sz: 0, dir: [-0.08, 0.12, 1], spin: 300, ghost: { w: 66, h: 66, r: 50, z: 0 } },
+  { id: 'stator', lead: 0.20, sz: 0, dir: [0.10, 0.05, 1], spin: -260, ghost: { w: 124, h: 124, r: 50, z: 0 } },
+  { id: 'rearbell', lead: 0.40, sz: 0, dir: [-0.05, -0.12, -1], spin: 220, ghost: { w: 164, h: 164, r: 50, z: -104 } },
+  { id: 'frontbell', lead: 0.49, sz: 0, dir: [0.08, 0.10, 1], spin: -240, ghost: { w: 164, h: 164, r: 50, z: 104 } },
+  { id: 'can', lead: 0.58, sz: 0, dir: [-0.10, 0.06, -1], spin: 200, ghost: { w: 174, h: 174, r: 50, z: 0 } },
 ];
 const part = id => {
   const p = PARTS.find(x => x.id === id);
@@ -334,17 +472,10 @@ function MotorBuild() {
              two 310x13 side faces sit under rotateY(90deg), so they project far
              narrower than 310px: the cheapest undeniable proof of real depth. */}
         <div className="f3d__build" {...part('shaft')}>
-          {/* rotateX(90deg) maps the plate's HEIGHT onto the module's Z — the
-              motor axis — the same trick .f3d__axiswrap uses. Without it the
-              plate lies ACROSS the machine instead of along it. The second
-              plate is the same thing rolled 90deg about the axis, so one of
-              the two always faces the camera whatever the yaw. */}
-          <div className="f3d__shaftplate" style={{ transform: 'rotateX(90deg)' }} />
-          <div className="f3d__shaftplate" style={{ transform: 'rotateZ(90deg) rotateX(90deg)' }} />
-          <Ring d={13} z={-118} tone={85} />
-          <Ring d={13} z={118} tone={85} />
-          {/* keyway on the drive end — the flat that a coupling keys onto */}
-          <div className="f3d__keyway" style={{ transform: 'translateZ(150px) rotateX(90deg)' }} />
+          <Revolve prof={P_SHAFT} blades={4} tone={70}
+                   rings={[[-166, 9.5], [150, 9.5, 80], [156, 8], [178, 8, 80]]} />
+          {/* keyway on the drive end — the flat a coupling keys onto */}
+          <div className="f3d__keyway" style={{ transform: 'translateZ(162px) rotateX(90deg)' }} />
         </div>
 
         {/* 2 · ROTOR — back iron plus eight arc magnets, down the shaft */}
@@ -362,7 +493,7 @@ function MotorBuild() {
               {/* cooling fan on the rear of the shaft — the trailing rotateZ is
                   about the RADIAL axis after the rotateY(90deg), so it pitches
                   each blade the way the helix chords are pitched */}
-              <div className="f3d__part" style={{ transform: 'translateZ(-74px)' }}>
+              <div className="f3d__part" style={{ transform: 'translateZ(-126px)' }}>
                 <Radial n={8} r={24} cls="f3d__blade" extra="rotateY(90deg) rotateZ(34deg)" />
                 <Ring d={22} tone={70} />
               </div>
@@ -398,36 +529,31 @@ function MotorBuild() {
 
         {/* 4 · REAR BELL — closes from behind, bearing boss + 6-bolt circle */}
         <div className="f3d__build" {...part('rearbell')}>
-          <Ring d={164} tone={80} thick={1.5} />
-          <Ring d={26} tone={90} />
+          {/* rear bell and the stamped fan cowl over it, as ONE turned form
+              that tapers back to the air inlet — the most recognisable end of
+              a TEFC motor */}
+          <Revolve prof={P_COWL} blades={5} tone={54}
+                   rings={[[-104, 82, 80], [-118, 76], [-136, 63], [-150, 47], [-158, 32, 75]]} />
           {/* bearing: outer race, inner race, balls between them */}
-          <Ring d={34} tone={55} />
-          <Ring d={19} tone={55} />
-          <Radial n={8} r={13} cls="f3d__ball" />
-          <Radial n={8} r={62} cls="f3d__bolt" />
-          {/* FAN COWL — the stamped cover over the rear fan, tapering back to
-              the air inlet, with a ring of vent slots punched in its face. On
-              a real TEFC motor this is the most recognisable end of the
-              machine. */}
-          <Ring d={128} z={-30} tone={55} />
-          <Ring d={122} z={-52} tone={45} />
-          <Ring d={96} z={-70} tone={45} />
-          <Ring d={54} z={-82} tone={60} />
-          <div className="f3d__part" style={{ transform: 'translateZ(-82px)' }}>
-            <Radial n={12} r={34} cls="f3d__vent" />
+          <Ring d={34} z={-100} tone={55} />
+          <Ring d={19} z={-100} tone={55} />
+          <Radial n={8} r={13} cls="f3d__ball" extra="translateZ(-100px)" />
+          <Radial n={8} r={62} cls="f3d__bolt" extra="translateZ(-104px)" />
+          {/* louvres punched in the cowl face, tapered like real ones */}
+          <div className="f3d__part" style={{ transform: 'translateZ(-152px)' }}>
+            <Radial n={8} r={34} cls="f3d__vent" />
           </div>
         </div>
 
         {/* 5 · FRONT BELL — closes from the front and carries the output flange
              the shaft protrudes through */}
         <div className="f3d__build" {...part('frontbell')}>
-          <Ring d={164} tone={80} thick={1.5} />
-          <Ring d={76} tone={70} />
-          <Ring d={26} tone={90} />
-          <Ring d={34} tone={55} />
-          <Ring d={19} tone={55} />
-          <Radial n={8} r={13} cls="f3d__ball" />
-          <Radial n={8} r={62} cls="f3d__bolt" />
+          <Revolve prof={P_FRONT} blades={5} tone={54}
+                   rings={[[102, 82, 80], [112, 82], [122, 52], [130, 38], [136, 27, 80], [146, 14]]} />
+          <Ring d={34} z={104} tone={55} />
+          <Ring d={19} z={104} tone={55} />
+          <Radial n={8} r={13} cls="f3d__ball" extra="translateZ(104px)" />
+          <Radial n={8} r={62} cls="f3d__bolt" extra="translateZ(104px)" />
         </div>
 
         {/* 6 · VENTED CAN — LAST, and the part that fixes the silhouette. 16
@@ -446,11 +572,14 @@ function MotorBuild() {
               shell reads as one turned cylinder, stays open enough to see the
               copper and the spinning rotor through, and looks like a finned
               motor housing rather than a cage. */}
-          {Array.from({ length: 7 }, (_, k) => (
-            <Ring key={k} d={156} z={-78 + k * 26} tone={30} />
+          <Revolve prof={P_FRAME} blades={4} tone={48} rings={[]} />
+          {/* a few crest rings only — the serration in the blades already
+              carries the fins, and one ring per fin was pure line noise */}
+          {Array.from({ length: 3 }, (_, k) => (
+            <Ring key={k} d={174} z={-66 + k * 66} tone={26} />
           ))}
-          <Ring d={156} z={-95} tone={75} thick={1.5} />
-          <Ring d={156} z={95} tone={75} thick={1.5} />
+          <Ring d={156} z={-98} tone={70} thick={1.5} />
+          <Ring d={156} z={98} tone={70} thick={1.5} />
           {/* terminal box on the flank, where the phase leads come out, with
               its cover bolts and the conduit running out of it */}
           <div className="f3d__part" style={{ transform: 'rotateZ(90deg) translateX(86px) rotateZ(-90deg)' }}>
@@ -532,17 +661,17 @@ export default function Flourish3D({ side = 'left' }) {
       const px = q('.f3d__vppx');
 
       // 1 · THE CAMERA is there from the start.
-      tl.add(q('.f3d__vpshell .f3d__face,.f3d__vpshell .f3d__vpbump,.f3d__vpshell .f3d__vpshutter'),
+      tl.add(q('.f3d__vpbody,.f3d__vpshutter,.f3d__vpdial'),
         { opacity: [0, 1], duration: 60, delay: stagger(5) }, at(0.005));
-      tl.add(q('.f3d__vpfront .f3d__ring,.f3d__vpglass'),
+      tl.add(q('.f3d__vpfront .f3d__ring,.f3d__vpfront .f3d__blade3,.f3d__knurl,.f3d__vpglass'),
         { opacity: [0, 1], duration: 60, delay: stagger(6) }, at(0.02));
 
       // 2 · IT TAKES ITSELF APART, along the optical axis — the same exploded
       // -view grammar the motor assembles with, run backwards.
       tl.add(q('.f3d__vpfront'), { translateZ: [0, 150], duration: 150, ease: 'inOutQuad' }, at(0.10));
-      tl.add(q('.f3d__vpfront .f3d__ring,.f3d__vpglass'), { opacity: [1, 0], duration: 120, delay: stagger(6) }, at(0.12));
+      tl.add(q('.f3d__vpfront .f3d__ring,.f3d__vpfront .f3d__blade3,.f3d__knurl,.f3d__vpglass'), { opacity: [1, 0], duration: 120, delay: stagger(6) }, at(0.12));
       tl.add(q('.f3d__vpshell'), { translateY: [0, -120], translateZ: [0, -60], duration: 150, ease: 'inOutQuad' }, at(0.13));
-      tl.add(q('.f3d__vpshell .f3d__face,.f3d__vpshell .f3d__vpbump,.f3d__vpshell .f3d__vpshutter'),
+      tl.add(q('.f3d__vpbody,.f3d__vpshutter,.f3d__vpdial'),
         { opacity: [1, 0], duration: 110, delay: stagger(4) }, at(0.14));
 
       // 3 · THE SENSOR is what was inside. It comes forward and the photosites
@@ -644,7 +773,7 @@ export default function Flourish3D({ side = 'left' }) {
         }, at(p.lead));
         // Opacity on LEAVES only — putting it on the part wrapper would trip
         // the grouping rule and flatten that part's 3D children.
-        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__shaftplate,.f3d__tooth,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball,' +
+        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__blade3,.f3d__tooth,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball,' +
         '.f3d__cagebar,.f3d__keyway,.f3d__vent,.f3d__plate,.f3d__plateline,.f3d__conduit'), {
           opacity: [0, 1], duration: SPAN * 0.7, ease: 'outQuad',
         }, at(p.lead));

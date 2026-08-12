@@ -321,6 +321,56 @@ elements in too little space and it turns to mush. Hard-won numbers:
   detection at y +158 — so the piece reads as a pipeline running the same
   direction the page scrolls.
 
+### Shapes: `clip-path` outlines and surfaces of revolution
+
+A bare div gives you a rectangle or, with `border-radius`, an ellipse. Building
+everything from those is what makes a piece read as "basic geometry", and the
+owner rejected two passes for exactly that. Two techniques get real shapes
+without leaving HTML+CSS:
+
+**1. `clip-path` on LEAVES.** clip-path is a grouping property, so it forces
+`flat` on a preserve-3d subtree — but a LEAF has no children, so there is
+nothing to flatten, and the leaf itself is still placed in true 3D by its
+parents. That makes arbitrary contours free: trapezoidal stator teeth, swept fan
+blades, arc-segment magnets, tapered cowl louvres, a stamped nameplate with
+clipped corners, a camera's pentaprism-and-grip silhouette.
+
+**2. Surfaces of revolution from a real meridian profile.** A div placed by
+`rotateZ(θ) rotateX(90deg)` lies in a plane that CONTAINS the axis — verified
+numerically: local `(x=r, y=z)` lands at world radius r, axial z, for every θ.
+So the element's own 2D box IS the lathe cross-section plane, and `clip-path`
+cuts the real turned profile out of it: tapers, steps, flanges, bearing bosses,
+and the serration of cooling fins. A handful of those blades rotated about the
+axis reads as a machined solid. `Revolve` + `meridianClip` + `finnedFrame` in
+`Flourish3D.jsx` do this.
+
+**Both must be OUTLINES, not fills.** A filled cross-section is opaque, and once
+five blades overlap the machine becomes a solid blob with everything inside
+hidden — this was tried and looked like a lump of dough. `meridianClip` and
+`outlineClip` therefore emit the shape, then the same shape offset/scaled
+inward, as one `polygon(evenodd, …)`: evenodd turns the inner loop into a hole,
+giving a stroked contour you can see through. The seam between the two loops is
+zero-width and invisible. Note `clip-path` clips the element's BORDER too, which
+is why the stroke has to come from the fill of a ribbon rather than from
+`border`.
+
+**Profiles are real.** The motor's are in units of roughly one millimetre of an
+IEC D80 frame — AC 159 frame OD, D 19 shaft, E 40 shaft extension, H 80 shaft
+height, A 125 / B 100 foot spacing — so the proportions are a real machine's
+rather than invented. If you re-profile it, take the numbers from a dimensional
+drawing rather than eyeballing them.
+
+**The trap when adding a profile-based part:** the profiles are in ABSOLUTE
+machine coordinates (z=0 at the frame's mid), so their build parts must seat at
+`sz: 0`. The per-part `sz` offsets are added on top, and leaving the old ones in
+place pushed every turned body down the axis — the front bell ended up ~190
+units past where it belonged, reading as a lampshade floating above the motor.
+
+**Density still governs.** Fins already read from the serration in the blades;
+adding a crest ring per fin on top of that turned the whole machine into line
+noise. 4–6 blades per body, 1.15px stroke, and rings only at the major profile
+vertices.
+
 ### These are HTML divs, not SVG, and that is the entire point
 
 - **The `preserve-3d` chain must be unbroken.** Every wrapper between the

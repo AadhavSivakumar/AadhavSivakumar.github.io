@@ -496,6 +496,7 @@ html[data-theme="dark"] {
 .f3d__spin,
 .f3d__axiswrap,
 .f3d__vpstage,
+.f3d__vpcam,
 .f3d__vpfront,
 .f3d__vpshell,
 .f3d__vpsensor,
@@ -534,6 +535,10 @@ html[data-theme="dark"] {
 }
 
 /* ── LEFT: "Detection" — camera -> sensor -> pixels -> ViT -> box ────────── */
+/* the camera is turned three-quarter so its lens is seen in profile rather
+   than end-on; this wrapper exists so the rotation is not on the parts anime
+   drives during the disassembly */
+.f3d__vpcam { transform: rotateY(-42deg); }
 .f3d__vpglass {
   position: absolute; left: 50%; top: 50%;
   width: 34px; height: 34px; margin-left: -17px; margin-top: -17px;
@@ -542,10 +547,25 @@ html[data-theme="dark"] {
   background: color-mix(in srgb, var(--accent-color) 10%, transparent);
   opacity: 0;
 }
-.f3d__vpbump {
+/* the camera body's silhouette, clipped to a contour and drawn at both faces */
+.f3d__vpbody {
   position: absolute; left: 50%; top: 50%;
-  width: 30px; height: 14px; margin-left: -15px; margin-top: -7px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 60%, transparent);
+  width: 108px; height: 76px; margin-left: -54px; margin-top: -38px;
+  background: color-mix(in srgb, var(--accent-color) 72%, transparent);
+  opacity: 0;
+}
+/* knurling on the lens focus ring */
+.f3d__knurl {
+  position: absolute; left: 50%; top: 50%;
+  width: 15px; height: 3px; margin-left: -7.5px; margin-top: -1.5px;
+  background: color-mix(in srgb, var(--accent-color) 50%, transparent);
+  opacity: 0;
+}
+.f3d__vpdial {
+  position: absolute; left: 50%; top: 50%;
+  width: 15px; height: 15px; margin-left: -7.5px; margin-top: -7.5px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
   opacity: 0;
 }
 .f3d__vpshutter {
@@ -692,24 +712,23 @@ html[data-theme="dark"] {
   border: 1px dashed var(--accent-color);
   opacity: 0.13;
 }
-/* The shaft is a CYLINDER, not a square bar. Two plates crossed at 90deg give
-   a rectangular silhouette from every yaw — which is exactly what a cylinder
-   projects to — while the end rings supply the elliptical ends. A Box here was
-   the most obviously wrong thing in the piece: motors do not have square
-   shafts. */
-.f3d__shaftplate {
+/* One meridian blade of a surface of revolution. Everything that gives it
+   shape is inline: the box is the lathe cross-section plane and `clip-path`
+   cuts the real profile out of it. clip-path is a grouping property, so it
+   WOULD flatten a preserve-3d subtree — these are leaves with no children, so
+   there is nothing to flatten and the blade itself is still placed in true 3D
+   by its parents. */
+.f3d__blade3 {
   position: absolute; left: 50%; top: 50%;
-  width: 13px; height: 236px; margin-left: -6.5px; margin-top: -118px;
-  background: color-mix(in srgb, var(--accent-color) 16%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--accent-color) 80%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--accent-color) 80%, transparent);
   opacity: 0;
 }
 /* Slot tooth on a stator lamination face. */
 .f3d__tooth {
   position: absolute; left: 50%; top: 50%;
-  width: 12px; height: 5px; margin-left: -6px; margin-top: -2.5px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 55%, transparent);
+  width: 13px; height: 7px; margin-left: -6.5px; margin-top: -3.5px;
+  /* a real stator tooth is trapezoidal, wider at the tip that faces the bore */
+  clip-path: polygon(0% 26%, 100% 0%, 100% 100%, 0% 74%);
+  background: color-mix(in srgb, var(--accent-color) 55%, transparent);
   opacity: 0;
 }
 /* COPPER, and the only copper on the piece: a bar lying in one stator slot,
@@ -745,16 +764,19 @@ html[data-theme="dark"] {
 /* Vent slot punched in the fan cowl's face. */
 .f3d__vent {
   position: absolute; left: 50%; top: 50%;
-  width: 15px; height: 5px; margin-left: -7.5px; margin-top: -2.5px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 50%, transparent);
+  width: 17px; height: 9px; margin-left: -8.5px; margin-top: -4.5px;
+  /* a cowl louvre is a tapered slot, wider at the rim */
+  clip-path: polygon(4% 34%, 100% 6%, 100% 94%, 4% 66%);
+  background: color-mix(in srgb, var(--accent-color) 42%, transparent);
   opacity: 0;
 }
 /* Nameplate, and the engraved lines standing in for its text. */
 .f3d__plate {
   position: absolute; left: 50%; top: 50%;
-  width: 38px; height: 24px; margin-left: -19px; margin-top: -12px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
-  background: color-mix(in srgb, var(--accent-color) 7%, transparent);
+  width: 40px; height: 26px; margin-left: -20px; margin-top: -13px;
+  /* stamped plate with clipped corners, the way a rating plate is cut */
+  clip-path: polygon(8% 0, 92% 0, 100% 22%, 100% 78%, 92% 100%, 8% 100%, 0 78%, 0 22%);
+  background: color-mix(in srgb, var(--accent-color) 14%, transparent);
   opacity: 0;
 }
 .f3d__plateline {
@@ -774,9 +796,10 @@ html[data-theme="dark"] {
 /* Fan blade — pitched, and it turns with the rotor. */
 .f3d__blade {
   position: absolute; left: 50%; top: 50%;
-  width: 22px; height: 9px; margin-left: -11px; margin-top: -4.5px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 60%, transparent);
-  background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+  width: 26px; height: 13px; margin-left: -13px; margin-top: -6.5px;
+  /* swept, wider at the tip and raked back — a fan blade, not a paddle */
+  clip-path: polygon(2% 40%, 46% 8%, 100% 0%, 100% 74%, 52% 100%, 2% 72%);
+  background: color-mix(in srgb, var(--accent-color) 34%, transparent);
   opacity: 0;
 }
 /* Bearing balls in each end bell's hub. */
@@ -789,8 +812,10 @@ html[data-theme="dark"] {
 }
 .f3d__magnet {
   position: absolute; left: 50%; top: 50%;
-  width: 7px; height: 16px; margin-left: -3.5px; margin-top: -8px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
+  width: 9px; height: 18px; margin-left: -4.5px; margin-top: -9px;
+  /* an arc segment magnet: curved to the rotor's radius, tapering at the ends */
+  clip-path: polygon(100% 12%, 100% 88%, 62% 100%, 0% 78%, 0% 22%, 62% 0%);
+  background: color-mix(in srgb, var(--accent-color) 45%, transparent);
   opacity: 0;
 }
 .f3d__bolt {
