@@ -139,156 +139,134 @@ function Radial({ n, r, cls, from = 0, extra = '' }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   LEFT — "Train Loop"
-   ══════════════════════════════════════════════════════════════════════════ */
+   LEFT — "Detection": what actually happens between a camera and a bounding box
+   ══════════════════════════════════════════════════════════════════════════
+   A camera takes itself apart down to its sensor; the sensor resolves into
+   pixels; the pixels are cut into PATCHES and flattened into a token sequence
+   (the move that defines a Vision Transformer — "an image is worth 16x16
+   words"); the tokens attend to each other; and the result is a detection.
 
-// Four layers, alternating their depth sign so successive layers zigzag in plan
-// view. Every layer spans 104px of DEPTH, so edges sweep through Z and cross in
-// front of and behind each other — the thing a flat diagram cannot do. X
-// narrows so the architecture reads as a funnel while depth stays uniform.
-// 4-5-3-2 = 41 edges. It was 5-6-4-2 = 62, which at this size read as a
-// hairball rather than as a network: past roughly 45 edges the individual
-// connections stop being separable and the whole thing turns to spaghetti.
-const LAYERS = [4, 5, 3, 2];
-const LAYER_Y = [-96, -40, 16, 72];
-const NODE_DX = 17;
-const LAYER_DZ = 52;
+   Every stage is the real mechanism, not a metaphor: the patch grid, the
+   flattening into a sequence, the CLS token at the head, the all-pairs
+   attention collapsing onto a few strong links, and a box with a confidence.  */
 
-const nodePos = (i, j) => {
-  const n = LAYERS[i];
-  const c = (n - 1) / 2;
-  // Narrow layers get proportionally less depth: at n=2 the full spread threw
-  // one output node 52px back, far enough that it read as a stray dot rather
-  // than as part of the graph.
-  const dz = LAYER_DZ * (n <= 2 ? 0.42 : n <= 3 ? 0.72 : 1);
-  return [(j - c) * NODE_DX, LAYER_Y[i], c ? ((j - c) / c) * dz * (i % 2 ? -1 : 1) : 0];
+const PX_C = 8, PX_R = 6, PX = 12;              // 48 photosites, 96x72
+const PATCH_C = 4, PATCH_R = 3, PATCH = 24;     // 12 patches over that grid
+const NTOK = PATCH_C * PATCH_R;                 // 12 patch tokens (+1 CLS)
+
+const IMG_Y = -142;   // the image plane, where the camera is
+const SEQ_Y = 24;     // the token sequence
+const OUT_Y = 158;    // the detection result
+
+const pxPos = i => {
+  const c = i % PX_C, r = Math.floor(i / PX_C);
+  return [(c - (PX_C - 1) / 2) * PX, (r - (PX_R - 1) / 2) * PX];
 };
+// a soft blob in the frame, so the "image" has a subject the box can land on
+const pxVal = i => {
+  const [x, y] = pxPos(i);
+  const d = Math.hypot((x - 12) / 34, (y + 6) / 26);
+  return clamp(1.15 - d, 0.06, 1) * (0.75 + 0.25 * hash(i * 3.7));
+};
+const patchPos = k => [((k % PATCH_C) - (PATCH_C - 1) / 2) * PATCH, (Math.floor(k / PATCH_C) - (PATCH_R - 1) / 2) * PATCH];
+// tokens: a sequence receding along Z, which is the one thing a flat diagram of
+// a transformer can never show
+const tokPos = i => [(i - NTOK / 2) * 6.4, Math.abs(i - NTOK / 2) * -1.6, -74 + i * 12.4];
 
-const NODES = LAYERS.flatMap((n, i) => Array.from({ length: n }, (_, j) => ({ i, j, p: nodePos(i, j) })));
+const ATT_N = 4;  // 4x4 attention map
 
-// 30 + 24 + 8 = 62 edges. `hop` is which layer gap it spans, which is what the
-// forward and backward packets travel along.
-const EDGES = LAYERS.slice(0, -1).flatMap((n, i) =>
-  Array.from({ length: n }, (_, a) =>
-    Array.from({ length: LAYERS[i + 1] }, (_, b) => {
-      const id = `${i}-${a}-${b}`;
-      const u = hash(i * 97 + a * 13 + b * 7);
-      // Shaped so few weights land near zero: a network of uniformly middling
-      // weights reads as decoration, not as something that has learned.
-      const w = Math.sign(u - 0.5) * Math.pow(Math.abs(u * 2 - 1), 0.7);
-      return { id, hop: i, w, ...link(nodePos(i, a), nodePos(i + 1, b)) };
-    })
-  ).flat()
-).flat();
-
-// Loss: an exponential decay with a cosine ripple on it. A smooth monotone
-// curve reads as a loading bar; the ringing is what reads as an optimiser.
-const LOSS_N = 24;
-const lossPt = u => [-48 + 96 * u, 26 - 58 * (0.10 + 0.90 * Math.exp(-3.4 * u) * (1 + 0.30 * Math.cos(11 * u)) / 1.30), 0];
-const LOSS_SEGS = Array.from({ length: LOSS_N }, (_, i) => link(lossPt(i / LOSS_N), lossPt((i + 1) / LOSS_N)));
-
-// 5x5 decision panel. Each cell's FINAL side of the boundary is fixed; what
-// animates is how strongly it commits. Resolving them in a scattered order is
-// what produces the mottled intermediate state that reads as *learning*.
-const PANEL_N = 5;
-const CELL = 15;
-const CELLS = Array.from({ length: PANEL_N * PANEL_N }, (_, i) => {
-  const cx = i % PANEL_N, cy = Math.floor(i / PANEL_N);
-  const d = Math.tanh(1.15 * ((cy - 2) - 0.80 * (cx - 2) + 0.62 * Math.sin((cx - 2) * 1.15)));
-  return { cx, cy, pos: d > 0 };
-});
-
-// Training points. Three of them sit on the wrong side until late and then
-// flip — one at a time, which is why each carries two stacked marks.
-const PTS = Array.from({ length: 10 }, (_, i) => {
-  const a = hash(i * 31 + 5), b = hash(i * 17 + 91);
-  const cx = (a - 0.5) * 62, cy = (b - 0.5) * 62;   // inside the 79px panel frame
-  const d = (cy / 30) - 0.80 * (cx / 30) + 0.62 * Math.sin(cx / 26);
-  return { x: cx, y: cy, pos: d > 0, flips: i === 2 || i === 5 || i === 8 };
-});
-
-const OUT_A = nodePos(3, 0);
-const TARGET = [OUT_A[0] + 34, OUT_A[1], OUT_A[2]];
-
-function TrainLoop() {
-  const delta = link(OUT_A, TARGET);
+function VisionPipeline() {
+  const cls = tokPos(-1);
   return (
     <>
-      {/* decision panel, floating above and behind the network */}
-      <div className="f3d__mlpanel">
-        <div className="f3d__mlpanelspin">
-          <div className="f3d__mlframe" />
-          {CELLS.map((c, i) => (
-            <div
-              key={i}
-              className="f3d__mlcell"
-              data-i={i}
-              style={{
-                transform: `translate3d(${(c.cx - 2) * CELL}px, ${(c.cy - 2) * CELL}px, 0)`,
-                '--cell-base': c.pos ? 'var(--ml-pos)' : 'var(--ml-neg)',
-              }}
-            />
-          ))}
+      {/* ── the camera, and the image plane it forms an image on ─────────── */}
+      <div className="f3d__vpstage" style={{ transform: `translate3d(0, ${IMG_Y}px, 0) scale(1.18)` }}>
+        {/* lens barrel: a cylinder as a ring stack, pointing at the viewer */}
+        <div className="f3d__vpfront">
+          {[0, 1, 2, 3, 4].map(k => <Ring key={k} d={46 - k * 2} z={16 + k * 11} tone={70} />)}
+          <div className="f3d__vpglass" style={{ transform: 'translateZ(62px)' }} />
+          <Ring d={54} z={14} tone={85} thick={1.5} />
+        </div>
+
+        {/* body shell */}
+        <div className="f3d__vpshell">
+          <Box w={92} h={62} d={54} />
+          <div className="f3d__vpbump" style={{ transform: 'translate3d(-18px, -38px, 0)' }} />
+          <div className="f3d__vpshutter" style={{ transform: 'translate3d(28px, -34px, 6px)' }} />
+        </div>
+
+        {/* THE SENSOR, sitting at the image plane inside the body, and the
+            photosite grid on its face */}
+        <div className="f3d__vpsensor">
+          <div className="f3d__vpdie" />
+          <div className="f3d__vpsub" />
+          {Array.from({ length: PX_C * PX_R }, (_, i) => {
+            const [x, y] = pxPos(i);
+            return (
+              <div key={i} className="f3d__vppx" data-v={pxVal(i).toFixed(3)}
+                   style={{ transform: `translate3d(${x}px, ${y}px, 1px)` }} />
+            );
+          })}
+          {/* patch grid — the ViT move: the image is cut into fixed tiles */}
+          {Array.from({ length: NTOK }, (_, k) => {
+            const [x, y] = patchPos(k);
+            return <div key={k} className="f3d__vppatch" style={{ transform: `translate3d(${x}px, ${y}px, 3px) scale(var(--s))` }} />;
+          })}
         </div>
       </div>
 
-      {/* the network itself */}
-      <div className="f3d__mlnet">
-        {EDGES.map(e => (
-          <div
-            key={e.id}
-            className="f3d__mledge"
-            data-hop={e.hop}
-            data-w={e.w.toFixed(4)}
-            style={{
-              width: `${e.L.toFixed(2)}px`,
-              // scaleY is the LAST component, so it thickens the ribbon about
-              // its own centreline without touching its length or direction.
-              transform: `${e.t} scaleY(calc(var(--k) + var(--swell)))`,
-              '--edge-base': e.w > 0 ? 'var(--ml-pos)' : 'var(--ml-neg)',
-            }}
-          />
+      {/* ── the token sequence ───────────────────────────────────────────── */}
+      <div className="f3d__vpseq" style={{ transform: `translate3d(0, ${SEQ_Y}px, 0) scale(1.18)` }}>
+        {/* transformer blocks the sequence passes through */}
+        {[0, 1, 2].map(k => (
+          <div key={k} className="f3d__vpblock" style={{ transform: `translate3d(0, 0, ${-52 + k * 52}px)` }} />
         ))}
-        {NODES.map((n, i) => (
-          <div
-            key={i}
-            className="f3d__mlnode"
-            data-layer={n.i}
-            style={{ transform: `translate3d(${n.p[0]}px, ${n.p[1]}px, ${n.p[2]}px) scale(calc(1 + 0.38 * var(--lit)))` }}
-          />
-        ))}
-        {/* the verdict: a hollow target chip and the error bar between it and
-            the output the network actually produced */}
-        {/* the chip is wrapped so anime owns its whole transform (scale) and
-            never has to merge with a static placement it did not write */}
-        <div className="f3d__mlchipwrap" style={{ transform: `translate3d(${TARGET[0]}px, ${TARGET[1]}px, ${TARGET[2]}px)` }}>
-          <div className="f3d__mlchip" />
+        {/* CLS token at the head of the sequence — the one that carries the
+            answer out, which is why the attention links all originate here */}
+        <div className="f3d__vptokwrap" style={{ transform: `translate3d(${cls[0]}px, 0, ${cls[2]}px)` }}>
+          <div className="f3d__vptok f3d__vptok--cls" data-k="-1" />
         </div>
-        <div
-          className="f3d__mldelta"
-          style={{ width: `${delta.L.toFixed(2)}px`, transform: `${delta.t} scaleY(var(--k))` }}
-        />
+        {Array.from({ length: NTOK }, (_, i) => {
+          const t = tokPos(i), pp = patchPos(i);
+          return (
+            <div key={i} className="f3d__vptokwrap" style={{ transform: `translate3d(${t[0].toFixed(1)}px, 0, ${t[2].toFixed(1)}px)` }}>
+              {/* flies in from its own patch's position on the sensor */}
+              <div className="f3d__vptok" data-k={i}
+                   data-fx={(pp[0] - t[0]).toFixed(1)}
+                   data-fy={(IMG_Y - SEQ_Y).toFixed(1)}
+                   data-fz={(3 - t[2]).toFixed(1)} />
+              <div className="f3d__vptick" />
+            </div>
+          );
+        })}
+        {/* all-pairs attention from the CLS token to every patch token */}
+        {Array.from({ length: NTOK }, (_, i) => {
+          const e = link(cls, tokPos(i));
+          return (
+            <div key={i} className="f3d__vpatt" data-k={i}
+                 style={{ width: `${e.L.toFixed(1)}px`, transform: `${e.t} scaleY(var(--k))` }} />
+          );
+        })}
       </div>
 
-      {/* labelled training points, on their own plane in front */}
-      <div className="f3d__mlpts">
-        {PTS.map((p, i) => (
-          <div key={i} className="f3d__mlptwrap" style={{ transform: `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)` }}>
-            {p.flips && <div className="f3d__mlpt f3d__mlpt--wrong" style={{ '--pt-base': p.pos ? 'var(--ml-neg)' : 'var(--ml-pos)' }} />}
-            <div className="f3d__mlpt" data-flip={p.flips ? 1 : 0} style={{ '--pt-base': p.pos ? 'var(--ml-pos)' : 'var(--ml-neg)' }} />
-          </div>
+      {/* ── attention map ────────────────────────────────────────────────── */}
+      <div className="f3d__vpmat" style={{ transform: `translate3d(62px, ${SEQ_Y + 4}px, -26px)` }}>
+        <div className="f3d__vpmatframe" />
+        {Array.from({ length: ATT_N * ATT_N }, (_, i) => (
+          <div key={i} className="f3d__vpcell" data-i={i}
+               style={{ transform: `translate3d(${((i % ATT_N) - (ATT_N - 1) / 2) * 12}px, ${(Math.floor(i / ATT_N) - (ATT_N - 1) / 2) * 12}px, 0)` }} />
         ))}
       </div>
 
-      {/* loss curve */}
-      <div className="f3d__mlloss">
-        <div className="f3d__mllossspin">
-          <div className="f3d__mlaxis f3d__mlaxis--y" />
-          <div className="f3d__mlaxis f3d__mlaxis--x" />
-          {LOSS_SEGS.map((s, i) => (
-            <div key={i} className="f3d__mlseg" style={{ width: `${s.L.toFixed(2)}px`, transform: s.t }} />
-          ))}
-        </div>
+      {/* ── the detection ────────────────────────────────────────────────── */}
+      <div className="f3d__vpout" style={{ transform: `translate3d(0, ${OUT_Y}px, 0) scale(1.18)` }}>
+        <div className="f3d__vpframe" />
+        <div className="f3d__vpbox" />
+        {[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sy], i) => (
+          <div key={i} className="f3d__vpcorner" style={{ transform: `translate3d(${sx * 26}px, ${sy * 19}px, 2px) scale(var(--s))` }} />
+        ))}
+        <div className="f3d__vplabel" />
+        <div className="f3d__vpconf" />
       </div>
     </>
   );
@@ -365,6 +343,8 @@ function MotorBuild() {
           <div className="f3d__shaftplate" style={{ transform: 'rotateZ(90deg) rotateX(90deg)' }} />
           <Ring d={13} z={-118} tone={85} />
           <Ring d={13} z={118} tone={85} />
+          {/* keyway on the drive end — the flat that a coupling keys onto */}
+          <div className="f3d__keyway" style={{ transform: 'translateZ(150px) rotateX(90deg)' }} />
         </div>
 
         {/* 2 · ROTOR — back iron plus eight arc magnets, down the shaft */}
@@ -374,6 +354,11 @@ function MotorBuild() {
               <Ring d={40} z={-22} tone={80} />
               <Ring d={40} z={22} tone={80} />
               <Radial n={8} r={25} cls="f3d__magnet" />
+              {/* squirrel-cage bars — they turn with the rotor, so the spin-up
+                  has something legible to move */}
+              <Radial n={14} r={31} cls="f3d__cagebar" extra="rotateY(90deg)" />
+              <Ring d={66} z={-40} tone={55} />
+              <Ring d={66} z={40} tone={55} />
               {/* cooling fan on the rear of the shaft — the trailing rotateZ is
                   about the RADIAL axis after the rotateY(90deg), so it pitches
                   each blade the way the helix chords are pitched */}
@@ -415,8 +400,22 @@ function MotorBuild() {
         <div className="f3d__build" {...part('rearbell')}>
           <Ring d={164} tone={80} thick={1.5} />
           <Ring d={26} tone={90} />
-          <Radial n={6} r={13} cls="f3d__ball" />
-          <Radial n={6} r={62} cls="f3d__bolt" />
+          {/* bearing: outer race, inner race, balls between them */}
+          <Ring d={34} tone={55} />
+          <Ring d={19} tone={55} />
+          <Radial n={8} r={13} cls="f3d__ball" />
+          <Radial n={8} r={62} cls="f3d__bolt" />
+          {/* FAN COWL — the stamped cover over the rear fan, tapering back to
+              the air inlet, with a ring of vent slots punched in its face. On
+              a real TEFC motor this is the most recognisable end of the
+              machine. */}
+          <Ring d={128} z={-30} tone={55} />
+          <Ring d={122} z={-52} tone={45} />
+          <Ring d={96} z={-70} tone={45} />
+          <Ring d={54} z={-82} tone={60} />
+          <div className="f3d__part" style={{ transform: 'translateZ(-82px)' }}>
+            <Radial n={12} r={34} cls="f3d__vent" />
+          </div>
         </div>
 
         {/* 5 · FRONT BELL — closes from the front and carries the output flange
@@ -425,8 +424,10 @@ function MotorBuild() {
           <Ring d={164} tone={80} thick={1.5} />
           <Ring d={76} tone={70} />
           <Ring d={26} tone={90} />
-          <Radial n={6} r={13} cls="f3d__ball" />
-          <Radial n={6} r={62} cls="f3d__bolt" />
+          <Ring d={34} tone={55} />
+          <Ring d={19} tone={55} />
+          <Radial n={8} r={13} cls="f3d__ball" />
+          <Radial n={8} r={62} cls="f3d__bolt" />
         </div>
 
         {/* 6 · VENTED CAN — LAST, and the part that fixes the silhouette. 16
@@ -450,10 +451,25 @@ function MotorBuild() {
           ))}
           <Ring d={156} z={-95} tone={75} thick={1.5} />
           <Ring d={156} z={95} tone={75} thick={1.5} />
-          {/* terminal box on the flank, where the phase leads come out */}
+          {/* terminal box on the flank, where the phase leads come out, with
+              its cover bolts and the conduit running out of it */}
           <div className="f3d__part" style={{ transform: 'rotateZ(90deg) translateX(86px) rotateZ(-90deg)' }}>
             <Box w={30} h={26} d={40} />
+            <Radial n={4} r={17} cls="f3d__bolt" from={45} />
+            <div className="f3d__part" style={{ transform: 'translateY(-20px)' }}>
+              <div className="f3d__conduit" />
+              <Ring d={11} tone={70} />
+            </div>
           </div>
+
+          {/* nameplate riveted to the flank opposite the terminal box */}
+          <div className="f3d__part" style={{ transform: 'rotateZ(-90deg) translateX(80px) rotateZ(90deg) rotateX(90deg)' }}>
+            <div className="f3d__plate" />
+            <div className="f3d__plateline" style={{ transform: 'translateY(-5px)' }} />
+            <div className="f3d__plateline" style={{ transform: 'translateY(0px)' }} />
+            <div className="f3d__plateline" style={{ transform: 'translateY(5px)' }} />
+          </div>
+
         </div>
       </div>
     </div>
@@ -511,128 +527,93 @@ export default function Flourish3D({ side = 'left' }) {
     }, 0);
 
     if (isLeft) {
-      const edges = q('.f3d__mledge');
-      const byHop = [0, 1, 2].map(h => edges.filter(e => +e.dataset.hop === h));
-      const nodesByLayer = [0, 1, 2, 3].map(l => q(`.f3d__mlnode[data-layer="${l}"]`));
+      const toks = q('.f3d__vptok');
+      const atts = q('.f3d__vpatt');
+      const px = q('.f3d__vppx');
 
-      // 1 · DATA IN — points drop toward the viewer, staggered.
-      tl.add(q('.f3d__mlpt:not(.f3d__mlpt--wrong)'), {
-        opacity: [0, 1], translateZ: [84, 3], scale: [0.4, 1],
-        duration: 90, delay: stagger(6), ease: 'outQuad',
-      }, at(0.01));
-      tl.add(q('.f3d__mlpt--wrong'), { opacity: [0, 1], translateZ: [84, 3], scale: [0.4, 1], duration: 90, delay: stagger(6) }, at(0.01));
-      // the untrained panel: every cell barely committed
-      tl.add(q('.f3d__mlcell'), { '--r': [0, 0.18], duration: 120, delay: stagger(4, { from: 'center' }) }, at(0.02));
+      // 1 · THE CAMERA is there from the start.
+      tl.add(q('.f3d__vpshell .f3d__face,.f3d__vpshell .f3d__vpbump,.f3d__vpshell .f3d__vpshutter'),
+        { opacity: [0, 1], duration: 60, delay: stagger(5) }, at(0.005));
+      tl.add(q('.f3d__vpfront .f3d__ring,.f3d__vpglass'),
+        { opacity: [0, 1], duration: 60, delay: stagger(6) }, at(0.02));
 
-      // 2 · FORWARD PASS — a packet crawls hop by hop. The swell IS the packet:
-      // each edge fattens as its wave passes, which is what stays legible at
-      // 200px where a travelling dot would not.
-      const FWD = [0.100, 0.145, 0.190];
-      byHop.forEach((group, h) => {
-        tl.add(group, {
-          '--swell': [{ to: 0.55, duration: 38, ease: 'outQuad' }, { to: 0, duration: 38, ease: 'inQuad' }],
-          delay: stagger(4),
-        }, at(FWD[h]));
-      });
-      nodesByLayer.forEach((group, l) => {
-        tl.add(group, {
-          '--lit': [{ to: 1, duration: 34, ease: 'outQuad' }, { to: 0.18, duration: 60, ease: 'inOutSine' }],
-          delay: stagger(4),
-        }, at(0.10 + l * 0.045));
-      });
+      // 2 · IT TAKES ITSELF APART, along the optical axis — the same exploded
+      // -view grammar the motor assembles with, run backwards.
+      tl.add(q('.f3d__vpfront'), { translateZ: [0, 150], duration: 150, ease: 'inOutQuad' }, at(0.10));
+      tl.add(q('.f3d__vpfront .f3d__ring,.f3d__vpglass'), { opacity: [1, 0], duration: 120, delay: stagger(6) }, at(0.12));
+      tl.add(q('.f3d__vpshell'), { translateY: [0, -120], translateZ: [0, -60], duration: 150, ease: 'inOutQuad' }, at(0.13));
+      tl.add(q('.f3d__vpshell .f3d__face,.f3d__vpshell .f3d__vpbump,.f3d__vpshell .f3d__vpshutter'),
+        { opacity: [1, 0], duration: 110, delay: stagger(4) }, at(0.14));
 
-      // 3 · WRONG — the output settles on the error hue, the target chip
-      // appears beside it, and the delta bar between them opens up.
-      tl.add(q('.f3d__mlnode[data-layer="3"]')[0], { '--err': [0, 1], duration: 60 }, at(0.26));
-      tl.add(q('.f3d__mlchip'), { opacity: [0, 0.85], scale: [0.5, 1], duration: 60, ease: 'outBack(2)' }, at(0.26));
-      tl.add(q('.f3d__mldelta'), { opacity: [0, 0.75], '--k': [0.1, 0.85], duration: 70, ease: 'outQuad' }, at(0.27));
-
-      // 4 · BACKPROP — the same swell mechanic run right-to-left, hop 2 first.
-      // This is the most ML-exclusive thing on the page: nothing in robotics or
-      // graphics has a corrective wave that travels back up the graph.
-      const BWD = [0.440, 0.390, 0.340];
-      byHop.forEach((group, h) => {
-        tl.add(group, {
-          '--bwd': [{ to: 0.55, duration: 45, ease: 'outQuad' }, { to: 0, duration: 45, ease: 'inQuad' }],
-          '--swell': [{ to: 0.30, duration: 45, ease: 'outQuad' }, { to: 0, duration: 45, ease: 'inQuad' }],
-          // a wide stagger is what makes this read as a WAVE sweeping through
-          // the layer; at 1.6ms the whole hop lit at once, which is a repaint
-          delay: stagger(5, { reversed: true }),
-        }, at(BWD[h]));
-      });
-
-      // 5 · RE-WEIGHT — each edge's thickness tween starts just AFTER its
-      // backward packet passed it, so causality reads. Some thicken, some thin
-      // to almost nothing; that asymmetry is what makes it look LEARNED rather
-      // than merely animated. `outBack` overshoot is honest here — an optimiser
-      // with momentum overshoots and settles.
-      byHop.forEach((group, h) => {
-        tl.add(group, {
-          '--k': (el) => [0.17, 0.10 + 0.72 * Math.abs(+el.dataset.w)],
-          // ^1.6 prunes: a near-zero weight fades almost out instead of sitting
-          // there at the same weight as one the network actually learned
-          opacity: (el) => [0.28, 0.10 + 0.72 * Math.pow(Math.abs(+el.dataset.w), 1.6)],
-          duration: 140,
-          ease: 'outBack(1.4)',
-          delay: stagger([0, 26], { jitter: 8, seed: 11 }),
-        }, at(BWD[h] + 0.07));
-      });
-
-      // 6 · LOSS CURVE draws downward alongside, with visible slope reversals.
-      tl.add(q('.f3d__mlaxis'), { opacity: [0, 0.3], duration: 40 }, at(0.28));
-      tl.add(q('.f3d__mlseg'), { opacity: [0, 0.85], duration: 26, delay: stagger(24) }, at(0.30));
-
-      // 7 · EPOCH LOOP — three compressed forward/back cycles, each weaker than
-      // the last, so the training visibly converges instead of just stopping.
-      [0, 1, 2].forEach(n => {
-        const amp = Math.pow(0.7, n);
-        byHop.forEach((group, h) => {
-          tl.add(group, {
-            '--swell': [{ to: 0.34 * amp, duration: 22, ease: 'outQuad' }, { to: 0, duration: 22, ease: 'inQuad' }],
-            delay: stagger(1),
-          }, at(0.62 + n * 0.06 + h * 0.012));
-        });
-        // the nodes fire with each cycle too — measured without this, they sit
-        // at their 0.18 baseline from the first pass all the way to 0.93, and
-        // the epoch loop reads as edges twitching on a dead network.
-        nodesByLayer.forEach((group, l) => {
-          tl.add(group, {
-            '--lit': [{ to: 0.75 * amp, duration: 18, ease: 'outQuad' }, { to: 0.18, duration: 30, ease: 'inOutSine' }],
-            delay: stagger(2),
-          }, at(0.62 + n * 0.06 + l * 0.011));
-        });
-      });
-      tl.add(q('.f3d__mldelta'), { '--k': [0.85, 0.1], opacity: [0.75, 0.18], duration: 220, ease: 'inOutQuad' }, at(0.60));
-
-      // 8 · BOUNDARY SHARPENS — the panel commits, cell by cell in a scattered
-      // order, and the three mislabelled points flip one at a time.
-      tl.add(q('.f3d__mlcell'), {
-        '--r': [0.18, 1],
+      // 3 · THE SENSOR is what was inside. It comes forward and the photosites
+      // light to their own values — an image forming, one site at a time.
+      tl.add(q('.f3d__vpdie,.f3d__vpsub'), { opacity: [0, 1], duration: 80 }, at(0.16));
+      tl.add(q('.f3d__vpsensor'), { translateZ: [-30, 16], duration: 170, ease: 'outQuad' }, at(0.18));
+      tl.add(px, {
+        opacity: (el) => [0, 0.18 + 0.82 * +el.dataset.v],
         duration: 90,
-        delay: stagger([0, 90], { grid: [PANEL_N, PANEL_N], from: 'center', jitter: 22, seed: 7 }),
+        delay: stagger([0, 130], { grid: [PX_C, PX_R], from: 'first' }),
+      }, at(0.24));
+
+      // 4 · PATCHES. The image is cut into fixed tiles — the move that makes a
+      // Vision Transformer a transformer at all.
+      tl.add(q('.f3d__vppatch'), {
+        opacity: [0, 1], '--s': [0.55, 1],
+        duration: 80, ease: 'outBack(2)',
+        delay: stagger(11, { grid: [PATCH_C, PATCH_R], from: 'first' }),
+      }, at(0.40));
+
+      // 5 · FLATTEN. Every patch flies off the sensor and lands in the
+      // sequence, in raster order. The flight is per-token, from its own tile.
+      tl.add(toks, {
+        translateX: (el) => [+el.dataset.fx || 0, 0],
+        translateY: (el) => [+el.dataset.fy || 0, 0],
+        translateZ: (el) => [+el.dataset.fz || 0, 0],
+        opacity: [0, 1],
+        duration: 130,
+        ease: 'inOutQuad',
+        delay: stagger(9),
+      }, at(0.50));
+      tl.add(q('.f3d__vppatch'), { opacity: [1, 0.25], duration: 100, delay: stagger(9) }, at(0.52));
+      tl.add(q('.f3d__vptick'), { opacity: [0, 0.7], duration: 60, delay: stagger(7) }, at(0.56));
+      tl.add(q('.f3d__vpblock'), { opacity: [0, 1], duration: 90, delay: stagger(30) }, at(0.60));
+
+      // 6 · ATTENTION. Every token attends to the CLS token: all-pairs first,
+      // which is the honest picture of self-attention before it has learned
+      // anything.
+      tl.add(atts, { opacity: [0, 0.4], '--k': [0.1, 0.3], duration: 90, delay: stagger(7) }, at(0.64));
+      tl.add(q('.f3d__vpmatframe'), { opacity: [0, 0.5], duration: 70 }, at(0.66));
+      tl.add(q('.f3d__vpcell'), {
+        opacity: (el) => [0, 0.15 + 0.85 * hash(+el.dataset.i * 5.1)],
+        duration: 80,
+        delay: stagger([0, 90], { grid: [ATT_N, ATT_N], from: 'first' }),
+      }, at(0.68));
+
+      // 7 · IT COLLAPSES onto a few strong links. That is what a trained
+      // attention head actually looks like: most of the map goes quiet.
+      tl.add(atts, {
+        opacity: (el) => { const w = hash(+el.dataset.k * 9.3); return [0.4, w > 0.62 ? 0.9 : 0.07]; },
+        '--k': (el) => { const w = hash(+el.dataset.k * 9.3); return [0.3, w > 0.62 ? 1.25 : 0.05]; },
+        duration: 130, ease: 'outQuad', delay: stagger(6),
       }, at(0.76));
-      tl.add(q('.f3d__mlpt--wrong'), { opacity: [1, 0], duration: 40, delay: stagger(28) }, at(0.82));
-      tl.add(q('.f3d__mlnode[data-layer="3"]')[0], { '--err': [1, 0], duration: 90 }, at(0.84));
+      tl.add(q('.f3d__vpcell'), {
+        opacity: (el) => { const i = +el.dataset.i; const w = hash(i * 5.1); return [0.15 + 0.85 * w, w > 0.68 ? 1 : 0.08]; },
+        duration: 120, delay: stagger(4, { grid: [ATT_N, ATT_N], from: 'center' }),
+      }, at(0.78));
 
-      // 9 · GENERALISE — one final clean forward sweep over the now-trained
-      // network. Stillness after motion is what converged looks like.
-      byHop.forEach((group, h) => {
-        tl.add(group, {
-          '--swell': [{ to: 0.5, duration: 30, ease: 'outQuad' }, { to: 0, duration: 30, ease: 'inQuad' }],
-          delay: stagger(1.2),
-        }, at(0.93 + h * 0.02));
-      });
-      nodesByLayer.forEach((group, l) => {
-        tl.add(group, { '--lit': [{ to: 1, duration: 26 }, { to: 0.3, duration: 44 }], delay: stagger(3) }, at(0.935 + l * 0.018));
-      });
+      // 8 · THE DETECTION. A box, its corner handles, a class label and a
+      // confidence that fills — the actual output of the whole pipeline.
+      tl.add(q('.f3d__vpframe'), { opacity: [0, 0.45], duration: 70 }, at(0.84));
+      tl.add(q('.f3d__vpbox'), { opacity: [0, 1], scale: [1.5, 1], duration: 110, ease: 'outBack(1.6)' }, at(0.88));
+      tl.add(q('.f3d__vpcorner'), { opacity: [0, 1], '--s': [0, 1], duration: 70, delay: stagger(18) }, at(0.90));
+      tl.add(q('.f3d__vplabel'), { opacity: [0, 1], '--sx': [0.2, 1], duration: 80, ease: 'outQuad' }, at(0.93));
+      tl.add(q('.f3d__vpconf'), { opacity: [0, 1], '--sx': [0, 1], duration: 110, ease: 'outQuad' }, at(0.95));
 
-      // ambient: the two side planes breathe on their own so the piece is alive
-      // on a still page. Both wrappers carry NO static transform (their parents
-      // hold the placement), so there is nothing here for anime to wipe.
+      // ambient: the sensor plane and the attention map breathe. Both wrappers
+      // carry no static transform of their own, so anime owns them outright.
       if (!reduce) {
         loops.push(
-          animate(q('.f3d__mlpanelspin'), { rotateY: [20, 31], duration: 8200, loop: true, alternate: true, ease: 'inOutSine' }),
-          animate(q('.f3d__mllossspin'), { rotateY: [-30, -19], duration: 7400, loop: true, alternate: true, ease: 'inOutSine' })
+          animate(q('.f3d__vpmat'), { rotateY: [16, 26], duration: 8200, loop: true, alternate: true, ease: 'inOutSine' })
         );
       }
     } else {
@@ -663,7 +644,8 @@ export default function Flourish3D({ side = 'left' }) {
         }, at(p.lead));
         // Opacity on LEAVES only — putting it on the part wrapper would trip
         // the grouping rule and flatten that part's 3D children.
-        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__shaftplate,.f3d__tooth,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball'), {
+        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__shaftplate,.f3d__tooth,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball,' +
+        '.f3d__cagebar,.f3d__keyway,.f3d__vent,.f3d__plate,.f3d__plateline,.f3d__conduit'), {
           opacity: [0, 1], duration: SPAN * 0.7, ease: 'outQuad',
         }, at(p.lead));
         // its phantom fades out exactly as the real part lands on it
@@ -717,7 +699,7 @@ export default function Flourish3D({ side = 'left' }) {
   return (
     <div className={`f3d f3d--${side}`} ref={ref} aria-hidden="true">
       <div className="f3d__world">
-        <div className="f3d__idle">{isLeft ? <TrainLoop /> : <MotorBuild />}</div>
+        <div className="f3d__idle">{isLeft ? <VisionPipeline /> : <MotorBuild />}</div>
       </div>
     </div>
   );

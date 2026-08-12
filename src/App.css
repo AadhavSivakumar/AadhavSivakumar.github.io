@@ -495,14 +495,14 @@ html[data-theme="dark"] {
 .f3d__rotorlife,
 .f3d__spin,
 .f3d__axiswrap,
-.f3d__mlpanel,
-.f3d__mlpanelspin,
-.f3d__mlnet,
-.f3d__mlpts,
-.f3d__mlptwrap,
-.f3d__mlchipwrap,
-.f3d__mlloss,
-.f3d__mllossspin {
+.f3d__vpstage,
+.f3d__vpfront,
+.f3d__vpshell,
+.f3d__vpsensor,
+.f3d__vpseq,
+.f3d__vptokwrap,
+.f3d__vpmat,
+.f3d__vpout {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -533,84 +533,143 @@ html[data-theme="dark"] {
   opacity: 0;
 }
 
-/* ── LEFT: "Train Loop" ─────────────────────────────────────────────────── */
-
-/* decision panel, floating above and behind the network */
-.f3d__mlpanel { transform: translate3d(0, -168px, -30px); }
-.f3d__mlframe {
+/* ── LEFT: "Detection" — camera -> sensor -> pixels -> ViT -> box ────────── */
+.f3d__vpglass {
   position: absolute; left: 50%; top: 50%;
-  width: 79px; height: 79px; margin-left: -39.5px; margin-top: -39.5px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
-}
-.f3d__mlcell {
-  --r: 0;
-  position: absolute; left: 50%; top: 50%;
-  width: 14px; height: 14px; margin-left: -7px; margin-top: -7px;
-  background-color: color-mix(in srgb, var(--cell-base) calc(4% + 34% * var(--r)), transparent);
-}
-
-/* An edge is a PLANE, not a line: width is the 3D distance between its two
-   nodes, height is its weight. `--k` (learned magnitude) and `--swell` (the
-   travelling packet) are separate variables composed in one scaleY, so the
-   re-weight tween and the pulse tween each own exactly one property and can
-   overlap in time without fighting. anime never writes this transform — it
-   could not reproduce the rotate order — it writes the numbers inside it. */
-.f3d__mledge {
-  --k: 0.17; --swell: 0; --bwd: 0;
-  position: absolute; left: 50%; top: 50%;
-  height: 6px; margin-top: -3px;
-  transform-origin: 0 50%;
-  opacity: 0.28;
-  background-color: color-mix(in srgb, var(--ml-err) calc(var(--bwd) * 100%), var(--edge-base));
-}
-.f3d__mlnode {
-  --lit: 0.18; --err: 0;
-  position: absolute; left: 50%; top: 50%;
-  width: 9px; height: 9px; margin-left: -4.5px; margin-top: -4.5px;
+  width: 34px; height: 34px; margin-left: -17px; margin-top: -17px;
   border-radius: 50%;
-  background-color: color-mix(in srgb, var(--ml-err) calc(var(--err) * 100%),
-                    color-mix(in srgb, var(--ml-pos) calc(26% + 54% * var(--lit)), transparent));
+  border: 1px solid color-mix(in srgb, var(--accent-color) 70%, transparent);
+  background: color-mix(in srgb, var(--accent-color) 10%, transparent);
+  opacity: 0;
 }
-/* the answer we wanted, next to the answer we got */
-.f3d__mlchip {
+.f3d__vpbump {
+  position: absolute; left: 50%; top: 50%;
+  width: 30px; height: 14px; margin-left: -15px; margin-top: -7px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 60%, transparent);
+  opacity: 0;
+}
+.f3d__vpshutter {
+  position: absolute; left: 50%; top: 50%;
+  width: 12px; height: 12px; margin-left: -6px; margin-top: -6px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 75%, transparent);
+  opacity: 0;
+}
+/* the die and its substrate — the sensor itself */
+.f3d__vpdie {
+  position: absolute; left: 50%; top: 50%;
+  width: 104px; height: 80px; margin-left: -52px; margin-top: -40px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
+  background: color-mix(in srgb, var(--accent-color) 4%, transparent);
+  opacity: 0;
+}
+.f3d__vpsub {
+  position: absolute; left: 50%; top: 50%;
+  width: 118px; height: 92px; margin-left: -59px; margin-top: -46px;
+  border: 1px dashed color-mix(in srgb, var(--accent-color) 35%, transparent);
+  opacity: 0;
+}
+/* one photosite. Opacity is its value, so the grid IS the image. */
+.f3d__vppx {
+  position: absolute; left: 50%; top: 50%;
+  width: 10px; height: 10px; margin-left: -5px; margin-top: -5px;
+  background: var(--accent-color);
+  opacity: 0;
+}
+/* a ViT patch: the fixed tile the image is cut into */
+.f3d__vppatch {
+  --s: 1;
+  position: absolute; left: 50%; top: 50%;
+  width: 23px; height: 23px; margin-left: -11.5px; margin-top: -11.5px;
+  border: 1px solid var(--ml-neg);
+  opacity: 0;
+}
+/* a token in the flattened sequence */
+.f3d__vptok {
+  position: absolute; left: 50%; top: 50%;
+  width: 17px; height: 17px; margin-left: -8.5px; margin-top: -8.5px;
+  border: 1px solid var(--ml-neg);
+  background: color-mix(in srgb, var(--ml-neg) 16%, transparent);
+  opacity: 0;
+}
+.f3d__vptok--cls {
+  border-color: var(--accent-color);
+  background: color-mix(in srgb, var(--accent-color) 26%, transparent);
+}
+/* positional index mark under each token */
+.f3d__vptick {
+  position: absolute; left: 50%; top: 50%;
+  width: 9px; height: 2px; margin-left: -4.5px; margin-top: 13px;
+  background: color-mix(in srgb, var(--accent-color) 60%, transparent);
+  opacity: 0;
+}
+/* the transformer blocks the sequence passes through */
+.f3d__vpblock {
+  position: absolute; left: 50%; top: 50%;
+  width: 74px; height: 54px; margin-left: -37px; margin-top: -27px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 26%, transparent);
+  background: color-mix(in srgb, var(--accent-color) 3%, transparent);
+  opacity: 0;
+}
+/* an attention link. Same form-B recipe as any 3D connector: the static
+   transform is ours, the thickness inside it is anime's. */
+.f3d__vpatt {
+  --k: 0.12;
+  position: absolute; left: 50%; top: 50%;
+  height: 5px; margin-top: -2.5px;
+  transform-origin: 0 50%;
+  background: var(--ml-neg);
+  opacity: 0;
+}
+/* attention map */
+.f3d__vpmatframe {
+  position: absolute; left: 50%; top: 50%;
+  width: 52px; height: 52px; margin-left: -26px; margin-top: -26px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 45%, transparent);
+  opacity: 0;
+}
+.f3d__vpcell {
   position: absolute; left: 50%; top: 50%;
   width: 11px; height: 11px; margin-left: -5.5px; margin-top: -5.5px;
-  border: 1.5px solid var(--ml-pos);
-  border-radius: 50%;
+  background: var(--ml-neg);
   opacity: 0;
 }
-.f3d__mldelta {
-  --k: 0.1;
+/* the result */
+.f3d__vpframe {
   position: absolute; left: 50%; top: 50%;
-  height: 6px; margin-top: -3px;
+  width: 104px; height: 78px; margin-left: -52px; margin-top: -39px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 55%, transparent);
+  opacity: 0;
+}
+.f3d__vpbox {
+  position: absolute; left: 50%; top: 50%;
+  width: 56px; height: 42px; margin-left: -28px; margin-top: -21px;
+  border: 2px solid var(--ml-err);
+  opacity: 0;
+}
+.f3d__vpcorner {
+  --s: 1;
+  position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 6px; margin-left: -3px; margin-top: -3px;
+  background: var(--ml-err);
+  opacity: 0;
+}
+.f3d__vplabel {
+  --sx: 1;
+  position: absolute; left: 50%; top: 50%;
+  width: 34px; height: 9px; margin-left: -28px; margin-top: -30px;
+  transform: scaleX(var(--sx));
   transform-origin: 0 50%;
-  background-color: var(--ml-err);
+  background: var(--ml-err);
   opacity: 0;
 }
-
-/* labelled training points */
-.f3d__mlpts { transform: translate3d(0, -168px, -26px); }
-.f3d__mlpt {
+.f3d__vpconf {
+  --sx: 1;
   position: absolute; left: 50%; top: 50%;
-  width: 5px; height: 5px; margin-left: -2.5px; margin-top: -2.5px;
-  border-radius: 50%;
-  background-color: var(--pt-base);
-  opacity: 0;
-}
-
-/* loss curve */
-.f3d__mlloss { transform: translate3d(0, 150px, 34px); }
-.f3d__mlaxis {
-  position: absolute; left: 50%; top: 50%;
-  background: color-mix(in srgb, var(--accent-color) 55%, transparent); opacity: 0;
-}
-.f3d__mlaxis--y { width: 1px; height: 60px; margin-left: -48px; margin-top: -33px; }
-.f3d__mlaxis--x { width: 98px; height: 1px; margin-left: -48px; margin-top: 27px; }
-.f3d__mlseg {
-  position: absolute; left: 50%; top: 50%;
-  height: 1.5px; margin-top: -0.75px;
+  width: 40px; height: 3px; margin-left: -28px; margin-top: 26px;
+  transform: scaleX(var(--sx));
   transform-origin: 0 50%;
-  background: var(--accent-color);
+  background: color-mix(in srgb, var(--ml-err) 70%, transparent);
   opacity: 0;
 }
 
@@ -666,6 +725,50 @@ html[data-theme="dark"] {
 }
 .f3d__endturn {
   border-color: color-mix(in srgb, var(--f3d-copper) 78%, transparent) !important;
+  opacity: 0;
+}
+/* Squirrel-cage bar: lies along the rotor inside the stator bore and turns
+   with it. Width maps to axial after the rotateY(90deg), as everywhere else. */
+.f3d__cagebar {
+  position: absolute; left: 50%; top: 50%;
+  width: 74px; height: 2.5px; margin-left: -37px; margin-top: -1.25px;
+  background: color-mix(in srgb, var(--accent-color) 50%, transparent);
+  opacity: 0;
+}
+/* The flat on the drive end that a coupling keys onto. */
+.f3d__keyway {
+  position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 16px; margin-left: -3px; margin-top: -8px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 75%, transparent);
+  opacity: 0;
+}
+/* Vent slot punched in the fan cowl's face. */
+.f3d__vent {
+  position: absolute; left: 50%; top: 50%;
+  width: 15px; height: 5px; margin-left: -7.5px; margin-top: -2.5px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 50%, transparent);
+  opacity: 0;
+}
+/* Nameplate, and the engraved lines standing in for its text. */
+.f3d__plate {
+  position: absolute; left: 50%; top: 50%;
+  width: 38px; height: 24px; margin-left: -19px; margin-top: -12px;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 65%, transparent);
+  background: color-mix(in srgb, var(--accent-color) 7%, transparent);
+  opacity: 0;
+}
+.f3d__plateline {
+  position: absolute; left: 50%; top: 50%;
+  width: 26px; height: 1px; margin-left: -13px;
+  background: color-mix(in srgb, var(--accent-color) 55%, transparent);
+  opacity: 0;
+}
+/* Conduit out of the terminal box. */
+.f3d__conduit {
+  position: absolute; left: 50%; top: 50%;
+  width: 11px; height: 26px; margin-left: -5.5px; margin-top: -26px;
+  border-left: 1px solid color-mix(in srgb, var(--accent-color) 70%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--accent-color) 70%, transparent);
   opacity: 0;
 }
 /* Fan blade — pitched, and it turns with the rotor. */

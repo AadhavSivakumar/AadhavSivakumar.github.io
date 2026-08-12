@@ -124,6 +124,14 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 - **`BandField` debounces resizes (300ms) then remounts bands via key** — physics bodies don't follow anchors when the canvas aspect changes.
 - **The strap-smoothing lerp alpha is clamped to 1.** Unclamped, `delta * 50` exceeds 1 below 50fps and `Vector3.lerp` extrapolates, exploding the straps into screen-height streaks.
 - When the viewport can't fit 3 badges per side, outermost badges are dropped instead of stacking (the fit test is in `BandField`, comparing `inner + (n-1)*step` against the half-world width). Note the ≥992px gate in `About.jsx` admits widths where 2 of the 6 badges are already dropped.
+- **The badge material is a printed card, not a piano.** It shipped as
+  `clearcoat: 1` / `clearcoatRoughness: 0.1` / `metalness: 0.35`, which against
+  the Environment's intensity-10 Lightformer threw a specular sheet across the
+  face and washed the name and role text out. A laminated badge does have a
+  slight sheen, so the clearcoat stays — weak and diffused (0.25 / 0.45) with
+  `metalness` down to 0.04. Metalness in particular has no business here: it
+  tints the reflection by the base colour and darkens the diffuse term, which is
+  the opposite of what a white printed card does with light.
 - Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
@@ -133,11 +141,16 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 Two decorative assemblies fixed to the viewport, one per side, mounted in the
 `page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by page scroll.
 
-- **LEFT — "Train Loop"** (machine learning): a 4-5-3-2 network standing in
-  real depth. A packet runs down it, the answer comes out wrong against a target
-  chip, a **backprop** packet crawls back UP, the wires it passes visibly thicken
-  or thin behind it, a loss curve steps downward, and a decision panel resolves
-  from mottled noise into a clean two-tone split.
+- **LEFT — "Detection"**: what actually happens between a camera and a bounding
+  box. A camera takes itself apart down to its **sensor**; the sensor resolves
+  into **pixels**; the pixels are cut into **patches** and flattened into a token
+  sequence (the move that defines a **Vision Transformer**); the tokens **attend**
+  to each other and the map collapses onto a few strong links; and the result is
+  a **detection** — box, corner handles, label, confidence.
+  This replaced an abstract 4-5-3-2 training loop the owner found disjointed.
+  Every stage here is a real mechanism rather than a metaphor, which is why it
+  holds together: the patch grid, the flattening into a sequence, the CLS token
+  the attention links originate from, and a box with a confidence.
 - **RIGHT — "Down the Shaft"** (a motor): shaft → rotor → wound stator → two end
   bells → vented can, every part threading in along the SAME axis in assembly
   order, then the rotor spins up and runs.
@@ -255,11 +268,20 @@ sit inside a shell you cannot see through, so they cost clutter and buy nothing.
   `2*r*tan(180°/n)`. Recompute it if you change `n` or `r` — do not copy the
   number. An older revision of this file quoted r=58/n=14/26px, which would
   leave the shell open.
+- **Radial features can only stick out SIDEWAYS.** The motor's axis is
+  near-vertical on screen, so no radial direction projects downward — measured,
+  the best is dy=0.32 against dx=0.80. Mounting feet and a lifting eye were
+  built and then removed for exactly this reason: they read as debris hanging
+  off the side. Flank features that are *supposed* to project sideways — the
+  terminal box, the nameplate, the conduit — are fine, and are where to spend
+  detail instead.
 - **Detail is what stops it reading as "too basic".** A shaft, a core and a
   shell is a tube. The parts that make it a motor at a glance are the ones with
-  their own silhouette: the **terminal box** on the flank, the pitched **cooling
-  fan** on the back of the shaft (it turns with the rotor), the **slot teeth** on
-  the stator's end faces, and the **bearing balls** in each bell hub. Detail that
+  their own silhouette: the **terminal box** with cover bolts and **conduit**,
+  the **fan cowl** with punched vent slots over the pitched **cooling fan**, the
+  **squirrel-cage bars** that turn with the rotor, the **nameplate**, the
+  **keyway** on the drive end, the **slot teeth** on the stator's end faces, and
+  the **bearing races and balls** in each bell hub. Detail that
   ends up hidden inside the shell is not detail, it is noise — see the ring-count
   note above.
 - **Radial stack, outward, verified clear** (min gap 2.5px): shaft OD 6.5 | rotor
@@ -279,30 +301,25 @@ sit inside a shell you cannot see through, so they cost clutter and buy nothing.
   the nested `.f3d__rotorlife`. **Two writers on one rotateZ jitter.** Nested
   rotations about the same axis simply add.
 
-### Density is the whole ballgame on the ML side
+### Density is the whole ballgame on the left
 
-The network was 5-6-4-2 = **62 edges** and read as a cyan hairball. What fixed it:
+Whatever the left side depicts, the failure mode is the same: too many similar
+elements in too little space and it turns to mush. Hard-won numbers:
 
-- **41 edges** (4-5-3-2). Past roughly 45 edges between layers this narrow, the
-  individual connections stop being separable and it turns to spaghetti.
-- **The backprop wave must PASS, not repaint.** `--bwd` peaks at 0.55, not 1,
-  and the per-edge `stagger` within a hop is 5ms rather than 1.6 — at the tight
-  stagger every edge in a layer lit simultaneously, which is a repaint.
-- **One meaning per colour.** The backward wave used to have its own cyan, which
-  collided with the slate of negative weights: two unrelated things both read as
-  "blue" and the piece was hard to follow. The palette is now three colours with
-  one job each — **gold** = positive weight and the forward pass, **slate** =
-  negative weight, **rust** = error, and rust does the wrong output, the delta
-  bar AND the backprop wave. That last part is the point: you watch the colour
-  that appeared at the output travel back up the graph.
-- **Prune.** Edge opacity scales with `|w|^1.6`, so a near-zero weight fades
-  almost out instead of sitting there as present as one the network actually
-  learned. A trained net should look sparse and structured.
-- **Narrow layers get proportionally less depth** (`n <= 2` → 0.42× the spread).
-  At the full ±52px a 2-node output layer threw one node so far back it read as
-  a stray dot rather than part of the graph.
-- The training points sit ON the decision panel's plane, not 56px in front of
-  it, or they read as unrelated floating dots.
+- **Past roughly 45 connector elements** between clustered anchor points the
+  individual connections stop being separable. The predecessor had 62 network
+  edges and read as a hairball.
+- **Connectors that share an origin must FAN.** The 12 attention links all run
+  from the CLS token to a sequence receding along Z, so at a tight X spread they
+  were near-collinear and filled in as one solid wedge. Spreading the sequence
+  in X and arcing it slightly in Y is what turns that mass back into links.
+- **One meaning per colour.** Gold is the optical path and structure, slate is
+  the compute (patches, tokens, attention), rust is the result (box, label,
+  confidence). An earlier version had the backward wave in cyan while negative
+  weights were slate, and two unrelated things both read as "blue".
+- The three stages sit top-to-bottom — sensor at y −142, sequence at y +24,
+  detection at y +158 — so the piece reads as a pipeline running the same
+  direction the page scrolls.
 
 ### These are HTML divs, not SVG, and that is the entire point
 
