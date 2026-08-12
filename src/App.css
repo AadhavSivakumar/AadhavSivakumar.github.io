@@ -16,16 +16,15 @@
      mechanical line; these are the only other hues on the two pieces, and each
      one means exactly one thing:
        --ml-neg    negative weights (the other side of zero)
-       --ml-back   the backprop wave — deliberately unlike both weight colours,
-                   because a corrective pulse travelling BACK up the graph is
-                   the one mechanic no other domain owns and it must be read
-                   as different, not as brighter
-       --ml-err    the wrong output and the error bar; three elements only, so
-                   it stays a signal rather than a palette
+       --ml-err    the error: the wrong output, the delta bar, AND the backprop
+                   wave. Using one colour for all three is the point — the
+                   error appears at the output and you watch that same colour
+                   travel back up the graph. It used to have its own cyan,
+                   which collided with the slate of negative weights and made
+                   two unrelated things both read as "blue"
        --f3d-copper  the motor winding, and nothing else */
   --ml-pos: var(--accent-color);
   --ml-neg: #4E7C8C;
-  --ml-back: #2FA8B8;
   --ml-err: #A8503B;
   --f3d-copper: #A85A2A;
 }
@@ -41,7 +40,6 @@ html[data-theme="dark"] {
   --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
   --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
   --ml-neg: #79A9B9;
-  --ml-back: #5FD3E2;
   --ml-err: #C97A64;
   --f3d-copper: #E08A48;
 }
@@ -495,7 +493,6 @@ html[data-theme="dark"] {
 .f3d__ghosts,
 .f3d__rotor,
 .f3d__rotorlife,
-.f3d__wire,
 .f3d__spin,
 .f3d__axiswrap,
 .f3d__mlpanel,
@@ -564,7 +561,7 @@ html[data-theme="dark"] {
   height: 6px; margin-top: -3px;
   transform-origin: 0 50%;
   opacity: 0.28;
-  background-color: color-mix(in srgb, var(--ml-back) calc(var(--bwd) * 100%), var(--edge-base));
+  background-color: color-mix(in srgb, var(--ml-err) calc(var(--bwd) * 100%), var(--edge-base));
 }
 .f3d__mlnode {
   --lit: 0.18; --err: 0;
@@ -626,7 +623,7 @@ html[data-theme="dark"] {
 .f3d__axiswrap { transform: rotateX(90deg); }
 .f3d__axis {
   position: absolute; left: 0; top: 0;
-  width: 0; height: 360px; margin-top: -90px;
+  width: 0; height: 290px; margin-top: -70px;
   border-left: 1px dashed var(--accent-color); opacity: 0.34;
 }
 /* Phantom outlines of each part's seat — the engineering-drawing convention
@@ -636,23 +633,39 @@ html[data-theme="dark"] {
   border: 1px dashed var(--accent-color);
   opacity: 0.13;
 }
-/* Stator pole bar and can rib. After rotateY(90deg) an element's WIDTH maps to
-   the axial (Z) direction and its HEIGHT stays tangential, so for radius r and
-   n elements a CLOSED shell needs height = 2*r*tan(180deg/n) — for the can,
-   2*78*tan(11.25deg) = 31.03px. The ribs are 12px, so the shell is deliberately
-   VENTED and the winding stays visible through it. Recompute that number if you
-   change n or r; do not copy it. */
-.f3d__pole {
+/* The shaft is a CYLINDER, not a square bar. Two plates crossed at 90deg give
+   a rectangular silhouette from every yaw — which is exactly what a cylinder
+   projects to — while the end rings supply the elliptical ends. A Box here was
+   the most obviously wrong thing in the piece: motors do not have square
+   shafts. */
+.f3d__shaftplate {
   position: absolute; left: 50%; top: 50%;
-  width: 90px; height: 10px; margin-left: -45px; margin-top: -5px;
+  width: 13px; height: 236px; margin-left: -6.5px; margin-top: -118px;
+  background: color-mix(in srgb, var(--accent-color) 16%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--accent-color) 80%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--accent-color) 80%, transparent);
+  opacity: 0;
+}
+/* Slot tooth on a stator lamination face. */
+.f3d__tooth {
+  position: absolute; left: 50%; top: 50%;
+  width: 12px; height: 5px; margin-left: -6px; margin-top: -2.5px;
   border: 1px solid color-mix(in srgb, var(--accent-color) 55%, transparent);
   opacity: 0;
 }
-.f3d__rib {
+/* COPPER, and the only copper on the piece: a bar lying in one stator slot,
+   and the end-turn rings that tie the bars together past each end of the
+   stack. A coil wound around the shaft axis is a solenoid, not a motor
+   winding. */
+.f3d__slotbar {
   position: absolute; left: 50%; top: 50%;
-  width: 176px; height: 9px; margin-left: -88px; margin-top: -4.5px;
-  border: 1px solid color-mix(in srgb, var(--accent-color) 34%, transparent);
-  background: color-mix(in srgb, var(--accent-color) 3%, transparent);
+  width: 100px; height: 3px; margin-left: -50px; margin-top: -1.5px;
+  background: color-mix(in srgb, var(--f3d-copper) 72%, transparent);
+  border-radius: 1.5px;
+  opacity: 0;
+}
+.f3d__endturn {
+  border-color: color-mix(in srgb, var(--f3d-copper) 78%, transparent) !important;
   opacity: 0;
 }
 /* Fan blade — pitched, and it turns with the rotor. */
@@ -684,19 +697,6 @@ html[data-theme="dark"] {
   background: color-mix(in srgb, var(--accent-color) 70%, transparent);
   opacity: 0;
 }
-/* One chord of the 3D helix wound around the rotor core. Width is set inline
-   per segment (the true chord length, so consecutive segments share endpoints);
-   height is the wire gauge. Copper is the one second hue on the piece, and the
-   signifier that survives at any size — it is what says "this is the electrical
-   part". Do not spread it to the poles or magnets. */
-.f3d__wireseg {
-  position: absolute; left: 50%; top: 50%;
-  height: 2px; margin-top: -1px;
-  background: var(--f3d-copper);
-  border-radius: 1px;
-  opacity: 0;
-}
-
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
 
 

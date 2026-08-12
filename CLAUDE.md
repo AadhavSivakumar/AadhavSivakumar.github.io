@@ -206,41 +206,50 @@ degenerate axes. The ribbon's thickness direction keeps an in-screen-plane
 component of ≥0.88 across the whole camera sweep, so an edge can never
 foreshorten to a hairline and vanish.
 
-### The winding, and why it is not SVG
+### The copper, and the shaft
 
-The motor's phase winding is a **true 3D helix**, 63 divs (3 axial lead-in + 60
-chords). It was an SVG path once — a serpentine of quadratic curves in ONE flat
-plane, cloned onto a second plane 90° away — and it read (correctly) as a sine
-wave: a squiggle that waggles beside the axis and never encircles anything. SVG
-cannot be rescued here, because a path can never leave its own plane, and
-`translateZ` on an SVG node is ignored outright (measured: ±150px gave a size
-ratio of exactly 1.0).
+**A coil wound around the shaft axis is a SOLENOID, not a motor winding.** The
+first version of this piece had a real 3D helix — 63 divs, mathematically
+exact — spiralling around the rotor core, and the owner's verdict was that an
+actual motor does not look like that. They were right: an inductor looks like
+that. A wound stator is **copper bars lying IN the slots** along the core, tied
+together by an **end-turn ring** bulging past each end of the stack, which is
+what `.f3d__slotbar` (12 bars at r=44) and `.f3d__endturn` (two rings at d92)
+now draw. The helix maths, should anything ever need a true 3D coil again, is
+in git history at commit `5ea93e7`.
 
-Each chord is placed by `translateZ(z) rotateZ(θ) translateX(r) rotateY(90deg)
-rotateZ(φ)`. Reading outward: `rotateZ(θ) translateX(r)` puts it on the cylinder;
-`rotateY(90deg)` maps the element's WIDTH onto the axial direction and leaves its
-HEIGHT tangential; so the final `rotateZ(φ)` is about the RADIAL axis and sets
-the helix PITCH, giving **φ = atan2(2r·sin(Δθ/2), −Δz)**. Two degenerate cases
-pin the sign — zero twist ⇒ φ = 180° (a straight axial run, which the lead-in
-reuses), zero pitch ⇒ φ = 90° (a flat ring). Segment centres sit at
-`r·cos(Δθ/2)`, not `r`: a chord's midpoint lies inside the circle, and seating
-them at `r` bulges every joint proud.
+**The shaft is a CYLINDER, not a square bar.** It was a `Box`, and a square
+shaft was the most obviously wrong thing in the piece. A cylinder projects to a
+rectangle with elliptical ends from any angle, so it is two plates crossed at
+90° (`.f3d__shaftplate`) plus a ring at each end — 4 divs, no prism, and one
+plate always faces the camera whatever the yaw.
 
-Verified numerically at r=44, 5 turns × 12: joint gaps **1.4e-13 px**, every
-endpoint on radius **44.0000**, total winding **1800°**, x-excursion **−44…+44**
-— that last one is the whole point, since it straddles the axis where the old
-squiggle never did.
+Both plates need `rotateX(90deg)` to map their HEIGHT onto the module's Z — the
+motor axis — exactly as `.f3d__axiswrap` does. Without it the plate lies ACROSS
+the machine instead of along it, which is precisely the bug that shipped in the
+first attempt: a long horizontal bar through the middle of the frame.
+
+**Watch the ring count.** The camera looks nearly perpendicular to the axis, so
+every ring projects as a very flat ellipse — a 156px fin renders about 21px
+tall. Stack fifteen of those and the top of the machine turns into a band of
+dashes that reads as noise. Internal laminations were the first thing cut: they
+sit inside a shell you cannot see through, so they cost clutter and buy nothing.
 
 ### Geometry rules that are easy to break silently
 
 - **A cylinder made of longitudinal slats reads as a FENCE, not as a machine.**
   The can was 14 ribs plus 14 fins around the axis; at this size that is 28
   vertical sticks, the shell read as a birdcage, and everything inside it was
-  invisible. It is now a **stack of 9 circumferential rings** (cooling fins)
-  between two stronger end rings, plus only **4** longitudinal ribs for
-  structure. Rings follow the same perspective ellipse as the bells and the
-  winding, so the shell reads as one turned cylinder and stays open enough to
-  see the copper and the spinning rotor through it.
+  invisible. It is now a **stack of 7 circumferential rings** (cooling fins)
+  between two stronger end rings, and no longitudinal members at all — the four
+  that survived the first pass still read as posts standing outside the machine.
+  Rings follow the same perspective ellipse as the bells and the end turns, so
+  the shell reads as one turned cylinder and stays open enough to see the copper
+  and the spinning rotor through it.
+- **Rectangular prisms are the enemy here.** A `Box` is the easiest primitive in
+  the file and the least appropriate: shafts, cores, shells and rotors are all
+  round. The only prism left is the terminal box, which is a rectangular casting
+  on a real motor too.
 - **Cylinder pitch**, still true for any slatted shell you do build: after
   `rotateY(90deg)`, for radius `r` and `n` elements a CLOSED shell needs height
   `2*r*tan(180°/n)`. Recompute it if you change `n` or `r` — do not copy the
@@ -249,8 +258,10 @@ squiggle never did.
 - **Detail is what stops it reading as "too basic".** A shaft, a core and a
   shell is a tube. The parts that make it a motor at a glance are the ones with
   their own silhouette: the **terminal box** on the flank, the pitched **cooling
-  fan** on the back of the shaft (it turns with the rotor), the **lamination
-  stacks** on rotor and stator, and the **bearing balls** in each bell hub.
+  fan** on the back of the shaft (it turns with the rotor), the **slot teeth** on
+  the stator's end faces, and the **bearing balls** in each bell hub. Detail that
+  ends up hidden inside the shell is not detail, it is noise — see the ring-count
+  note above.
 - **Radial stack, outward, verified clear** (min gap 2.5px): shaft OD 6.5 | rotor
   core 20 | magnets 21.5–28.5 | stator bore 31 | **winding 44** | pole bars 54 |
   stator OD 62 | can ribs 78 | bell flange 82.
@@ -277,6 +288,13 @@ The network was 5-6-4-2 = **62 edges** and read as a cyan hairball. What fixed i
 - **The backprop wave must PASS, not repaint.** `--bwd` peaks at 0.55, not 1,
   and the per-edge `stagger` within a hop is 5ms rather than 1.6 — at the tight
   stagger every edge in a layer lit simultaneously, which is a repaint.
+- **One meaning per colour.** The backward wave used to have its own cyan, which
+  collided with the slate of negative weights: two unrelated things both read as
+  "blue" and the piece was hard to follow. The palette is now three colours with
+  one job each — **gold** = positive weight and the forward pass, **slate** =
+  negative weight, **rust** = error, and rust does the wrong output, the delta
+  bar AND the backprop wave. That last part is the point: you watch the colour
+  that appeared at the output travel back up the graph.
 - **Prune.** Edge opacity scales with `|w|^1.6`, so a near-zero weight fades
   almost out instead of sitting there as present as one the network actually
   learned. A trained net should look sparse and structured.

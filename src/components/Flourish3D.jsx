@@ -116,13 +116,14 @@ function Box({ w, h, d, y = 0, x = 0, z = 0, extraClass = '' }) {
 // correctly eccentric perspective ellipse that re-shapes live as the camera
 // pitches.
 function Ring({ d, z = 0, tone = 70, thick = 1, cls = '' }) {
+  // tone 0 = leave the colour to the class (used by the copper end turns)
   return (
     <div
       className={`f3d__ring ${cls}`}
       style={{
         width: `${d}px`, height: `${d}px`,
         marginLeft: `${-d / 2}px`, marginTop: `${-d / 2}px`,
-        borderWidth: `${thick}px`, borderColor: wash(tone),
+        borderWidth: `${thick}px`, ...(tone ? { borderColor: wash(tone) } : null),
         transform: `translateZ(${z}px)`,
       }}
     />
@@ -297,57 +298,10 @@ function TrainLoop() {
    RIGHT — "Down the Shaft"
    ══════════════════════════════════════════════════════════════════════════ */
 
-// The winding: a REAL 3D HELIX around the rotor core. What makes a winding read
-// as a winding is a depth fact — it passes IN FRONT of the core on the near side
-// and BEHIND it on the far side — so it cannot be faked in a plane. (It was an
-// SVG serpentine once; that is a sine wave beside the axis, not a coil around
-// it, and SVG could never have fixed it since a path cannot leave its plane.)
-//
-// Each chord is placed by  translateZ(z) rotateZ(θ) translateX(r) rotateY(90deg) rotateZ(φ)
-// Reading outward: rotateZ(θ)·translateX(r) puts it on the cylinder;
-// rotateY(90deg) maps the element's WIDTH onto the axial direction and leaves
-// its HEIGHT tangential; so the final rotateZ(φ) is about the RADIAL axis and
-// sets the helix PITCH, giving φ = atan2(2r·sin(Δθ/2), −Δz). Two degenerate
-// cases pin the sign: zero twist ⇒ φ = 180° (a straight axial run, which the
-// lead-in reuses), zero pitch ⇒ φ = 90° (a flat ring). Segment centres sit at
-// r·cos(Δθ/2), not r — a chord's midpoint lies inside the circle, and seating
-// them at r bulges every joint proud.
-const COIL_R = 44;
-const COIL_TURNS = 5;
-const COIL_SEG_PER_TURN = 12;
-const COIL_ZC = 105;
-const COIL_HALF = 40;
-const LEAD_SEGS = 3;
-const LEAD_LEN = 18;
-
-function wireSegments() {
-  const N = COIL_TURNS * COIL_SEG_PER_TURN;
-  const z0 = COIL_ZC - COIL_HALF;
-  const dz = (2 * COIL_HALF) / N;
-  const dTheta = (COIL_TURNS * 360) / N;
-  const half = (Math.PI * COIL_TURNS) / N;
-  const chord = 2 * COIL_R * Math.sin(half);
-  const len = Math.hypot(chord, dz);
-  const phi = Math.atan2(chord, -dz) * DEG;
-  const rMid = COIL_R * Math.cos(half);
-
-  const segs = [];
-  // Lead-in first, so the wind-on starts OUTSIDE the machine: the tail runs up
-  // the axis at θ = 0 and hands straight over to the first turn.
-  for (let i = LEAD_SEGS; i > 0; i--) {
-    segs.push({ len: LEAD_LEN, t: `translateZ(${(z0 - (i - 0.5) * LEAD_LEN).toFixed(2)}px) translateX(${COIL_R}px) rotateY(90deg) rotateZ(180deg)` });
-  }
-  for (let k = 0; k < N; k++) {
-    segs.push({
-      len,
-      t: `translateZ(${(z0 + (k + 0.5) * dz).toFixed(2)}px) rotateZ(${((k + 0.5) * dTheta).toFixed(2)}deg) ` +
-         `translateX(${rMid.toFixed(3)}px) rotateY(90deg) rotateZ(${phi.toFixed(2)}deg)`,
-    });
-  }
-  return segs;
-}
-const WIRE_SEGS = wireSegments();
-
+// A wound stator, the way a real one looks: copper bars lying IN the 12 slots
+// along the core, tied together by an end-turn ring bulging past each end of the
+// stack. This replaced a single big helix wound around the shaft axis — that is
+// a solenoid, and it read as a spring in a cage rather than as a motor.
 // Assembly order, centre outward, every part arriving along the SAME axis.
 // `fz` dominates and lateral jitter is capped at 0.12 — 25px of sideways travel
 // against 210px of axial travel — so parts visibly thread DOWN THE SHAFT
@@ -355,7 +309,7 @@ const WIRE_SEGS = wireSegments();
 // meeting rather than as an assembly. The two end bells are the one place ±fz
 // is used, and it is legible precisely because it is symmetric about the axis.
 const PARTS = [
-  { id: 'shaft', lead: 0.02, sz: 95, dir: [0.06, -0.10, 1], spin: -180, ghost: { w: 13, h: 310, r: 0, z: 95 } },
+  { id: 'shaft', lead: 0.02, sz: 118, dir: [0.06, -0.10, 1], spin: -180, ghost: { w: 13, h: 236, r: 0, z: 118 } },
   { id: 'rotor', lead: 0.11, sz: 105, dir: [-0.08, 0.12, 1], spin: 300, ghost: { w: 40, h: 40, r: 50, z: 105 } },
   { id: 'stator', lead: 0.20, sz: 105, dir: [0.10, 0.05, 1], spin: -260, ghost: { w: 124, h: 124, r: 50, z: 105 } },
   { id: 'rearbell', lead: 0.40, sz: 26, dir: [-0.05, -0.12, -1], spin: 220, ghost: { w: 164, h: 164, r: 50, z: 26 } },
@@ -398,18 +352,19 @@ function MotorBuild() {
           HOLDS — so the rotor's spin at the bottom of the page is unambiguous
           rather than competing with a still-moving frame. */}
       <div className="f3d__spin">
-        {/* 0 · the phase winding, wound on before the stator closes over it */}
-        <div className="f3d__part f3d__wire">
-          {WIRE_SEGS.map((s, i) => (
-            <div key={i} className="f3d__wireseg" style={{ width: `${s.len.toFixed(2)}px`, marginLeft: `${(-s.len / 2).toFixed(2)}px`, transform: s.t }} />
-          ))}
-        </div>
-
         {/* 1 · SHAFT — the spine. Everything after it slides onto it, and its
              two 310x13 side faces sit under rotateY(90deg), so they project far
              narrower than 310px: the cheapest undeniable proof of real depth. */}
         <div className="f3d__build" {...part('shaft')}>
-          <Box w={13} h={13} d={310} />
+          {/* rotateX(90deg) maps the plate's HEIGHT onto the module's Z — the
+              motor axis — the same trick .f3d__axiswrap uses. Without it the
+              plate lies ACROSS the machine instead of along it. The second
+              plate is the same thing rolled 90deg about the axis, so one of
+              the two always faces the camera whatever the yaw. */}
+          <div className="f3d__shaftplate" style={{ transform: 'rotateX(90deg)' }} />
+          <div className="f3d__shaftplate" style={{ transform: 'rotateZ(90deg) rotateX(90deg)' }} />
+          <Ring d={13} z={-118} tone={85} />
+          <Ring d={13} z={118} tone={85} />
         </div>
 
         {/* 2 · ROTOR — back iron plus eight arc magnets, down the shaft */}
@@ -419,11 +374,6 @@ function MotorBuild() {
               <Ring d={40} z={-22} tone={80} />
               <Ring d={40} z={22} tone={80} />
               <Radial n={8} r={25} cls="f3d__magnet" />
-              {/* laminations: a few closely-spaced discs read as a stacked
-                  core rather than a solid billet */}
-              <Ring d={38} z={-11} tone={35} />
-              <Ring d={38} z={0} tone={35} />
-              <Ring d={38} z={11} tone={35} />
               {/* cooling fan on the rear of the shaft — the trailing rotateZ is
                   about the RADIAL axis after the rotateY(90deg), so it pitches
                   each blade the way the helix chords are pitched */}
@@ -444,11 +394,21 @@ function MotorBuild() {
           <Ring d={62} z={45} tone={40} />
           <Ring d={124} z={-45} tone={65} />
           <Ring d={124} z={45} tone={65} />
-          {/* lamination stack — a solid core would read as a plain tube */}
-          <Ring d={124} z={-22} tone={26} />
-          <Ring d={124} z={0} tone={26} />
-          <Ring d={124} z={22} tone={26} />
-          <Radial n={12} r={54} cls="f3d__pole" extra="rotateY(90deg)" />
+          {/* slot teeth on the lamination faces — the slotting reads from the
+              end faces, where a viewer actually sees it, instead of from 12
+              bars standing up inside the shell like a fence */}
+          <div className="f3d__part" style={{ transform: 'translateZ(-45px)' }}>
+            <Radial n={12} r={46} cls="f3d__tooth" />
+          </div>
+          <div className="f3d__part" style={{ transform: 'translateZ(45px)' }}>
+            <Radial n={12} r={46} cls="f3d__tooth" />
+          </div>
+          {/* COPPER: bars lying in the slots, plus an end-turn ring bulging
+              past each end of the stack. This is what a wound stator looks
+              like. */}
+          <Radial n={12} r={44} cls="f3d__slotbar" extra="rotateY(90deg)" />
+          <Ring d={92} z={-52} tone={0} cls="f3d__endturn" thick={2} />
+          <Ring d={92} z={52} tone={0} cls="f3d__endturn" thick={2} />
         </div>
 
         {/* 4 · REAR BELL — closes from behind, bearing boss + 6-bolt circle */}
@@ -485,12 +445,9 @@ function MotorBuild() {
               shell reads as one turned cylinder, stays open enough to see the
               copper and the spinning rotor through, and looks like a finned
               motor housing rather than a cage. */}
-          {Array.from({ length: 9 }, (_, k) => (
-            <Ring key={k} d={156} z={-80 + k * 20} tone={30} />
+          {Array.from({ length: 7 }, (_, k) => (
+            <Ring key={k} d={156} z={-78 + k * 26} tone={30} />
           ))}
-          {/* four longitudinal edges for structure — enough to tie the fins
-              together into a cylinder, few enough not to be a fence */}
-          <Radial n={4} r={78} cls="f3d__rib" extra="rotateY(90deg)" />
           <Ring d={156} z={-95} tone={75} thick={1.5} />
           <Ring d={156} z={95} tone={75} thick={1.5} />
           {/* terminal box on the flank, where the phase leads come out */}
@@ -706,7 +663,7 @@ export default function Flourish3D({ side = 'left' }) {
         }, at(p.lead));
         // Opacity on LEAVES only — putting it on the part wrapper would trip
         // the grouping rule and flatten that part's 3D children.
-        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__rib,.f3d__pole,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball'), {
+        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__shaftplate,.f3d__tooth,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball'), {
           opacity: [0, 1], duration: SPAN * 0.7, ease: 'outQuad',
         }, at(p.lead));
         // its phantom fades out exactly as the real part lands on it
@@ -717,11 +674,8 @@ export default function Flourish3D({ side = 'left' }) {
 
       // 2 · the winding runs on turn by turn, from the lead-in outside the
       // machine to the last turn, finishing just as the stator settles over it.
-      tl.add(q('.f3d__wireseg'), {
-        opacity: [0, 1],
-        duration: 40,
-        delay: stagger(2.2),
-      }, at(0.30));
+      tl.add(q('.f3d__slotbar'), { opacity: [0, 1], duration: 45, delay: stagger(9) }, at(0.30));
+      tl.add(q('.f3d__endturn'), { opacity: [0, 1], duration: 60 }, at(0.42));
 
       // 3 · the presentation turn: 340° while assembling, then HOLD.
       tl.add(q('.f3d__spin'), { rotateZ: [0, 340], duration: at(0.62), ease: 'inOutSine' }, 0);
