@@ -133,7 +133,7 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 Two decorative assemblies fixed to the viewport, one per side, mounted in the
 `page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by page scroll.
 
-- **LEFT — "Train Loop"** (machine learning): a four-layer network standing in
+- **LEFT — "Train Loop"** (machine learning): a 4-5-3-2 network standing in
   real depth. A packet runs down it, the answer comes out wrong against a target
   chip, a **backprop** packet crawls back UP, the wires it passes visibly thicken
   or thin behind it, a loss curve steps downward, and a decision panel resolves
@@ -233,12 +233,24 @@ squiggle never did.
 
 ### Geometry rules that are easy to break silently
 
-- **Cylinder pitch.** After `rotateY(90deg)`, for radius `r` and `n` elements a
-  CLOSED shell needs height `2*r*tan(180°/n)`. The can is r=78, n=16 → **31.03px
-  closed**; the ribs are 12px, so it is deliberately **vented** (39% fill) and the
-  copper stays visible through the gaps. Recompute this if you change `n` or `r`
-  — do not copy the number. An older revision of this file quoted r=58/n=14/26px,
-  which would leave the shell open.
+- **A cylinder made of longitudinal slats reads as a FENCE, not as a machine.**
+  The can was 14 ribs plus 14 fins around the axis; at this size that is 28
+  vertical sticks, the shell read as a birdcage, and everything inside it was
+  invisible. It is now a **stack of 9 circumferential rings** (cooling fins)
+  between two stronger end rings, plus only **4** longitudinal ribs for
+  structure. Rings follow the same perspective ellipse as the bells and the
+  winding, so the shell reads as one turned cylinder and stays open enough to
+  see the copper and the spinning rotor through it.
+- **Cylinder pitch**, still true for any slatted shell you do build: after
+  `rotateY(90deg)`, for radius `r` and `n` elements a CLOSED shell needs height
+  `2*r*tan(180°/n)`. Recompute it if you change `n` or `r` — do not copy the
+  number. An older revision of this file quoted r=58/n=14/26px, which would
+  leave the shell open.
+- **Detail is what stops it reading as "too basic".** A shaft, a core and a
+  shell is a tube. The parts that make it a motor at a glance are the ones with
+  their own silhouette: the **terminal box** on the flank, the pitched **cooling
+  fan** on the back of the shaft (it turns with the rotor), the **lamination
+  stacks** on rotor and stator, and the **bearing balls** in each bell hub.
 - **Radial stack, outward, verified clear** (min gap 2.5px): shaft OD 6.5 | rotor
   core 20 | magnets 21.5–28.5 | stator bore 31 | **winding 44** | pole bars 54 |
   stator OD 62 | can ribs 78 | bell flange 82.
@@ -255,6 +267,24 @@ squiggle never did.
 - The rotor's scroll spin-up lives on `.f3d__rotor`; its ambient idle lives on
   the nested `.f3d__rotorlife`. **Two writers on one rotateZ jitter.** Nested
   rotations about the same axis simply add.
+
+### Density is the whole ballgame on the ML side
+
+The network was 5-6-4-2 = **62 edges** and read as a cyan hairball. What fixed it:
+
+- **41 edges** (4-5-3-2). Past roughly 45 edges between layers this narrow, the
+  individual connections stop being separable and it turns to spaghetti.
+- **The backprop wave must PASS, not repaint.** `--bwd` peaks at 0.55, not 1,
+  and the per-edge `stagger` within a hop is 5ms rather than 1.6 — at the tight
+  stagger every edge in a layer lit simultaneously, which is a repaint.
+- **Prune.** Edge opacity scales with `|w|^1.6`, so a near-zero weight fades
+  almost out instead of sitting there as present as one the network actually
+  learned. A trained net should look sparse and structured.
+- **Narrow layers get proportionally less depth** (`n <= 2` → 0.42× the spread).
+  At the full ±52px a 2-node output layer threw one node so far back it read as
+  a stray dot rather than part of the graph.
+- The training points sit ON the decision panel's plane, not 56px in front of
+  it, or they read as unrelated floating dots.
 
 ### These are HTML divs, not SVG, and that is the entire point
 
@@ -281,9 +311,18 @@ range; per-layer near/far ratio on the ML network is **1.15–1.20×**. A ratio 
 deepest in-flight point reaches 213px of the 600px camera plane (1.55×
 magnification), so nothing inverts.
 
-To measure the flourishes without WebGL (the lazy Lanyard cannot start headless,
-see Open items), render them alone: a throwaway `probe.html` + `src/__probe.jsx`
-mounting only `<Flourish3D>` on the dev server, driven by geckodriver.
+To measure the flourishes without WebGL, render them alone: a throwaway
+`probe.html` + `src/__probe.jsx` mounting only `<Flourish3D>` on the dev server,
+driven by geckodriver.
+
+**And do actually LOOK at them.** The blank-screenshot gotcha at the top of this
+file is about WebGL and backgrounded tabs; it does NOT apply to these pieces.
+They are CSS-3D divs, headless Firefox renders them fine, and a WebDriver
+screenshot at a few scroll positions (crop each side out with ffmpeg, scale 2×)
+shows exactly what a visitor sees. Both faults that survived every numeric
+check — the network reading as a hairball, the can reading as a picket fence —
+were invisible in the measurements and obvious in one screenshot. Measure for
+*correctness*; look for *composition*.
 
 ### anime.js v4.5 API notes
 

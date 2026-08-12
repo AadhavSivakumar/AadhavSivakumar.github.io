@@ -145,14 +145,22 @@ function Radial({ n, r, cls, from = 0, extra = '' }) {
 // view. Every layer spans 104px of DEPTH, so edges sweep through Z and cross in
 // front of and behind each other — the thing a flat diagram cannot do. X
 // narrows so the architecture reads as a funnel while depth stays uniform.
-const LAYERS = [5, 6, 4, 2];
+// 4-5-3-2 = 41 edges. It was 5-6-4-2 = 62, which at this size read as a
+// hairball rather than as a network: past roughly 45 edges the individual
+// connections stop being separable and the whole thing turns to spaghetti.
+const LAYERS = [4, 5, 3, 2];
 const LAYER_Y = [-96, -40, 16, 72];
-const NODE_DX = 15;
+const NODE_DX = 17;
 const LAYER_DZ = 52;
 
 const nodePos = (i, j) => {
-  const c = (LAYERS[i] - 1) / 2;
-  return [(j - c) * NODE_DX, LAYER_Y[i], c ? ((j - c) / c) * LAYER_DZ * (i % 2 ? -1 : 1) : 0];
+  const n = LAYERS[i];
+  const c = (n - 1) / 2;
+  // Narrow layers get proportionally less depth: at n=2 the full spread threw
+  // one output node 52px back, far enough that it read as a stray dot rather
+  // than as part of the graph.
+  const dz = LAYER_DZ * (n <= 2 ? 0.42 : n <= 3 ? 0.72 : 1);
+  return [(j - c) * NODE_DX, LAYER_Y[i], c ? ((j - c) / c) * dz * (i % 2 ? -1 : 1) : 0];
 };
 
 const NODES = LAYERS.flatMap((n, i) => Array.from({ length: n }, (_, j) => ({ i, j, p: nodePos(i, j) })));
@@ -193,20 +201,18 @@ const CELLS = Array.from({ length: PANEL_N * PANEL_N }, (_, i) => {
 // flip — one at a time, which is why each carries two stacked marks.
 const PTS = Array.from({ length: 10 }, (_, i) => {
   const a = hash(i * 31 + 5), b = hash(i * 17 + 91);
-  const cx = (a - 0.5) * 68, cy = (b - 0.5) * 68;
+  const cx = (a - 0.5) * 62, cy = (b - 0.5) * 62;   // inside the 79px panel frame
   const d = (cy / 30) - 0.80 * (cx / 30) + 0.62 * Math.sin(cx / 26);
   return { x: cx, y: cy, pos: d > 0, flips: i === 2 || i === 5 || i === 8 };
 });
 
 const OUT_A = nodePos(3, 0);
-const TARGET = [OUT_A[0] + 46, OUT_A[1], OUT_A[2]];
+const TARGET = [OUT_A[0] + 34, OUT_A[1], OUT_A[2]];
 
 function TrainLoop() {
   const delta = link(OUT_A, TARGET);
   return (
     <>
-      <div className="f3d__spine" />
-
       {/* decision panel, floating above and behind the network */}
       <div className="f3d__mlpanel">
         <div className="f3d__mlpanelspin">
@@ -413,6 +419,18 @@ function MotorBuild() {
               <Ring d={40} z={-22} tone={80} />
               <Ring d={40} z={22} tone={80} />
               <Radial n={8} r={25} cls="f3d__magnet" />
+              {/* laminations: a few closely-spaced discs read as a stacked
+                  core rather than a solid billet */}
+              <Ring d={38} z={-11} tone={35} />
+              <Ring d={38} z={0} tone={35} />
+              <Ring d={38} z={11} tone={35} />
+              {/* cooling fan on the rear of the shaft — the trailing rotateZ is
+                  about the RADIAL axis after the rotateY(90deg), so it pitches
+                  each blade the way the helix chords are pitched */}
+              <div className="f3d__part" style={{ transform: 'translateZ(-74px)' }}>
+                <Radial n={8} r={24} cls="f3d__blade" extra="rotateY(90deg) rotateZ(34deg)" />
+                <Ring d={22} tone={70} />
+              </div>
             </div>
           </div>
         </div>
@@ -426,6 +444,10 @@ function MotorBuild() {
           <Ring d={62} z={45} tone={40} />
           <Ring d={124} z={-45} tone={65} />
           <Ring d={124} z={45} tone={65} />
+          {/* lamination stack — a solid core would read as a plain tube */}
+          <Ring d={124} z={-22} tone={26} />
+          <Ring d={124} z={0} tone={26} />
+          <Ring d={124} z={22} tone={26} />
           <Radial n={12} r={54} cls="f3d__pole" extra="rotateY(90deg)" />
         </div>
 
@@ -433,6 +455,7 @@ function MotorBuild() {
         <div className="f3d__build" {...part('rearbell')}>
           <Ring d={164} tone={80} thick={1.5} />
           <Ring d={26} tone={90} />
+          <Radial n={6} r={13} cls="f3d__ball" />
           <Radial n={6} r={62} cls="f3d__bolt" />
         </div>
 
@@ -442,6 +465,7 @@ function MotorBuild() {
           <Ring d={164} tone={80} thick={1.5} />
           <Ring d={76} tone={70} />
           <Ring d={26} tone={90} />
+          <Radial n={6} r={13} cls="f3d__ball" />
           <Radial n={6} r={62} cls="f3d__bolt" />
         </div>
 
@@ -453,9 +477,26 @@ function MotorBuild() {
              spinning rotor stay visible through the gaps. Recompute that pitch
              if you ever change n or r; do not copy the number. */}
         <div className="f3d__build" {...part('can')}>
-          <Radial n={16} r={78} cls="f3d__rib" extra="rotateY(90deg)" />
-          <Ring d={156} z={-95} tone={70} />
-          <Ring d={156} z={95} tone={70} />
+          {/* COOLING FINS as a stack of circumferential rings, NOT longitudinal
+              slats. A cylinder built from slats around the axis always reads as
+              a picket fence or a birdcage — 14 of them plus 14 fins was 28
+              vertical sticks and the machine inside was invisible. Rings follow
+              the same perspective ellipse the bells and the winding do, so the
+              shell reads as one turned cylinder, stays open enough to see the
+              copper and the spinning rotor through, and looks like a finned
+              motor housing rather than a cage. */}
+          {Array.from({ length: 9 }, (_, k) => (
+            <Ring key={k} d={156} z={-80 + k * 20} tone={30} />
+          ))}
+          {/* four longitudinal edges for structure — enough to tie the fins
+              together into a cylinder, few enough not to be a fence */}
+          <Radial n={4} r={78} cls="f3d__rib" extra="rotateY(90deg)" />
+          <Ring d={156} z={-95} tone={75} thick={1.5} />
+          <Ring d={156} z={95} tone={75} thick={1.5} />
+          {/* terminal box on the flank, where the phase leads come out */}
+          <div className="f3d__part" style={{ transform: 'rotateZ(90deg) translateX(86px) rotateZ(-90deg)' }}>
+            <Box w={30} h={26} d={40} />
+          </div>
         </div>
       </div>
     </div>
@@ -506,7 +547,7 @@ export default function Flourish3D({ side = 'left' }) {
     // fake and no pre-rendered image sequence can produce. The dolly changes
     // the perspective DIVERGENCE itself, which orbiting alone cannot do.
     tl.add(world, {
-      translateZ: isLeft ? [-70, 100] : [-140, 90],
+      translateZ: isLeft ? [-70, 100] : [-140, 55],
       rotateX: [7, 16],
       rotateY: isLeft ? [26, -22] : [-28, 20],
       duration: 1000,
@@ -533,7 +574,7 @@ export default function Flourish3D({ side = 'left' }) {
       byHop.forEach((group, h) => {
         tl.add(group, {
           '--swell': [{ to: 0.55, duration: 38, ease: 'outQuad' }, { to: 0, duration: 38, ease: 'inQuad' }],
-          delay: stagger(1.4),
+          delay: stagger(4),
         }, at(FWD[h]));
       });
       nodesByLayer.forEach((group, l) => {
@@ -547,7 +588,7 @@ export default function Flourish3D({ side = 'left' }) {
       // appears beside it, and the delta bar between them opens up.
       tl.add(q('.f3d__mlnode[data-layer="3"]')[0], { '--err': [0, 1], duration: 60 }, at(0.26));
       tl.add(q('.f3d__mlchip'), { opacity: [0, 0.85], scale: [0.5, 1], duration: 60, ease: 'outBack(2)' }, at(0.26));
-      tl.add(q('.f3d__mldelta'), { opacity: [0, 1], '--k': [0.1, 3.1], duration: 70, ease: 'outQuad' }, at(0.27));
+      tl.add(q('.f3d__mldelta'), { opacity: [0, 0.75], '--k': [0.1, 0.85], duration: 70, ease: 'outQuad' }, at(0.27));
 
       // 4 · BACKPROP — the same swell mechanic run right-to-left, hop 2 first.
       // This is the most ML-exclusive thing on the page: nothing in robotics or
@@ -555,9 +596,11 @@ export default function Flourish3D({ side = 'left' }) {
       const BWD = [0.440, 0.390, 0.340];
       byHop.forEach((group, h) => {
         tl.add(group, {
-          '--bwd': [{ to: 1, duration: 45, ease: 'outQuad' }, { to: 0, duration: 45, ease: 'inQuad' }],
-          '--swell': [{ to: 0.42, duration: 45, ease: 'outQuad' }, { to: 0, duration: 45, ease: 'inQuad' }],
-          delay: stagger(1.6, { reversed: true }),
+          '--bwd': [{ to: 0.55, duration: 45, ease: 'outQuad' }, { to: 0, duration: 45, ease: 'inQuad' }],
+          '--swell': [{ to: 0.30, duration: 45, ease: 'outQuad' }, { to: 0, duration: 45, ease: 'inQuad' }],
+          // a wide stagger is what makes this read as a WAVE sweeping through
+          // the layer; at 1.6ms the whole hop lit at once, which is a repaint
+          delay: stagger(5, { reversed: true }),
         }, at(BWD[h]));
       });
 
@@ -568,8 +611,10 @@ export default function Flourish3D({ side = 'left' }) {
       // with momentum overshoots and settles.
       byHop.forEach((group, h) => {
         tl.add(group, {
-          '--k': (el) => [0.17, 0.17 + 0.83 * Math.abs(+el.dataset.w)],
-          opacity: (el) => [0.28, 0.28 + 0.62 * Math.abs(+el.dataset.w)],
+          '--k': (el) => [0.17, 0.10 + 0.72 * Math.abs(+el.dataset.w)],
+          // ^1.6 prunes: a near-zero weight fades almost out instead of sitting
+          // there at the same weight as one the network actually learned
+          opacity: (el) => [0.28, 0.10 + 0.72 * Math.pow(Math.abs(+el.dataset.w), 1.6)],
           duration: 140,
           ease: 'outBack(1.4)',
           delay: stagger([0, 26], { jitter: 8, seed: 11 }),
@@ -600,7 +645,7 @@ export default function Flourish3D({ side = 'left' }) {
           }, at(0.62 + n * 0.06 + l * 0.011));
         });
       });
-      tl.add(q('.f3d__mldelta'), { '--k': [3.1, 0.12], opacity: [1, 0.25], duration: 220, ease: 'inOutQuad' }, at(0.60));
+      tl.add(q('.f3d__mldelta'), { '--k': [0.85, 0.1], opacity: [0.75, 0.18], duration: 220, ease: 'inOutQuad' }, at(0.60));
 
       // 8 · BOUNDARY SHARPENS — the panel commits, cell by cell in a scattered
       // order, and the three mislabelled points flip one at a time.
@@ -661,7 +706,7 @@ export default function Flourish3D({ side = 'left' }) {
         }, at(p.lead));
         // Opacity on LEAVES only — putting it on the part wrapper would trip
         // the grouping rule and flatten that part's 3D children.
-        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__rib,.f3d__pole,.f3d__magnet,.f3d__bolt'), {
+        tl.add(el.querySelectorAll('.f3d__face,.f3d__ring,.f3d__rib,.f3d__pole,.f3d__magnet,.f3d__bolt,.f3d__blade,.f3d__ball'), {
           opacity: [0, 1], duration: SPAN * 0.7, ease: 'outQuad',
         }, at(p.lead));
         // its phantom fades out exactly as the real part lands on it
