@@ -504,7 +504,7 @@ export default function Flourish3D({ side = 'left' }) {
     // fake and no pre-rendered image sequence can produce. The dolly changes
     // the perspective DIVERGENCE itself, which orbiting alone cannot do.
     tl.add(world, {
-      translateZ: isLeft ? [-70, 100] : [-140, 55],
+      translateZ: isLeft ? [-70, 100] : [-140, 30],
       rotateX: [7, 16],
       rotateY: isLeft ? [26, -22] : [-28, 20],
       duration: 1000,

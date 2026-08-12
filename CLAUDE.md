@@ -320,6 +320,14 @@ The network was 5-6-4-2 = **62 edges** and read as a cyan hairball. What fixed i
   left and right side walls foreshorten to nothing and swap over — a tell no 2D
   fake and no pre-rendered image sequence produces.
 
+**Keep both sides inside the viewport, and roughly balanced.** Measured with the
+flourishes' own bounding boxes at scroll 1.0: the motor renders ~239px wide and
+the network ~158px. Before `.f3d__module`'s `scale(0.80)` and trimming the right
+camera's final dolly to +30, the motor was 272px and clipped the right edge of a
+1280px viewport by 22px at the bottom of the page. If you change the module
+scale, the dolly, or `perspective`, re-measure — the check is one script that
+sums element rects per side at several widths.
+
 **Verify depth by MEASURING, not by eye** (a backgrounded tab throttles rAF and
 screenshots blank — that is an environment artifact, not a bug). Measured live in
 Firefox at `perspective: 600px`: the 63 identical-width wire chords project

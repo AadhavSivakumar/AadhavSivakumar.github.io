@@ -41,7 +41,7 @@ html[data-theme="dark"] {
   --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
   --ml-neg: #79A9B9;
   --ml-err: #C97A64;
-  --f3d-copper: #E08A48;
+  --f3d-copper: #CE8449;
 }
 
 /* GLOBAL STYLES */
@@ -619,7 +619,7 @@ html[data-theme="dark"] {
    threading along that axis separate in real depth as they arrive. It lives in
    the STYLESHEET and must never be animated: anime merges only *inline* static
    components and would wipe it. */
-.f3d__module { transform: translateY(30px) rotateX(58deg) rotateZ(-16deg) scale(0.88); }
+.f3d__module { transform: translateY(30px) rotateX(58deg) rotateZ(-16deg) scale(0.80); }
 .f3d__axiswrap { transform: rotateX(90deg); }
 .f3d__axis {
   position: absolute; left: 0; top: 0;
