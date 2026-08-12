@@ -681,13 +681,23 @@ function Band({
             }}
           >
             <mesh geometry={nodes.card.geometry}>
+              {/* A printed ID badge, not a piano. This was clearcoat 1 at
+                  clearcoatRoughness 0.1 with metalness 0.35, which is a hard
+                  gloss lacquer: against the Environment's intensity-10
+                  Lightformer it threw a sharp specular sheet across the card
+                  and washed the name and role text out. A laminated badge does
+                  have a slight sheen, so the clearcoat stays — just weak and
+                  diffused. metalness in particular has no business here: a
+                  metallic surface tints its reflection by the base colour and
+                  darkens the diffuse term, which is the opposite of what a
+                  white printed card does with light. */}
               <meshPhysicalMaterial
                 map={cardMap}
                 map-anisotropy={16}
-                clearcoat={isMobile ? 0 : 1}
-                clearcoatRoughness={0.1}
-                roughness={0.55}
-                metalness={0.35}
+                clearcoat={isMobile ? 0 : 0.25}
+                clearcoatRoughness={0.45}
+                roughness={0.72}
+                metalness={0.04}
               />
             </mesh>
             <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
