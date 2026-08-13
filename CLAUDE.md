@@ -301,6 +301,35 @@ sit inside a shell you cannot see through, so they cost clutter and buy nothing.
   the nested `.f3d__rotorlife`. **Two writers on one rotateZ jitter.** Nested
   rotations about the same axis simply add.
 
+### Performance: what actually made the page laggy
+
+Measured with geckodriver, rAF intervals during a scripted scroll, flourishes on
+vs off. Two findings, and the first was the real one:
+
+- **`sync: <number>` on `onScroll` NEVER SETTLES.** `sync: 0.2` adds weighted
+  catch-up that lerps toward the target forever: on a completely static page it
+  was still rewriting the camera **~1,200 times a second**, so a ~350-element
+  preserve-3d tree was re-composited every frame while nobody was scrolling.
+  Static frame time was **49ms**; with `sync: true` (a plain 1:1 scrub) it is
+  **17ms — identical to having the flourishes hidden**, and style mutations on a
+  still page go from 2,370 per 2s to **0**. The inertia is not worth a
+  permanently busy main thread. If you ever want the weighted feel back, drive
+  it yourself and stop when the delta is under a pixel.
+- **Infinite CSS animations keep the whole page compositing.** The hero's two
+  aurora blobs and ten sine-field paths ran for the entire session, including
+  scrolled far away, and every other layer pays for that. `Hero.jsx` now toggles
+  `.hero--idle` from an IntersectionObserver and the CSS pauses them.
+- The lanyard `<Canvas>` had the same shape of bug — rAF is only throttled when
+  the whole TAB is hidden, never when a canvas merely scrolls out of view — and
+  is now gated to `frameloop={onScreen ? 'always' : 'never'}`.
+
+What is NOT the problem, so don't go chasing it: `clip-path` (stripping it
+changed nothing), `will-change`, and the JS writes (only **46 style writes per
+frame** during scroll — trivial). The residual scroll-time cost is the browser
+re-sorting and re-rasterising the preserve-3d trees, which is inherent to the
+technique and scales with element count. Budget ~350 elements total; `App.jsx`
+skips the flourishes entirely when `navigator.hardwareConcurrency <= 4`.
+
 ### Density is the whole ballgame on the left
 
 Whatever the left side depicts, the failure mode is the same: too many similar

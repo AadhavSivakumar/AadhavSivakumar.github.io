@@ -17,6 +17,7 @@ const KEYWORDS = [
 const NAME = 'Aadhav Sivakumar';
 
 export default function Hero() {
+  const heroRef = useRef(null);
   const nameRef = useRef(null);
   const glassRef = useRef(null);
 
@@ -82,8 +83,42 @@ export default function Hero() {
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
+
+  // The aurora blobs and the sine field are infinite CSS animations, so they
+
+  // kept the compositor busy for the WHOLE session — including while the hero
+
+  // was scrolled far off screen. That is cheap on its own, but it forces a
+
+  // composite every frame, and everything else on the page (notably the two
+
+  // 3D flourishes) then pays for it too. Pause them when the hero is not in
+
+  // view; CSS does the actual pausing via .hero--idle.
+
+  useEffect(() => {
+
+    const el = heroRef.current;
+
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+
+    const io = new IntersectionObserver(
+
+      ([e]) => el.classList.toggle('hero--idle', !e.isIntersecting),
+
+      { rootMargin: '80px' }
+
+    );
+
+    io.observe(el);
+
+    return () => io.disconnect();
+
+  }, []);
+
+
   return (
-    <section id="hero">
+    <section id="hero" ref={heroRef}>
       <div className="hero-aurora" aria-hidden="true">
         <div className="aurora-blob aurora-a" />
         <div className="aurora-blob aurora-b" />

@@ -210,11 +210,11 @@ function VisionPipeline() {
         <div className="f3d__vpcam">
         {/* lens barrel, turned from a real stepped profile */}
         <div className="f3d__vpfront">
-          <Revolve prof={P_LENS} blades={6} tone={58}
+          <Revolve prof={P_LENS} blades={4} tone={58}
                    rings={[[16, 33, 78], [30, 26], [48, 29, 70], [62, 25], [70, 27, 78]]} />
           {/* knurling on the focus ring */}
           <div className="f3d__part" style={{ transform: 'translateZ(40px)' }}>
-            <Radial n={16} r={29} cls="f3d__knurl" extra="rotateY(90deg)" />
+            <Radial n={10} r={29} cls="f3d__knurl" extra="rotateY(90deg)" />
           </div>
           <div className="f3d__vpglass" style={{ transform: 'translateZ(72px)' }} />
         </div>
@@ -487,7 +487,7 @@ function MotorBuild() {
               <Radial n={8} r={25} cls="f3d__magnet" />
               {/* squirrel-cage bars — they turn with the rotor, so the spin-up
                   has something legible to move */}
-              <Radial n={14} r={31} cls="f3d__cagebar" extra="rotateY(90deg)" />
+              <Radial n={9} r={31} cls="f3d__cagebar" extra="rotateY(90deg)" />
               <Ring d={66} z={-40} tone={55} />
               <Ring d={66} z={40} tone={55} />
               {/* cooling fan on the rear of the shaft — the trailing rotateZ is
@@ -514,10 +514,10 @@ function MotorBuild() {
               end faces, where a viewer actually sees it, instead of from 12
               bars standing up inside the shell like a fence */}
           <div className="f3d__part" style={{ transform: 'translateZ(-45px)' }}>
-            <Radial n={12} r={46} cls="f3d__tooth" />
+            <Radial n={8} r={46} cls="f3d__tooth" />
           </div>
           <div className="f3d__part" style={{ transform: 'translateZ(45px)' }}>
-            <Radial n={12} r={46} cls="f3d__tooth" />
+            <Radial n={8} r={46} cls="f3d__tooth" />
           </div>
           {/* COPPER: bars lying in the slots, plus an end-turn ring bulging
               past each end of the stack. This is what a wound stator looks
@@ -532,13 +532,13 @@ function MotorBuild() {
           {/* rear bell and the stamped fan cowl over it, as ONE turned form
               that tapers back to the air inlet — the most recognisable end of
               a TEFC motor */}
-          <Revolve prof={P_COWL} blades={5} tone={54}
+          <Revolve prof={P_COWL} blades={4} tone={54}
                    rings={[[-104, 82, 80], [-118, 76], [-136, 63], [-150, 47], [-158, 32, 75]]} />
           {/* bearing: outer race, inner race, balls between them */}
           <Ring d={34} z={-100} tone={55} />
           <Ring d={19} z={-100} tone={55} />
-          <Radial n={8} r={13} cls="f3d__ball" extra="translateZ(-100px)" />
-          <Radial n={8} r={62} cls="f3d__bolt" extra="translateZ(-104px)" />
+          <Radial n={6} r={13} cls="f3d__ball" extra="translateZ(-100px)" />
+          <Radial n={6} r={62} cls="f3d__bolt" extra="translateZ(-104px)" />
           {/* louvres punched in the cowl face, tapered like real ones */}
           <div className="f3d__part" style={{ transform: 'translateZ(-152px)' }}>
             <Radial n={8} r={34} cls="f3d__vent" />
@@ -548,12 +548,12 @@ function MotorBuild() {
         {/* 5 · FRONT BELL — closes from the front and carries the output flange
              the shaft protrudes through */}
         <div className="f3d__build" {...part('frontbell')}>
-          <Revolve prof={P_FRONT} blades={5} tone={54}
+          <Revolve prof={P_FRONT} blades={4} tone={54}
                    rings={[[102, 82, 80], [112, 82], [122, 52], [130, 38], [136, 27, 80], [146, 14]]} />
           <Ring d={34} z={104} tone={55} />
           <Ring d={19} z={104} tone={55} />
-          <Radial n={8} r={13} cls="f3d__ball" extra="translateZ(104px)" />
-          <Radial n={8} r={62} cls="f3d__bolt" extra="translateZ(104px)" />
+          <Radial n={6} r={13} cls="f3d__ball" extra="translateZ(104px)" />
+          <Radial n={6} r={62} cls="f3d__bolt" extra="translateZ(104px)" />
         </div>
 
         {/* 6 · VENTED CAN — LAST, and the part that fixes the silhouette. 16
@@ -629,6 +629,11 @@ export default function Flourish3D({ side = 'left' }) {
     // ── the scroll-scrubbed story ────────────────────────────────────────
     const tl = createTimeline({
       defaults: { ease: 'linear' },
+      // Measured: the two flourishes took the page's median frame from 17ms to
+      // 33-48ms, because every camera change re-sorts and re-composites ~390
+      // elements across two preserve-3d trees. Half the updates, half the cost,
+      // and at this size nobody can tell.
+      frameRate: 30,
       // Not a hand-rolled scroll listener: anime's own ScrollObserver, which
       // keeps ONE rAF-batched listener per container with cached bounds.
       // Threshold strings are '<container> <target>', container FIRST —
@@ -637,7 +642,14 @@ export default function Flourish3D({ side = 'left' }) {
       // scroll position instead of welding it there, so the machine has mass.
       // NB the target must be the document, never `.f3d` — a position:fixed
       // element's getBoundingClientRect is the viewport and the range collapses.
-      autoplay: reduce ? false : onScroll({ target: document.body, enter: 'start start', leave: 'end end', sync: 0.2 }),
+      // `sync: true` is a 1:1 scrub. `sync: <0..1>` adds weighted catch-up, and
+      // that smoothing NEVER SETTLES: measured on a completely static page, it
+      // kept rewriting the camera ~1,200 times a second forever, which meant a
+      // ~350-element preserve-3d tree was being re-composited every frame even
+      // when nobody was scrolling. That was the single biggest cause of the
+      // page feeling laggy. The inertia is not worth a permanently busy main
+      // thread.
+      autoplay: reduce ? false : onScroll({ target: document.body, enter: 'start start', leave: 'end end', sync: true }),
     });
 
     // Pin the total duration at exactly 1000ms so scroll fraction == ms/1000
@@ -740,11 +752,6 @@ export default function Flourish3D({ side = 'left' }) {
 
       // ambient: the sensor plane and the attention map breathe. Both wrappers
       // carry no static transform of their own, so anime owns them outright.
-      if (!reduce) {
-        loops.push(
-          animate(q('.f3d__vpmat'), { rotateY: [16, 26], duration: 8200, loop: true, alternate: true, ease: 'inOutSine' })
-        );
-      }
     } else {
       // 1 · every part threads in along the axis from its own lead, tumbling
       // and spinning as it goes. BUILD_SPAN (0.26) is far wider than the 0.09
@@ -800,9 +807,6 @@ export default function Flourish3D({ side = 'left' }) {
       // the nested .f3d__rotorlife, never on .f3d__rotor — two writers on the
       // same rotateZ would fight and jitter. Nested rotations about the same
       // axis simply add.
-      if (!reduce) {
-        loops.push(animate(q('.f3d__rotorlife'), { rotateZ: 360, duration: 9000, loop: true, ease: 'linear' }));
-      }
     }
 
     if (reduce) {
@@ -813,11 +817,10 @@ export default function Flourish3D({ side = 'left' }) {
       return () => { tl.revert(); };
     }
 
-    // slow idle yaw so the piece breathes even when the page is still
-    loops.push(animate(q('.f3d__idle'), {
-      rotateY: [(isLeft ? -1 : 1) * 7, (isLeft ? 1 : -1) * 7],
-      duration: 9000, loop: true, alternate: true, ease: 'inOutSine',
-    }));
+    // NB: there are deliberately NO looping ambient animations here. They used
+    // to give the pieces life on a still page, and they cost a full recomposite
+    // of both preserve-3d trees every frame forever. Everything is scroll-driven
+    // instead, so a page nobody is scrolling costs nothing at all.
 
     return () => {
       loops.forEach(a => a && a.revert && a.revert());
@@ -828,7 +831,7 @@ export default function Flourish3D({ side = 'left' }) {
   return (
     <div className={`f3d f3d--${side}`} ref={ref} aria-hidden="true">
       <div className="f3d__world">
-        <div className="f3d__idle">{isLeft ? <VisionPipeline /> : <MotorBuild />}</div>
+        <div className="f3d__idle" style={{ transform: `rotateY(${isLeft ? -5 : 5}deg)` }}>{isLeft ? <VisionPipeline /> : <MotorBuild />}</div>
       </div>
     </div>
   );

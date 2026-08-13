@@ -473,7 +473,6 @@ html[data-theme="dark"] {
   perspective: 600px;
   pointer-events: none;
   opacity: 0.85;
-  will-change: transform;
 }
 /* Bias each stage's vanishing point toward the page centre, so the two objects
    read as seen from the reader's seat and visually frame the content. */
@@ -485,6 +484,9 @@ html[data-theme="dark"] {
    filter, clip-path, mask, mix-blend-mode, isolation, contain, overflow) on any
    of these — each one forces `flat` on its children. All are zero-size anchor
    points so their children centre on the stage origin via negative margins. */
+/* .f3d__world is the one element the camera actually writes, so it is the one
+   worth promoting — the hint used to sit on .f3d, which is never transformed. */
+.f3d__world { will-change: transform; }
 .f3d__world,
 .f3d__idle,
 .f3d__part,
@@ -825,6 +827,13 @@ html[data-theme="dark"] {
   background: color-mix(in srgb, var(--accent-color) 70%, transparent);
   opacity: 0;
 }
+/* Hero decorations are infinite animations; off-screen they were still
+   compositing every frame and making every other layer on the page pay for it.
+   Hero.jsx toggles this class from an IntersectionObserver. */
+.hero--idle .aurora-blob,
+.hero--idle .hero-wavefield path,
+.hero--idle .hero-wavefield g { animation-play-state: paused; }
+
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
 
 

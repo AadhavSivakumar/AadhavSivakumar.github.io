@@ -110,9 +110,26 @@ export default function Lanyard({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // The canvas used to render for the whole session: six rapier rope chains
+  // stepping and a multi-megapixel scene drawing at 60fps even when the About
+  // strip was scrolled far off screen. rAF is only throttled when the whole TAB
+  // is hidden, never when a canvas merely leaves the viewport, so nothing was
+  // stopping it. Now the world only runs while any part of the strip is on
+  // screen, and parks on a single settled frame otherwise.
+  const wrapRef = useRef(null);
+  const [onScreen, setOnScreen] = useState(true);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { rootMargin: '120px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <div className="lanyard-wrapper">
+    <div className="lanyard-wrapper" ref={wrapRef}>
       <Canvas
+        frameloop={onScreen ? 'always' : 'never'}
         camera={{ position, fov }}
         dpr={[1, isMobile ? 1.5 : 2]}
         gl={{ alpha: transparent }}
