@@ -180,6 +180,37 @@ lanyard already proves that failure mode. Pre-rendered video (Manim, Blender)
 is a legitimate technique for a fixed explainer, but it cannot follow the live
 theme toggle, the viewport, or scroll position without shipping megabytes.
 
+### Shaded solids
+
+The masses (frame, bells, cowl, shaft, cores, camera body, lens) are SURFACES,
+not wireframe: quads with a normal, lit and depth-sorted, so they read as
+rendered metal. Fine detail (cage bars, teeth, louvres, bolts, ticks) stays as
+strokes over the top — at this size a line reads better than a 2px sliver of
+filled geometry.
+
+- A face is `{ v: [...], n: [x,y,z] }`; normals are computed once in local space
+  and rotated per frame by the part's matrix (uniform scale only, so no
+  inverse-transpose needed).
+- **Back-face culling is done by screen winding** (signed area after
+  projection), which needs no view-space normal.
+- Lighting is Lambert + a Blinn-ish specular against a fixed world light. Shade
+  values are QUANTISED and the resulting `rgb()` strings cached — otherwise a
+  few hundred faces a frame churn a few hundred strings.
+- `submit()` collects faces for the WHOLE frame; `flush()` sorts them back to
+  front and fills. Sorting globally rather than per part is what lets the rotor
+  read as being inside the frame.
+- Materials come from the theme tokens, desaturated toward neutral so lighting
+  does the work rather than hue. Copper stays saturated.
+
+**A solid body hides its own internals**, which is why the motor now opens back
+UP into a held exploded view after it assembles (`EXPLODE`, from p 0.62) instead
+of staying closed — a shaded closed can is just a can. Concentric parts only
+separate if they travel FAR along the axis, so the module also scales down as it
+opens to stay in frame.
+
+Measured cost of shading: unchanged. p50 17.1ms with the flourishes against
+17.3ms with them hidden, and 17.0 vs 17.0 on a static page.
+
 ### How it is put together
 
 - Geometry is **arrays of polylines in local 3D space**, built ONCE at module
