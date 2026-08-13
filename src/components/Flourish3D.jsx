@@ -150,8 +150,8 @@ function Radial({ n, r, cls, from = 0, extra = '' }) {
    flattening into a sequence, the CLS token at the head, the all-pairs
    attention collapsing onto a few strong links, and a box with a confidence.  */
 
-const PX_C = 8, PX_R = 6, PX = 12;              // 48 photosites, 96x72
-const PATCH_C = 4, PATCH_R = 3, PATCH = 24;     // 12 patches over that grid
+const PX_C = 6, PX_R = 4, PX = 15;              // 24 photosites, 90x60
+const PATCH_C = 3, PATCH_R = 2, PATCH = 30;     // 6 patches over that grid
 const NTOK = PATCH_C * PATCH_R;                 // 12 patch tokens (+1 CLS)
 
 const IMG_Y = -142;   // the image plane, where the camera is
@@ -171,9 +171,9 @@ const pxVal = i => {
 const patchPos = k => [((k % PATCH_C) - (PATCH_C - 1) / 2) * PATCH, (Math.floor(k / PATCH_C) - (PATCH_R - 1) / 2) * PATCH];
 // tokens: a sequence receding along Z, which is the one thing a flat diagram of
 // a transformer can never show
-const tokPos = i => [(i - NTOK / 2) * 6.4, Math.abs(i - NTOK / 2) * -1.6, -74 + i * 12.4];
+const tokPos = i => [(i - NTOK / 2) * 11, Math.abs(i - NTOK / 2) * -2.4, -70 + i * 22];
 
-const ATT_N = 4;  // 4x4 attention map
+const ATT_N = 3;  // 3x3 attention map
 
 
 // Outline clip for an arbitrary silhouette: the polygon, then the same polygon
@@ -210,11 +210,11 @@ function VisionPipeline() {
         <div className="f3d__vpcam">
         {/* lens barrel, turned from a real stepped profile */}
         <div className="f3d__vpfront">
-          <Revolve prof={P_LENS} blades={4} tone={58}
+          <Revolve prof={P_LENS} blades={3} tone={58}
                    rings={[[16, 33, 78], [30, 26], [48, 29, 70], [62, 25], [70, 27, 78]]} />
           {/* knurling on the focus ring */}
           <div className="f3d__part" style={{ transform: 'translateZ(40px)' }}>
-            <Radial n={10} r={29} cls="f3d__knurl" extra="rotateY(90deg)" />
+            <Radial n={6} r={29} cls="f3d__knurl" extra="rotateY(90deg)" />
           </div>
           <div className="f3d__vpglass" style={{ transform: 'translateZ(72px)' }} />
         </div>
@@ -408,7 +408,7 @@ const P_COWL = [
   [-166, 26], [-158, 32], [-150, 47], [-136, 63], [-126, 72],
   [-118, 76], [-114, 82], [-104, 82], [-100, 78],
 ];
-const P_FRAME = finnedFrame(-98, 98, 78, 88, 6);
+const P_FRAME = finnedFrame(-98, 98, 78, 88, 5);
 const P_FRONT = [
   [98, 78], [102, 82], [112, 82], [116, 74], [122, 52],
   [130, 38], [136, 27], [142, 22], [146, 14],
@@ -472,7 +472,7 @@ function MotorBuild() {
              two 310x13 side faces sit under rotateY(90deg), so they project far
              narrower than 310px: the cheapest undeniable proof of real depth. */}
         <div className="f3d__build" {...part('shaft')}>
-          <Revolve prof={P_SHAFT} blades={4} tone={70}
+          <Revolve prof={P_SHAFT} blades={3} tone={70}
                    rings={[[-166, 9.5], [150, 9.5, 80], [156, 8], [178, 8, 80]]} />
           {/* keyway on the drive end — the flat a coupling keys onto */}
           <div className="f3d__keyway" style={{ transform: 'translateZ(162px) rotateX(90deg)' }} />
@@ -484,17 +484,17 @@ function MotorBuild() {
             <div className="f3d__rotorlife">
               <Ring d={40} z={-22} tone={80} />
               <Ring d={40} z={22} tone={80} />
-              <Radial n={8} r={25} cls="f3d__magnet" />
+              <Radial n={6} r={25} cls="f3d__magnet" />
               {/* squirrel-cage bars — they turn with the rotor, so the spin-up
                   has something legible to move */}
-              <Radial n={9} r={31} cls="f3d__cagebar" extra="rotateY(90deg)" />
+              <Radial n={7} r={31} cls="f3d__cagebar" extra="rotateY(90deg)" />
               <Ring d={66} z={-40} tone={55} />
               <Ring d={66} z={40} tone={55} />
               {/* cooling fan on the rear of the shaft — the trailing rotateZ is
                   about the RADIAL axis after the rotateY(90deg), so it pitches
                   each blade the way the helix chords are pitched */}
               <div className="f3d__part" style={{ transform: 'translateZ(-126px)' }}>
-                <Radial n={8} r={24} cls="f3d__blade" extra="rotateY(90deg) rotateZ(34deg)" />
+                <Radial n={6} r={24} cls="f3d__blade" extra="rotateY(90deg) rotateZ(34deg)" />
                 <Ring d={22} tone={70} />
               </div>
             </div>
@@ -514,15 +514,15 @@ function MotorBuild() {
               end faces, where a viewer actually sees it, instead of from 12
               bars standing up inside the shell like a fence */}
           <div className="f3d__part" style={{ transform: 'translateZ(-45px)' }}>
-            <Radial n={8} r={46} cls="f3d__tooth" />
+            <Radial n={6} r={46} cls="f3d__tooth" />
           </div>
           <div className="f3d__part" style={{ transform: 'translateZ(45px)' }}>
-            <Radial n={8} r={46} cls="f3d__tooth" />
+            <Radial n={6} r={46} cls="f3d__tooth" />
           </div>
           {/* COPPER: bars lying in the slots, plus an end-turn ring bulging
               past each end of the stack. This is what a wound stator looks
               like. */}
-          <Radial n={12} r={44} cls="f3d__slotbar" extra="rotateY(90deg)" />
+          <Radial n={9} r={44} cls="f3d__slotbar" extra="rotateY(90deg)" />
           <Ring d={92} z={-52} tone={0} cls="f3d__endturn" thick={2} />
           <Ring d={92} z={52} tone={0} cls="f3d__endturn" thick={2} />
         </div>
@@ -532,28 +532,28 @@ function MotorBuild() {
           {/* rear bell and the stamped fan cowl over it, as ONE turned form
               that tapers back to the air inlet — the most recognisable end of
               a TEFC motor */}
-          <Revolve prof={P_COWL} blades={4} tone={54}
+          <Revolve prof={P_COWL} blades={3} tone={54}
                    rings={[[-104, 82, 80], [-118, 76], [-136, 63], [-150, 47], [-158, 32, 75]]} />
           {/* bearing: outer race, inner race, balls between them */}
           <Ring d={34} z={-100} tone={55} />
           <Ring d={19} z={-100} tone={55} />
-          <Radial n={6} r={13} cls="f3d__ball" extra="translateZ(-100px)" />
-          <Radial n={6} r={62} cls="f3d__bolt" extra="translateZ(-104px)" />
+          <Radial n={4} r={13} cls="f3d__ball" extra="translateZ(-100px)" />
+          <Radial n={4} r={62} cls="f3d__bolt" extra="translateZ(-104px)" />
           {/* louvres punched in the cowl face, tapered like real ones */}
           <div className="f3d__part" style={{ transform: 'translateZ(-152px)' }}>
-            <Radial n={8} r={34} cls="f3d__vent" />
+            <Radial n={6} r={34} cls="f3d__vent" />
           </div>
         </div>
 
         {/* 5 · FRONT BELL — closes from the front and carries the output flange
              the shaft protrudes through */}
         <div className="f3d__build" {...part('frontbell')}>
-          <Revolve prof={P_FRONT} blades={4} tone={54}
+          <Revolve prof={P_FRONT} blades={3} tone={54}
                    rings={[[102, 82, 80], [112, 82], [122, 52], [130, 38], [136, 27, 80], [146, 14]]} />
           <Ring d={34} z={104} tone={55} />
           <Ring d={19} z={104} tone={55} />
-          <Radial n={6} r={13} cls="f3d__ball" extra="translateZ(104px)" />
-          <Radial n={6} r={62} cls="f3d__bolt" extra="translateZ(104px)" />
+          <Radial n={4} r={13} cls="f3d__ball" extra="translateZ(104px)" />
+          <Radial n={4} r={62} cls="f3d__bolt" extra="translateZ(104px)" />
         </div>
 
         {/* 6 · VENTED CAN — LAST, and the part that fixes the silhouette. 16
@@ -572,12 +572,10 @@ function MotorBuild() {
               shell reads as one turned cylinder, stays open enough to see the
               copper and the spinning rotor through, and looks like a finned
               motor housing rather than a cage. */}
-          <Revolve prof={P_FRAME} blades={4} tone={48} rings={[]} />
+          <Revolve prof={P_FRAME} blades={3} tone={48} rings={[]} />
           {/* a few crest rings only — the serration in the blades already
               carries the fins, and one ring per fin was pure line noise */}
-          {Array.from({ length: 3 }, (_, k) => (
-            <Ring key={k} d={174} z={-66 + k * 66} tone={26} />
-          ))}
+          <Ring d={174} z={0} tone={26} />
           <Ring d={156} z={-98} tone={70} thick={1.5} />
           <Ring d={156} z={98} tone={70} thick={1.5} />
           {/* terminal box on the flank, where the phase leads come out, with
