@@ -34,7 +34,7 @@ prevent.
 
 - **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
 - **motion** (`motion/react`, the framer-motion successor) — only four files import it: the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), and the modal's phased open/close sequence (`Modal.jsx`). It does **not** drive the card reveals or the hover lift.
-- **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`), the side flourishes, and — via `src/hooks/useScrollReveal.js` — **every scroll-into-view card entrance** on the site (`LiftCard`, `Reveal`, `Resume`'s tiles, `Contact`'s links). The hook suppresses inline CSS transitions during the entrance and clears them on completion so the CSS hover/tap states resume. Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
+- **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`), and — via `src/hooks/useScrollReveal.js` — **every scroll-into-view card entrance** on the site (`LiftCard`, `Reveal`, `Resume`'s tiles, `Contact`'s links). The hook suppresses inline CSS transitions during the entrance and clears them on completion so the CSS hover/tap states resume. Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
 - **three.js / @react-three/fiber / drei / rapier / meshline** — the 3D lanyard badges in the About section. This whole stack is **lazy-loaded** (see Performance below).
 
 ## Source layout
@@ -51,7 +51,7 @@ src/
     Hero.jsx              # anime.js letter cascade, aurora bg, keyword chips
     HeroChip.jsx          # liquid-glass keyword pill (backdrop-filter + SVG refraction)
     SineWave.jsx          # staggered sine field behind the hero (variant="field")
-    Flourish3D.jsx        # the two real-CSS-3D side flourishes (see below)
+    Flourish3D.jsx        # the two canvas side flourishes (see below)
     About.jsx             # about card centered in the 3D lanyard stage
     Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
     Projects.jsx, ProjectCard.jsx
@@ -136,336 +136,115 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
-## The 3D side flourishes (`src/components/Flourish3D.jsx`)
+## The side flourishes (`src/components/Flourish3D.jsx`)
 
-Two decorative assemblies fixed to the viewport, one per side, mounted in the
-`page-flourish-layer` in `App.jsx` (≥992px only) and scrubbed by page scroll.
+Two decorative pieces fixed to the viewport, one per side, mounted in the
+`page-flourish-layer` in `App.jsx` (≥992px, and skipped when
+`navigator.hardwareConcurrency <= 4`) and scrubbed by page scroll.
 
-- **LEFT — "Detection"**: what actually happens between a camera and a bounding
-  box. A camera takes itself apart down to its **sensor**; the sensor resolves
-  into **pixels**; the pixels are cut into **patches** and flattened into a token
-  sequence (the move that defines a **Vision Transformer**); the tokens **attend**
-  to each other and the map collapses onto a few strong links; and the result is
-  a **detection** — box, corner handles, label, confidence.
-  This replaced an abstract 4-5-3-2 training loop the owner found disjointed.
-  Every stage here is a real mechanism rather than a metaphor, which is why it
-  holds together: the patch grid, the flattening into a sequence, the CLS token
-  the attention links originate from, and a box with a confidence.
-- **RIGHT — "Down the Shaft"** (a motor): shaft → rotor → wound stator → two end
-  bells → vented can, every part threading in along the SAME axis in assembly
-  order, then the rotor spins up and runs.
+- **LEFT — "Detection"**: a camera takes itself apart down to its **sensor**;
+  the sensor resolves into **pixels**; the pixels are cut into **patches** and
+  flattened into a token sequence (the move that defines a **Vision
+  Transformer**); the tokens **attend** to each other and the map collapses onto
+  a few strong links; the result is a **detection** — box, corners, label,
+  confidence.
+- **RIGHT — "Down the Shaft"**: an electric motor threading itself together on
+  one axis in assembly order — shaft, rotor, wound stator, bells, finned frame,
+  fan cowl — then running.
 
-### The driver: one scroll-linked anime.js timeline per side
+### It is ONE CANVAS per side, and that is the whole performance story
 
-Each side is a single `createTimeline({ autoplay: onScroll({...}) })`. There is
-no hand-rolled scroll listener — anime v4.5 ships its own `ScrollObserver`, which
-keeps one rAF-batched listener per container with cached bounds.
+This was CSS 3D: every part a div inside a `transform-style: preserve-3d` tree.
+It looked right, but the browser had to re-sort and re-rasterise every element
+in both trees on every camera change. Measured with geckodriver, rAF intervals
+during a scripted scroll:
 
-- Timeline time **0…1000ms maps to page scroll 0…1**, so a beat "at 0.46" is
-  literally `.add(..., 460)`. `tl.add({ duration: 1000 }, 0)` pins the total so
-  that mapping holds no matter where the last tween ends.
-- Thresholds are `'<container> <target>'`, **container first**. `enter: 'start
-  start'` / `leave: 'end end'` reproduces `scrollY / (scrollHeight -
-  innerHeight)` exactly. Reversing the pair silently gives a plausible-but-wrong
-  range.
-- `sync: 0.2` smooths the playhead toward the scroll position (lerp per frame)
-  instead of welding it there — the assembly keeps settling after you stop
-  scrolling, which is most of why it feels like it has mass. **Omitting `sync`
-  is not "no smoothing", it is play/pause mode** and nothing scrubs at all.
-- **Never pass `.f3d` as the observer `target`.** It is `position: fixed`, so its
-  `getBoundingClientRect()` is the viewport and the scroll range collapses. Pass
-  `document.body`.
-- `prefers-reduced-motion` builds the same timeline with `autoplay: false` and
-  `tl.seek()`s one representative frame — same code path, no second renderer.
+| | frame time |
+|---|---|
+| no flourishes at all | 17.2 ms |
+| DOM, 356 elements | 33.2 ms |
+| DOM, 261 elements (27% trimmed) | 33.2 ms — **no better** |
+| canvas, ~1,900 segments/frame | **17.1 ms** — same as drawing nothing |
 
-### The invariant that makes it all work: CSS variables inside a static transform
+The DOM cost is **not linear in element count** in that range: the work
+overruns the 16.7 ms budget either way and the frame drops to the next vsync.
+Coming back under would have needed roughly a 5–10× cut, which deletes the
+detail the pieces exist for. Doing the projection in JS and stroking paths
+removes the expensive part entirely — the compositor sees one element per side —
+and makes complexity nearly free.
 
-anime emits transform components in a **fixed order** (`validTransforms` in
-`node_modules/animejs/dist/modules/core/consts.js`: translate → rotate → scale),
-so it can *never* produce a rotate-THEN-translate placement. Everything placed
-that way — helix chords, radial arrays, cylinder ribs, network edges — therefore
-carries a **static inline `transform`**, and anime animates a **CSS variable
-inside that string** instead of the transform itself:
+**Do not "optimise" this back into DOM elements, and do not reach for SVG**
+(same per-node cost, and it cannot do 3D at all). three.js would work but pulls
+the whole WebGL stack onto every page and dies on machines without a GPU — the
+lanyard already proves that failure mode. Pre-rendered video (Manim, Blender)
+is a legitimate technique for a fixed explainer, but it cannot follow the live
+theme toggle, the viewport, or scroll position without shipping megabytes.
 
-```
-.f3d__mledge { transform: <static> scaleY(calc(var(--k) + var(--swell))); }
-tl.add(edges, { '--k': ..., '--swell': ... })
-```
+### How it is put together
 
-The string stays ours; the numbers inside it are anime's. This is what lets an
-edge re-weight and pulse at the same time — `--k` and `--swell` are two
-properties with one writer each, so overlapping tweens never fight. anime writes
-CSS vars via `style.setProperty` (`core/render.js:266`) and infers the unit from
-the declared value, so **declare each var with its default in the stylesheet**
-(`--k: 0.17`) or the tween has nothing to read.
+- Geometry is **arrays of polylines in local 3D space**, built ONCE at module
+  scope. Per frame the draw loop only transforms points and strokes them.
+- A **placement** is a 3×3 matrix plus a translation (`place`, `chain`). Each
+  part composes: arrival offset → module tilt → spin → camera.
+- The camera is a plain perspective divide, `PERSP = 600`.
+- `stroke()` / `fill()` take a whole GROUP of polylines and emit ONE
+  `beginPath`…`stroke`. Keep it that way: the draw-call count should stay in the
+  dozens however many segments there are. The photosite grid, for instance, is
+  bucketed by brightness into 4 fills rather than 48.
+- **Surfaces of revolution** come from a meridian profile: `meridian(prof, θ)`
+  walks up the `+r` side and back down the `−r` side, which as a stroked
+  polyline IS the lathe cross-section. In canvas this needs no `clip-path` and
+  no `evenodd` hole — that scaffolding existed only because a div can only be
+  clipped, not stroked.
+- **Profiles are real**: units of roughly one millimetre of an **IEC D80 frame**
+  — AC 159 frame OD, D 19 shaft, E 40 shaft extension, H 80 shaft height. If you
+  re-profile it, take numbers from a dimensional drawing.
+- The fins are a **serration in the profile itself**, so they show in section on
+  every meridian blade.
 
-Same rule for colour: leaf translucency lives in a `color-mix` percentage, never
-in `opacity`, because **the build timeline owns every leaf's opacity** to fade
-parts in as they arrive. A second writer there makes a part glow before it lands
-(this has happened once already).
+### The scroll driver must leave the page idle
 
-### Connecting two 3D points with a div
+Hand-rolled on purpose: one passive listener, at most one rAF in flight, and no
+redraw unless progress actually moved by >0.0004. **anime.js is not involved.**
 
-A div is a plane, not a line. `link(p1, p2)` gives width `L = |p2-p1|` and
+This is the bug that made the site laggy, and it is worth not repeating:
+`onScroll({ sync: <number> })` adds weighted catch-up that **never settles** —
+on a completely static page it kept rewriting the scene ~1,200 times a second.
+`sync: true` is a plain 1:1 scrub; a numeric sync is a permanently busy main
+thread. Same class of bug elsewhere on the page, both now fixed: infinite CSS
+animations in the hero (paused via `.hero--idle` from an IntersectionObserver),
+and the lanyard `<Canvas>` (`frameloop` gated on visibility) — rAF is only
+throttled when the whole TAB is hidden, never when something scrolls out of view.
 
-```
-translate3d(P1) rotateY(atan2(-dz, dx)) rotateZ(asin(dy/L))
-```
+### Composition lessons that survived the rewrite
 
-which is rotateY-BEFORE-rotateZ — deliberately the one order anime *can* emit,
-so the form stays valid if a tween ever touches it. Verified by composing the
-matrices: worst tip error **2.9e-14 px** over 8 cases including all three
-degenerate axes. The ribbon's thickness direction keeps an in-screen-plane
-component of ≥0.88 across the whole camera sweep, so an edge can never
-foreshorten to a hairline and vanish.
+- **Density is the whole ballgame.** Past roughly 45 connectors between
+  clustered anchors the individual lines stop being separable — an earlier
+  network with 62 edges read as a hairball.
+- **Connectors sharing an origin must FAN.** The attention links all run from
+  the CLS token to a sequence receding along Z; without an X spread they were
+  near-collinear and filled in as one solid wedge.
+- **One meaning per colour**: gold = optical path and structure, slate = compute
+  (patches, tokens, attention), rust = the result, copper = the motor winding
+  and nothing else.
+- **A cylinder made of longitudinal slats reads as a fence.** Circumferential
+  rings follow the perspective ellipse and read as a turned body.
+- **A coil wound around the shaft axis is a SOLENOID, not a motor winding.**
+  Copper belongs in the stator slots with end turns.
+- **Radial features can only stick out sideways** — the motor's axis is
+  near-vertical on screen, so mounting feet and a lifting eye were built and
+  removed. Flank features (terminal box, nameplate, conduit) are where detail
+  belongs.
+- **Detail hidden inside an opaque shell is noise, not detail.**
 
-### The copper, and the shaft
+### Verifying
 
-**A coil wound around the shaft axis is a SOLENOID, not a motor winding.** The
-first version of this piece had a real 3D helix — 63 divs, mathematically
-exact — spiralling around the rotor core, and the owner's verdict was that an
-actual motor does not look like that. They were right: an inductor looks like
-that. A wound stator is **copper bars lying IN the slots** along the core, tied
-together by an **end-turn ring** bulging past each end of the stack, which is
-what `.f3d__slotbar` (12 bars at r=44) and `.f3d__endturn` (two rings at d92)
-now draw. The helix maths, should anything ever need a true 3D coil again, is
-in git history at commit `5ea93e7`.
-
-**The shaft is a CYLINDER, not a square bar.** It was a `Box`, and a square
-shaft was the most obviously wrong thing in the piece. A cylinder projects to a
-rectangle with elliptical ends from any angle, so it is two plates crossed at
-90° (`.f3d__shaftplate`) plus a ring at each end — 4 divs, no prism, and one
-plate always faces the camera whatever the yaw.
-
-Both plates need `rotateX(90deg)` to map their HEIGHT onto the module's Z — the
-motor axis — exactly as `.f3d__axiswrap` does. Without it the plate lies ACROSS
-the machine instead of along it, which is precisely the bug that shipped in the
-first attempt: a long horizontal bar through the middle of the frame.
-
-**Watch the ring count.** The camera looks nearly perpendicular to the axis, so
-every ring projects as a very flat ellipse — a 156px fin renders about 21px
-tall. Stack fifteen of those and the top of the machine turns into a band of
-dashes that reads as noise. Internal laminations were the first thing cut: they
-sit inside a shell you cannot see through, so they cost clutter and buy nothing.
-
-### Geometry rules that are easy to break silently
-
-- **A cylinder made of longitudinal slats reads as a FENCE, not as a machine.**
-  The can was 14 ribs plus 14 fins around the axis; at this size that is 28
-  vertical sticks, the shell read as a birdcage, and everything inside it was
-  invisible. It is now a **stack of 7 circumferential rings** (cooling fins)
-  between two stronger end rings, and no longitudinal members at all — the four
-  that survived the first pass still read as posts standing outside the machine.
-  Rings follow the same perspective ellipse as the bells and the end turns, so
-  the shell reads as one turned cylinder and stays open enough to see the copper
-  and the spinning rotor through it.
-- **Rectangular prisms are the enemy here.** A `Box` is the easiest primitive in
-  the file and the least appropriate: shafts, cores, shells and rotors are all
-  round. The only prism left is the terminal box, which is a rectangular casting
-  on a real motor too.
-- **Cylinder pitch**, still true for any slatted shell you do build: after
-  `rotateY(90deg)`, for radius `r` and `n` elements a CLOSED shell needs height
-  `2*r*tan(180°/n)`. Recompute it if you change `n` or `r` — do not copy the
-  number. An older revision of this file quoted r=58/n=14/26px, which would
-  leave the shell open.
-- **Radial features can only stick out SIDEWAYS.** The motor's axis is
-  near-vertical on screen, so no radial direction projects downward — measured,
-  the best is dy=0.32 against dx=0.80. Mounting feet and a lifting eye were
-  built and then removed for exactly this reason: they read as debris hanging
-  off the side. Flank features that are *supposed* to project sideways — the
-  terminal box, the nameplate, the conduit — are fine, and are where to spend
-  detail instead.
-- **Detail is what stops it reading as "too basic".** A shaft, a core and a
-  shell is a tube. The parts that make it a motor at a glance are the ones with
-  their own silhouette: the **terminal box** with cover bolts and **conduit**,
-  the **fan cowl** with punched vent slots over the pitched **cooling fan**, the
-  **squirrel-cage bars** that turn with the rotor, the **nameplate**, the
-  **keyway** on the drive end, the **slot teeth** on the stator's end faces, and
-  the **bearing races and balls** in each bell hub. Detail that
-  ends up hidden inside the shell is not detail, it is noise — see the ring-count
-  note above.
-- **Radial stack, outward, verified clear** (min gap 2.5px): shaft OD 6.5 | rotor
-  core 20 | magnets 21.5–28.5 | stator bore 31 | **winding 44** | pole bars 54 |
-  stator OD 62 | can ribs 78 | bell flange 82.
-- **Every part arrives along the SAME axis** (`|fz| = 1`, lateral jitter ≤0.12).
-  Six different arrival directions is *convergence*, which reads as a pile of
-  boxes meeting; one shared axis in assembly order is what reads as assembly.
-- `BUILD_SPAN` (260ms) is much wider than the 0.09 gap between part leads, so ~3
-  parts are always in flight. Widen the gap or shrink the span and it degenerates
-  into a stiff one-at-a-time queue.
-- **Ghosts must stay OUTSIDE every `.f3d__build`.** They are dashed phantoms of
-  each part's seat, and they are what makes an incoming part read as heading for
-  a named socket. Put one inside a build and the leaf query claims its opacity
-  and flies it in with the part it is supposed to be waiting for.
-- The rotor's scroll spin-up lives on `.f3d__rotor`; its ambient idle lives on
-  the nested `.f3d__rotorlife`. **Two writers on one rotateZ jitter.** Nested
-  rotations about the same axis simply add.
-
-### Performance: what actually made the page laggy
-
-Measured with geckodriver, rAF intervals during a scripted scroll, flourishes on
-vs off. Two findings, and the first was the real one:
-
-- **`sync: <number>` on `onScroll` NEVER SETTLES.** `sync: 0.2` adds weighted
-  catch-up that lerps toward the target forever: on a completely static page it
-  was still rewriting the camera **~1,200 times a second**, so a ~350-element
-  preserve-3d tree was re-composited every frame while nobody was scrolling.
-  Static frame time was **49ms**; with `sync: true` (a plain 1:1 scrub) it is
-  **17ms — identical to having the flourishes hidden**, and style mutations on a
-  still page go from 2,370 per 2s to **0**. The inertia is not worth a
-  permanently busy main thread. If you ever want the weighted feel back, drive
-  it yourself and stop when the delta is under a pixel.
-- **Infinite CSS animations keep the whole page compositing.** The hero's two
-  aurora blobs and ten sine-field paths ran for the entire session, including
-  scrolled far away, and every other layer pays for that. `Hero.jsx` now toggles
-  `.hero--idle` from an IntersectionObserver and the CSS pauses them.
-- The lanyard `<Canvas>` had the same shape of bug — rAF is only throttled when
-  the whole TAB is hidden, never when a canvas merely scrolls out of view — and
-  is now gated to `frameloop={onScreen ? 'always' : 'never'}`.
-
-What is NOT the problem, so don't go chasing it: `clip-path` (stripping it
-changed nothing), `will-change`, and the JS writes (only **46 style writes per
-frame** during scroll — trivial). The residual scroll-time cost is the browser
-re-sorting and re-rasterising the preserve-3d trees, which is inherent to the
-technique and scales with element count. Budget ~350 elements total; `App.jsx`
-skips the flourishes entirely when `navigator.hardwareConcurrency <= 4`.
-
-### Density is the whole ballgame on the left
-
-Whatever the left side depicts, the failure mode is the same: too many similar
-elements in too little space and it turns to mush. Hard-won numbers:
-
-- **Past roughly 45 connector elements** between clustered anchor points the
-  individual connections stop being separable. The predecessor had 62 network
-  edges and read as a hairball.
-- **Connectors that share an origin must FAN.** The 12 attention links all run
-  from the CLS token to a sequence receding along Z, so at a tight X spread they
-  were near-collinear and filled in as one solid wedge. Spreading the sequence
-  in X and arcing it slightly in Y is what turns that mass back into links.
-- **One meaning per colour.** Gold is the optical path and structure, slate is
-  the compute (patches, tokens, attention), rust is the result (box, label,
-  confidence). An earlier version had the backward wave in cyan while negative
-  weights were slate, and two unrelated things both read as "blue".
-- The three stages sit top-to-bottom — sensor at y −142, sequence at y +24,
-  detection at y +158 — so the piece reads as a pipeline running the same
-  direction the page scrolls.
-
-### Shapes: `clip-path` outlines and surfaces of revolution
-
-A bare div gives you a rectangle or, with `border-radius`, an ellipse. Building
-everything from those is what makes a piece read as "basic geometry", and the
-owner rejected two passes for exactly that. Two techniques get real shapes
-without leaving HTML+CSS:
-
-**1. `clip-path` on LEAVES.** clip-path is a grouping property, so it forces
-`flat` on a preserve-3d subtree — but a LEAF has no children, so there is
-nothing to flatten, and the leaf itself is still placed in true 3D by its
-parents. That makes arbitrary contours free: trapezoidal stator teeth, swept fan
-blades, arc-segment magnets, tapered cowl louvres, a stamped nameplate with
-clipped corners, a camera's pentaprism-and-grip silhouette.
-
-**2. Surfaces of revolution from a real meridian profile.** A div placed by
-`rotateZ(θ) rotateX(90deg)` lies in a plane that CONTAINS the axis — verified
-numerically: local `(x=r, y=z)` lands at world radius r, axial z, for every θ.
-So the element's own 2D box IS the lathe cross-section plane, and `clip-path`
-cuts the real turned profile out of it: tapers, steps, flanges, bearing bosses,
-and the serration of cooling fins. A handful of those blades rotated about the
-axis reads as a machined solid. `Revolve` + `meridianClip` + `finnedFrame` in
-`Flourish3D.jsx` do this.
-
-**Both must be OUTLINES, not fills.** A filled cross-section is opaque, and once
-five blades overlap the machine becomes a solid blob with everything inside
-hidden — this was tried and looked like a lump of dough. `meridianClip` and
-`outlineClip` therefore emit the shape, then the same shape offset/scaled
-inward, as one `polygon(evenodd, …)`: evenodd turns the inner loop into a hole,
-giving a stroked contour you can see through. The seam between the two loops is
-zero-width and invisible. Note `clip-path` clips the element's BORDER too, which
-is why the stroke has to come from the fill of a ribbon rather than from
-`border`.
-
-**Profiles are real.** The motor's are in units of roughly one millimetre of an
-IEC D80 frame — AC 159 frame OD, D 19 shaft, E 40 shaft extension, H 80 shaft
-height, A 125 / B 100 foot spacing — so the proportions are a real machine's
-rather than invented. If you re-profile it, take the numbers from a dimensional
-drawing rather than eyeballing them.
-
-**The trap when adding a profile-based part:** the profiles are in ABSOLUTE
-machine coordinates (z=0 at the frame's mid), so their build parts must seat at
-`sz: 0`. The per-part `sz` offsets are added on top, and leaving the old ones in
-place pushed every turned body down the axis — the front bell ended up ~190
-units past where it belonged, reading as a lampshade floating above the motor.
-
-**Density still governs.** Fins already read from the serration in the blades;
-adding a crest ring per fin on top of that turned the whole machine into line
-noise. 4–6 blades per body, 1.15px stroke, and rings only at the major profile
-vertices.
-
-### These are HTML divs, not SVG, and that is the entire point
-
-- **The `preserve-3d` chain must be unbroken.** Every wrapper between the
-  perspective root and a 3D-placed leaf needs it — 18 classes share one rule in
-  `App.css`. A single `flat` collapses everything below it.
-- **Grouping properties force `flat`.** On an element carrying `preserve-3d`, any
-  of `opacity` < 1, `filter`, `clip-path`, `mask`, `mix-blend-mode`, `isolation`,
-  `overflow != visible`, or `contain` flattens its 3D children. So **animate
-  `opacity` only on leaves**. `.f3d` itself is exempt (perspective root, already
-  flat). This is why `isolation: isolate` must never be added here.
-- `.f3d__module`'s tilt lives in the STYLESHEET and must never be animated:
-  anime merges only *inline* static components and would wipe it.
-- Camera yaw deliberately **crosses 0°** across the scroll range so each box's
-  left and right side walls foreshorten to nothing and swap over — a tell no 2D
-  fake and no pre-rendered image sequence produces.
-
-**Keep both sides inside the viewport, and roughly balanced.** Measured with the
-flourishes' own bounding boxes at scroll 1.0: the motor renders ~239px wide and
-the network ~158px. Before `.f3d__module`'s `scale(0.80)` and trimming the right
-camera's final dolly to +30, the motor was 272px and clipped the right edge of a
-1280px viewport by 22px at the bottom of the page. If you change the module
-scale, the dolly, or `perspective`, re-measure — the check is one script that
-sums element rects per side at several widths.
-
-**Verify depth by MEASURING, not by eye** (a backgrounded tab throttles rAF and
-screenshots blank — that is an environment artifact, not a bug). Measured live in
-Firefox at `perspective: 600px`: the 63 identical-width wire chords project
-**1.5–32.9px** and the 16 identical can ribs **2.1–98.0px** across the scroll
-range; per-layer near/far ratio on the ML network is **1.15–1.20×**. A ratio of
-**1.0 anywhere means the 3D context is broken above**. Depth headroom: the
-deepest in-flight point reaches 213px of the 600px camera plane (1.55×
-magnification), so nothing inverts.
-
-To measure the flourishes without WebGL, render them alone: a throwaway
-`probe.html` + `src/__probe.jsx` mounting only `<Flourish3D>` on the dev server,
-driven by geckodriver.
-
-**And do actually LOOK at them.** The blank-screenshot gotcha at the top of this
-file is about WebGL and backgrounded tabs; it does NOT apply to these pieces.
-They are CSS-3D divs, headless Firefox renders them fine, and a WebDriver
-screenshot at a few scroll positions (crop each side out with ffmpeg, scale 2×)
-shows exactly what a visitor sees. Both faults that survived every numeric
-check — the network reading as a hairball, the can reading as a picket fence —
-were invisible in the measurements and obvious in one screenshot. Measure for
-*correctness*; look for *composition*.
-
-### anime.js v4.5 API notes
-
-- `ease: 'steps(4)'` **as a string was removed** — it matches a deprecated list
-  in `easings/eases/parser.js`, warns, and silently falls back to **linear**.
-  Import the function instead. The same applies to `irregular(`, `linear(` and
-  `cubicBezier(`. Every OTHER parameterised string ease is fine: `'outBack(1.4)'`
-  parses normally, and is what gives parts their ~7% seating overshoot.
-- **`ease` IS legal per property** in 4.5 (`animation/animation.js`: `const
-  easeToParse = key.ease || tEasing`). An earlier revision of this file claimed
-  otherwise; the claim was wrong even though the conclusion it supported was not.
-- Property **keyframes** are an array of objects — `'--swell': [{ to: .55,
-  duration: 38 }, { to: 0, duration: 38 }]` — which is how one tween both raises
-  and lowers a pulse.
-- `stagger()` supports `grid: [x, y]`/`[x, y, z]` with true Euclidean distance,
-  plus `jitter` and `seed` for reproducible scatter (the panel resolves cell by
-  cell that way). Element emission order must match the grid's own indexing.
-- `loop` and `alternate` are **animation-level** options.
-- The runtime export is **`easings`**, not `eases`, and `createSpring` is
-  deprecated in favour of `spring`.
-
+Screenshot it — these are canvas pixels, so headless Firefox renders them fine
+and the blank-screenshot gotcha at the top of this file does not apply. The
+harness: `probe.html` + `src/__probe.jsx` mounting only `<Flourish3D>` on the
+dev server, driven by geckodriver, cropped per side with ffmpeg. `canvas.dataset.segs`
+reports how many segments the last frame drew. Measure frame cost by comparing
+rAF intervals with `.page-flourish-layer` shown vs `display: none`.
 
 ## Modal animation contract
 
