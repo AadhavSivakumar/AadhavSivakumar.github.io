@@ -432,7 +432,7 @@ export default function Flourish3D({ side = 'left' }) {
     };
     const readMaterials = () => { METAL = mkMaterial(ink, 1, 0.45); CU = mkMaterial(copper, 2, 0.1); };
     readMaterials();
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); colCache.clear(); lastP = -1; onScroll(); });
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); colCache.clear(); buildStage(); lastP = -1; onScroll(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -561,17 +561,28 @@ export default function Flourish3D({ side = 'left' }) {
         const inx = nx / nl, iny = ny / nl, inz = nz / nl;
         const d = Math.max(0, inx * LIGHT[0] + iny * LIGHT[1] + inz * LIGHT[2]);
         const hd = Math.max(0, inx * HALF[0] + iny * HALF[1] + inz * HALF[2]);
-        // hemispheric ambient: -Y is up in this space
-        const sky = 0.5 - 0.5 * iny;
+
+        // ENVIRONMENT REFLECTION. Reflect the view direction (0,0,1) about the
+        // normal and ask what that ray would hit in a two-band studio: bright
+        // sky above, dark floor below, and a hot horizon line between them.
+        //   R = 2(N·V)N - V, with V = (0,0,1)  =>  R.y = 2·n_z·n_y
+        // The horizon streak is the tell — it is what makes a curved metal body
+        // read as reflective rather than as matte plastic, and it costs one
+        // exp() per face.
+        const envUp = -2 * inz * iny;
+        const envT = clamp(0.5 + 1.9 * envUp, 0, 1);          // floor -> sky
+        const horizon = Math.exp(-(envUp * envUp) / 0.012);
+        const env = 0.10 + 0.55 * envT + 0.42 * horizon;
+
         // rim: faces turned away from the viewer catch a bright edge
         const facing = Math.abs(inz);
-        const rim = 0.34 * Math.pow(1 - facing, 4);
+        const rim = 0.30 * Math.pow(1 - facing, 4);
         // depth fade — far geometry loses a little contrast
         const zc = zsum / v.length;
         const fade = clamp(0.82 + 0.0009 * zc, 0.72, 1.06);
         bucket.push({
           pts, z: zc, a: alpha,
-          c: shadeColor(base, (0.17 + 0.15 * sky + 0.70 * d) * fade, 0.52 * Math.pow(hd, 26) + rim),
+          c: shadeColor(base, (0.10 + 0.44 * d + 0.46 * env) * fade, 0.5 * Math.pow(hd, 26) + rim),
         });
         segs += v.length;
       }
@@ -782,9 +793,26 @@ export default function Flourish3D({ side = 'left' }) {
     }
 
     // ── the frame ───────────────────────────────────────────────────────
+    // A soft studio ground behind the piece. Metal needs something to be lit
+    // AGAINST — on a bare page background the reflection model has nothing to
+    // read as, and the parts look like stickers. Built once, not per frame.
+    let stage = null;
+    const buildStage = () => {
+      const g = ctx.createRadialGradient(CX, CY * 0.92, 10, CX, CY * 0.92, W * 0.72);
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      g.addColorStop(0, dark ? 'rgba(0,0,0,0.58)' : 'rgba(64,52,36,0.26)');
+      g.addColorStop(0.55, dark ? 'rgba(0,0,0,0.34)' : 'rgba(64,52,36,0.12)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      stage = g;
+    };
+    buildStage();
+
     function draw(p) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = stage;
+      ctx.fillRect(0, 0, W, H);
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       segs = 0;

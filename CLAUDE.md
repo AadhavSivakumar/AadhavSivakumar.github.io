@@ -205,6 +205,16 @@ filled geometry.
   are never as dark as faces pointing down) plus a **rim term** on grazing
   angles and a mild depth fade. The rim is most of what separates "shaded" from
   "photographed", and it costs one dot product.
+- **A fake environment reflection is what makes metal look like metal.** Reflect
+  the view direction about the normal (`R = 2(N·V)N − V` with `V = (0,0,1)`, so
+  `R.y = 2·n_z·n_y`) and ask what that ray hits in a two-band studio: bright sky
+  above, dark floor below, and a HOT HORIZON LINE between them. The horizon
+  streak is the tell — without it a curved body reads as matte plastic. One
+  `exp()` per face.
+- **The metal needs something to be lit against.** A soft radial "studio ground"
+  is painted behind the geometry each frame (built once, not per frame). On a
+  bare page background the reflection model has nothing to read as and the parts
+  look like stickers. It is strong in dark theme and subtle in light.
 - **Tessellation is the other half of looking smooth.** Bodies are 20-24
   segments around; below about 16 the facets band visibly on a curved surface.
   There is headroom for it — 4,100 segments a frame still measures free.
