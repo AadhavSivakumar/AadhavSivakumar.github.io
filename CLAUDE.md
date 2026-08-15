@@ -201,6 +201,13 @@ filled geometry.
   read as being inside the frame.
 - Materials come from the theme tokens, desaturated toward neutral so lighting
   does the work rather than hue. Copper stays saturated.
+- The lighting is a key light plus a **hemispheric ambient** (faces pointing up
+  are never as dark as faces pointing down) plus a **rim term** on grazing
+  angles and a mild depth fade. The rim is most of what separates "shaded" from
+  "photographed", and it costs one dot product.
+- **Tessellation is the other half of looking smooth.** Bodies are 20-24
+  segments around; below about 16 the facets band visibly on a curved surface.
+  There is headroom for it — 4,100 segments a frame still measures free.
 
 **A solid body hides its own internals**, which is why the motor now opens back
 UP into a held exploded view after it assembles (`EXPLODE`, from p 0.62) instead

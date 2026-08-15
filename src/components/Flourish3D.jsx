@@ -247,7 +247,7 @@ const MOTOR_SPEC = [
   {
     id: 'shaft', lead: 0.02, dir: [0.06, -0.10, 1], spin: -180,
     ghost: () => [ring(9.5, -166, 20), ring(9.5, 178, 20)],
-    solids: () => [...surface(P_SHAFT, 10), ...disc(0, 9.5, -166, 10)],
+    solids: () => [...surface(P_SHAFT, 14), ...disc(0, 9.5, -166, 14)],
     polys: () => [
       ...revolve(P_SHAFT, 3, [[-166, 9.5], [150, 9.5], [178, 8]]),
       rect(7, 16, 0, 0, 162),                                    // keyway, drive end
@@ -257,7 +257,7 @@ const MOTOR_SPEC = [
     id: 'rotor', lead: 0.11, dir: [-0.08, 0.12, 1], spin: 300, spins: true,
     ghost: () => [ring(33, 0, 28)],
     solids: () => [
-      ...surface([[-40, 33], [40, 33]], 14), ...disc(9.5, 33, -40, 14), ...disc(9.5, 33, 40, 14),
+      ...surface([[-40, 33], [40, 33]], 22), ...disc(9.5, 33, -40, 22), ...disc(9.5, 33, 40, 22),
     ],
     polys: () => [
       ring(20, -22), ring(20, 22), ring(33, -40), ring(33, 40),
@@ -285,7 +285,7 @@ const MOTOR_SPEC = [
     id: 'stator', lead: 0.20, dir: [0.10, 0.05, 1], spin: -260,
     ghost: () => [ring(62, 0, 32)],
     solids: () => [
-      ...surface([[-45, 62], [45, 62]], 16), ...disc(31, 62, -45, 16), ...disc(31, 62, 45, 16),
+      ...surface([[-45, 62], [45, 62]], 24), ...disc(31, 62, -45, 24), ...disc(31, 62, 45, 24),
     ],
     polys: () => [
       ring(31, -45), ring(31, 45), ring(62, -45), ring(62, 45),
@@ -299,7 +299,7 @@ const MOTOR_SPEC = [
   {
     id: 'rearbell', lead: 0.40, dir: [-0.05, -0.12, -1], spin: 220,
     ghost: () => [ring(82, -104, 32)],
-    solids: () => [...surface(P_COWL, 16), ...disc(26, 32, -160, 16)],
+    solids: () => [...surface(P_COWL, 22), ...disc(26, 32, -160, 22)],
     polys: () => [
       ...revolve(P_COWL, 3, [[-104, 82], [-118, 76], [-136, 63], [-150, 47], [-158, 32]]),
       ring(17, -100, 22), ring(9.5, -100, 18),                   // bearing races
@@ -315,7 +315,7 @@ const MOTOR_SPEC = [
   {
     id: 'frontbell', lead: 0.49, dir: [0.08, 0.10, 1], spin: -240,
     ghost: () => [ring(82, 104, 32)],
-    solids: () => [...surface(P_FRONT, 16), ...disc(14, 22, 146, 14)],
+    solids: () => [...surface(P_FRONT, 22), ...disc(14, 22, 146, 18)],
     polys: () => [
       ...revolve(P_FRONT, 3, [[102, 82], [112, 82], [122, 52], [130, 38], [136, 27]]),
       ring(17, 104, 22), ring(9.5, 104, 18),
@@ -327,7 +327,7 @@ const MOTOR_SPEC = [
     id: 'can', lead: 0.58, dir: [-0.10, 0.06, -1], spin: 200,
     ghost: () => [ring(88, 0, 32)],
     solids: () => [
-      ...surface(P_FRAME, 18),
+      ...surface(P_FRAME, 24),
       ...boxFaces(30, 40, 26, 0, 100, 0),          // terminal box
       ...plate(38, 24, 0, -92, 13),                // nameplate
     ],
@@ -383,7 +383,7 @@ const CAM_BODY = [-19, 19].map(z => [...CAM_SIL.map(([x, y]) => [x, y, z]), [CAM
 const CAM_STRUTS = CAM_SIL.filter((_, i) => i % 3 === 0).map(([x, y]) => [[x, y, -19], [x, y, 19]]);
 const CAM_DETAIL = [ringAt(7, 24, -30, 20, 12), ringAt(9, -32, -26, 20, 12)];   // shutter, dial
 const CAM_SOLID = extrude(CAM_SIL, -19, 19);
-const LENS_SOLID = [...surface(P_LENS, 14), ...disc(0, 20, 72, 14)];
+const LENS_SOLID = [...surface(P_LENS, 20), ...disc(0, 20, 72, 20)];
 const LENS = [
   ...revolve(P_LENS, 3, [[16, 33], [30, 26], [48, 29], [62, 25], [70, 27]]),
   ...radial(10, a => [[at(a, 29, 36), at(a, 29, 46)]]),        // focus-ring knurling
@@ -504,6 +504,10 @@ export default function Flourish3D({ side = 'left' }) {
     // Faces are collected for the whole frame, then sorted back-to-front and
     // filled — a painter's algorithm. Sorting globally (rather than per part)
     // is what lets the rotor read as being INSIDE the frame.
+// Key light from upper-left-front, a hemispheric ambient (sky above, bounce
+    // below) so faces pointing up are never as dark as faces pointing down, and
+    // a rim term that lights grazing edges — which is most of what makes a
+    // product render read as photographed rather than shaded.
     const LIGHT = (() => { const v = [-0.42, -0.80, 0.43]; const L = Math.hypot(v[0], v[1], v[2]); return [v[0] / L, v[1] / L, v[2] / L]; })();
     const HALF = (() => { const h = [LIGHT[0], LIGHT[1], LIGHT[2] + 1]; const L = Math.hypot(h[0], h[1], h[2]); return [h[0] / L, h[1] / L, h[2] / L]; })();
     let bucket = [];
@@ -515,11 +519,11 @@ export default function Flourish3D({ side = 'left' }) {
     const colCache = new Map();
     const shadeColor = (base, lit, spec) => {
       // quantised so the cache stays small and string churn stays low
-      const q = Math.round(lit * 24), qs = Math.round(spec * 12);
-      const key = base[3] * 1000 + q * 16 + qs;
+      const q = Math.round(lit * 40), qs = Math.round(spec * 20);
+      const key = base[3] * 100000 + q * 64 + qs;
       let c = colCache.get(key);
       if (c) return c;
-      const l = q / 24, sp = qs / 12;
+      const l = q / 40, sp = qs / 20;
       c = `rgb(${Math.min(255, Math.round(base[0] * l + 255 * sp))},${Math.min(255, Math.round(base[1] * l + 250 * sp))},${Math.min(255, Math.round(base[2] * l + 240 * sp))})`;
       colCache.set(key, c);
       return c;
@@ -554,11 +558,20 @@ export default function Flourish3D({ side = 'left' }) {
         }
         if (area <= 0) continue;
 
-        const d = Math.max(0, (nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]) / nl);
-        const hd = Math.max(0, (nx * HALF[0] + ny * HALF[1] + nz * HALF[2]) / nl);
+        const inx = nx / nl, iny = ny / nl, inz = nz / nl;
+        const d = Math.max(0, inx * LIGHT[0] + iny * LIGHT[1] + inz * LIGHT[2]);
+        const hd = Math.max(0, inx * HALF[0] + iny * HALF[1] + inz * HALF[2]);
+        // hemispheric ambient: -Y is up in this space
+        const sky = 0.5 - 0.5 * iny;
+        // rim: faces turned away from the viewer catch a bright edge
+        const facing = Math.abs(inz);
+        const rim = 0.34 * Math.pow(1 - facing, 4);
+        // depth fade — far geometry loses a little contrast
+        const zc = zsum / v.length;
+        const fade = clamp(0.82 + 0.0009 * zc, 0.72, 1.06);
         bucket.push({
-          pts, z: zsum / v.length, a: alpha,
-          c: shadeColor(base, 0.26 + 0.72 * d, 0.55 * Math.pow(hd, 22)),
+          pts, z: zc, a: alpha,
+          c: shadeColor(base, (0.17 + 0.15 * sky + 0.70 * d) * fade, 0.52 * Math.pow(hd, 26) + rim),
         });
         segs += v.length;
       }
@@ -584,8 +597,8 @@ export default function Flourish3D({ side = 'left' }) {
     // machine has come together it opens back UP into a held exploded view —
     // a solid-shaded body hides its own internals, so staying assembled would
     // throw away everything inside it.
-    const EXPLODE = { shaft: 0, rotor: -88, stator: 16, can: 152, rearbell: -226, frontbell: 258 };
-    const EXPLODE_ORDER = [0, -88, 16, -226, 258, 152];
+    const EXPLODE = { shaft: 0, rotor: -88, stator: 74, can: 186, rearbell: -226, frontbell: 288, copper: -8 };
+    const EXPLODE_ORDER = [0, -88, 74, -226, 288, 186];
 
     function drawMotor(p) {
       setCam((-28 + 48 * p) * DEG, (7 + 9 * p) * DEG, -140 + 170 * p - 90 * smooth(win(p, 0.62, 0.30)));
@@ -620,7 +633,7 @@ export default function Flourish3D({ side = 'left' }) {
       for (const part of MOTOR) {
         if (!part._T || part._a <= 0.004) continue;
         // detail lines ride on top of the shaded masses
-        stroke(part.polys, part._T, ink, 0.22 * part._a, 1);
+        stroke(part.polys, part._T, ink, 0.13 * part._a, 1);
       }
 
       // Copper: bars lying IN the stator slots, tied by an end-turn ring past
@@ -629,7 +642,7 @@ export default function Flourish3D({ side = 'left' }) {
       const cu = win(p, 0.30, 0.16);
       if (cu > 0) {
         const n = 9;
-        const T = chain(base, place(IDENT, [0, 0, axial('stator')]));
+        const T = chain(base, place(IDENT, [0, 0, axial('copper')]));
         for (let k = 0; k < n; k++) {
           if (k / n > cu) break;
           submit(barSolid((k / n) * TAU, 44, -52, 52, 7), T, CU, 1);
