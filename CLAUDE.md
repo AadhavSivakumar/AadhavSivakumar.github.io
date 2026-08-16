@@ -152,7 +152,44 @@ Two decorative pieces fixed to the viewport, one per side, mounted in the
   one axis in assembly order — shaft, rotor, wound stator, bells, finned frame,
   fan cowl — then running.
 
-### It is ONE CANVAS per side, and that is the whole performance story
+### Two rasterisers: WebGL2, falling back to Canvas2D
+
+`flourishGL.js` is the WebGL2 backend; the Canvas2D code in `Flourish3D.jsx` is
+the fallback and still the reference implementation. **Geometry, choreography
+and the lighting model are shared** — only the rasteriser differs, so the two
+should look the same (the GL one is smoother, because lighting runs per pixel
+rather than per face).
+
+Why: Canvas2D issued **~573 `fill()` calls per frame** — one per face, since
+every face has its own shade — plus a JS sort of ~600 objects and ~600
+allocations every frame for the painter's algorithm. That is the ceiling of the
+API, and it is why ADDING DETAIL made it worse: the cost is the draw-call count,
+not the geometry. WebGL uploads each part once and draws it with a single call
+against a depth buffer, so the scene is ~15 calls and the sort disappears into
+hardware.
+
+Things that were got wrong once here, so check them if it ever looks broken:
+
+- **The camera matrix must be uploaded COLUMN-major.** `view = Rx(pitch) *
+  Ry(yaw)`; verify any change numerically against the 2D backend's own
+  projection, which is the reference. A wrong transpose skews the whole scene
+  and looks plausible enough to miss.
+- **A canvas can NEVER hand out a second context type.** If `createGLRenderer`
+  takes a webgl2 context and only then fails — a shader that will not compile on
+  some driver — `getContext('2d')` on that same element returns null and the
+  piece dies silently. The component swaps in a fresh `<canvas>` before falling
+  back, which makes the fallback hold no matter where GL gave up.
+- **No face culling.** The projection flips Y, which reverses apparent winding,
+  so front/back would be a coin flip. The depth buffer hides interior faces
+  anyway.
+- **Translucent parts must not write depth** (`depthMask(alpha >= 0.99)`) or a
+  part fading in punches a hole in whatever is behind it.
+- **Detail lines are drawn with the depth test off**, matching the 2D backend —
+  they lie exactly on the surfaces they describe, so depth-testing them z-fights.
+- Pre-normalise `const vec3` values in GLSL; drivers vary on whether built-in
+  calls are legal in a const initialiser.
+
+### The Canvas2D fallback, and why the DOM version is gone
 
 This was CSS 3D: every part a div inside a `transform-style: preserve-3d` tree.
 It looked right, but the browser had to re-sort and re-rasterise every element

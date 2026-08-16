@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createGLRenderer } from './flourishGL';
 
 // Page-wide decorative flourishes — one per side, fixed to the viewport and
 // scrubbed by page scroll.
@@ -399,13 +400,28 @@ export default function Flourish3D({ side = 'left' }) {
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return undefined;
-    const canvas = host.querySelector('canvas');
-    const ctx = canvas.getContext('2d');
-
     const W = 340, H = 660;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
+
+    // WebGL2 if the browser will give us one; otherwise the Canvas2D path below
+    // runs exactly as before. The site has already been taken down once by
+    // assuming a WebGL context exists (see the lanyard error boundary), so the
+    // fallback is not optional.
+    let canvas = host.querySelector('canvas');
+    const glr = createGLRenderer(canvas, W, H, dpr);
+    if (!glr) {
+      // A canvas can NEVER hand out a second context type. createGLRenderer may
+      // have taken a webgl2 context and only then failed (a shader that will
+      // not compile on this driver, say), in which case getContext('2d') on
+      // this element returns null and the piece dies silently. Swapping in a
+      // fresh element makes the fallback hold no matter where GL gave up.
+      const fresh = canvas.cloneNode(false);
+      canvas.replaceWith(fresh);
+      canvas = fresh;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+    }
+    const ctx = glr ? null : canvas.getContext('2d');
     canvas.style.width = `${W}px`;
     canvas.style.height = `${H}px`;
     const CX = W / 2, CY = H / 2;
@@ -441,6 +457,7 @@ export default function Flourish3D({ side = 'left' }) {
     const PERSP = 600;
     let cam = null;
     const setCam = (yaw, pitch, dolly) => {
+      if (glr) { glr.setCamera(yaw, pitch, dolly); return; }
       const cy = Math.cos(yaw), sy = Math.sin(yaw), cx = Math.cos(pitch), sx = Math.sin(pitch);
       cam = (x, y, z) => {
         const X = x * cy + z * sy, Z0 = -x * sy + z * cy;
@@ -455,6 +472,7 @@ export default function Flourish3D({ side = 'left' }) {
     // dozens no matter how many segments there are.
     let segs = 0;
     function stroke(polys, T, color, alpha, width) {
+      if (glr) { glr.stroke(polys, T, color, alpha, width); return; }
       if (alpha <= 0.004 || !polys.length) return;
       const m = T.m, t = T.t;
       ctx.beginPath();
@@ -478,6 +496,7 @@ export default function Flourish3D({ side = 'left' }) {
     }
 
     function fill(polys, T, color, alpha) {
+      if (glr) { glr.fill(polys, T, color, alpha); return; }
       if (alpha <= 0.004 || !polys.length) return;
       const m = T.m, t = T.t;
       ctx.beginPath();
@@ -530,6 +549,7 @@ export default function Flourish3D({ side = 'left' }) {
     };
 
     function submit(faces, T, base, alpha) {
+      if (glr) { glr.submit(faces, T, base, alpha); return; }
       if (alpha <= 0.02 || !faces.length) return;
       const m = T.m, t = T.t;
       for (let fi = 0; fi < faces.length; fi++) {
@@ -589,6 +609,7 @@ export default function Flourish3D({ side = 'left' }) {
     }
 
     function flush() {
+      if (glr) return;                       // the depth buffer sorts for us
       if (!bucket.length) return;
       bucket.sort((A, B) => A.z - B.z);          // far first
       for (let i = 0; i < bucket.length; i++) {
@@ -798,6 +819,7 @@ export default function Flourish3D({ side = 'left' }) {
     // read as, and the parts look like stickers. Built once, not per frame.
     let stage = null;
     const buildStage = () => {
+      if (!ctx) return;
       const g = ctx.createRadialGradient(CX, CY * 0.92, 10, CX, CY * 0.92, W * 0.72);
       const dark = document.documentElement.getAttribute('data-theme') === 'dark';
       g.addColorStop(0, dark ? 'rgba(0,0,0,0.58)' : 'rgba(64,52,36,0.26)');
@@ -808,6 +830,14 @@ export default function Flourish3D({ side = 'left' }) {
     buildStage();
 
     function draw(p) {
+      if (glr) {
+        glr.begin();
+        if (isLeft) drawVision(p); else drawMotor(p);
+        glr.end();
+        canvas.dataset.segs = String(Math.round(glr.segs));
+        canvas.dataset.calls = String(glr.calls);
+        return;
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.globalAlpha = 1;
@@ -819,6 +849,7 @@ export default function Flourish3D({ side = 'left' }) {
       if (isLeft) drawVision(p); else drawMotor(p);
       ctx.globalAlpha = 1;
       canvas.dataset.segs = String(segs);
+      canvas.dataset.calls = '';
     }
 
     // ── scroll driver ───────────────────────────────────────────────────
@@ -852,6 +883,7 @@ export default function Flourish3D({ side = 'left' }) {
       window.removeEventListener('resize', onResize);
       if (raf) cancelAnimationFrame(raf);
       themeWatch.disconnect();
+      if (glr) glr.dispose();
     };
   }, [isLeft]);
 
