@@ -408,7 +408,11 @@ export default function Flourish3D({ side = 'left' }) {
     // assuming a WebGL context exists (see the lanyard error boundary), so the
     // fallback is not optional.
     let canvas = host.querySelector('canvas');
-    const glr = createGLRenderer(canvas, W, H, dpr);
+    // ?flourish=2d forces the Canvas2D backend, ?flourish=gl asserts WebGL.
+    // Handy for A/B-ing the two rasterisers on a real GPU, which is the one
+    // thing that cannot be checked from a headless box.
+    const force = new URLSearchParams(window.location.search).get('flourish');
+    const glr = force === '2d' ? null : createGLRenderer(canvas, W, H, dpr);
     if (!glr) {
       // A canvas can NEVER hand out a second context type. createGLRenderer may
       // have taken a webgl2 context and only then failed (a shader that will

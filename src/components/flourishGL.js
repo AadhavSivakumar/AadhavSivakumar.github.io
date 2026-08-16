@@ -58,8 +58,10 @@ const vec3 LIGHT = vec3(-0.419726, -0.799478, 0.429719);
 const vec3 HALF  = vec3(-0.248293, -0.472940, 0.845380);
 
 void main() {
-  if (u_flat) { outColor = vec4(u_base, u_alpha); return; }
-  vec3 n = normalize(v_norm);
+  if (u_flat) { outColor = vec4(u_base * u_alpha, u_alpha); return; }
+  // two-sided: light a back face with the flipped normal rather than a wrong
+  // one. Belt and braces alongside the cull.
+  vec3 n = normalize(v_norm) * (gl_FrontFacing ? 1.0 : -1.0);
   float d = max(0.0, dot(n, LIGHT));
   float hd = max(0.0, dot(n, HALF));
 
@@ -76,8 +78,8 @@ void main() {
   float lit = (0.10 + 0.44 * d + 0.46 * env) * fade;
   float spec = 0.5 * pow(hd, 26.0) + rim;
 
-  vec3 c = u_base * lit + vec3(1.0, 0.98, 0.94) * spec;
-  outColor = vec4(clamp(c, 0.0, 1.0), u_alpha);
+  vec3 c = clamp(u_base * lit + vec3(1.0, 0.98, 0.94) * spec, 0.0, 1.0);
+  outColor = vec4(c * u_alpha, u_alpha);        // premultiplied
 }`;
 
 function compile(gl, type, src) {
@@ -143,7 +145,7 @@ function polysToArray(polys) {
 export function createGLRenderer(canvas, W, H, dpr) {
   let gl = null;
   try {
-    gl = canvas.getContext('webgl2', { alpha: true, antialias: true, depth: true, premultipliedAlpha: false });
+    gl = canvas.getContext('webgl2', { alpha: true, antialias: true, depth: true, premultipliedAlpha: true });
   } catch (e) {
     gl = null;
   }
@@ -175,12 +177,19 @@ export function createGLRenderer(canvas, W, H, dpr) {
   gl.uniform2f(U.u_half, W / 2, H / 2);
   gl.uniform1f(U.u_persp, 600);
   gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  // No face culling on purpose: the projection flips Y, which reverses the
-  // apparent winding, so front/back would be a coin flip. The depth buffer
-  // hides interior faces correctly regardless, and at this triangle count
-  // culling buys nothing.
-  gl.disable(gl.CULL_FACE);
+  // the fragment shader outputs PREMULTIPLIED colour, which is what the
+  // compositor expects; the mismatched pair fringes every translucent edge
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  // Cull exactly what the Canvas2D backend culls. That rule ("keep faces whose
+  // SCREEN signed area is positive, y down") does double duty: it hides true
+  // back faces AND any face whose authored winding is inconsistent. Turning
+  // culling off makes those faces visible and lights them with an inverted
+  // normal — which is what "rendered but looks wrong" looked like.
+  // The projection flips Y, so the faces 2D keeps are CW in NDC. Verified
+  // numerically; do not "fix" this to CCW.
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+  gl.frontFace(gl.CW);
   gl.clearColor(0, 0, 0, 0);
 
   // geometry is uploaded once and keyed by the array identity — the scene code
@@ -292,8 +301,10 @@ export function createGLRenderer(canvas, W, H, dpr) {
       gl.uniform3f(U.u_base, c[0], c[1], c[2]);
       gl.uniform1f(U.u_alpha, Math.min(1, alpha));
       gl.uniform1i(U.u_flat, 1);
+      gl.disable(gl.CULL_FACE);            // 2D never culled the flat art
       gl.bindVertexArray(g.vao);
       gl.drawArrays(gl.TRIANGLES, 0, g.count);
+      gl.enable(gl.CULL_FACE);
       segs += g.count / 3;
       calls++;
     },
