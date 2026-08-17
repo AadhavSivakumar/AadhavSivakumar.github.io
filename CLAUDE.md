@@ -258,6 +258,23 @@ filled geometry.
   segments around; below about 16 the facets band visibly on a curved surface.
   There is headroom for it — 4,100 segments a frame still measures free.
 
+**The motor STARTS as a laid-out exploded view and comes together.** That is
+the shape every reference exploded view of a motor uses (the owner supplied
+four): the axis near horizontal, the parts strung along it in assembly order —
+fan cover, endbell, rotor, stator with its copper, housing, front endbell — with
+gaps wider than the parts are long. `LAID_OUT` holds those stations; each part
+converges on its own staggered window so the machine builds back to front, and
+the whole module is drawn small while spread and grows as it closes.
+
+The axis sits at ~41° above horizontal (`MOTOR_TILT`). The references are
+near-horizontal, but the stage is 340×660 and its diagonal is the longest run
+available; a horizontal strip would need a hero-width element, not a margin.
+
+**The copper must project past the core.** In every reference the windings are
+the one strongly coloured thing in the strip. The bars themselves sit at r=44
+inside a closed stator body and are invisible from the side, so the END TURNS
+bulge out to r=50 past both ends of the stack — that is what carries the colour.
+
 **The motor is a spinning axle that parts are threaded onto.** The shaft starts
 turning the moment it lands (`revs(p)`, ~7 accelerating revolutions across the
 page) and everything mounted on it — rotor, winding — turns with it, so each

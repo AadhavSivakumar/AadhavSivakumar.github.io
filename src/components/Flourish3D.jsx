@@ -347,10 +347,16 @@ const MOTOR_SPEC = [
 ];
 // built once — the geometry never changes, only its placement
 const MOTOR = MOTOR_SPEC.map(p => ({ ...p, polys: p.polys(), ghost: p.ghost(), solids: p.solids ? p.solids() : [] }));
-const MOTOR_MODULE = chain(
-  place(IDENT, [0, 30, 0]),
-  chain(place(rotX(58 * DEG), [0, 0, 0]), chain(place(rotZ(-16 * DEG), [0, 0, 0]), place(scaleM(0.8), [0, 0, 0]))),
-);
+// Axis at ~41deg above horizontal: the reference exploded views are laid out
+// along a near-horizontal axis and read as a strip of parts, but the stage is
+// 340x660, so the diagonal is the longest run available (~740px).
+const MOTOR_TILT = mul(rotX(58 * DEG), rotY(44 * DEG));
+const motorModule = k => chain(place(IDENT, [0, 10, 0]), place(mul(MOTOR_TILT, scaleM(k)), [0, 0, 0]));
+
+// Where each part sits when fully exploded, in assembly order along the axis —
+// fan cover and endbell at the back, then rotor, stator, housing, front endbell.
+// This is the layout every reference photo uses.
+const LAID_OUT = { rearbell: -620, rotor: -330, stator: -110, copper: -110, can: 170, frontbell: 470, shaft: 40 };
 
 /* ══════════════════════════════════════════════════════════════════════════
    LEFT — the detection pipeline
@@ -660,54 +666,49 @@ export default function Flourish3D({ side = 'left' }) {
     const revs = p => 2600 * Math.pow(win(p, 0.06, 0.94), 1.7);
 
     function drawMotor(p) {
-      setCam((-28 + 48 * p) * DEG, (7 + 9 * p) * DEG, -140 + 170 * p);
-      // a gentle presentation turn of the whole machine, easing off once it is
-      // built so the axle's own spin is what reads at the end
-      const spin = place(rotZ(300 * DEG * smooth(Math.min(p / 0.72, 1))), [0, 0, 0]);
-      const base = chain(MOTOR_MODULE, spin);
-      const D = 210;
+      setCam((-24 + 40 * p) * DEG, (6 + 8 * p) * DEG, -120 + 150 * p);
+      // It STARTS laid out as an exploded view and comes together. Each part
+      // converges on its own window, back to front, so the machine builds up
+      // along the axle rather than everything sliding home at once.
+      const conv = k => smooth(win(p, 0.10 + k * 0.10, 0.30));
+      const built = smooth(win(p, 0.10, 0.80));
+      // it is drawn small while spread out and grows as it closes up
+      const base = chain(motorModule(0.40 + 0.40 * built),
+        place(rotZ((90 + 250 * built) * DEG), [0, 0, 0]));
 
-      for (const part of MOTOR) {
-        const e = seat(win(p, part.lead, 0.26));
-        const away = 1 - clamp(e, 0, 1);
-        // the phantom of each seat, fading out as the real part lands on it
-        if (away > 0.002) stroke(part.ghost, base, ink, 0.16 * away, 1);
-        if (e <= 0.004) continue;
-
-        const s = 1 + away * 0.5;
-        let m = mul(rotX(away * part.dir[1] * 52 * DEG), rotY(away * -part.dir[0] * 52 * DEG));
-        m = mul(m, rotZ(away * part.spin * DEG));
-        // anything carried by the axle turns with it, from the moment it lands
-        if (part.spins) m = mul(m, rotZ(revs(p) * DEG));
-        const T = chain(base, place(mul(m, scaleM(s)), [
-          part.dir[0] * away * D, part.dir[1] * away * D, part.dir[2] * away * D,
+      MOTOR.forEach((part, k) => {
+        const c = seat(conv(k));                       // 0 laid out -> 1 seated
+        const away = 1 - clamp(c, 0, 1);
+        const off = (LAID_OUT[part.id] || 0) * away;
+        // a small lateral drift while apart, so the strip is not a dead-straight
+        // queue, plus the axle's own rotation for anything mounted on it
+        let m = rotZ((part.spins ? revs(p) : 0) * DEG + away * part.spin * 0.25 * DEG);
+        const T = chain(base, place(m, [
+          part.dir[0] * away * 26, part.dir[1] * away * 26, off,
         ]));
-        submit(part.solids, T, METAL, clamp(e, 0, 1));
-        part._T = T; part._a = clamp(e, 0, 1);
-      }
+        submit(part.solids, T, METAL, 1);
+        part._T = T; part._a = 1;
+      });
       flush();                                   // masses, back to front
       for (const part of MOTOR) {
-        if (!part._T || part._a <= 0.004) continue;
-        // detail lines ride on top of the shaded masses
-        stroke(part.polys, part._T, ink, 0.13 * part._a, 1);
+        if (!part._T) continue;
+        stroke(part.polys, part._T, ink, 0.13, 1);
       }
 
       // Copper: bars lying IN the stator slots, tied by an end-turn ring past
       // each end of the stack. A coil around the shaft axis is a solenoid, not
       // a motor winding.
-      const cu = win(p, 0.30, 0.16);
-      if (cu > 0) {
-        const n = 9;
-        const T = chain(base, place(rotZ(revs(p) * DEG), [0, 0, 0]));
-        for (let k = 0; k < n; k++) {
-          if (k / n > cu) break;
-          submit(barSolid((k / n) * TAU, 44, -52, 52, 7), T, CU, 1);
-        }
-        const turn = win(p, 0.42, 0.08);
-        if (turn > 0) {
-          submit(surface([[-56, 46], [-48, 46]], 14), T, CU, turn);
-          submit(surface([[48, 46], [56, 46]], 14), T, CU, turn);
-        }
+      // COPPER. In every reference the windings are the one strongly coloured
+      // thing in the strip, so they travel with the stator and the end turns
+      // are always present rather than winding on late.
+      {
+        const c = seat(conv(2));
+        const T = chain(base, place(rotZ(revs(p) * DEG), [0, 0, (LAID_OUT.copper || 0) * (1 - clamp(c, 0, 1))]));
+        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 44, -52, 52, 7), T, CU, 1);
+        // end turns bulge past both ends of the stack and are visible from the
+        // side even when the core is a closed body
+        submit(surface([[-68, 40], [-62, 50], [-48, 50], [-45, 44]], 18), T, CU, 1);
+        submit(surface([[45, 44], [48, 50], [62, 50], [68, 40]], 18), T, CU, 1);
       }
     }
 
