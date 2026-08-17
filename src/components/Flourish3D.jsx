@@ -246,7 +246,7 @@ const P_FRONT = [[98, 78], [102, 82], [112, 82], [116, 74], [122, 52], [130, 38]
 // converging from six directions, which reads as a pile of boxes meeting.
 const MOTOR_SPEC = [
   {
-    id: 'shaft', lead: 0.02, dir: [0.06, -0.10, 1], spin: -180,
+    id: 'shaft', lead: 0.02, dir: [0.06, -0.10, 1], spin: -180, spins: true,
     ghost: () => [ring(9.5, -166, 20), ring(9.5, 178, 20)],
     solids: () => [...surface(P_SHAFT, 14), ...disc(0, 9.5, -166, 14)],
     polys: () => [
@@ -379,6 +379,25 @@ const CAM_SIL = [
   [38, -12], [48, -10], [48, 36], [38, 46], [19, 50], [-27, 52], [-46, 44], [-51, 24],
 ];
 const P_LENS = [[10, 33], [16, 33], [18, 26], [30, 26], [32, 29], [48, 29], [50, 25], [62, 25], [64, 27], [70, 27], [72, 20], [74, 0]];
+
+// The camera comes apart into six pieces so the explode reads as a real
+// teardown rather than a body sliding off a lens: front shell, back shell,
+// lens barrel, two lens elements, and the top-plate furniture. Each gets its
+// own direction and spin.
+const CAM_FRONT_SOLID = extrude(CAM_SIL, 2, 19);
+const CAM_BACK_SOLID = extrude(CAM_SIL, -19, -2);
+const LENS_E1 = [...surface([[44, 27], [50, 25], [52, 22]], 18), ...disc(0, 27, 44, 18)];
+const LENS_E2 = [...surface([[62, 25], [68, 23], [70, 19]], 18), ...disc(0, 25, 62, 18)];
+const CAM_TOP = [...boxFaces(22, 10, 16, 24, -30, 4), ...boxFaces(16, 9, 14, -32, -26, 4)];
+// how each piece leaves: [dx, dy, dz, spinDeg]
+const CAM_PIECES = [
+  { solid: () => CAM_FRONT_SOLID, dir: [-0.30, -0.55, 1.0], spin: -150 },
+  { solid: () => CAM_BACK_SOLID, dir: [0.28, 0.52, -1.0], spin: 130 },
+  { solid: () => LENS_SOLID, dir: [0.10, -0.22, 1.0], spin: 220 },
+  { solid: () => LENS_E1, dir: [-0.62, 0.30, 0.75], spin: -260 },
+  { solid: () => LENS_E2, dir: [0.66, 0.24, 0.55], spin: 240 },
+  { solid: () => CAM_TOP, dir: [0.05, -1.0, 0.15], spin: 180 },
+];
 
 const CAM_BODY = [-19, 19].map(z => [...CAM_SIL.map(([x, y]) => [x, y, z]), [CAM_SIL[0][0], CAM_SIL[0][1], z]]);
 const CAM_STRUTS = CAM_SIL.filter((_, i) => i % 3 === 0).map(([x, y]) => [[x, y, -19], [x, y, 19]]);
@@ -633,19 +652,20 @@ export default function Flourish3D({ side = 'left' }) {
     // machine has come together it opens back UP into a held exploded view —
     // a solid-shaded body hides its own internals, so staying assembled would
     // throw away everything inside it.
-    const EXPLODE = { shaft: 0, rotor: -88, stator: 74, can: 186, rearbell: -226, frontbell: 288, copper: -8 };
-    const EXPLODE_ORDER = [0, -88, 74, -226, 288, 186];
+    // THE AXLE TURNS, AND PARTS GO ONTO IT. It starts turning as soon as it
+    // lands and accelerates all the way down the page, so every part that
+    // arrives is being threaded onto something already spinning. Everything
+    // mounted on the shaft (`spins: true`) turns with it.
+    //   revs(p) = the shaft's accumulated rotation in degrees
+    const revs = p => 2600 * Math.pow(win(p, 0.06, 0.94), 1.7);
 
     function drawMotor(p) {
-      setCam((-28 + 48 * p) * DEG, (7 + 9 * p) * DEG, -140 + 170 * p - 90 * smooth(win(p, 0.62, 0.30)));
-      const ex = smooth(win(p, 0.62, 0.30));
-      const spin = place(rotZ(340 * DEG * Math.min(p / 0.62, 1) + 40 * DEG * ex), [0, 0, 0]);
-      const base = chain(
-        chain(MOTOR_MODULE, place(scaleM(1 - 0.30 * ex), [0, 0, 0])),
-        spin,
-      );
+      setCam((-28 + 48 * p) * DEG, (7 + 9 * p) * DEG, -140 + 170 * p);
+      // a gentle presentation turn of the whole machine, easing off once it is
+      // built so the axle's own spin is what reads at the end
+      const spin = place(rotZ(300 * DEG * smooth(Math.min(p / 0.72, 1))), [0, 0, 0]);
+      const base = chain(MOTOR_MODULE, spin);
       const D = 210;
-      const axial = i => (typeof i === 'number' ? EXPLODE_ORDER[i] || 0 : EXPLODE[i] || 0) * ex;
 
       for (const part of MOTOR) {
         const e = seat(win(p, part.lead, 0.26));
@@ -657,10 +677,10 @@ export default function Flourish3D({ side = 'left' }) {
         const s = 1 + away * 0.5;
         let m = mul(rotX(away * part.dir[1] * 52 * DEG), rotY(away * -part.dir[0] * 52 * DEG));
         m = mul(m, rotZ(away * part.spin * DEG));
-        // the rotor keeps turning once the stator has seated over it
-        if (part.spins) m = mul(m, rotZ(3200 * DEG * Math.pow(win(p, 0.46, 0.54), 2)));
+        // anything carried by the axle turns with it, from the moment it lands
+        if (part.spins) m = mul(m, rotZ(revs(p) * DEG));
         const T = chain(base, place(mul(m, scaleM(s)), [
-          part.dir[0] * away * D, part.dir[1] * away * D, part.dir[2] * away * D + axial(part.id),
+          part.dir[0] * away * D, part.dir[1] * away * D, part.dir[2] * away * D,
         ]));
         submit(part.solids, T, METAL, clamp(e, 0, 1));
         part._T = T; part._a = clamp(e, 0, 1);
@@ -678,7 +698,7 @@ export default function Flourish3D({ side = 'left' }) {
       const cu = win(p, 0.30, 0.16);
       if (cu > 0) {
         const n = 9;
-        const T = chain(base, place(IDENT, [0, 0, axial('copper')]));
+        const T = chain(base, place(rotZ(revs(p) * DEG), [0, 0, 0]));
         for (let k = 0; k < n; k++) {
           if (k / n > cu) break;
           submit(barSolid((k / n) * TAU, 44, -52, 52, 7), T, CU, 1);
@@ -695,36 +715,59 @@ export default function Flourish3D({ side = 'left' }) {
       setCam((26 - 48 * p) * DEG, (7 + 9 * p) * DEG, -70 + 170 * p);
       const stage = place(IDENT, [0, IMG_Y, 0]);
 
-      // 1 · the camera, taking itself apart along the optical axis
-      const gone = smooth(win(p, 0.10, 0.16));
-      const camAlpha = 1 - win(p, 0.13, 0.13);
-      if (camAlpha > 0) {
-        const turn = place(rotY(-42 * DEG), [0, 0, 0]);
-        const shell = chain(stage, chain(turn, place(IDENT, [0, -120 * gone, -60 * gone])));
-        const barrel = chain(stage, chain(turn, place(IDENT, [0, 0, 150 * gone])));
-        submit(CAM_SOLID, shell, METAL, camAlpha);
-        submit(LENS_SOLID, barrel, METAL, camAlpha);
-        flush();
-        stroke(CAM_BODY.concat(CAM_STRUTS, CAM_DETAIL), shell, ink, 0.5 * camAlpha, 1);
-        stroke(LENS, barrel, ink, 0.45 * camAlpha, 1);
+      // 1 · THE CAMERA COMES APART. Six pieces, each with its own direction and
+      // spin, thrown far enough to leave the frame — the previous version only
+      // nudged the shell aside, which read as a slide rather than a teardown.
+      // What is deliberately left behind is the sensor.
+      const turn = place(rotY(-42 * DEG), [0, 0, 0]);
+      const EX_D = 460;
+      CAM_PIECES.forEach((piece, i) => {
+        const t = smooth(win(p, 0.08 + i * 0.012, 0.20));
+        const a = 1 - win(p, 0.16 + i * 0.012, 0.12);
+        if (a <= 0.01) return;
+        const m = mul(rotY(t * piece.spin * 0.6 * DEG), rotZ(t * piece.spin * DEG));
+        const T = chain(stage, chain(turn, place(m, [
+          piece.dir[0] * EX_D * t, piece.dir[1] * EX_D * t, piece.dir[2] * EX_D * t,
+        ])));
+        submit(piece.solid(), T, METAL, a);
+      });
+      flush();
+      // the outline detail rides only the two shells, and only while close
+      const shellA = 1 - win(p, 0.12, 0.10);
+      if (shellA > 0.01) {
+        const t0 = smooth(win(p, 0.08, 0.20));
+        const shell = chain(stage, chain(turn, place(IDENT, [
+          -0.30 * EX_D * t0, -0.55 * EX_D * t0, 1.0 * EX_D * t0,
+        ])));
+        stroke(CAM_BODY.concat(CAM_STRUTS, CAM_DETAIL), shell, ink, 0.42 * shellA, 1);
       }
 
-      // 2 · the sensor it was hiding, coming forward
-      const sens = smooth(win(p, 0.16, 0.14));
+      // 2 · THE SENSOR IS WHAT IS LEFT. It squares up to the viewer, comes
+      // forward, and then its face resolves into photosites — the die does not
+      // sit behind a grid, it BECOMES the grid: the package outline fades as
+      // the cells take over.
+      const sens = smooth(win(p, 0.20, 0.14));
       if (sens > 0) {
-        const T = chain(stage, place(IDENT, [0, 0, -30 + 46 * sens]));
+        // un-rotate out of the camera's three-quarter view as it takes over
+        const square = place(rotY(-42 * (1 - sens) * DEG), [0, 0, 0]);
+        const T = chain(stage, chain(square, place(IDENT, [0, 0, -30 + 46 * sens])));
+        // the die itself, solid, before it dissolves into pixels
+        const dieFade = 1 - win(p, 0.30, 0.10);
+        if (dieFade > 0.01) submit(plate(112, 86, 0, 0, 0), T, METAL, 0.85 * sens * dieFade);
+        flush();
         stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.5 * sens, 1);
 
         // photosites light to their own values, so the grid IS the image.
         // Bucketed by brightness so 48 cells cost 4 strokes, not 48.
         const buckets = [[], [], [], []];
         for (let i = 0; i < PX_C * PX_R; i++) {
-          const a = smooth(win(p, 0.24 + (i / (PX_C * PX_R)) * 0.12, 0.05));
+          const a = smooth(win(p, 0.28 + (i / (PX_C * PX_R)) * 0.10, 0.05));
           if (a <= 0.02) continue;
           const [x, y] = pxPos(i);
           const v = pxVal(i) * a;
-          const sz = PX * 0.76 * (0.45 + 0.55 * a);
-          buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x, y, 1));
+          // each cell grows out of the die's own surface into its own tile
+          const sz = PX * 0.76 * (0.30 + 0.70 * a);
+          buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), 1.5));
         }
         // filled, not stroked: the cell's VALUE is its opacity, which is what
         // makes the grid read as an image rather than as graph paper

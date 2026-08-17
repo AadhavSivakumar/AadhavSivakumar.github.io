@@ -142,7 +142,9 @@ Two decorative pieces fixed to the viewport, one per side, mounted in the
 `page-flourish-layer` in `App.jsx` (≥992px, and skipped when
 `navigator.hardwareConcurrency <= 4`) and scrubbed by page scroll.
 
-- **LEFT — "Detection"**: a camera takes itself apart down to its **sensor**;
+- **LEFT — "Detection"**: a camera **tears itself apart** — six pieces, each
+  with its own direction and spin, thrown far enough to leave frame — down to its
+  **sensor**;
   the sensor resolves into **pixels**; the pixels are cut into **patches** and
   flattened into a token sequence (the move that defines a **Vision
   Transformer**); the tokens **attend** to each other and the map collapses onto
@@ -256,11 +258,18 @@ filled geometry.
   segments around; below about 16 the facets band visibly on a curved surface.
   There is headroom for it — 4,100 segments a frame still measures free.
 
-**A solid body hides its own internals**, which is why the motor now opens back
-UP into a held exploded view after it assembles (`EXPLODE`, from p 0.62) instead
-of staying closed — a shaded closed can is just a can. Concentric parts only
-separate if they travel FAR along the axis, so the module also scales down as it
-opens to stay in frame.
+**The motor is a spinning axle that parts are threaded onto.** The shaft starts
+turning the moment it lands (`revs(p)`, ~7 accelerating revolutions across the
+page) and everything mounted on it — rotor, winding — turns with it, so each
+arriving part is being added to something already running. It ends FULLY
+ASSEMBLED with every feature on it.
+
+That is a deliberate reversal: an earlier version opened back up into a held
+exploded view at p 0.62, on the reasoning that a solid shaded body hides its own
+internals. The owner asked for the opposite — parts accumulating onto the axle,
+all features ending up on the motor — so the internals being hidden at the end
+is the accepted cost. The exploded language now lives on the LEFT side, where
+the camera tears itself apart properly.
 
 Measured cost of shading: unchanged. p50 17.1ms with the flourishes against
 17.3ms with them hidden, and 17.0 vs 17.0 on a static page.
