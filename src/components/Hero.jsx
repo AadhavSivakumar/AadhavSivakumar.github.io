@@ -120,7 +120,7 @@ export default function Hero() {
 
 
   return (
-    <section id="hero" ref={heroRef}>
+    <section id="hero" ref={heroRef} aria-labelledby="hero-title">
       <div className="hero-aurora" aria-hidden="true">
         <div className="aurora-blob aurora-a" />
         <div className="aurora-blob aurora-b" />
@@ -162,7 +162,7 @@ export default function Hero() {
         </defs>
       </svg>
 
-      <h1 ref={nameRef} aria-label={NAME}>
+      <h1 id="hero-title" ref={nameRef} aria-label={NAME}>
         {NAME.split(' ').map((word, wi, words) => (
           <React.Fragment key={wi}>
             <span className="hero-word" aria-hidden="true">

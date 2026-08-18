@@ -174,7 +174,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
                       onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/60x60/F7F5F2/BFA181?text=?'; }}
                     />
                     <div className="skill-group-item-text">
-                      <h4 className="skill-group-item-name">{skill.name}</h4>
+                      <h3 className="skill-group-item-name">{skill.name}</h3>
                       <p className="skill-group-item-description">{skill.description}</p>
                     </div>
                   </motion.div>

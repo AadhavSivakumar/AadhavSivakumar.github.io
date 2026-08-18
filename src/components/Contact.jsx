@@ -44,8 +44,8 @@ function SocialLink({ social, index }) {
 
 export default function Contact() {
   return (
-    <section id="contact">
-      <SectionTitle>Get In Touch</SectionTitle>
+    <section id="contact" aria-labelledby="contact-title">
+      <SectionTitle id="contact-title">Get In Touch</SectionTitle>
       <Reveal delay={0.1}>
         <p>
           I'm always open to discussing new opportunities in Robotics, Machine Learning, and

@@ -3,7 +3,7 @@ import { animate, stagger } from 'animejs';
 
 // Section heading revealed by an anime.js letter cascade (plus an underline
 // draw) the first time it scrolls into view.
-export default function SectionTitle({ children }) {
+export default function SectionTitle({ children, id }) {
   const ref = useRef(null);
   const text = String(children);
 
@@ -40,7 +40,7 @@ export default function SectionTitle({ children }) {
   }, []);
 
   return (
-    <h2 className="section-title" ref={ref} aria-label={text}>
+    <h2 className="section-title" id={id} ref={ref} aria-label={text}>
       {text.split(' ').map((word, wi, words) => (
         <React.Fragment key={wi}>
           <span className="st-word" aria-hidden="true">

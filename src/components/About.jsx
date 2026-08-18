@@ -35,7 +35,11 @@ export default function About({ onCardClick }) {
   }, []);
 
   return (
-    <section id="about" style={{ padding: '30px 5% 30px 5%' }}>
+    <section id="about" aria-labelledby="about-title" style={{ padding: '30px 5% 30px 5%' }}>
+      {/* The only section without a visible title — its layout is the card
+          floating in the lanyard stage. The heading still has to exist, or the
+          section has no accessible name and the outline jumps h1 -> h3. */}
+      <h2 id="about-title" className="sr-only">About</h2>
       {/* Top row: the about card, centered. */}
       <div className="about-top">
         <div className="about-card-wrapper">
@@ -52,7 +56,7 @@ export default function About({ onCardClick }) {
               onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/480x420/F7F5F2/BFA181?text=Image+Not+Found'; }}
             />
             <div className="project-content">
-              <h4>{aboutMeData.cardTitle}</h4>
+              <h3>{aboutMeData.cardTitle}</h3>
               <p>{aboutMeData.cardTeaser}</p>
             </div>
           </LiftCard>

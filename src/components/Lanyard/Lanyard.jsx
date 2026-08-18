@@ -220,6 +220,40 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, .
   );
 }
 
+// ---------------------------------------------------------------------------
+// Texture ownership.
+//
+// Three of the textures here are BUILT at runtime (the pegboard grid, the
+// inverted strap, and the per-badge composite atlas) and three of the code
+// paths that produce them can instead return a SHARED texture that this
+// component did not create: `materials.base.map` from the cached GLTF, or the
+// `useTexture` result, both of which drei hands to every other badge as well.
+//
+// Disposing one of those shared textures would blank the strap or the card face
+// on every OTHER badge, and useGLTF caches the GLTF, so it would not come back
+// on remount either. So disposal is keyed on a mark set at construction rather
+// than on "is this a texture" — a texture is freed only by the component that
+// made it.
+//
+// This matters because BandField remounts every band (by key) whenever the
+// canvas aspect changes, and each band rebuilds its own copy of the 1678x1677
+// card atlas: 14.3 MB on the GPU with mips, ~86 MB for a full set of six.
+// Before this, every settled resize leaked another set.
+const OWNED = '__disposeWithOwner';
+
+function own(tex) {
+  if (tex) tex.userData[OWNED] = true;
+  return tex;
+}
+
+function useOwnedTexture(tex) {
+  useEffect(() => {
+    if (!tex?.userData?.[OWNED]) return; // shared: not ours to free
+    return () => tex.dispose();
+  }, [tex]);
+  return tex;
+}
+
 // A tiling "perforated board" texture for the pegboard panel: a regular grid of
 // recessed holes, tinted to the site theme so the board reads on both.
 function usePegboardTexture(theme) {
@@ -252,14 +286,14 @@ function usePegboardTexture(theme) {
         ctx.fill();
       }
     }
-    const t = new THREE.CanvasTexture(canvas);
+    const t = own(new THREE.CanvasTexture(canvas));
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 8;
     t.needsUpdate = true;
     return t;
   }, [theme]);
-  useEffect(() => () => tex.dispose(), [tex]);
+  useOwnedTexture(tex);
   return tex;
 }
 
@@ -291,6 +325,15 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
     () => new THREE.MeshStandardMaterial({ color: '#d8b268', metalness: 1, roughness: 0.3, emissive: '#3a2c12', emissiveIntensity: 0.35 }),
     []
   );
+
+  // Materials are cheap next to the textures, but frameMat is rebuilt on every
+  // theme toggle and each one holds a reference to its map.
+  useEffect(() => () => frameMat.dispose(), [frameMat]);
+  useEffect(() => () => {
+    boardMat.dispose();
+    shaftMat.dispose();
+    headMat.dispose();
+  }, [boardMat, shaftMat, headMat]);
 
   const geom = useMemo(() => {
     if (!anchors.length) return null;
@@ -374,7 +417,7 @@ function useStrapTexture(texture, theme) {
     if (!ctx) return texture;
     ctx.filter = 'invert(1)';
     ctx.drawImage(img, 0, 0);
-    const inverted = new THREE.CanvasTexture(canvas);
+    const inverted = own(new THREE.CanvasTexture(canvas));
     inverted.colorSpace = texture.colorSpace;
     inverted.wrapS = inverted.wrapT = THREE.RepeatWrapping;
     inverted.flipY = texture.flipY;
@@ -488,7 +531,7 @@ function Band({
   
   const texture = useTexture(lanyardImage || lanyardTexture);
   const theme = useSiteTheme();
-  const strapTex = useStrapTexture(texture, theme);
+  const strapTex = useOwnedTexture(useStrapTexture(texture, theme));
   const photoTex = useTexture(image || BLANK_PIXEL);
 
   // Composite this badge into the card's texture atlas: the front face gets
@@ -557,13 +600,14 @@ function Band({
     else if (photo) drawCover(photo, FRONT_UV_RECT);
     if (photo) drawContain(photo, BACK_UV_RECT);
 
-    const composite = new THREE.CanvasTexture(canvas);
+    const composite = own(new THREE.CanvasTexture(canvas));
     composite.colorSpace = THREE.SRGBColorSpace;
     composite.flipY = baseMap.flipY;
     composite.anisotropy = 16;
     composite.needsUpdate = true;
     return composite;
   }, [image, badge, photoTex, materials.base.map]);
+  useOwnedTexture(cardMap);
 
   const [curve] = useState(
     () => new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])

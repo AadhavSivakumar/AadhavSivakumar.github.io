@@ -21,7 +21,7 @@ export default function SkillGroupCard({ group, onCardClick, index = 0 }) {
           }}
         />
       </div>
-      <h4 className="skill-group-card-title">{group.title}</h4>
+      <h3 className="skill-group-card-title">{group.title}</h3>
       <div className="skill-group-card-tags-container">
         {group.items.slice(0, MAX_SKILLS).map((skill, i) => (
           <span key={i} className="project-tag">{skill.name}</span>

@@ -7,8 +7,8 @@ import { majorProjectsData, smallProjectsData } from '../data/siteData';
 export default function Projects({ onCardClick }) {
   return (
     <>
-      <section id="projects">
-        <SectionTitle>My Work</SectionTitle>
+      <section id="projects" aria-labelledby="projects-title">
+        <SectionTitle id="projects-title">My Work</SectionTitle>
         <Reveal delay={0.1}><h3>Major Projects</h3></Reveal>
         <div className="major-projects-grid">
           {majorProjectsData.map((project, i) => (
@@ -24,8 +24,8 @@ export default function Projects({ onCardClick }) {
         </div>
       </section>
 
-      <section id="additional-projects" style={{ paddingTop: 0 }}>
-        <Reveal><h3>Additional Projects</h3></Reveal>
+      <section id="additional-projects" aria-labelledby="additional-projects-title" style={{ paddingTop: 0 }}>
+        <Reveal><h3 id="additional-projects-title">Additional Projects</h3></Reveal>
         <div className="small-projects-grid">
           {smallProjectsData.map((project, i) => (
             <ProjectCard

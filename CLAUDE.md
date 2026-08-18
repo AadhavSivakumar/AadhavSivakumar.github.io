@@ -133,6 +133,18 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
   tints the reflection by the base colour and darkens the diffuse term, which is
   the opposite of what a white printed card does with light.
 - Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
+- **Runtime textures are freed by whoever built them, and only by them.** The
+  pegboard grid, the dark-theme inverted strap and the per-badge composite atlas
+  are built at runtime — but each of those code paths can also return a SHARED
+  texture it did not create (`materials.base.map` from the cached GLTF, or the
+  `useTexture` result), which drei hands to every other badge too. Disposing one
+  of those blanks the strap or the card face on every other badge, and `useGLTF`
+  caches the GLTF so it does not come back on remount. So disposal is keyed on a
+  mark set at construction (`own()` / `useOwnedTexture`), never on "is this a
+  texture". This is load-bearing because `BandField` remounts every band by key
+  on a resize, and each band rebuilds its own copy of the 1678×1677 atlas —
+  14.3 MB on the GPU with mips, ~86 MB for a set of six, leaked per settled
+  resize before this.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
@@ -514,9 +526,8 @@ above for what replaced it and why. Two structural changes came with it:
   inside an embedded Drive iframe** — a cross-origin frame swallows the key.
   Shift+Tab returns focus to this document and the close button is always
   reachable, so nobody is stuck.
-- Runtime performance, also unfixed: the lanyard `<Canvas>` never pauses and never
-  disposes its composited textures (~90 MB of GPU textures per settled resize); four
-  unbatched scroll listeners force layout twice per event.
+- Runtime performance: four unbatched scroll listeners still force layout twice
+  per event.
 - Visual QA pass pending: modal open/close feel, section-title cascades, both themes,
   mobile layout. On the lanyard hover tilt — the rest-state signs are correct; the
   real defect is that after a click-flip the pitch damper becomes positive feedback,

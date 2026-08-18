@@ -35,8 +35,8 @@ export default function Resume({ onCardClick }) {
   };
 
   return (
-    <section id="resume">
-      <SectionTitle>Resume, CV & Transcripts</SectionTitle>
+    <section id="resume" aria-labelledby="resume-title">
+      <SectionTitle id="resume-title">Resume, CV & Transcripts</SectionTitle>
       <Reveal delay={0.1}>
         <p>
           For a detailed overview of my work experience, education, and professional background,
