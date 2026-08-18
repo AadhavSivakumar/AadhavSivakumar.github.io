@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { MotionConfig } from 'motion/react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -15,11 +16,10 @@ import { useTheme } from './hooks/useTheme';
 function App() {
   const { theme, toggleTheme } = useTheme();
   const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 992);
-  // The flourishes are ~350 elements across two preserve-3d trees, and every
-  // camera change makes the browser re-sort and re-rasterise all of them.
-  // Measured, that is about one 60fps frame budget per side while scrolling —
-  // fine on a desktop GPU, not fine on a low-core machine. They are decoration,
-  // so the cheapest honest fix is not to draw them there at all.
+  // Each flourish is one canvas doing its own projection, so the cost is CPU
+  // maths rather than layout — but it is still a few thousand segments a frame
+  // on every scroll. They are decoration, so on a low-core machine the cheapest
+  // honest fix is not to draw them at all.
   const [canAfford3D] = useState(
     () => typeof navigator === 'undefined' || (navigator.hardwareConcurrency ?? 8) > 4
   );
@@ -72,11 +72,15 @@ function App() {
   }, []);
 
   return (
-    <>
+    // reducedMotion="user" makes motion/react drop transform and layout
+    // animations for anyone who asked the OS for less movement: the nav pill,
+    // the theme-toggle swap, the hero, and the modal's lift/expand sequence.
+    // It is set once here rather than component by component so a new
+    // motion component cannot quietly opt out of it.
+    <MotionConfig reducedMotion="user">
       <ScrollProgress />
-      {/* Page-wide decorative 3D flourishes: real CSS-3D assemblies driven by
-          anime.js, fixed to the viewport one per side, behind all content —
-          exploding and reassembling as the whole page scrolls. */}
+      {/* Page-wide decorative flourishes: one canvas per side, fixed to the
+          viewport behind all content, scrubbed by page scroll. */}
       {isWide && canAfford3D && (
         <div className="page-flourish-layer" aria-hidden="true">
           <Flourish3D side="left" />
@@ -101,7 +105,7 @@ function App() {
         cardRect={modalState.cardRect}
         onClose={handleModalClose}
       />
-    </>
+    </MotionConfig>
   );
 }
 

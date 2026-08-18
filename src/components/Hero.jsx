@@ -81,7 +81,9 @@ export default function Hero() {
     return () => { io && io.disconnect(); loop && loop.revert && loop.revert(); };
   }, []);
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({
+    behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+  });
 
 
   // The aurora blobs and the sine field are infinite CSS animations, so they

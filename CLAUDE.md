@@ -366,6 +366,39 @@ during the sequence via the `animating-out` class that `App.jsx` toggles.
 
 Light/dark is driven by CSS variables under `:root` and `html[data-theme="dark"]` in `App.css` (`--accent-color` gold `#C5A35C`/`#D4B47C`), toggled by `useTheme`. The metallic gold gradient (nav pill, hero chips, tags) is hard-coded to match the live portfolio's look and works in both themes.
 
+**There are three gold tokens, and they are not interchangeable.**
+`--accent-color` is DECORATIVE — 2.2:1 on the light background, which is fine
+for a rule, a border or a glow and unreadable as text. Anywhere the gold
+carries text use `--accent-ink` (5.36:1 light), and anywhere it *backs* text
+use `--accent-btn` (5.53:1 under white). In dark mode all three are the same
+colour, because `#D4B47C` on `#121212` is already 9.47:1. Do not collapse them
+back into one token — that is exactly the state this came from, where the
+header logo sat at 2.20:1 and the modal CTA buttons at 2.40:1.
+
+The project tags are their own case: the text sits on a *gradient*, so measure
+against its darkest stop (`#a98642`), not the light middle. `#4B380C` scored
+3.30:1 there and is now `#2A1E04` (4.80:1). At 11px the tag is normal text
+under WCAG regardless of its 600 weight, so 3:1 does not apply.
+
+## Reduced motion
+
+`App.jsx` wraps the tree in `<MotionConfig reducedMotion="user">`, so every
+motion/react animation on the page — nav pill, theme toggle, hero, the modal's
+lift/expand sequence — drops its transforms for anyone who asked the OS for less
+movement. Set it once there, not per component, so a new motion component
+cannot quietly opt out.
+
+The JS entrances handle themselves (`useScrollReveal`, `Hero`, `SectionTitle`,
+`Flourish3D`, `ProjectCard` covers). The trap to remember: **elements that start
+at `opacity: 0` must be explicitly shown, not merely left un-animated** —
+`SectionTitle`'s letters do, and skipping the cascade without that left every
+heading on the site blank. Anything left over is CSS that loops or moves on
+hover, killed in one block at the bottom of `App.css`.
+
+Verified by driving Firefox with `ui.prefersReducedMotion` on and off: aurora
+`animation-name` `aurora-drift-a` → `none`, `scroll-behavior` `smooth` → `auto`,
+and section-title letters 6-of-52 visible mid-cascade → 52-of-52 immediately.
+
 ## Deployment
 
 **Every push to `master` is a production release.** `.github/workflows/deploy.yml`
@@ -473,9 +506,6 @@ above for what replaced it and why. Two structural changes came with it:
   Technician at Starship Technologies … TA at NYU", while the nearest work badge
   says Roboflow / Field Engineer. Needs the owner's current role, and past-tensing
   the NYU master's if it has been conferred.
-- Accessibility, still open: ~10 animations ignore `prefers-reduced-motion`, and
-  light-theme gold fails contrast where it carries text (header logo 2.20:1,
-  modal CTA buttons 2.40:1).
 - **Keyboard access is done — keep it that way.** `LiftCard` is a div with
   button semantics (`role`, `tabIndex`, Enter/Space, `preventDefault` on Space
   so it does not scroll); it is NOT a real `<button>` because the cards contain

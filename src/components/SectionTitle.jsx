@@ -10,6 +10,14 @@ export default function SectionTitle({ children }) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // The letters start at opacity 0, so under reduced motion the title has to
+    // be shown explicitly — skipping the animation alone would leave it blank.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      el.querySelectorAll('.st-letter').forEach(l => { l.style.opacity = 1; });
+      const u = el.querySelector('.st-underline');
+      if (u) u.style.transform = 'scaleX(1)';
+      return;
+    }
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
       observer.disconnect();

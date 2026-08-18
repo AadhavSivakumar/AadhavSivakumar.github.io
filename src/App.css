@@ -6,6 +6,12 @@
   --background-color: #F7F5F2;
   --surface-color: #FFFFFF;
   --accent-color: #C5A35C;
+  /* Text-safe accent. --accent-color is a DECORATIVE gold: at 2.2:1 on the page
+     background it is fine for a rule, a border or a glow, and unreadable as
+     text. Every place the accent carries or backs TEXT uses these instead
+     (5.4:1 and 5.5:1 light, 9.5:1 dark). Do not collapse them back into one. */
+  --accent-ink: #7A6222;
+  --accent-btn: #7F6529;
   --border-color: #ddd;
   --animation-duration: 0.65s;
   --animation-easing: cubic-bezier(0.76, 0, 0.24, 1);
@@ -35,6 +41,10 @@ html[data-theme="dark"] {
   --background-color: #121212;
   --surface-color: #1e1e1e;
   --accent-color: #D4B47C;
+  /* Dark theme: the decorative gold is already 9.5:1 on #121212, so the
+     text-safe pair is simply itself. */
+  --accent-ink: #D4B47C;
+  --accent-btn: #D4B47C;
   --border-color: #444;
   --shadow-color-ambient: color-mix(in srgb, var(--primary-color) 15%, transparent);
   --shadow-color-accent: color-mix(in srgb, var(--accent-color) 60%, transparent);
@@ -46,6 +56,7 @@ html[data-theme="dark"] {
 /* GLOBAL STYLES */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
   font-family: 'Poppins', sans-serif;
   background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent-color) 10%, transparent) 0%, transparent 30%),
@@ -59,7 +70,7 @@ body {
 }
 
 h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-color);}
-a { color: var(--accent-color); text-decoration: none; transition: color 0.3s ease; }
+a { color: var(--accent-ink); text-decoration: none; transition: color 0.3s ease; }
 a:hover { color: var(--primary-color); }
 
 /* HEADER */
@@ -105,7 +116,7 @@ header nav { display: flex; align-items: center; gap: 6px; }
   transition: color 0.3s ease, transform 0.3s ease;
 }
 #theme-toggle:hover {
-  color: var(--accent-color);
+  color: var(--accent-ink);
   transform: scale(1.1);
 }
 
@@ -419,7 +430,7 @@ html[data-theme="dark"] {
   padding: 8px;
   transition: color 0.3s ease;
 }
-.hero-scroll-cue:hover { color: var(--accent-color); }
+.hero-scroll-cue:hover { color: var(--accent-ink); }
 
 /* About stage: the about card sits centered with the lanyard badges hanging
    on both sides. Full-bleed so the six lanyards have room beyond the 1200px
@@ -667,7 +678,10 @@ html[data-theme="dark"] .small-project-card img.is-gif {
 }
 .project-tag {
   background: linear-gradient(145deg, #a98642, #f9e099 50%, #b8914c);
-  color: #4B380C;
+  /* Measured against the DARKEST stop of the gradient behind it (#a98642),
+     not the light middle: #4B380C scored 3.30:1 there. The tag is 11px, so
+     even at 600 weight it is "normal" text and needs 4.5:1, not 3:1. */
+  color: #2A1E04;
   font-weight: 600;
   padding: 4px 12px;
   border-radius: 12px;
@@ -851,7 +865,7 @@ html[data-theme="dark"] .skill-group-card-image {
   transform: translateY(-6px);
   border-color: var(--accent-color);
   box-shadow: 0 12px 24px var(--shadow-color-ambient);
-  color: var(--accent-color);
+  color: var(--accent-ink);
 }
 .doc-tile:active {
   transform: translateY(-3px) scale(0.97);
@@ -882,7 +896,7 @@ html[data-theme="dark"] .skill-group-card-image {
 #contact { text-align: center; }
 .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 35px; align-items: center; }
 .social-links a { color: var(--secondary-color); transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
-.social-links a:hover { transform: scale(1.25); color: var(--accent-color); }
+.social-links a:hover { transform: scale(1.25); color: var(--accent-ink); }
 footer { text-align: center; padding: 40px 5%; color: var(--secondary-color); font-size: 0.9rem; border-top: 1px solid var(--border-color); margin-top: 50px; position: relative; z-index: 10; transition: border-color 0.3s ease, color 0.3s ease;}
 
 
@@ -919,7 +933,7 @@ html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.85);
 
 
 .modal-view-button {
-  display: inline-block; padding: 12px 24px; background-color: var(--accent-color);
+  display: inline-block; padding: 12px 24px; background-color: var(--accent-btn);
   color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
   text-align: center; transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
   margin-top: 15px;
@@ -954,7 +968,7 @@ html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180d
 .modal-dynamic-text { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7; }
 .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
 .modal-dynamic-button {
-  display: inline-block; padding: 10px 20px; background-color: var(--accent-color);
+  display: inline-block; padding: 10px 20px; background-color: var(--accent-btn);
   color: var(--surface-color) !important; border-radius: 5px; font-weight: 600;
   text-align: center; margin: 10px 5px 15px 0;
   transition: transform 0.3s ease, background-color 0.3s ease;
@@ -1012,4 +1026,22 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   .skill-group-item { flex-direction: column; align-items: center; text-align: center; }
   .skill-group-item-image { margin-bottom: 10px; }
   .project-tags-container, .project-status-container { justify-content: center; display: flex; }
+}
+
+
+/* ============================================================
+   REDUCED MOTION — the sweep.
+   Individual components handle their own entrances in JS (useScrollReveal,
+   the hero cascade, SectionTitle, Flourish3D) and motion/react is put in
+   reducedMotion="user" from App.jsx. What is left is the CSS that runs on a
+   loop or moves on hover, and it is killed here rather than one rule at a
+   time, because a decorative animation with no off switch is the failure mode
+   this media query exists for.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none; }
+  .hero-scroll-cue, .hero-scroll-cue * { animation: none; }
+  .lift-card, .doc-tile, .social-links a, .project-tag { transition: none; }
+  .lift-card:hover, .doc-tile:hover { transform: none; }
+  .lift-card:active, .doc-tile:active { transform: none; }
 }
