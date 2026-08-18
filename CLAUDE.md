@@ -154,44 +154,35 @@ Two decorative pieces fixed to the viewport, one per side, mounted in the
   one axis in assembly order — shaft, rotor, wound stator, bells, finned frame,
   fan cowl — then running.
 
-### Two rasterisers: WebGL2, falling back to Canvas2D
+### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
-`flourishGL.js` is the WebGL2 backend; the Canvas2D code in `Flourish3D.jsx` is
-the fallback and still the reference implementation. **Geometry, choreography
-and the lighting model are shared** — only the rasteriser differs, so the two
-should look the same (the GL one is smoother, because lighting runs per pixel
-rather than per face).
+A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
+confirmed it looked the same as Canvas2D on a real GPU — and on paper it is the
+better engine: ~15 draw calls a frame instead of ~573, hardware depth sorting,
+no per-frame allocation, and lighting per pixel instead of per face.
 
-Why: Canvas2D issued **~573 `fill()` calls per frame** — one per face, since
-every face has its own shade — plus a JS sort of ~600 objects and ~600
-allocations every frame for the painter's algorithm. That is the ceiling of the
-API, and it is why ADDING DETAIL made it worse: the cost is the draw-call count,
-not the geometry. WebGL uploads each part once and draws it with a single call
-against a depth buffer, so the scene is ~15 calls and the sort disappears into
-hardware.
+It came out because **this environment has no WebGL at all, not even software**,
+so nobody working on this file can look at what the GL path draws. That is not a
+theoretical problem: two real bugs shipped in it, and both were caught by
+simulating the maths in JS rather than by seeing them —
 
-Things that were got wrong once here, so check them if it ever looks broken:
+- the camera matrix was uploaded untransposed, which skewed the entire scene
+  while still looking plausible;
+- face culling was disabled on the reasoning that the depth buffer sorts anyway,
+  which exposed every inconsistently-wound face lit by an inverted normal.
 
-- **The camera matrix must be uploaded COLUMN-major.** `view = Rx(pitch) *
-  Ry(yaw)`; verify any change numerically against the 2D backend's own
-  projection, which is the reference. A wrong transpose skews the whole scene
-  and looks plausible enough to miss.
-- **A canvas can NEVER hand out a second context type.** If `createGLRenderer`
-  takes a webgl2 context and only then fails — a shader that will not compile on
-  some driver — `getContext('2d')` on that same element returns null and the
-  piece dies silently. The component swaps in a fresh `<canvas>` before falling
-  back, which makes the fallback hold no matter where GL gave up.
-- **No face culling.** The projection flips Y, which reverses apparent winding,
-  so front/back would be a coin flip. The depth buffer hides interior faces
-  anyway.
-- **Translucent parts must not write depth** (`depthMask(alpha >= 0.99)`) or a
-  part fading in punches a hole in whatever is behind it.
-- **Detail lines are drawn with the depth test off**, matching the 2D backend —
-  they lie exactly on the surfaces they describe, so depth-testing them z-fights.
-- Pre-normalise `const vec3` values in GLSL; drivers vary on whether built-in
-  calls are legal in a const initialiser.
+The Canvas2D path is screenshotted on every change (see Verifying, below), which
+is why every other defect in these pieces got caught before it shipped. A
+renderer that can only be verified numerically is a renderer whose visual
+regressions reach production.
 
-### The Canvas2D fallback, and why the DOM version is gone
+If the geometry ever genuinely outgrows Canvas2D again — the ceiling is the
+DRAW-CALL count, ~573 today, one per shaded face — the answer is either fewer,
+larger shaded masses, or a rendering path that can be seen from wherever the
+work is being done. The GL implementation is in git history at `4914316` and
+`5cbdcdf` if it is ever wanted back.
+
+### The Canvas2D renderer, and why the DOM version is gone
 
 This was CSS 3D: every part a div inside a `transform-style: preserve-3d` tree.
 It looked right, but the browser had to re-sort and re-rasterise every element
