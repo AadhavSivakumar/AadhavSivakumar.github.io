@@ -502,10 +502,6 @@ above for what replaced it and why. Two structural changes came with it:
 
 **Open items:**
 
-- **The About bio is stale and contradicts the site.** `siteData.js` says "Robot
-  Technician at Starship Technologies … TA at NYU", while the nearest work badge
-  says Roboflow / Field Engineer. Needs the owner's current role, and past-tensing
-  the NYU master's if it has been conferred.
 - **Keyboard access is done — keep it that way.** `LiftCard` is a div with
   button semantics (`role`, `tabIndex`, Enter/Space, `preventDefault` on Space
   so it does not scroll); it is NOT a real `<button>` because the cards contain
