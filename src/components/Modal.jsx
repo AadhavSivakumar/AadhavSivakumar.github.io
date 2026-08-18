@@ -31,6 +31,31 @@ function finalRect() {
 // -> settle (drops back onto the page and hands off to the real card).
 export default function Modal({ isOpen, itemData, itemType, cardRect, onClose }) {
   const [phase, setPhase] = useState('closed');
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+
+  // Move focus INTO the dialog once it is open. Until this, focus stayed on
+  // <body> (the trigger card gets visibility:hidden while the modal is up), so
+  // a screen reader or keyboard user was never taken to the content at all.
+  useEffect(() => {
+    if (phase !== 'open') return;
+    closeRef.current?.focus({ preventScroll: true });
+  }, [phase]);
+
+  // Keep Tab inside the dialog. Without it, tabbing walks straight out into the
+  // page behind the backdrop, which is still fully interactive.
+  const trapTab = useCallback(e => {
+    if (e.key !== 'Tab') return;
+    const root = dialogRef.current;
+    if (!root) return;
+    const items = [...root.querySelectorAll(
+      'a[href], button:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])'
+    )].filter(el => el.offsetParent !== null || el === document.activeElement);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }, []);
   const savedRect = useRef(null);
 
   useEffect(() => {
@@ -52,6 +77,11 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     return () => clearTimeout(t);
   }, [phase]);
 
+  // NB: Escape cannot be caught while focus is inside one of the embedded
+  // Google Drive iframes — a cross-origin frame receives the key and the parent
+  // never sees it. Verified. The user is not stuck (Shift+Tab returns focus to
+  // this document, and the close button is always reachable), but it is why
+  // this handler cannot be the only way out.
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') handleClose(); };
     window.addEventListener('keydown', handleEsc);
@@ -124,7 +154,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
             />
           </motion.div>
           <div className="modal-text-content">
-            <motion.h2 variants={contentItem}>{itemData.title}</motion.h2>
+            <motion.h2 id="modal-title" variants={contentItem}>{itemData.title}</motion.h2>
             <div className="modal-skill-group-items-container">
               {itemData.items.map((skill, i) => {
                 let skillImageSrc = skill.imageUrl;
@@ -196,7 +226,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
           </motion.div>
         )}
         <div className="modal-text-content">
-          <motion.h2 variants={contentItem}>{title}</motion.h2>
+          <motion.h2 id="modal-title" variants={contentItem}>{title}</motion.h2>
           {itemData.modalContent?.map((content, i) => {
             if (content.type === 'text') {
               return <motion.p key={i} variants={contentItem} className="modal-dynamic-text">{content.value}</motion.p>;
@@ -247,6 +277,11 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       />
       <motion.div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onKeyDown={trapTab}
         className={`modal-animator ${modalTypeClass}`}
         initial={{ ...r, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0.15)' }}
         animate={animatorTargets[phase]}
@@ -255,6 +290,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
         <div className="modal-content">
           <motion.button
             className="modal-close"
+            ref={closeRef}
             onClick={handleClose}
             aria-label="Close modal"
             animate={{ opacity: phase === 'open' ? 1 : 0 }}

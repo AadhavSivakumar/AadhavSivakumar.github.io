@@ -59,7 +59,13 @@ function App() {
 
   const handleModalClose = useCallback(() => {
     if (lastClickedCardRef.current) {
-      lastClickedCardRef.current.classList.remove('animating-out');
+      const card = lastClickedCardRef.current;
+      card.classList.remove('animating-out');
+      // Return focus to the card that opened the modal. The card is hidden
+      // (visibility) while the modal is up, so the browser had dropped focus to
+      // <body> — without this a keyboard user is dumped back at the top of the
+      // document every time they close something.
+      requestAnimationFrame(() => card.focus?.({ preventScroll: true }));
       lastClickedCardRef.current = null;
     }
     setModalState(prev => ({ ...prev, isOpen: false }));
@@ -77,8 +83,9 @@ function App() {
           <Flourish3D side="right" />
         </div>
       )}
+      <a className="skip-link" href="#main">Skip to content</a>
       <Header theme={theme} toggleTheme={toggleTheme} />
-      <main>
+      <main id="main">
         <Hero />
         <About onCardClick={handleCardClick} />
         <Projects onCardClick={handleCardClick} />

@@ -473,12 +473,21 @@ above for what replaced it and why. Two structural changes came with it:
   Technician at Starship Technologies … TA at NYU", while the nearest work badge
   says Roboflow / Field Engineer. Needs the owner's current role, and past-tensing
   the NYU master's if it has been conferred.
-- Accessibility gaps found in the same audit and NOT yet fixed: the 23 project /
-  skill / about cards are non-focusable `<div>`s (`LiftCard.jsx`), the modal has no
-  dialog semantics or focus management, `index.html` has no description/OG/Twitter
-  tags (a shared link unfurls blank), ~10 animations ignore `prefers-reduced-motion`,
-  and light-theme gold fails contrast where it carries text (header logo 2.20:1,
+- Accessibility, still open: ~10 animations ignore `prefers-reduced-motion`, and
+  light-theme gold fails contrast where it carries text (header logo 2.20:1,
   modal CTA buttons 2.40:1).
+- **Keyboard access is done — keep it that way.** `LiftCard` is a div with
+  button semantics (`role`, `tabIndex`, Enter/Space, `preventDefault` on Space
+  so it does not scroll); it is NOT a real `<button>` because the cards contain
+  `<h4>`/`<p>`, which are flow content and invalid inside one. The modal has
+  `role="dialog"`, `aria-modal`, `aria-labelledby` pointing at its `<h2>`, moves
+  focus to the close button when it opens, traps Tab, and `App.jsx` returns
+  focus to the card that opened it. Verified in a browser: 23 focusable cards,
+  Enter opens, Tab stays inside, Escape closes, focus returns.
+  One limitation, confirmed by test: **Escape does not work while focus is
+  inside an embedded Drive iframe** — a cross-origin frame swallows the key.
+  Shift+Tab returns focus to this document and the close button is always
+  reachable, so nobody is stuck.
 - Runtime performance, also unfixed: the lanyard `<Canvas>` never pauses and never
   disposes its composited textures (~90 MB of GPU textures per settled resize); four
   unbatched scroll listeners force layout twice per event.

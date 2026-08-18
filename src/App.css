@@ -446,6 +446,33 @@ html[data-theme="dark"] {
   z-index: 5;
 }
 
+/* Keyboard focus. The cards are divs with button semantics, so nothing gives
+   them a focus ring for free. */
+.lift-card:focus-visible,
+.doc-tile:focus-visible,
+.modal-close:focus-visible,
+.skip-link:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
+}
+
+/* Skip link: a fixed header with five nav links and a theme toggle sits ahead
+   of the content, so a keyboard user needs a way past it. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 200;
+  padding: 10px 16px;
+  background: var(--surface-color);
+  color: var(--primary-color);
+  border-radius: 0 0 8px 0;
+  font-weight: 600;
+}
+.skip-link:focus {
+  left: 0;
+}
+
 /* Page-wide decorative layer: fixed to the viewport and sitting behind all
    content (z-index -1, over the fixed body gradient), so the flourishes are
    visible in the side margins of every section as the page scrolls. */
