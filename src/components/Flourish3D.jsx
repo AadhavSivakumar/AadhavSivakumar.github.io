@@ -34,6 +34,12 @@ import { onScroll as onPageScroll } from '../scrollDriver';
 // meridian maths, the ViT patch/token layout), the beat timings, both themes,
 // reduced-motion, and the >=992px gate in App.jsx.
 
+const hexToRgb = h => {
+  const v = h.replace('#', '').trim();
+  const n = v.length === 3 ? v.split('').map(c => c + c).join('') : v;
+  return [parseInt(n.slice(0, 2), 16) || 0, parseInt(n.slice(2, 4), 16) || 0, parseInt(n.slice(4, 6), 16) || 0];
+};
+
 const TAU = Math.PI * 2;
 const DEG = Math.PI / 180;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -238,7 +244,13 @@ function barSolid(a, R, z0, z1, w) {
 
 const P_SHAFT = [[-166, 9.5], [150, 9.5], [156, 8], [178, 8], [178, 0]];
 const P_COWL = [[-166, 26], [-158, 32], [-150, 47], [-136, 63], [-126, 72], [-118, 76], [-114, 82], [-104, 82], [-100, 78]];
-const P_FRAME = finnedFrame(-98, 98, 78, 86, 6);
+const P_FRAME = finnedFrame(-98, 98, 78, 86, 9);
+// The OCCLUDER for the frame is a plain cylinder, not the serrated profile.
+// Filling the serration made the assembled machine a scalloped barrel — six
+// fat bands with a domed bell on each end, which read as a beehive rather than
+// as a motor. A technical drawing solves this the same way: a clean cylindrical
+// silhouette, with the fins drawn ON it as lines.
+const P_FRAME_SOLID = [[-98, 82], [98, 82]];
 const P_FRONT = [[98, 78], [102, 82], [112, 82], [116, 74], [122, 52], [130, 38], [136, 27], [142, 22], [146, 14]];
 
 // Every part arrives along the SAME axis in assembly order: `fz` dominates and
@@ -274,12 +286,21 @@ const MOTOR_SPEC = [
       }),
       // squirrel-cage bars — they turn with the rotor
       ...radial(9, a => [[at(a, 31, -38), at(a, 31, 38)]]),
-      // cooling fan on the rear of the shaft, blades raked back
-      ...radial(6, a => {
-        const rake = 0.36;
-        return [[at(a, 12, -126), at(a + rake * 0.4, 19, -131), at(a + rake, 26, -134), at(a + rake * 0.5, 21, -123), at(a, 12, -126)]];
+    ],
+  },
+  {
+    // The cooling fan is its OWN part. It used to be drawn as part of the
+    // rotor, 86 units behind it, which meant the exploded view had a rotor
+    // with a fan floating off one end rather than a fan you could see arrive.
+    id: 'fan', lead: 0.14, dir: [0.10, -0.06, 1], spin: 260, spins: true,
+    ghost: () => [ring(44, -128, 20)],
+    solids: () => [...surface([[-136, 16], [-118, 16]], 16), ...disc(9.5, 16, -136, 16)],
+    polys: () => [
+      ...radial(8, a => {
+        const rake = 0.34;
+        return [[at(a, 16, -125), at(a + rake * 0.4, 28, -132), at(a + rake, 44, -136), at(a + rake * 0.5, 36, -121), at(a, 16, -125)]];
       }),
-      ring(12, -126, 18),
+      ring(16, -125, 20), ring(44, -134, 24), ring(9.5, -136, 16),
     ],
   },
   {
@@ -328,35 +349,75 @@ const MOTOR_SPEC = [
     id: 'can', lead: 0.58, dir: [-0.10, 0.06, -1], spin: 200,
     ghost: () => [ring(88, 0, 32)],
     solids: () => [
-      ...surface(P_FRAME, 24),
-      ...boxFaces(30, 40, 26, 0, 100, 0),          // terminal box
+      ...surface(P_FRAME_SOLID, 24),
+      ...disc(0, 82, -98, 24), ...disc(0, 82, 98, 24),
       ...plate(38, 24, 0, -92, 13),                // nameplate
     ],
     polys: () => [
       ...revolve(P_FRAME, 3, [[-98, 78], [98, 78], [0, 88]]),
-      // terminal box on the flank, its cover bolts, and the conduit out of it
+      // nameplate on the flank, with its engraved lines
+      rect(38, 24, 0, -92, 0),
+      [[-13, -92, 5], [13, -92, 5]], [[-13, -92, -1], [13, -92, -1]],
+    ],
+  },
+  {
+    // The terminal box is a RADIAL feature — it bolts onto the flank of the
+    // frame — so it is the one part that leaves sideways rather than along the
+    // axis. `side` is how far out it goes, in local units.
+    id: 'tbox', lead: 0.62, dir: [0, 0, 0], spin: 0, side: 300,
+    ghost: () => [ringAt(6, 0, 142, 0, 12)],
+    solids: () => [...boxFaces(30, 40, 26, 0, 100, 0)],
+    polys: () => [
       ...boxWire(30, 40, 26, 0, 100, 0),
       ...radial(4, a => [ringAt(2, 11 * Math.cos(a), 100 + 11 * Math.sin(a), 13, 6)]),
       [[-5, 120, 0], [-5, 142, 0]], [[5, 120, 0], [5, 142, 0]],
       ringAt(6, 0, 142, 0, 12),
-      // nameplate on the opposite flank, with its engraved lines
-      rect(38, 24, 0, -92, 0),
-      [[-13, -92, 5], [13, -92, 5]], [[-13, -92, -1], [13, -92, -1]],
     ],
   },
 ];
 // built once — the geometry never changes, only its placement
 const MOTOR = MOTOR_SPEC.map(p => ({ ...p, polys: p.polys(), ghost: p.ghost(), solids: p.solids ? p.solids() : [] }));
-// Axis at ~41deg above horizontal: the reference exploded views are laid out
-// along a near-horizontal axis and read as a strip of parts, but the stage is
-// 340x660, so the diagonal is the longest run available (~740px).
-const MOTOR_TILT = mul(rotX(58 * DEG), rotY(44 * DEG));
+const STATOR_I = MOTOR.findIndex(p => p.id === 'stator');
+// The axis is STEEP — about 69 degrees on screen — because the stage is 340x660
+// and the parts have diameter as well as length. The old 41-degree axis was
+// chosen as "the diagonal", but the diagonal of a 340x660 box is 63 degrees,
+// not 41: at 41 the laid-out strip measured 301x393px inside a 340-wide stage
+// and the end parts were cropped. Solved rather than eyeballed - the strip now
+// measures 238x530 with the part radii included, and the assembled machine
+// 224x267. If you re-tilt this, re-run that fit.
+const MOTOR_TILT = mul(rotX(66 * DEG), rotY(30 * DEG));
+// How long the piece is allowed to be on screen, in stage pixels, measured
+// along its axis. The module scale is solved from this every frame:
+//   k = RUN / (spread + machine length)
+// so the strip holds a constant on-screen run while the parts converge, then
+// MOTOR_K_MAX takes over and the assembled machine settles at its own size.
+// The machine is 344 units end to end (shaft -166..178).
+const MOTOR_RUN_PX = 560;
+const MOTOR_LEN = 344;
+const MOTOR_K_MAX = 0.66;
 const motorModule = k => chain(place(IDENT, [0, 10, 0]), place(mul(MOTOR_TILT, scaleM(k)), [0, 0, 0]));
 
 // Where each part sits when fully exploded, in assembly order along the axis —
 // fan cover and endbell at the back, then rotor, stator, housing, front endbell.
 // This is the layout every reference photo uses.
-const LAID_OUT = { rearbell: -620, rotor: -330, stator: -110, copper: -110, can: 170, frontbell: 470, shaft: 40 };
+// Gaps wider than the parts are long, which is what every reference exploded
+// view does — at the old spacing the rotor and stator overlapped and the strip
+// read as one object with lumps rather than as parts laid out.
+// Centred on the axis: the stations used to run -980..+760, so the strip's
+// middle sat 110 units behind the module origin and the whole layout hung off
+// one corner of a 340x660 stage with the end parts cropped.
+// These are OFFSETS, and every part already sits somewhere on the axis in
+// machine coordinates — the fan's blades are modelled at z = -130, the front
+// bell at +122. Adding a station to that double-counts, which is why the
+// laid-out strip used to bunch in the middle with holes at both ends. So the
+// numbers below are (target - natural centre), for targets evenly spaced 220
+// apart from -750 to +570 in assembly order: rear bell, fan, rotor, stator,
+// frame, front bell, and the shaft drawn out the front. The terminal box rides
+// with the frame and leaves sideways instead (`side`).
+const LAID_OUT = {
+  rearbell: -620, fan: -400, rotor: -310, stator: -90, copper: -90,
+  can: 130, tbox: 130, frontbell: 228, shaft: 564,
+};
 
 /* ══════════════════════════════════════════════════════════════════════════
    LEFT — the detection pipeline
@@ -395,14 +456,42 @@ const CAM_BACK_SOLID = extrude(CAM_SIL, -19, -2);
 const LENS_E1 = [...surface([[44, 27], [50, 25], [52, 22]], 18), ...disc(0, 27, 44, 18)];
 const LENS_E2 = [...surface([[62, 25], [68, 23], [70, 19]], 18), ...disc(0, 25, 62, 18)];
 const CAM_TOP = [...boxFaces(22, 10, 16, 24, -30, 4), ...boxFaces(16, 9, 14, -32, -26, 4)];
-// how each piece leaves: [dx, dy, dz, spinDeg]
+// THE CAMERA COMES APART ALONG ITS OWN OPTICAL AXIS, in assembly order, the
+// way a parts diagram lays a camera out: lens groups forward off the front,
+// shells back off the rear, the top plate lifted straight up. It used to throw
+// all six pieces on their own diagonal with 130-260 degrees of tumble each,
+// which read as an explosion in a bin rather than a teardown.
+//
+// `at` is the station along the axis (+ is out the front, - is out the back),
+// `rise` lifts a piece clear of the strip so it does not queue behind another,
+// and `order` is when it leaves. Nothing spins.
+// Each piece carries its OWN wireframe. Deriving one from the face list wires
+// every triangle of a lathe's end-cap fan and the lens front comes out as a
+// sunburst; a shell comes out as a ladder of coincident quad edges.
+const shellWire = (z0, z1) => [
+  [...CAM_SIL.map(([x, y]) => [x, y, z0]), [CAM_SIL[0][0], CAM_SIL[0][1], z0]],
+  [...CAM_SIL.map(([x, y]) => [x, y, z1]), [CAM_SIL[0][0], CAM_SIL[0][1], z1]],
+  ...CAM_SIL.filter((_, i) => i % 3 === 0).map(([x, y]) => [[x, y, z0], [x, y, z1]]),
+];
 const CAM_PIECES = [
-  { solid: () => CAM_FRONT_SOLID, dir: [-0.30, -0.55, 1.0], spin: -150 },
-  { solid: () => CAM_BACK_SOLID, dir: [0.28, 0.52, -1.0], spin: 130 },
-  { solid: () => LENS_SOLID, dir: [0.10, -0.22, 1.0], spin: 220 },
-  { solid: () => LENS_E1, dir: [-0.62, 0.30, 0.75], spin: -260 },
-  { solid: () => LENS_E2, dir: [0.66, 0.24, 0.55], spin: 240 },
-  { solid: () => CAM_TOP, dir: [0.05, -1.0, 0.15], spin: 180 },
+  // out the FRONT, furthest-forward element first
+  { solid: () => LENS_E2, wire: () => [ring(25, 62, 20), ring(19, 70, 20)],
+    at: 1.00, rise: 0.00, order: 0 },
+  { solid: () => LENS_E1, wire: () => [ring(27, 44, 20), ring(22, 52, 20)],
+    at: 0.72, rise: 0.00, order: 1 },
+  { solid: () => LENS_SOLID,
+    wire: () => [...revolve(P_LENS, 3, [[16, 33], [30, 26], [48, 29], [62, 25], [70, 27]]),
+                 ...radial(10, a2 => [[at(a2, 29, 36), at(a2, 29, 46)]])],
+    at: 0.44, rise: 0.00, order: 2 },
+  { solid: () => CAM_FRONT_SOLID, wire: () => shellWire(2, 19),
+    at: 0.20, rise: 0.00, order: 3 },
+  // straight UP off the body
+  { solid: () => CAM_TOP,
+    wire: () => [...boxWire(22, 10, 16, 24, -30, 4), ...boxWire(16, 9, 14, -32, -26, 4)],
+    at: 0.00, rise: -1.00, order: 4 },
+  // out the BACK
+  { solid: () => CAM_BACK_SOLID, wire: () => shellWire(-19, -2),
+    at: -0.34, rise: 0.00, order: 5 },
 ];
 
 const CAM_BODY = [-19, 19].map(z => [...CAM_SIL.map(([x, y]) => [x, y, z]), [CAM_SIL[0][0], CAM_SIL[0][1], z]]);
@@ -438,16 +527,75 @@ export default function Flourish3D({ side = 'left' }) {
 
     // theme colours, read once and refreshed when the theme attribute changes
     let ink = '#C5A35C', copper = '#A85A2A', slate = '#4E7C8C', err = '#A8503B';
+    let paper = '#F7F5F2', dark = false, LINE = '#1a1a1a';
     const readTheme = () => {
       const cs = getComputedStyle(document.documentElement);
+      dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      paper = cs.getPropertyValue('--background-color').trim() || paper;
+      // STRUCTURE IS NEUTRAL. Gold everywhere made these read as ornament; the
+      // reference language is a grey line with one saturated accent used
+      // sparingly. Gold is now reserved for what it means — the optical path
+      // and the detection — and copper for the winding.
+      LINE = cs.getPropertyValue('--primary-color').trim() || LINE;
       ink = cs.getPropertyValue('--accent-color').trim() || ink;
       copper = cs.getPropertyValue('--f3d-copper').trim() || copper;
       slate = cs.getPropertyValue('--ml-neg').trim() || slate;
       err = cs.getPropertyValue('--ml-err').trim() || err;
     };
     readTheme();
+    // ── LOOK ────────────────────────────────────────────────────────────
+    // These pieces are LINE ART, not product renders. The surfaces exist only
+    // to occlude — they are the page colour, so a line passing behind a body
+    // fades out instead of crossing it — and everything you actually read is
+    // the 1px stroke on top. The previous version had this exactly backwards:
+    // a full Lambert + specular + environment model at alpha 1, and the
+    // linework underneath it at alpha 0.13, which is why the motor arrived as
+    // a brown lump.
+    // A line lying exactly on a surface would z-fight with it; push lines a
+    // little toward the viewer so they always win against their own body.
+    const LINE_BIAS = 6;
+    const LOOK = {
+      surface: 1,        // the fill is opaque page colour: it HIDES what is behind
+      shadeRange: 0.05,  // how much a face's tone may drift with its normal
+      line: 0.78,        // main linework
+      lineFar: 0.22,     // linework on parts still far out in the explosion
+      width: 1,
+    };
+
     // Material tints. The metal is the accent desaturated toward neutral so
     // lighting does the work rather than hue; copper stays warm and saturated.
+    // The occluding fill: the page background, quantised, leaning toward the
+    // ink colour for faces turned away from the light. Quantised so a few
+    // hundred faces a frame do not churn a few hundred colour strings.
+    let paperRGB = [18, 18, 18], inkRGB = [212, 180, 124], cuRGB = [206, 132, 73];
+    const toneCache = new Map();
+    // `tint` is the material: 0 = plain page-coloured body, 1 = the winding,
+    // which keeps a little of its own colour so copper still means copper.
+    const paperTone = (up, tint) => {
+      const q = Math.max(-8, Math.min(8, Math.round(up * 8)));
+      const key = q * 4 + tint;
+      let c = toneCache.get(key);
+      if (c) return c;
+      // dark theme: lift toward ink.  light theme: sink away from it.
+      // Bodies sit slightly OFF the page rather than matching it: on the dark
+      // theme a fill of exactly --background-color reads as a hole, because the
+      // page itself carries a gradient and is lighter than its own token where
+      // the art sits. Lift a little, then let the normal tilt it a touch.
+      const lift = dark ? 0.075 : -0.05;
+      const k = lift + (q / 8) * LOOK.shadeRange;
+      const tgt = k >= 0 ? 255 : 0;
+      const mix = a1 => Math.max(0, Math.min(255, Math.round(a1 + (tgt - a1) * Math.abs(k))));
+      let r = mix(paperRGB[0]), g = mix(paperRGB[1]), b2 = mix(paperRGB[2]);
+      if (tint) {
+        const w = 0.42;
+        r = Math.round(r + (cuRGB[0] - r) * w);
+        g = Math.round(g + (cuRGB[1] - g) * w);
+        b2 = Math.round(b2 + (cuRGB[2] - b2) * w);
+      }
+      c = `rgb(${r},${g},${b2})`;
+      toneCache.set(key, c);
+      return c;
+    };
     let METAL = [0, 0, 0, 1], CU = [0, 0, 0, 2];
     const mkMaterial = (hex, id, mixGrey) => {
       const v = hex.replace('#', '');
@@ -456,9 +604,12 @@ export default function Flourish3D({ side = 'left' }) {
       const grey = (r + g + b) / 3;
       return [r + (grey - r) * mixGrey, g + (grey - g) * mixGrey, b + (grey - b) * mixGrey, id];
     };
-    const readMaterials = () => { METAL = mkMaterial(ink, 1, 0.45); CU = mkMaterial(copper, 2, 0.1); };
+    const readMaterials = () => {
+      METAL = mkMaterial(ink, 1, 0.45); CU = mkMaterial(copper, 2, 0.1);
+      paperRGB = hexToRgb(paper); inkRGB = hexToRgb(ink); cuRGB = hexToRgb(copper); toneCache.clear();
+    };
     readMaterials();
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); colCache.clear(); buildStage(); lastP = -1; onScroll(); });
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); buildStage(); lastP = -1; onScroll(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -530,31 +681,7 @@ export default function Flourish3D({ side = 'left' }) {
     // Faces are collected for the whole frame, then sorted back-to-front and
     // filled — a painter's algorithm. Sorting globally (rather than per part)
     // is what lets the rotor read as being INSIDE the frame.
-// Key light from upper-left-front, a hemispheric ambient (sky above, bounce
-    // below) so faces pointing up are never as dark as faces pointing down, and
-    // a rim term that lights grazing edges — which is most of what makes a
-    // product render read as photographed rather than shaded.
-    const LIGHT = (() => { const v = [-0.42, -0.80, 0.43]; const L = Math.hypot(v[0], v[1], v[2]); return [v[0] / L, v[1] / L, v[2] / L]; })();
-    const HALF = (() => { const h = [LIGHT[0], LIGHT[1], LIGHT[2] + 1]; const L = Math.hypot(h[0], h[1], h[2]); return [h[0] / L, h[1] / L, h[2] / L]; })();
     let bucket = [];
-    const hexToRgb = h => {
-      const v = h.replace('#', '').trim();
-      const n = v.length === 3 ? v.split('').map(c => c + c).join('') : v;
-      return [parseInt(n.slice(0, 2), 16) || 0, parseInt(n.slice(2, 4), 16) || 0, parseInt(n.slice(4, 6), 16) || 0];
-    };
-    const colCache = new Map();
-    const shadeColor = (base, lit, spec) => {
-      // quantised so the cache stays small and string churn stays low
-      const q = Math.round(lit * 40), qs = Math.round(spec * 20);
-      const key = base[3] * 100000 + q * 64 + qs;
-      let c = colCache.get(key);
-      if (c) return c;
-      const l = q / 40, sp = qs / 20;
-      c = `rgb(${Math.min(255, Math.round(base[0] * l + 255 * sp))},${Math.min(255, Math.round(base[1] * l + 250 * sp))},${Math.min(255, Math.round(base[2] * l + 240 * sp))})`;
-      colCache.set(key, c);
-      return c;
-    };
-
     function submit(faces, T, base, alpha) {
       if (alpha <= 0.02 || !faces.length) return;
       const m = T.m, t = T.t;
@@ -584,48 +711,69 @@ export default function Flourish3D({ side = 'left' }) {
         }
         if (area <= 0) continue;
 
-        const inx = nx / nl, iny = ny / nl, inz = nz / nl;
-        const d = Math.max(0, inx * LIGHT[0] + iny * LIGHT[1] + inz * LIGHT[2]);
-        const hd = Math.max(0, inx * HALF[0] + iny * HALF[1] + inz * HALF[2]);
-
-        // ENVIRONMENT REFLECTION. Reflect the view direction (0,0,1) about the
-        // normal and ask what that ray would hit in a two-band studio: bright
-        // sky above, dark floor below, and a hot horizon line between them.
-        //   R = 2(N·V)N - V, with V = (0,0,1)  =>  R.y = 2·n_z·n_y
-        // The horizon streak is the tell — it is what makes a curved metal body
-        // read as reflective rather than as matte plastic, and it costs one
-        // exp() per face.
-        const envUp = -2 * inz * iny;
-        const envT = clamp(0.5 + 1.9 * envUp, 0, 1);          // floor -> sky
-        const horizon = Math.exp(-(envUp * envUp) / 0.012);
-        const env = 0.10 + 0.55 * envT + 0.42 * horizon;
-
-        // rim: faces turned away from the viewer catch a bright edge
-        const facing = Math.abs(inz);
-        const rim = 0.30 * Math.pow(1 - facing, 4);
-        // depth fade — far geometry loses a little contrast
+        // ONE cheap term, not a lighting rig. The fill is the page colour;
+        // all this does is let a face lean a little lighter or darker than the
+        // page so a curved body does not collapse into one flat silhouette.
+        // Faces pointing up are lighter, faces pointing away are darker.
+        const iny2 = ny / nl;
         const zc = zsum / v.length;
-        const fade = clamp(0.82 + 0.0009 * zc, 0.72, 1.06);
         bucket.push({
-          pts, z: zc, a: alpha,
-          c: shadeColor(base, (0.10 + 0.44 * d + 0.46 * env) * fade, 0.5 * Math.pow(hd, 26) + rim),
+          pts, z: zc, a: alpha * LOOK.surface,
+          c: paperTone(-iny2, base === CU ? 1 : 0),
         });
         segs += v.length;
+      }
+    }
+
+    // Lines go into the SAME bucket as the faces, so they sort against them.
+    // This is what makes hidden-line removal work: a rib on the far side of a
+    // body is drawn before that body's surface and is painted over by it.
+    // Stroking everything after the fills instead — which is what this did at
+    // first — leaves every internal edge showing and the piece reads as a ball
+    // of wire.
+    function submitLines(polys, T, color, alpha, width) {
+      if (alpha <= 0.004 || !polys.length) return;
+      const m = T.m, t = T.t;
+      for (let pi = 0; pi < polys.length; pi++) {
+        const poly = polys[pi];
+        if (poly.length < 2) continue;
+        const pts = new Array(poly.length * 2);
+        let zsum = 0;
+        for (let i = 0; i < poly.length; i++) {
+          const q = poly[i];
+          const sc = cam(
+            m[0] * q[0] + m[1] * q[1] + m[2] * q[2] + t[0],
+            m[3] * q[0] + m[4] * q[1] + m[5] * q[2] + t[1],
+            m[6] * q[0] + m[7] * q[1] + m[8] * q[2] + t[2],
+          );
+          pts[i * 2] = sc[0]; pts[i * 2 + 1] = sc[1]; zsum += sc[2];
+        }
+        // nudged toward the viewer so a line ON a surface wins against it
+        bucket.push({ line: 1, pts, z: zsum / poly.length + LINE_BIAS, a: alpha, c: color, w: width });
+        segs += poly.length - 1;
       }
     }
 
     function flush() {
       if (!bucket.length) return;
       bucket.sort((A, B) => A.z - B.z);          // far first
+      let ca = -1, cc = '', cw = -1;
       for (let i = 0; i < bucket.length; i++) {
         const f = bucket[i];
         ctx.beginPath();
         ctx.moveTo(f.pts[0], f.pts[1]);
         for (let k = 2; k < f.pts.length; k += 2) ctx.lineTo(f.pts[k], f.pts[k + 1]);
-        ctx.closePath();
-        ctx.globalAlpha = f.a;
-        ctx.fillStyle = f.c;
-        ctx.fill();
+        if (f.line) {
+          if (f.a !== ca) { ctx.globalAlpha = ca = f.a; }
+          if (f.c !== cc) { ctx.strokeStyle = cc = f.c; }
+          if (f.w !== cw) { ctx.lineWidth = cw = f.w; }
+          ctx.stroke();
+        } else {
+          ctx.closePath();
+          if (f.a !== ca) { ctx.globalAlpha = ca = f.a; }
+          if (f.c !== cc) { ctx.fillStyle = cc = f.c; }
+          ctx.fill();
+        }
       }
       bucket.length = 0;
     }
@@ -646,10 +794,27 @@ export default function Flourish3D({ side = 'left' }) {
       // It STARTS laid out as an exploded view and comes together. Each part
       // converges on its own window, back to front, so the machine builds up
       // along the axle rather than everything sliding home at once.
-      const conv = k => smooth(win(p, 0.10 + k * 0.10, 0.30));
+      // Staggered so the LAST part still has room to seat before the page
+      // ends. Hard-coding 0.10 per part stopped working the moment there were
+      // more than six of them.
+      const step = 0.58 / Math.max(1, MOTOR.length - 1);
+      const conv = k => smooth(win(p, 0.10 + k * step, 0.30));
       const built = smooth(win(p, 0.10, 0.80));
-      // it is drawn small while spread out and grows as it closes up
-      const base = chain(motorModule(0.40 + 0.40 * built),
+
+      // THE SCALE IS DERIVED FROM THE CURRENT SPREAD, not from progress.
+      // A fixed "small while spread, larger once closed" ramp gets this wrong,
+      // because the strip is at its longest in the MIDDLE of the sequence —
+      // the parts are still far apart while the module has already grown — not
+      // at the start. Measured off the canvas, that put the motor 338px wide in
+      // a 340px stage and running off the top for the first third of the page.
+      // Fitting the run every frame makes clipping impossible by construction.
+      const offsetOf = k => (LAID_OUT[MOTOR[k].id] || 0) * (1 - clamp(seat(conv(k)), 0, 1));
+      let lo = 0, hi = 0;
+      for (let k = 0; k < MOTOR.length; k++) {
+        const o = offsetOf(k); if (o < lo) lo = o; if (o > hi) hi = o;
+      }
+      const runK = clamp(MOTOR_RUN_PX / ((hi - lo) + MOTOR_LEN), 0.22, MOTOR_K_MAX);
+      const base = chain(motorModule(runK),
         place(rotZ((90 + 250 * built) * DEG), [0, 0, 0]));
 
       MOTOR.forEach((part, k) => {
@@ -660,16 +825,14 @@ export default function Flourish3D({ side = 'left' }) {
         // queue, plus the axle's own rotation for anything mounted on it
         let m = rotZ((part.spins ? revs(p) : 0) * DEG + away * part.spin * 0.25 * DEG);
         const T = chain(base, place(m, [
-          part.dir[0] * away * 26, part.dir[1] * away * 26, off,
+          part.dir[0] * away * 26,
+          part.dir[1] * away * 26 + (part.side || 0) * away,   // radial parts go sideways
+          off,
         ]));
         submit(part.solids, T, METAL, 1);
+        submitLines(part.polys, T, LINE, LOOK.line, LOOK.width);
         part._T = T; part._a = 1;
       });
-      flush();                                   // masses, back to front
-      for (const part of MOTOR) {
-        if (!part._T) continue;
-        stroke(part.polys, part._T, ink, 0.13, 1);
-      }
 
       // Copper: bars lying IN the stator slots, tied by an end-turn ring past
       // each end of the stack. A coil around the shaft axis is a solenoid, not
@@ -678,45 +841,61 @@ export default function Flourish3D({ side = 'left' }) {
       // thing in the strip, so they travel with the stator and the end turns
       // are always present rather than winding on late.
       {
-        const c = seat(conv(2));
+        // Indexed by ID, not by position. This was conv(2), which was the
+        // stator until the fan was inserted ahead of it — after that the
+        // winding was converging on the fan's schedule.
+        const c = seat(conv(STATOR_I));
         const T = chain(base, place(rotZ(revs(p) * DEG), [0, 0, (LAID_OUT.copper || 0) * (1 - clamp(c, 0, 1))]));
-        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 44, -52, 52, 7), T, CU, 1);
-        // end turns bulge past both ends of the stack and are visible from the
-        // side even when the core is a closed body
-        submit(surface([[-68, 40], [-62, 50], [-48, 50], [-45, 44]], 18), T, CU, 1);
-        submit(surface([[45, 44], [48, 50], [62, 50], [68, 40]], 18), T, CU, 1);
+        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, CU, 1);
+        // END TURNS. These have to clear the stator body or the one coloured
+        // thing on this piece is invisible: at r=50 inside a r=62 core they
+        // were hidden by the core's own surface, and the whole strip measured
+        // 92 warm pixels. They now bulge to r=64, just past the r=62 core, and
+        // reach further along the axis so they read from the side too.
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, CU, 1);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, CU, 1);
+        submitLines([ring(64, -58, 28), ring(64, 58, 28)], T, copper, LOOK.line, LOOK.width);
       }
+      flush();     // ONE sorted pass over the whole machine: masses and lines
     }
 
     function drawVision(p) {
       setCam((26 - 48 * p) * DEG, (7 + 9 * p) * DEG, -70 + 170 * p);
       const stage = place(IDENT, [0, IMG_Y, 0]);
 
-      // 1 · THE CAMERA COMES APART. Six pieces, each with its own direction and
-      // spin, thrown far enough to leave the frame — the previous version only
-      // nudged the shell aside, which read as a slide rather than a teardown.
-      // What is deliberately left behind is the sensor.
-      const turn = place(rotY(-42 * DEG), [0, 0, 0]);
-      const EX_D = 460;
-      CAM_PIECES.forEach((piece, i) => {
-        const t = smooth(win(p, 0.08 + i * 0.012, 0.20));
-        const a = 1 - win(p, 0.16 + i * 0.012, 0.12);
+      // 1 · THE CAMERA COMES APART — cleanly. Every piece travels along the one
+      // optical axis (or straight up, for the top plate), in assembly order,
+      // holding its own orientation the whole way. What is left behind is the
+      // sensor.
+      // The camera was drawn at its natural size and measured 92x98px against
+      // the motor's 200x400 — the two sides of the page did not read as a pair.
+      // The scale rides on `turn`, so the explosion offsets scale with it.
+      const CAM_SCALE = 1.55;
+      const turn = place(mul(rotY(-42 * DEG), scaleM(CAM_SCALE)), [0, 0, 0]);
+      const EX_D = 360;
+      const camT = [];
+      CAM_PIECES.forEach((piece) => {
+        const i = piece.order;
+        const t = smooth(win(p, 0.07 + i * 0.020, 0.24));
+        const a = 1 - win(p, 0.20 + i * 0.020, 0.14);
         if (a <= 0.01) return;
-        const m = mul(rotY(t * piece.spin * 0.6 * DEG), rotZ(t * piece.spin * DEG));
-        const T = chain(stage, chain(turn, place(m, [
-          piece.dir[0] * EX_D * t, piece.dir[1] * EX_D * t, piece.dir[2] * EX_D * t,
+        const T = chain(stage, chain(turn, place(IDENT, [
+          0,
+          piece.rise * EX_D * 0.62 * t,
+          piece.at * EX_D * t,
         ])));
         submit(piece.solid(), T, METAL, a);
+        // modelled as surfaces only, so without this they would be flat
+        // page-coloured shapes sliding apart
+        submitLines(piece.wire(), T, LINE, LOOK.line * a, LOOK.width);
       });
       flush();
       // the outline detail rides only the two shells, and only while close
-      const shellA = 1 - win(p, 0.12, 0.10);
+      const shellA = 1 - win(p, 0.14, 0.12);
       if (shellA > 0.01) {
-        const t0 = smooth(win(p, 0.08, 0.20));
-        const shell = chain(stage, chain(turn, place(IDENT, [
-          -0.30 * EX_D * t0, -0.55 * EX_D * t0, 1.0 * EX_D * t0,
-        ])));
-        stroke(CAM_BODY.concat(CAM_STRUTS, CAM_DETAIL), shell, ink, 0.42 * shellA, 1);
+        const t0 = smooth(win(p, 0.07 + 3 * 0.020, 0.24));   // rides the front shell
+        const shell = chain(stage, chain(turn, place(IDENT, [0, 0, 0.20 * EX_D * t0])));
+        stroke(CAM_BODY.concat(CAM_STRUTS, CAM_DETAIL), shell, LINE, LOOK.line * shellA, LOOK.width);
       }
 
       // 2 · THE SENSOR IS WHAT IS LEFT. It squares up to the viewer, comes
@@ -838,15 +1017,18 @@ export default function Flourish3D({ side = 'left' }) {
     }
 
     // ── the frame ───────────────────────────────────────────────────────
-    // A soft studio ground behind the piece. Metal needs something to be lit
-    // AGAINST — on a bare page background the reflection model has nothing to
-    // read as, and the parts look like stickers. Built once, not per frame.
+    // A whisper of a ground behind the piece, to stop it floating completely
+    // free of the page. Built once, not per frame.
     let stage = null;
     const buildStage = () => {
       const g = ctx.createRadialGradient(CX, CY * 0.92, 10, CX, CY * 0.92, W * 0.72);
-      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-      g.addColorStop(0, dark ? 'rgba(0,0,0,0.58)' : 'rgba(64,52,36,0.26)');
-      g.addColorStop(0.55, dark ? 'rgba(0,0,0,0.34)' : 'rgba(64,52,36,0.12)');
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      // Barely there. This used to be a 0.58-black vignette AND the same
+      // gradient again as .f3d::before in CSS — the two stacked into a hole in
+      // the page that the line art then had to climb out of. Line art does not
+      // need a studio to be lit against; it needs the page to be quiet.
+      g.addColorStop(0, isDark ? 'rgba(0,0,0,0.16)' : 'rgba(64,52,36,0.05)');
+      g.addColorStop(0.55, isDark ? 'rgba(0,0,0,0.08)' : 'rgba(64,52,36,0.02)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       stage = g;
     };

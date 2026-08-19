@@ -526,21 +526,16 @@ html[data-theme="dark"] {
   width: 340px;
   height: 660px;
   pointer-events: none;
-  opacity: 0.85;
+  /* Line art needs its contrast; the old 0.85 was there to knock back a
+     heavily shaded render. Alphas in the renderer do that job now. */
+  opacity: 0.95;
 }
 .f3d canvas { display: block; width: 100%; height: 100%; }
-/* The studio ground the metal is lit against. It lives here rather than in the
-   renderer so both the WebGL and the Canvas2D backend get it for free. */
-.f3d::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 62% 46% at 50% 46%,
-    rgba(64, 52, 36, 0.26) 0%, rgba(64, 52, 36, 0.12) 55%, rgba(64, 52, 36, 0) 100%);
-}
-html[data-theme="dark"] .f3d::before {
-  background: radial-gradient(ellipse 62% 46% at 50% 46%,
-    rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.34) 55%, rgba(0, 0, 0, 0) 100%);
-}
+/* The ground behind the pieces is painted by the renderer itself (buildStage).
+   It used to be painted HERE as well, and the two stacked — a 0.58 black
+   vignette twice over, which is the "black shadow behind it" that made the art
+   look like it was sitting at the bottom of a hole. One faint gradient, in one
+   place, is enough. */
 
 /* Pull each stage toward the page edge; the art sits in its own margin. */
 .f3d--left { left: clamp(-70px, -1vw, 0px); }

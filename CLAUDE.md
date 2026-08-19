@@ -222,44 +222,88 @@ lanyard already proves that failure mode. Pre-rendered video (Manim, Blender)
 is a legitimate technique for a fixed explainer, but it cannot follow the live
 theme toggle, the viewport, or scroll position without shipping megabytes.
 
-### Shaded solids
+### Line art, not shaded solids
 
-The masses (frame, bells, cowl, shaft, cores, camera body, lens) are SURFACES,
-not wireframe: quads with a normal, lit and depth-sorted, so they read as
-rendered metal. Fine detail (cage bars, teeth, louvres, bolts, ticks) stays as
-strokes over the top — at this size a line reads better than a 2px sliver of
-filled geometry.
+**These pieces are LINE ART.** The masses (frame, bells, cowl, shaft, cores,
+camera body, lens) are still SURFACES — quads with a normal, depth-sorted — but
+their only job is to OCCLUDE. They are filled with the page colour, nudged a
+little off it, so a line passing behind a body disappears instead of crossing
+it. Everything you actually read is the 1px stroke on top.
+
+It shipped the other way round first: a full Lambert + Blinn specular +
+environment-reflection model at alpha 1, with the linework under it at alpha
+0.13, over a 0.58-black vignette painted twice. The assembled motor arrived as
+a brown lump. The owner asked for wireframe, less shading and less shadow, and
+the reference is the anime.js site — 1px monochrome strokes on a warm near-black
+(`#252423`), a grey ramp, and one saturated accent used sparingly.
 
 - A face is `{ v: [...], n: [x,y,z] }`; normals are computed once in local space
   and rotated per frame by the part's matrix (uniform scale only, so no
   inverse-transpose needed).
 - **Back-face culling is done by screen winding** (signed area after
   projection), which needs no view-space normal.
-- Lighting is Lambert + a Blinn-ish specular against a fixed world light. Shade
-  values are QUANTISED and the resulting `rgb()` strings cached — otherwise a
-  few hundred faces a frame churn a few hundred strings.
-- `submit()` collects faces for the WHOLE frame; `flush()` sorts them back to
-  front and fills. Sorting globally rather than per part is what lets the rotor
-  read as being inside the frame.
-- Materials come from the theme tokens, desaturated toward neutral so lighting
-  does the work rather than hue. Copper stays saturated.
-- The lighting is a key light plus a **hemispheric ambient** (faces pointing up
-  are never as dark as faces pointing down) plus a **rim term** on grazing
-  angles and a mild depth fade. The rim is most of what separates "shaded" from
-  "photographed", and it costs one dot product.
-- **A fake environment reflection is what makes metal look like metal.** Reflect
-  the view direction about the normal (`R = 2(N·V)N − V` with `V = (0,0,1)`, so
-  `R.y = 2·n_z·n_y`) and ask what that ray hits in a two-band studio: bright sky
-  above, dark floor below, and a HOT HORIZON LINE between them. The horizon
-  streak is the tell — without it a curved body reads as matte plastic. One
-  `exp()` per face.
-- **The metal needs something to be lit against.** A soft radial "studio ground"
-  is painted behind the geometry each frame (built once, not per frame). On a
-  bare page background the reflection model has nothing to read as and the parts
-  look like stickers. It is strong in dark theme and subtle in light.
-- **Tessellation is the other half of looking smooth.** Bodies are 20-24
-  segments around; below about 16 the facets band visibly on a curved surface.
-  There is headroom for it — 4,100 segments a frame still measures free.
+- **Lines go in the SAME depth bucket as the faces** (`submitLines`), which is
+  what makes hidden-line removal work. Stroking everything after the fills —
+  which is what the first attempt did — leaves every internal edge showing and
+  the piece reads as a ball of wire. Lines carry a small `LINE_BIAS` toward the
+  viewer so a line lying on a surface wins against its own body.
+- `submit()`/`submitLines()` collect for the WHOLE frame; `flush()` sorts back
+  to front and draws. Sorting globally rather than per part is what lets the
+  rotor read as being inside the frame.
+- The tone of a fill comes from ONE term (`paperTone`: how far the face points
+  up), quantised and cached. It is not a lighting rig and should not become one.
+- **Bodies sit slightly OFF the page, not on it.** A fill of exactly
+  `--background-color` reads as a HOLE in the dark theme, because the page
+  carries its own gradient and is lighter than its own token where the art sits.
+- **Structure is neutral** (`--primary-color`). Gold everywhere made these read
+  as ornament. Gold is now reserved for what it means — the optical path and the
+  detection — and copper for the winding.
+- **An occluder does not have to be the real profile.** The frame's fill is a
+  plain cylinder while its wireframe keeps the serrated fin profile. Filling the
+  serration made the assembled machine a scalloped barrel with a dome on each
+  end, which read as a beehive. A technical drawing solves it the same way: a
+  clean silhouette with the fins drawn ON it.
+- **The winding has to clear the core or it is invisible.** End turns at r=50
+  inside an r=62 stator were hidden by the stator's own surface — the whole
+  strip measured 92 warm pixels. They bulge to r=64 now.
+- Tessellation: bodies are 20-24 segments around; below about 16 the facets band
+  visibly. There is headroom — ~3,900 segments and ~670 draw calls a frame still
+  measures free (p50 17ms with the flourishes shown AND hidden).
+
+### Fitting the art to the stage
+
+The stage is 340x660 and the art has to stay inside it. Do not eyeball this —
+there is a measurement for it (see Verifying): the ink bounding box read
+straight off the canvas, per side, per scroll position.
+
+- **The motor's scale is SOLVED every frame, not ramped.**
+  `k = MOTOR_RUN_PX / (currentSpread + MOTOR_LEN)`, clamped. A fixed
+  "small while spread, larger once closed" ramp gets it wrong, because the strip
+  is longest in the MIDDLE of the sequence — parts still far apart while the
+  module has already grown — not at the start. Measured, that ramp put the motor
+  338px wide in a 340px stage and running off the top for the first third of the
+  page.
+- **The axis is steep (~69 degrees on screen).** It used to be 41, chosen as
+  "the diagonal", but the diagonal of a 340x660 box is 63 degrees. The parts
+  have diameter as well as length, so the fit test has to include their radius.
+- **`LAID_OUT` values are OFFSETS added to where a part already sits.** The fan
+  is modelled at z=-130, the front bell at +122. Adding a station on top
+  double-counts, which is why the strip used to bunch in the middle with holes
+  at both ends. The numbers are (target - natural centre), for targets evenly
+  spaced 220 apart.
+- The convergence stagger is derived from `MOTOR.length`. Hard-coding 0.10 per
+  part stopped working the moment there were more than six.
+- Anything that indexes a part must index it BY ID. The copper was `conv(2)`,
+  which was the stator until the fan was inserted ahead of it — after that the
+  winding converged on the fan's schedule.
+
+**The camera comes apart along its own optical axis**, in assembly order, each
+piece holding its orientation: lens groups forward off the front, top plate
+straight up, shells back off the rear. It used to throw all six on their own
+diagonal with 130-260 degrees of tumble each, which read as an explosion in a
+bin rather than a teardown. Each piece carries its OWN wireframe — deriving one
+from the face list wires every triangle of a lathe's end-cap fan and the lens
+front comes out as a sunburst.
 
 **The motor STARTS as a laid-out exploded view and comes together.** That is
 the shape every reference exploded view of a motor uses (the owner supplied
@@ -354,11 +398,23 @@ throttled when the whole TAB is hidden, never when something scrolls out of view
 ### Verifying
 
 Screenshot it — these are canvas pixels, so headless Firefox renders them fine
-and the blank-screenshot gotcha at the top of this file does not apply. The
-harness: `probe.html` + `src/__probe.jsx` mounting only `<Flourish3D>` on the
-dev server, driven by geckodriver, cropped per side with ffmpeg. `canvas.dataset.segs`
-reports how many segments the last frame drew. Measure frame cost by comparing
-rAF intervals with `.page-flourish-layer` shown vs `display: none`.
+and the blank-screenshot gotcha at the top of this file does not apply.
+
+`probe.html` + `src/__probe.jsx` are IN THE REPO and are the harness: they mount
+only `<Flourish3D>` on a plain page with a tall spacer, so scroll fraction maps
+straight onto progress and the whole 340x660 stage is visible with its bounds
+outlined. Vite only builds `index.html`, so neither reaches `dist/` — verified.
+They were deleted once and had to be rebuilt from scratch; leave them.
+
+Two measurements do most of the work, and both beat looking at it:
+
+- **The ink bounding box, read off the canvas.** Walk `getImageData`, ignore
+  pixels dimmer than the ground gradient, and report the box plus which stage
+  edge it touches. This is how the composition problems above were found and
+  fixed; screenshots alone had missed all of them.
+- **Draw calls and frame cost.** Wrap the 2D context's `fill`/`stroke` to count
+  calls per frame, and compare rAF intervals with `.page-flourish-layer` shown
+  vs `display: none`. `canvas.dataset.segs` reports segments drawn.
 
 ## Scrolling, and keeping a still page still
 
