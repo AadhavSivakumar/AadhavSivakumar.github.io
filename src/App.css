@@ -390,7 +390,8 @@ html[data-theme="dark"] {
   -webkit-backdrop-filter: blur(5px) saturate(2.1) brightness(1.08) url(#hero-liquid-glass);
           backdrop-filter: blur(5px) saturate(2.1) brightness(1.08) url(#hero-liquid-glass);
 }
-.hero-chip:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 3px; }
+/* --accent-ink, not --accent-color: this ring was 2.2:1 against the page. */
+.hero-chip:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .hero-chip:hover::before,
 .hero-chip:focus-visible::before { opacity: calc(0.5 + var(--chip-top-hi) * 0.5); }
 .hero-chip:hover::after,
@@ -459,11 +460,22 @@ html[data-theme="dark"] {
 
 /* Keyboard focus. The cards are divs with button semantics, so nothing gives
    them a focus ring for free. */
-.lift-card:focus-visible,
-.doc-tile:focus-visible,
-.modal-close:focus-visible,
+/* The focus ring is a site-wide DEFAULT, not a list of components. It started
+   as a list, and the next control added to the page (the cover pause toggle)
+   duly shipped with Firefox's 1px UA outline instead — an enumerated ring is a
+   ring that silently stops covering things.
+
+   `:where()` keeps this at zero specificity, so any component with its own
+   focus treatment (the hero chips) still wins, while a zero-specificity AUTHOR
+   rule still beats the UA default.
+
+   The colour is --accent-ink, not --accent-color: a focus indicator has to hold
+   3:1 against what is behind it (WCAG 1.4.11), and the decorative gold is
+   2.2:1 on the light background. --accent-ink is 5.36:1 light / 9.47:1 dark. */
+:where(a, button, [role="button"], input, select, textarea, summary,
+       [tabindex]:not([tabindex="-1"])):focus-visible,
 .skip-link:focus {
-  outline: 2px solid var(--accent-color);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 3px;
 }
 
@@ -1059,4 +1071,34 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/* Pause control for the auto-playing project covers (WCAG 2.2.2). Deliberately
+   quiet — it sits above the grid and should not compete with the section title
+   — but it is a real button with a visible focus ring like everything else. */
+.cover-playback-toggle {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 22px;
+  padding: 7px 15px;
+  background: transparent;
+  color: var(--secondary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+}
+.cover-playback-toggle:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent-color);
+  background-color: color-mix(in srgb, var(--accent-color) 8%, transparent);
+}
+.cover-playback-icon { display: inline-flex; }
+@media (prefers-reduced-motion: reduce) {
+  .cover-playback-toggle { transition: none; }
 }

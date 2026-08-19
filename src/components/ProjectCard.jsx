@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import LiftCard from './LiftCard';
+import { subscribe, getPlaying, getServerPlaying } from '../coverPlayback';
 
 const reduceMotion = () =>
   typeof window !== 'undefined' &&
@@ -18,14 +19,20 @@ const posterFor = (src) => src.replace(/\.(mp4|webm)$/i, '-poster.webp');
 function CoverVideo({ src, title, placeholder }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
+  const onScreen = useRef(false);
   const poster = posterFor(src);
+  // The page-level pause control (WCAG 2.2.2). A cover plays only when it is
+  // both on screen and allowed to — visibility alone decides the fetch, this
+  // decides the motion.
+  const playing = useSyncExternalStore(subscribe, getPlaying, getServerPlaying);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        onScreen.current = entry.isIntersecting;
+        if (entry.isIntersecting && playing) {
           const p = el.play();
           if (p && p.catch) p.catch(() => {});
         } else {
@@ -36,7 +43,20 @@ function CoverVideo({ src, title, placeholder }) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [playing]);
+
+  // Toggling the control acts on covers that are already on screen; the ones
+  // off screen are handled by the observer when they arrive.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onScreen.current) return;
+    if (playing) {
+      const p = el.play();
+      if (p && p.catch) p.catch(() => {});
+    } else {
+      el.pause();
+    }
+  }, [playing]);
 
   // Under reduced motion the cover stays a still frame — no loop, no fetch.
   if (reduceMotion() || failed) {

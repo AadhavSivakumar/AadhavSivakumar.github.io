@@ -429,6 +429,29 @@ against its darkest stop (`#a98642`), not the light middle. `#4B380C` scored
 3.30:1 there and is now `#2A1E04` (4.80:1). At 11px the tag is normal text
 under WCAG regardless of its 600 weight, so 3:1 does not apply.
 
+## Focus, and the auto-playing covers
+
+**The focus ring is a site-wide default, not a list of components.** It began as
+`.lift-card, .doc-tile, .modal-close, .skip-link` — and the header nav links, the
+social links and the theme toggle were therefore on Firefox's 1px UA outline the
+whole time, as was the first new control added afterwards. It is now a
+zero-specificity `:where(a, button, [role="button"], …):focus-visible` rule, so
+components with their own treatment (the hero chips) still win while nothing new
+can ship ringless. The ring uses `--accent-ink`: a focus indicator needs 3:1
+against its backdrop (WCAG 1.4.11) and the decorative gold is 2.2:1 on the light
+page — which is what the hero chip's own ring was, too.
+
+**The project covers auto-play, so they need a pause control** (WCAG 2.2.2: any
+motion that starts on its own and runs past five seconds). It is ONE page-level
+button at the top of the Projects section (`CoverPlaybackToggle`), not one per
+card — a card is already a button, and nesting a control inside it is worse than
+the problem. State lives in `src/coverPlayback.js`, a module store read with
+`useSyncExternalStore`, persisted to `localStorage`, and defaulting to paused
+under `prefers-reduced-motion` (where the covers are still images anyway, so the
+control does not render at all). A cover plays only when it is both on screen
+and permitted: the IntersectionObserver still decides the *fetch*, the store
+decides the *motion*.
+
 ## Reduced motion
 
 `App.jsx` wraps the tree in `<MotionConfig reducedMotion="user">`, so every
