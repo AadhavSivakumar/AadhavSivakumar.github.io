@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { onScroll as onPageScroll } from '../scrollDriver';
+import { onScroll as onPageScroll, scrollProgress } from '../scrollDriver';
 
 // Page-wide decorative flourishes — one per side, fixed to the viewport and
 // scrubbed by page scroll.
@@ -525,6 +525,9 @@ export default function Flourish3D({ side = 'left' }) {
     canvas.style.height = `${H}px`;
     const CX = W / 2, CY = H / 2;
 
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let lastP = -1;
+
     // theme colours, read once and refreshed when the theme attribute changes
     let ink = '#C5A35C', copper = '#A85A2A', slate = '#4E7C8C', err = '#A8503B';
     let paper = '#F7F5F2', dark = false, LINE = '#1a1a1a';
@@ -537,6 +540,12 @@ export default function Flourish3D({ side = 'left' }) {
       // sparingly. Gold is now reserved for what it means — the optical path
       // and the detection — and copper for the winding.
       LINE = cs.getPropertyValue('--primary-color').trim() || LINE;
+      // Pulled a little toward the accent. Dead-neutral grey linework on a page
+      // built out of warm off-white, warm near-black and gold read as foreign.
+      {
+        const l = hexToRgb(LINE), a2 = hexToRgb(ink), w = 0.18;
+        LINE = `rgb(${Math.round(l[0] + (a2[0] - l[0]) * w)},${Math.round(l[1] + (a2[1] - l[1]) * w)},${Math.round(l[2] + (a2[2] - l[2]) * w)})`;
+      }
       ink = cs.getPropertyValue('--accent-color').trim() || ink;
       copper = cs.getPropertyValue('--f3d-copper').trim() || copper;
       slate = cs.getPropertyValue('--ml-neg').trim() || slate;
@@ -556,7 +565,7 @@ export default function Flourish3D({ side = 'left' }) {
     const LINE_BIAS = 6;
     const LOOK = {
       surface: 1,        // the fill is opaque page colour: it HIDES what is behind
-      shadeRange: 0.05,  // how much a face's tone may drift with its normal
+      shadeRange: 0.20,  // how much a face's tone may drift with its normal
       line: 0.78,        // main linework
       lineFar: 0.22,     // linework on parts still far out in the explosion
       width: 1,
@@ -568,24 +577,32 @@ export default function Flourish3D({ side = 'left' }) {
     // ink colour for faces turned away from the light. Quantised so a few
     // hundred faces a frame do not churn a few hundred colour strings.
     let paperRGB = [18, 18, 18], inkRGB = [212, 180, 124], cuRGB = [206, 132, 73];
+    const WARM_HI = [246, 244, 242];      // warm white
+    const WARM_LO = [37, 36, 35];         // warm near-black
     const toneCache = new Map();
     // `tint` is the material: 0 = plain page-coloured body, 1 = the winding,
     // which keeps a little of its own colour so copper still means copper.
-    const paperTone = (up, tint) => {
-      const q = Math.max(-8, Math.min(8, Math.round(up * 8)));
+    const paperTone = (dif, tint) => {
+      const q = Math.max(-8, Math.min(8, Math.round(dif * 8)));
       const key = q * 4 + tint;
       let c = toneCache.get(key);
       if (c) return c;
       // dark theme: lift toward ink.  light theme: sink away from it.
-      // Bodies sit slightly OFF the page rather than matching it: on the dark
-      // theme a fill of exactly --background-color reads as a hole, because the
-      // page itself carries a gradient and is lighter than its own token where
-      // the art sits. Lift a little, then let the normal tilt it a touch.
-      const lift = dark ? 0.075 : -0.05;
+      // Bodies sit OFF the page, not on it. A fill of exactly
+      // --background-color reads as a hole on the dark theme, because the page
+      // carries its own gradient and is lighter than its own token where the
+      // art sits. And the tone has to actually MOVE across a body: at a range
+      // of 0.05 a cylinder came out one flat value and the piece had no
+      // shading at all, just a silhouette with a wire around it.
+      const lift = dark ? 0.19 : -0.08;
       const k = lift + (q / 8) * LOOK.shadeRange;
-      const tgt = k >= 0 ? 255 : 0;
-      const mix = a1 => Math.max(0, Math.min(255, Math.round(a1 + (tgt - a1) * Math.abs(k))));
-      let r = mix(paperRGB[0]), g = mix(paperRGB[1]), b2 = mix(paperRGB[2]);
+      // Warm, not neutral. The page is a warm off-white over a warm near-black
+      // with a gold accent; mixing toward pure #fff / #000 left the pieces a
+      // dead grey that did not belong to the rest of the site. These are the
+      // ends of the ramp the reference uses too.
+      const tgt = k >= 0 ? WARM_HI : WARM_LO;
+      const mix = (a1, i) => Math.max(0, Math.min(255, Math.round(a1 + (tgt[i] - a1) * Math.abs(k))));
+      let r = mix(paperRGB[0], 0), g = mix(paperRGB[1], 1), b2 = mix(paperRGB[2], 2);
       if (tint) {
         const w = 0.42;
         r = Math.round(r + (cuRGB[0] - r) * w);
@@ -609,10 +626,19 @@ export default function Flourish3D({ side = 'left' }) {
       paperRGB = hexToRgb(paper); inkRGB = hexToRgb(ink); cuRGB = hexToRgb(copper); toneCache.clear();
     };
     readMaterials();
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); buildStage(); lastP = -1; onScroll(); });
+    // Repaint at the CURRENT progress. This used to call the piece's own
+    // scroll handler, which stopped existing when the listener moved to the
+    // shared driver — the observer then threw `onScroll is not defined` on
+    // every theme toggle and the canvas kept the previous theme's colours
+    // until something else happened to scroll the page.
+    const repaint = () => {
+      lastP = -1;
+      draw(reduce ? (isLeft ? 0.97 : 0.9) : scrollProgress());
+    };
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); buildStage(); repaint(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
-    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 
     // ── camera ──────────────────────────────────────────────────────────
     const PERSP = 600;
@@ -681,6 +707,8 @@ export default function Flourish3D({ side = 'left' }) {
     // Faces are collected for the whole frame, then sorted back-to-front and
     // filled — a painter's algorithm. Sorting globally (rather than per part)
     // is what lets the rotor read as being INSIDE the frame.
+    // Key light, upper-left-front.
+    const KEY = (() => { const v = [-0.45, -0.62, 0.64]; const L = Math.hypot(v[0], v[1], v[2]); return [v[0] / L, v[1] / L, v[2] / L]; })();
     let bucket = [];
     function submit(faces, T, base, alpha) {
       if (alpha <= 0.02 || !faces.length) return;
@@ -711,15 +739,17 @@ export default function Flourish3D({ side = 'left' }) {
         }
         if (area <= 0) continue;
 
-        // ONE cheap term, not a lighting rig. The fill is the page colour;
-        // all this does is let a face lean a little lighter or darker than the
-        // page so a curved body does not collapse into one flat silhouette.
-        // Faces pointing up are lighter, faces pointing away are darker.
-        const iny2 = ny / nl;
+        // ONE soft diffuse term against a fixed light — no specular, no
+        // environment, no rim. That is the difference between giving a body
+        // form and rendering photographed metal, and only the second one was
+        // the problem. "How far up does this face point" was tried first and
+        // is nearly constant across a cylinder whose axis is already near
+        // vertical on screen, so bodies came out flat.
+        const d = (nx * KEY[0] + ny * KEY[1] + nz * KEY[2]) / nl;
         const zc = zsum / v.length;
         bucket.push({
           pts, z: zc, a: alpha * LOOK.surface,
-          c: paperTone(-iny2, base === CU ? 1 : 0),
+          c: paperTone(d, base === CU ? 1 : 0),
         });
         segs += v.length;
       }
@@ -1055,7 +1085,6 @@ export default function Flourish3D({ side = 'left' }) {
     // threshold is the thing that keeps a static page idle. (anime's onScroll
     // with a numeric `sync` never settles — it kept rewriting the scene
     // ~1200x/second on a completely static page.)
-    let lastP = -1;
     let stopScroll = null;
 
     if (reduce) {

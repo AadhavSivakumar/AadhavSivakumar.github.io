@@ -250,14 +250,28 @@ the reference is the anime.js site — 1px monochrome strokes on a warm near-bla
 - `submit()`/`submitLines()` collect for the WHOLE frame; `flush()` sorts back
   to front and draws. Sorting globally rather than per part is what lets the
   rotor read as being inside the frame.
-- The tone of a fill comes from ONE term (`paperTone`: how far the face points
-  up), quantised and cached. It is not a lighting rig and should not become one.
-- **Bodies sit slightly OFF the page, not on it.** A fill of exactly
+- The tone of a fill comes from ONE soft diffuse term against a fixed key
+  light — no specular, no environment reflection, no rim. That distinction is
+  the whole point: giving a body form is not the same as rendering photographed
+  metal, and only the second one was the problem. Quantised and cached.
+  ("How far up does the face point" was tried first; it is nearly constant
+  across a cylinder whose axis is already near-vertical on screen, so bodies
+  came out completely flat — a silhouette with a wire around it and no
+  shading at all.)
+- **Bodies sit OFF the page, not on it.** A fill of exactly
   `--background-color` reads as a HOLE in the dark theme, because the page
   carries its own gradient and is lighter than its own token where the art sits.
-- **Structure is neutral** (`--primary-color`). Gold everywhere made these read
-  as ornament. Gold is now reserved for what it means — the optical path and the
-  detection — and copper for the winding.
+- **The ramp is WARM at both ends** (`WARM_HI` / `WARM_LO`), not `#fff`/`#000`.
+  The page is warm off-white over warm near-black with a gold accent; dead
+  neutral grey linework and fills read as foreign on it. The structural line is
+  pulled 18% toward the accent for the same reason. Gold still means the optical
+  path and the detection, copper the winding.
+- **The pieces must repaint when the theme changes.** `themeWatch` calls
+  `repaint()`, which redraws at the current progress. It used to call the
+  piece's own scroll handler, which stopped existing when the listener moved to
+  the shared driver — after that every theme toggle threw
+  `onScroll is not defined` and the art kept the PREVIOUS theme's colours until
+  something happened to scroll the page.
 - **An occluder does not have to be the real profile.** The frame's fill is a
   plain cylinder while its wireframe keeps the serrated fin profile. Filling the
   serration made the assembled machine a scalloped barrel with a dome on each
