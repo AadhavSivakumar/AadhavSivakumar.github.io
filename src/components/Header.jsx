@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { onScroll } from '../scrollDriver';
 
 const LINKS = [
   { id: 'about', label: 'About' },
@@ -75,9 +76,7 @@ export default function Header({ theme, toggleTheme }) {
   const [active, setActive] = useState(null);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return onScroll(y => setScrolled(y > 50));
   }, []);
 
   // Scroll spy: the section crossing the upper-middle band of the viewport

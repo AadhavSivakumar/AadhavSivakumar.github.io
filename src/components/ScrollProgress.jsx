@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { animate } from 'animejs';
+import { onScroll } from '../scrollDriver';
 
 // Thin gold bar under the top edge whose fill is an anime.js animation
 // scrubbed by page scroll (anim.seek maps scroll ratio onto the timeline).
@@ -13,18 +14,11 @@ export default function ScrollProgress() {
       ease: 'linear',
       autoplay: false,
     });
-    const onScroll = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      anim.seek((max > 0 ? Math.min(1, window.scrollY / max) : 0) * 1000);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      anim.revert();
-    };
+    // The document height used to be read here, inside the handler, on every
+    // scroll event — a forced layout per event. The shared driver measures it
+    // on resize instead and calls this from inside one rAF.
+    const stop = onScroll((y, p) => anim.seek(p * 1000));
+    return () => { stop(); anim.revert(); };
   }, []);
 
   return (

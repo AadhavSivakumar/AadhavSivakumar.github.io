@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
 import SineWave from './SineWave';
@@ -18,6 +18,7 @@ const NAME = 'Aadhav Sivakumar';
 
 export default function Hero() {
   const heroRef = useRef(null);
+  const [heroOnScreen, setHeroOnScreen] = useState(true);
   const nameRef = useRef(null);
   const glassRef = useRef(null);
 
@@ -106,7 +107,15 @@ export default function Hero() {
 
     const io = new IntersectionObserver(
 
-      ([e]) => el.classList.toggle('hero--idle', !e.isIntersecting),
+      ([e]) => {
+        el.classList.toggle('hero--idle', !e.isIntersecting);
+        // The CSS class only stops CSS animations. The scroll cue is a motion
+        // loop writing inline styles, so it needs to be told separately — it
+        // was still running ~37 writes/second with the hero scrolled off the
+        // top of the page. rAF is throttled when the TAB is hidden, never when
+        // something merely scrolls out of view.
+        setHeroOnScreen(e.isIntersecting);
+      },
 
       { rootMargin: '80px' }
 
@@ -203,8 +212,12 @@ export default function Hero() {
         transition={{ delay: 1.8, duration: 0.8 }}
       >
         <motion.span
-          animate={{ y: [0, 9, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+          animate={heroOnScreen ? { y: [0, 9, 0] } : { y: 0 }}
+          transition={
+            heroOnScreen
+              ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+              : { duration: 0 }
+          }
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />

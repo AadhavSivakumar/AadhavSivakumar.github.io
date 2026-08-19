@@ -360,6 +360,43 @@ dev server, driven by geckodriver, cropped per side with ffmpeg. `canvas.dataset
 reports how many segments the last frame drew. Measure frame cost by comparing
 rAF intervals with `.page-flourish-layer` shown vs `display: none`.
 
+## Scrolling, and keeping a still page still
+
+**There is ONE scroll listener on the page** (`src/scrollDriver.js`): one passive
+listener, one rAF, subscribers called with `(scrollY, progress)` from inside that
+frame. The progress bar, the header shadow and both flourishes go through it.
+The document height is measured on resize and by a `ResizeObserver` on `<body>`,
+not inside the handler — reading `scrollHeight` per event forces a layout flush,
+which is what two of the four old handlers did.
+
+Be honest about the size of that win: **browsers already coalesce scroll events
+to one per frame**, and the forced layout measures 0.04 ms on this page (~0.2% of
+a frame). Consolidating the listeners bought no measurable frame time. It is
+worth having because it puts the idle invariant in one place, not because it
+made scrolling faster — do not cite it as a performance fix.
+
+**The thing that actually costs, every time, is an animation that never stops.**
+`rAF` is throttled when the whole TAB is hidden and never when an element merely
+scrolls out of view, so anything looping must be switched off explicitly. Known
+instances, all fixed, all found by measuring DOM mutations on a *still* page:
+
+- `onScroll({ sync: <number> })` in anime.js — never settles, ~1,200 scene
+  rewrites/second on a static page. Use `sync: true` or a hand-rolled driver.
+- The hero's infinite CSS animations — paused via `.hero--idle` from an
+  IntersectionObserver.
+- The lanyard `<Canvas>` — `frameloop` gated on visibility.
+- **The hero scroll-cue arrow** — a `motion` loop, so `.hero--idle` did nothing
+  to it (that class only stops CSS animations). It was rewriting inline styles
+  ~37×/second with the hero scrolled off the top. Now gated on a `heroOnScreen`
+  state from the same observer.
+
+The check that catches all of them, and the number to keep at zero:
+
+```
+scroll past the hero, hold still, count DOM mutations for 3s
+  before: ~105    after: 0
+```
+
 ## Modal animation contract
 
 `Modal.jsx` runs a phase machine: `lift` (card rises off the page from its
@@ -526,8 +563,6 @@ above for what replaced it and why. Two structural changes came with it:
   inside an embedded Drive iframe** — a cross-origin frame swallows the key.
   Shift+Tab returns focus to this document and the close button is always
   reachable, so nobody is stuck.
-- Runtime performance: four unbatched scroll listeners still force layout twice
-  per event.
 - Visual QA pass pending: modal open/close feel, section-title cascades, both themes,
   mobile layout. On the lanyard hover tilt — the rest-state signs are correct; the
   real defect is that after a click-flip the pitch damper becomes positive feedback,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { onScroll as onPageScroll } from '../scrollDriver';
 
 // Page-wide decorative flourishes — one per side, fixed to the viewport and
 // scrubbed by page scroll.
@@ -866,35 +867,27 @@ export default function Flourish3D({ side = 'left' }) {
     }
 
     // ── scroll driver ───────────────────────────────────────────────────
-    // Hand-rolled and idle-when-idle: one passive listener, at most one rAF in
-    // flight, and no redraw unless the progress actually moved. (anime's
-    // onScroll with a numeric `sync` never settles — it kept rewriting the
-    // scene ~1200x/second on a completely static page.)
-    let raf = 0, lastP = -1, maxScroll = 1;
-    const measure = () => { maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight); };
-    const frame = () => {
-      raf = 0;
-      const p = clamp(window.scrollY / maxScroll, 0, 1);
-      if (Math.abs(p - lastP) < 0.0004) return;
-      lastP = p;
-      draw(p);
-    };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(frame); };
-    const onResize = () => { measure(); lastP = -1; onScroll(); };
+    // The listener and the rAF are shared with the rest of the page (see
+    // src/scrollDriver.js); what stays local is the part that is specific to
+    // this piece — no redraw unless the progress ACTUALLY moved. That
+    // threshold is the thing that keeps a static page idle. (anime's onScroll
+    // with a numeric `sync` never settles — it kept rewriting the scene
+    // ~1200x/second on a completely static page.)
+    let lastP = -1;
+    let stopScroll = null;
 
-    measure();
     if (reduce) {
       draw(isLeft ? 0.97 : 0.9);          // one composed, representative frame
     } else {
-      draw(clamp(window.scrollY / maxScroll, 0, 1));
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onResize, { passive: true });
+      stopScroll = onPageScroll((y, p) => {
+        if (Math.abs(p - lastP) < 0.0004) return;
+        lastP = p;
+        draw(p);
+      });
     }
 
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
-      if (raf) cancelAnimationFrame(raf);
+      stopScroll?.();
       themeWatch.disconnect();
     };
   }, [isLeft]);
