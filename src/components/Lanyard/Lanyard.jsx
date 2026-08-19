@@ -429,7 +429,19 @@ function useStrapTexture(texture, theme) {
 // Draws an ID-badge face (photo, name, role, ID/EXP rows) into the card's
 // front UV rect, matching the badge design on the live /portfolio page.
 // Proportions are expressed against the live badge's 160x260 canvas card.
-function drawBadgeFace(ctx, rect, badge, img, W, H) {
+// The badge face.
+//
+// It used to be a white card with near-black text, and the text was hard to
+// read on it. A white card is the worst possible ground here: the Environment's
+// Lightformer ADDS light, so the card blows out toward white and takes the dark
+// text with it. On a dark card the same specular lands on top of light text and
+// the text survives it. That is why the reference badges (Vercel's event badge,
+// the Framer lanyard) are black.
+//
+// `siteDark` is the PAGE theme, not the card's. The card inverts against the
+// page — black card on the light site, pale card on the dark one — for the same
+// reason the strap texture already does: a black card on a black page is gone.
+export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false) {
   const rx = rect.x * W;
   const ry = rect.y * H;
   const rw = rect.w * W;
@@ -437,16 +449,22 @@ function drawBadgeFace(ctx, rect, badge, img, W, H) {
   const u = rh / 260;
   const cx = rx + rw / 2;
 
+  const P = siteDark
+    ? { card: '#f3f1ec', band: '#e6e1d6', name: '#14161a', role: '#5b6068',
+        label: '#9a7526', value: '#14161a', rule: '#c5a35c', ring: '#d8d3c8' }
+    : { card: '#101114', band: '#191b20', name: '#f7f6f3', role: '#a8adb6',
+        label: '#d9b26a', value: '#f7f6f3', rule: '#c5a35c', ring: '#2a2d34' };
+
   ctx.save();
   ctx.beginPath();
   ctx.rect(rx, ry, rw, rh);
   ctx.clip();
 
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = P.card;
   ctx.fillRect(rx, ry, rw, rh);
   // Full-bleed header band is drawn untransformed so it still reaches both
   // edges of the card.
-  ctx.fillStyle = '#f5f1e9';
+  ctx.fillStyle = P.band;
   ctx.fillRect(rx, ry, rw, 80 * (rh / 260));
 
   // The UV rect is squarer than the 160x260 badge design it carries, so a
@@ -469,32 +487,41 @@ function drawBadgeFace(ctx, rect, badge, img, W, H) {
     ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
     ctx.drawImage(img, cx - (img.width * s) / 2, cy - (img.height * s) / 2, img.width * s, img.height * s);
     ctx.restore();
+    // a thin ring so the photo reads as a portrait hole punched in the card
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.lineWidth = 2 * u;
+    ctx.strokeStyle = P.ring;
+    ctx.stroke();
   }
 
   // premium gold accent divider under the photo
-  ctx.fillStyle = '#c5a35c';
-  ctx.fillRect(rx + 22 * u, ry + 131 * u, rw - 44 * u, 1.6 * u);
+  ctx.fillStyle = P.rule;
+  ctx.fillRect(rx + 22 * u, ry + 131 * u, rw - 44 * u, 2 * u);
 
+  // Type is a size up from where it was, and the name is heavier. At badge
+  // size on screen the old 15/11px design was legible in the texture and not
+  // on the card.
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#111827';
-  ctx.font = `600 ${15 * u}px Poppins, sans-serif`;
-  ctx.fillText(badge.name, cx, ry + 155 * u, rw - 12 * u);
-  ctx.fillStyle = '#6b7280';
-  ctx.font = `500 ${11 * u}px Poppins, sans-serif`;
-  ctx.fillText(badge.role, cx, ry + 172 * u, rw - 12 * u);
+  ctx.fillStyle = P.name;
+  ctx.font = `700 ${19 * u}px Poppins, sans-serif`;
+  ctx.fillText(badge.name, cx, ry + 158 * u, rw - 12 * u);
+  ctx.fillStyle = P.role;
+  ctx.font = `500 ${12.5 * u}px Poppins, sans-serif`;
+  ctx.fillText(badge.role, cx, ry + 178 * u, rw - 12 * u);
 
   const drawRow = (label, value, y) => {
     ctx.textAlign = 'right';
-    ctx.font = `700 ${10 * u}px Poppins, sans-serif`;
-    ctx.fillStyle = '#b0872f';
+    ctx.font = `700 ${11 * u}px Poppins, sans-serif`;
+    ctx.fillStyle = P.label;
     ctx.fillText(label, cx - 5 * u, y);
     ctx.textAlign = 'left';
-    ctx.font = `600 ${11 * u}px Poppins, sans-serif`;
-    ctx.fillStyle = '#111827';
+    ctx.font = `600 ${12.5 * u}px Poppins, sans-serif`;
+    ctx.fillStyle = P.value;
     ctx.fillText(value, cx + 5 * u, y);
   };
-  if (badge.id) drawRow('ID', badge.id, ry + 205 * u);
-  if (badge.exp) drawRow('EXP', badge.exp, ry + 225 * u);
+  if (badge.id) drawRow('ID', badge.id, ry + 208 * u);
+  if (badge.exp) drawRow('EXP', badge.exp, ry + 230 * u);
 
   ctx.restore();
 }
@@ -596,7 +623,7 @@ function Band({
     };
 
     const photo = image ? photoTex.image : null;
-    if (badge) drawBadgeFace(ctx, FRONT_UV_RECT, badge, photo, W, H);
+    if (badge) drawBadgeFace(ctx, FRONT_UV_RECT, badge, photo, W, H, theme === 'dark');
     else if (photo) drawCover(photo, FRONT_UV_RECT);
     if (photo) drawContain(photo, BACK_UV_RECT);
 
@@ -606,7 +633,10 @@ function Band({
     composite.anisotropy = 16;
     composite.needsUpdate = true;
     return composite;
-  }, [image, badge, photoTex, materials.base.map]);
+    // `theme` is a dependency because the card inverts against the page. Each
+    // rebuild makes a fresh 14.3MB atlas; the old one is freed by
+    // useOwnedTexture, which is what that machinery is for.
+  }, [image, badge, photoTex, materials.base.map, theme]);
   useOwnedTexture(cardMap);
 
   const [curve] = useState(

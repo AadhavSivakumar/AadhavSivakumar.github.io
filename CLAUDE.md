@@ -133,6 +133,22 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
   tints the reflection by the base colour and darkens the diffuse term, which is
   the opposite of what a white printed card does with light.
 - Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
+- **The card INVERTS against the page**: near-black card with pale type on the
+  light site, pale card with dark type on the dark one (`siteDark` argument to
+  `drawBadgeFace`; `theme` is a dependency of the `cardMap` memo, so the atlas
+  is rebuilt and the old one freed on a toggle). This is the reference look —
+  Vercel's 3D event badge, the Framer lanyard — and it is also why the text is
+  readable at last: a white card is the worst possible ground here, because the
+  Environment's Lightformer ADDS light, so the card blows out toward white and
+  takes the dark text with it. On a dark card the same specular lands on top of
+  LIGHT text and the text survives. Type went up a size at the same time
+  (name 15→19, role 11→12.5).
+- The BACK face stays a pale field in both themes on purpose: it carries logo
+  artwork, some of which is dark-on-transparent and would vanish on black.
+- `badgeprobe.html` + `src/__badgeprobe.jsx` render the badge ARTWORK to a plain
+  2D canvas, both themes, all six cards. The 3D scene needs WebGL, which this
+  environment does not have; the artwork does not, so this is the only way to
+  see badge changes from here. It does NOT verify how the card looks lit.
 - **Runtime textures are freed by whoever built them, and only by them.** The
   pegboard grid, the dark-theme inverted strap and the per-badge composite atlas
   are built at runtime — but each of those code paths can also return a SHARED

@@ -16,7 +16,7 @@ const Lanyard = lazy(() => import('./Lanyard/Lanyard'));
 // Badge content mirrors the hanging badges on the live /portfolio page:
 // education on the left of the about card, work on the right. `slot` 0 is
 // the badge closest to the card on each side.
-const badgeCards = [
+export const badgeCards = [
   { side: 'left', slot: 2, image: dhsImg, badge: { name: 'Dublin High', role: 'High School', id: '2016-2020', exp: '2020' } },
   { side: 'left', slot: 1, image: ucscImg, badge: { name: 'UCSC', role: 'Undergraduate', id: '2020-2024', exp: '2024' } },
   { side: 'left', slot: 0, image: nyuImg, badge: { name: 'NYU', role: 'Graduate', id: '2024-2026', exp: '2026' } },
