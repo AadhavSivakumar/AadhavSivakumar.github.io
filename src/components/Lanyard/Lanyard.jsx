@@ -449,11 +449,14 @@ export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false) {
   const u = rh / 260;
   const cx = rx + rw / 2;
 
+  // Pushed to the ends of the range on purpose. Whatever the environment does
+  // to these values it does to both, so starting further apart is the cheapest
+  // contrast there is.
   const P = siteDark
-    ? { card: '#f3f1ec', band: '#e6e1d6', name: '#14161a', role: '#5b6068',
-        label: '#9a7526', value: '#14161a', rule: '#c5a35c', ring: '#d8d3c8' }
-    : { card: '#101114', band: '#191b20', name: '#f7f6f3', role: '#a8adb6',
-        label: '#d9b26a', value: '#f7f6f3', rule: '#c5a35c', ring: '#2a2d34' };
+    ? { card: '#faf8f4', band: '#ebe6da', name: '#08090b', role: '#4a4f57',
+        label: '#8a6a22', value: '#08090b', rule: '#c5a35c', ring: '#d8d3c8' }
+    : { card: '#08090b', band: '#141619', name: '#ffffff', role: '#c3c8d0',
+        label: '#e6bd72', value: '#ffffff', rule: '#c5a35c', ring: '#31353d' };
 
   ctx.save();
   ctx.beginPath();
@@ -504,24 +507,24 @@ export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false) {
   // on the card.
   ctx.textAlign = 'center';
   ctx.fillStyle = P.name;
-  ctx.font = `700 ${19 * u}px Poppins, sans-serif`;
-  ctx.fillText(badge.name, cx, ry + 158 * u, rw - 12 * u);
+  ctx.font = `700 ${23 * u}px Poppins, sans-serif`;
+  ctx.fillText(badge.name, cx, ry + 160 * u, rw - 10 * u);
   ctx.fillStyle = P.role;
-  ctx.font = `500 ${12.5 * u}px Poppins, sans-serif`;
-  ctx.fillText(badge.role, cx, ry + 178 * u, rw - 12 * u);
+  ctx.font = `600 ${14 * u}px Poppins, sans-serif`;
+  ctx.fillText(badge.role, cx, ry + 182 * u, rw - 10 * u);
 
   const drawRow = (label, value, y) => {
     ctx.textAlign = 'right';
-    ctx.font = `700 ${11 * u}px Poppins, sans-serif`;
+    ctx.font = `700 ${12.5 * u}px Poppins, sans-serif`;
     ctx.fillStyle = P.label;
     ctx.fillText(label, cx - 5 * u, y);
     ctx.textAlign = 'left';
-    ctx.font = `600 ${12.5 * u}px Poppins, sans-serif`;
+    ctx.font = `600 ${14 * u}px Poppins, sans-serif`;
     ctx.fillStyle = P.value;
     ctx.fillText(value, cx + 5 * u, y);
   };
-  if (badge.id) drawRow('ID', badge.id, ry + 208 * u);
-  if (badge.exp) drawRow('EXP', badge.exp, ry + 230 * u);
+  if (badge.id) drawRow('ID', badge.id, ry + 212 * u);
+  if (badge.exp) drawRow('EXP', badge.exp, ry + 236 * u);
 
   ctx.restore();
 }
@@ -782,11 +785,37 @@ function Band({
                   metallic surface tints its reflection by the base colour and
                   darkens the diffuse term, which is the opposite of what a
                   white printed card does with light. */}
+              {/*
+                The card has to hold its own contrast under a very bright
+                environment. Simulated through the material's own maths (flat
+                card, ambient + IBL diffuse + GGX specular + clearcoat lobe,
+                ACES tonemap): with envMapIntensity at 1 and clearcoat 0.25,
+                a brightening environment washes the black card from value 3
+                toward 118 and text contrast collapses from 12:1 to 4.2:1.
+                Three changes, all scoped to the card rather than to the
+                scene's lighting:
+                  envMapIntensity  - the broad specular wash is what lifts the
+                                     blacks, and it is the card that needs
+                                     protecting, not the clip or the strap
+                  clearcoat        - a second specular lobe stacked on top of
+                                     the first, straight onto the artwork
+                  emissiveMap      - the artwork adds its OWN light, shaped by
+                                     itself. Light text emits, the dark card
+                                     does not, so the separation between them
+                                     survives whatever the environment does.
+                Same simulation with these: 9.9:1 at the brightest, card at 59.
+                Lower emissive on the pale card - there the BACKGROUND is what
+                emits, and too much of it clips the card to flat white.
+              */}
               <meshPhysicalMaterial
                 map={cardMap}
                 map-anisotropy={16}
-                clearcoat={isMobile ? 0 : 0.25}
-                clearcoatRoughness={0.45}
+                emissiveMap={cardMap}
+                emissive="#ffffff"
+                emissiveIntensity={theme === 'dark' ? 0.18 : 0.55}
+                envMapIntensity={0.45}
+                clearcoat={isMobile ? 0 : 0.10}
+                clearcoatRoughness={0.5}
                 roughness={0.72}
                 metalness={0.04}
               />
