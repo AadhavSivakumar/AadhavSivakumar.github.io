@@ -124,6 +124,21 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 - **`BandField` debounces resizes (300ms) then remounts bands via key** — physics bodies don't follow anchors when the canvas aspect changes.
 - **The strap-smoothing lerp alpha is clamped to 1.** Unclamped, `delta * 50` exceeds 1 below 50fps and `Vector3.lerp` extrapolates, exploding the straps into screen-height streaks.
 - When the viewport can't fit 3 badges per side, outermost badges are dropped instead of stacking (the fit test is in `BandField`, comparing `inner + (n-1)*step` against the half-world width). Note the ≥992px gate in `About.jsx` admits widths where 2 of the 6 badges are already dropped.
+- **The card has to hold its contrast against the environment, and that is a
+  MATERIAL problem, not an artwork one.** Simulated through the material's own
+  maths (flat card, ambient + IBL diffuse + GGX specular + clearcoat lobe, ACES
+  tonemap — this environment has no WebGL, so the render cannot be looked at;
+  re-checked against the software rasteriser with two sets of prefs): at
+  `envMapIntensity` 1 with `clearcoat` 0.25, a brightening environment washes
+  the black card from value 3 toward 118 and text contrast collapses from
+  12.2:1 to 4.2:1. The fix is scoped to the CARD rather than to the scene's
+  lights — `envMapIntensity` 0.45, `clearcoat` 0.10, and an **`emissiveMap` of
+  the card's own texture** so the artwork adds light shaped by itself: light
+  text emits, the dark card does not, and the separation survives whatever the
+  environment does. Same simulation: 9.9:1 at the brightest, card at 59.
+  Emissive is lower on the pale card (0.18 vs 0.55), where it is the BACKGROUND
+  that emits and too much of it clips the card to flat white.
+  The simulation is `shade.mjs`-style and worth redoing if these are retuned.
 - **The badge material is a printed card, not a piano.** It shipped as
   `clearcoat: 1` / `clearcoatRoughness: 0.1` / `metalness: 0.35`, which against
   the Environment's intensity-10 Lightformer threw a specular sheet across the
