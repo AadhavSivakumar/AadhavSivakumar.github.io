@@ -583,8 +583,11 @@ export default function Flourish3D({ side = 'left' }) {
     // `tint` is the material: 0 = plain page-coloured body, 1 = the winding,
     // which keeps a little of its own colour so copper still means copper.
     const paperTone = (dif, tint) => {
-      const q = Math.max(-8, Math.min(8, Math.round(dif * 8)));
-      const key = q * 4 + tint;
+      // Five levels a side rather than nine. The run-merging in flush() can
+      // only join entries that share a colour, so the number of distinct tones
+      // directly sets the draw-call count.
+      const q = Math.max(-5, Math.min(5, Math.round(dif * 5)));
+      const key = q * 4 + tint + 64;
       let c = toneCache.get(key);
       if (c) return c;
       // dark theme: lift toward ink.  light theme: sink away from it.
@@ -595,7 +598,7 @@ export default function Flourish3D({ side = 'left' }) {
       // of 0.05 a cylinder came out one flat value and the piece had no
       // shading at all, just a silhouette with a wire around it.
       const lift = dark ? 0.19 : -0.08;
-      const k = lift + (q / 8) * LOOK.shadeRange;
+      const k = lift + (q / 5) * LOOK.shadeRange;
       // Warm, not neutral. The page is a warm off-white over a warm near-black
       // with a gold accent; mixing toward pure #fff / #000 left the pieces a
       // dead grey that did not belong to the rest of the site. These are the
@@ -784,26 +787,43 @@ export default function Flourish3D({ side = 'left' }) {
       }
     }
 
+    // Draw the sorted bucket in RUNS. Entries that are adjacent in depth order
+    // and share a style go into one path and one fill/stroke, which leaves the
+    // painter's order exactly as it was while collapsing the draw-call count:
+    // ~680 calls a frame down to a few dozen. This matters because the line-art
+    // rewrite gave every polyline its own beginPath+stroke — about 200 strokes
+    // a frame where the shaded version had a dozen batched ones — and each
+    // stroke carries fixed rasteriser setup.
     function flush() {
       if (!bucket.length) return;
       bucket.sort((A, B) => A.z - B.z);          // far first
-      let ca = -1, cc = '', cw = -1;
-      for (let i = 0; i < bucket.length; i++) {
+      let i = 0;
+      while (i < bucket.length) {
         const f = bucket[i];
+        let end = i + 1;
+        while (end < bucket.length) {
+          const g = bucket[end];
+          if (g.line !== f.line || g.c !== f.c || g.a !== f.a) break;
+          if (f.line && g.w !== f.w) break;
+          end++;
+        }
         ctx.beginPath();
-        ctx.moveTo(f.pts[0], f.pts[1]);
-        for (let k = 2; k < f.pts.length; k += 2) ctx.lineTo(f.pts[k], f.pts[k + 1]);
+        for (let k = i; k < end; k++) {
+          const e = bucket[k], pts = e.pts;
+          ctx.moveTo(pts[0], pts[1]);
+          for (let q = 2; q < pts.length; q += 2) ctx.lineTo(pts[q], pts[q + 1]);
+          if (!e.line) ctx.closePath();
+        }
+        ctx.globalAlpha = f.a;
         if (f.line) {
-          if (f.a !== ca) { ctx.globalAlpha = ca = f.a; }
-          if (f.c !== cc) { ctx.strokeStyle = cc = f.c; }
-          if (f.w !== cw) { ctx.lineWidth = cw = f.w; }
+          ctx.strokeStyle = f.c;
+          ctx.lineWidth = f.w;
           ctx.stroke();
         } else {
-          ctx.closePath();
-          if (f.a !== ca) { ctx.globalAlpha = ca = f.a; }
-          if (f.c !== cc) { ctx.fillStyle = cc = f.c; }
+          ctx.fillStyle = f.c;
           ctx.fill();
         }
+        i = end;
       }
       bucket.length = 0;
     }
@@ -1086,19 +1106,39 @@ export default function Flourish3D({ side = 'left' }) {
     // with a numeric `sync` never settles — it kept rewriting the scene
     // ~1200x/second on a completely static page.)
     let stopScroll = null;
+    let trailing = 0;
 
     if (reduce) {
       draw(isLeft ? 0.97 : 0.9);          // one composed, representative frame
     } else {
+      // CAP THE REDRAW RATE. A draw costs a few ms of main thread, and there
+      // are two of these, so at 60fps the pair was spending most of a frame
+      // budget on decoration while the lanyard and the project covers wanted
+      // the same frame. Scroll-scrubbed background art does not need 60fps;
+      // it needs to not be stale when the scroll stops, which is what the
+      // trailing frame is for.
+      const MIN_MS = 32;
+      let lastDraw = -1e9, pendingP = 0;
+      const paint = q => { lastP = q; lastDraw = performance.now(); draw(q); };
       stopScroll = onPageScroll((y, p) => {
         if (Math.abs(p - lastP) < 0.0004) return;
-        lastP = p;
-        draw(p);
+        pendingP = p;
+        if (performance.now() - lastDraw >= MIN_MS) {
+          if (trailing) { cancelAnimationFrame(trailing); trailing = 0; }
+          paint(p);
+        } else if (!trailing) {
+          const again = () => {
+            if (performance.now() - lastDraw >= MIN_MS) { trailing = 0; paint(pendingP); }
+            else trailing = requestAnimationFrame(again);
+          };
+          trailing = requestAnimationFrame(again);
+        }
       });
     }
 
     return () => {
       stopScroll?.();
+      if (trailing) cancelAnimationFrame(trailing);
       themeWatch.disconnect();
     };
   }, [isLeft]);

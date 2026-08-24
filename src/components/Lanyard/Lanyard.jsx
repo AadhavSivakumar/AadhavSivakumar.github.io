@@ -571,14 +571,22 @@ function Band({
     const baseMap = materials.base.map;
     if (!image && !badge) return baseMap;
 
+    // HALF RESOLUTION ON PURPOSE. The GLB's atlas is 1678x1677, and the front
+    // face takes 0.755 of its height — about 1266px of texture for a card that
+    // renders roughly 212px tall, so six times more than the screen can show.
+    // Six badges at full size is ~86MB of GPU texture (14.3MB each with mips)
+    // and an upload of the same every time BandField remounts the bands on a
+    // resize. At half it is ~21MB and still three times oversampled.
+    const ATLAS_SCALE = 0.5;
     const baseImg = baseMap.image;
-    const W = baseImg.width;
-    const H = baseImg.height;
+    const W = Math.round(baseImg.width * ATLAS_SCALE);
+    const H = Math.round(baseImg.height * ATLAS_SCALE);
     const canvas = document.createElement('canvas');
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
     if (!ctx) return baseMap;
+    ctx.imageSmoothingQuality = 'high';
     // Keep the original baked atlas for the card edges and any untouched face.
     ctx.drawImage(baseImg, 0, 0, W, H);
 
