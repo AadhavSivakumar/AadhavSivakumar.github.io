@@ -629,6 +629,14 @@ in-flight rather than final.
   `feDisplacementMap` that refracts the wave field), and the `/portfolio`-style sine
   field behind the hero via `<SineWave variant="field" />` (wide 1000×350
   viewBox so `preserveAspectRatio="none"` does not stretch the waves).
+  **The field's numbers are MEASURED off the live `/portfolio` hero, not
+  guessed** — 25 rows, `#C5A35C` at 2px, and the part that actually defines the
+  look: a per-row opacity ramp from 0.8 at the top to 0.1 at the bottom. Rows at
+  a uniform opacity read as wallpaper; the ramp is what makes it recede. There
+  used to be a radial hole masked out behind the name, and it is what stopped
+  the field reading as one continuous thing — gone now, with only a soft
+  top/bottom feather left because our hero blends into the page where
+  `/portfolio`'s is a full-bleed band.
 - **Lanyard badges**: aspect-corrected front-face text (`squash` in `drawBadgeFace`),
   `drawContain` back faces so wide logos stop running off the edge, and a theme-inverted
   strap texture so the webbing is visible in dark mode.

@@ -10,14 +10,18 @@ import React, { useMemo } from 'react';
 //     preserveAspectRatio="none" fills the width WITHOUT stretching the waves.
 //   variant="edge"  — the older narrow side curtain (kept for reuse elsewhere).
 
-const DURATION = 3;        // seconds, must match the CSS animation-duration
+const DURATION = 8;        // seconds, must match the CSS animation-duration
 const PHASE_DEG = 12;      // per-row phase offset that creates the stagger
 
-// Geometry per variant. The field mirrors /portfolio's 1000x350 viewBox (wide
-// aspect => no horizontal stretch) with rounded, evenly-spaced gold waves.
+// Geometry per variant. The field is measured off the live /portfolio hero
+// rather than guessed: viewBox 1000x350 with preserveAspectRatio="none",
+// 25 rows, stroke #C5A35C at 2px, and — the part that actually defines the
+// look — a PER-ROW OPACITY RAMP from 0.8 at the top down to 0.1 at the bottom.
+// Uniform rows read as wallpaper; the ramp is what makes it a field that
+// recedes.
 const GEO = {
-  edge:  { W: 300,  H: 420, ROWS: 50, AMP: 12, SPACING: 12, CYCLE: 100 },
-  field: { W: 1000, H: 350, ROWS: 30, AMP: 13, SPACING: 14, CYCLE: 100 },
+  edge:  { W: 300,  H: 420, ROWS: 50, AMP: 12, SPACING: 12, CYCLE: 100, top: 0.8, bottom: 0.1 },
+  field: { W: 1000, H: 350, ROWS: 25, AMP: 9,  SPACING: 14, CYCLE: 135, top: 0.8, bottom: 0.1 },
 };
 
 function wavePath(g, i) {
@@ -37,7 +41,12 @@ export default function SineWave({ side = 'left', variant = 'edge' }) {
     () =>
       Array.from({ length: g.ROWS - 2 }, (_, n) => {
         const i = n + 1;
-        return { d: wavePath(g, i), delay: `-${(i * PHASE_DEG / 360) * DURATION}s` };
+        const t = (g.ROWS - 3) > 0 ? n / (g.ROWS - 3) : 0;
+        return {
+          d: wavePath(g, i),
+          delay: `-${(i * PHASE_DEG / 360) * DURATION}s`,
+          opacity: +(g.top + (g.bottom - g.top) * t).toFixed(3),
+        };
       }),
     [g]
   );
@@ -47,7 +56,7 @@ export default function SineWave({ side = 'left', variant = 'edge' }) {
       <div className="hero-wavefield" aria-hidden="true">
         <svg viewBox={`0 0 ${g.W} ${g.H}`} preserveAspectRatio="none">
           {rows.map((r, i) => (
-            <path key={i} d={r.d} style={{ animationDelay: r.delay }} />
+            <path key={i} d={r.d} style={{ animationDelay: r.delay, opacity: r.opacity }} />
           ))}
         </svg>
       </div>
