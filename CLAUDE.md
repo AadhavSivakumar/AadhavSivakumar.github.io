@@ -350,6 +350,20 @@ bin rather than a teardown. Each piece carries its OWN wireframe — deriving on
 from the face list wires every triangle of a lathe's end-cap fan and the lens
 front comes out as a sunburst.
 
+**There is a PROPELLER on the drive end, and it keeps turning.** Each blade is
+a twisted surface — walk out along the span and lay the chord across a direction
+that is part tangential and part axial. That angle is the pitch, and it has to
+fall from root to tip (34° → 12° here) or the blade reads as a flat paddle
+rather than a screw.
+
+**The free-running spin is the one thing on the page that animates without the
+scroll driving it**, which is a deliberate exception to the idle rule above, so
+it is fenced in: the motor side only, only past p 0.80, capped at 20fps, and
+rAF stops it dead when the tab is hidden. Verified by sitting still for three
+seconds — 0 redraws mid-page on both sides, ~45 on the right at the bottom.
+If you add anything else that animates off the scroll, fence it the same way
+and re-run that check.
+
 **The motor STARTS as a laid-out exploded view and comes together.** That is
 the shape every reference exploded view of a motor uses (the owner supplied
 four): the axis near horizontal, the parts strung along it in assembly order —

@@ -256,6 +256,48 @@ const P_FRONT = [[98, 78], [102, 82], [112, 82], [116, 74], [122, 52], [130, 38]
 // Every part arrives along the SAME axis in assembly order: `fz` dominates and
 // the lateral jitter is capped, so parts thread down the shaft rather than
 // converging from six directions, which reads as a pile of boxes meeting.
+// A propeller for the drive end. Each blade is a twisted surface: walk out
+// along the span, and at each station lay the chord across a direction that is
+// part tangential and part axial — that angle is the PITCH, and it has to fall
+// from root to tip or the blade reads as a flat paddle rather than a screw.
+function propBlade(a0, n = 7) {
+  const R0 = 18, R1 = 128, Z = 176;
+  const quads = [], le = [], te = [];
+  const at2 = t => {
+    const r = R0 + (R1 - R0) * t;
+    const c = 40 * (1 - 0.40 * t);                 // chord narrows toward the tip
+    const pitch = (34 - 22 * t) * DEG;             // and flattens
+    const a = a0 + 0.30 * t;                       // slight sweep
+    const ca = Math.cos(a), sa = Math.sin(a);
+    // chord direction = tangential * cos(pitch) + axial * sin(pitch)
+    const dx = -sa * Math.cos(pitch), dy = ca * Math.cos(pitch), dz = Math.sin(pitch);
+    const px = r * ca, py = r * sa;
+    const h = c / 2;
+    return [[px + dx * h, py + dy * h, Z + dz * h], [px - dx * h, py - dy * h, Z - dz * h]];
+  };
+  let prev = at2(0);
+  le.push(prev[0]); te.push(prev[1]);
+  for (let i = 1; i <= n; i++) {
+    const cur = at2(i / n);
+    quads.push(face([prev[0], cur[0], cur[1], prev[1]]));
+    prev = cur; le.push(cur[0]); te.push(cur[1]);
+  }
+  return { solids: quads, polys: [le, te, [le[0], te[0]], [le[n], te[n]]] };
+}
+const PROP_BLADES = 3;
+const PROP = (() => {
+  const solids = [], polys = [];
+  for (let k = 0; k < PROP_BLADES; k++) {
+    const b2 = propBlade((k / PROP_BLADES) * TAU);
+    solids.push(...b2.solids); polys.push(...b2.polys);
+  }
+  // spinner: the cone that caps the hub
+  solids.push(...surface([[164, 20], [176, 22], [196, 14], [206, 0]], 18));
+  solids.push(...disc(9.5, 20, 164, 18));
+  polys.push(...revolve([[164, 20], [176, 22], [196, 14], [206, 0]], 3, [[164, 20], [176, 22], [196, 14]]));
+  return { solids, polys };
+})();
+
 const MOTOR_SPEC = [
   {
     id: 'shaft', lead: 0.02, dir: [0.06, -0.10, 1], spin: -180, spins: true,
@@ -361,6 +403,13 @@ const MOTOR_SPEC = [
     ],
   },
   {
+    // The propeller goes on last, onto a shaft that is already turning.
+    id: 'prop', lead: 0.70, dir: [0.04, -0.08, 1], spin: 340, spins: true,
+    ghost: () => [ring(128, 176, 24)],
+    solids: () => PROP.solids,
+    polys: () => PROP.polys,
+  },
+  {
     // The terminal box is a RADIAL feature — it bolts onto the flank of the
     // frame — so it is the one part that leaves sideways rather than along the
     // axis. `side` is how far out it goes, in local units.
@@ -416,7 +465,7 @@ const motorModule = k => chain(place(IDENT, [0, 10, 0]), place(mul(MOTOR_TILT, s
 // with the frame and leaves sideways instead (`side`).
 const LAID_OUT = {
   rearbell: -620, fan: -400, rotor: -310, stator: -90, copper: -90,
-  can: 130, tbox: 130, frontbell: 228, shaft: 564,
+  can: 130, tbox: 130, frontbell: 228, shaft: 564, prop: 614,
 };
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -838,6 +887,12 @@ export default function Flourish3D({ side = 'left' }) {
     // mounted on the shaft (`spins: true`) turns with it.
     //   revs(p) = the shaft's accumulated rotation in degrees
     const revs = p => 2600 * Math.pow(win(p, 0.06, 0.94), 1.7);
+    // Once the motor is assembled it RUNS: the shaft, and everything on it,
+    // keep turning after the scroll stops instead of freezing mid-revolution.
+    // Deliberately breaking the "leave the page idle" rule, but on a leash —
+    // right-hand piece only, only past IDLE_FROM, capped at 20fps, and rAF
+    // stops it dead when the tab is hidden.
+    let idleSpin = 0;
 
     function drawMotor(p) {
       setCam((-24 + 40 * p) * DEG, (6 + 8 * p) * DEG, -120 + 150 * p);
@@ -847,8 +902,8 @@ export default function Flourish3D({ side = 'left' }) {
       // Staggered so the LAST part still has room to seat before the page
       // ends. Hard-coding 0.10 per part stopped working the moment there were
       // more than six of them.
-      const step = 0.58 / Math.max(1, MOTOR.length - 1);
-      const conv = k => smooth(win(p, 0.10 + k * step, 0.30));
+      const step = 0.50 / Math.max(1, MOTOR.length - 1);
+      const conv = k => smooth(win(p, 0.08 + k * step, 0.28));
       const built = smooth(win(p, 0.10, 0.80));
 
       // THE SCALE IS DERIVED FROM THE CURRENT SPREAD, not from progress.
@@ -873,7 +928,7 @@ export default function Flourish3D({ side = 'left' }) {
         const off = (LAID_OUT[part.id] || 0) * away;
         // a small lateral drift while apart, so the strip is not a dead-straight
         // queue, plus the axle's own rotation for anything mounted on it
-        let m = rotZ((part.spins ? revs(p) : 0) * DEG + away * part.spin * 0.25 * DEG);
+        let m = rotZ((part.spins ? revs(p) + idleSpin : 0) * DEG + away * part.spin * 0.25 * DEG);
         const T = chain(base, place(m, [
           part.dir[0] * away * 26,
           part.dir[1] * away * 26 + (part.side || 0) * away,   // radial parts go sideways
@@ -895,7 +950,7 @@ export default function Flourish3D({ side = 'left' }) {
         // stator until the fan was inserted ahead of it — after that the
         // winding was converging on the fan's schedule.
         const c = seat(conv(STATOR_I));
-        const T = chain(base, place(rotZ(revs(p) * DEG), [0, 0, (LAID_OUT.copper || 0) * (1 - clamp(c, 0, 1))]));
+        const T = chain(base, place(rotZ((revs(p) + idleSpin) * DEG), [0, 0, (LAID_OUT.copper || 0) * (1 - clamp(c, 0, 1))]));
         for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, CU, 1);
         // END TURNS. These have to clear the stator body or the one coloured
         // thing on this piece is invisible: at r=50 inside a r=62 core they
@@ -1136,9 +1191,37 @@ export default function Flourish3D({ side = 'left' }) {
       });
     }
 
+    // ── free-running spin ───────────────────────────────────────────────
+    // The motor keeps turning at the bottom of the page. It is the one thing
+    // here that animates without the scroll driving it, so it is fenced in:
+    // the motor side only, only once the machine is assembled, 20fps, and it
+    // is torn down with the component.
+    const IDLE_FROM = 0.80;
+    const IDLE_DPS = 150;          // degrees a second
+    const IDLE_MS = 50;            // 20fps
+    let spinRAF = 0, spinTimer = 0, spinPrev = 0;
+    if (!isLeft && !reduce) {
+      const step = () => {
+        spinRAF = 0;
+        if (lastP < IDLE_FROM) { spinPrev = 0; schedule(); return; }
+        const now = performance.now();
+        const dt = spinPrev ? Math.min(0.25, (now - spinPrev) / 1000) : 0;
+        spinPrev = now;
+        idleSpin += dt * IDLE_DPS;
+        draw(lastP);
+        schedule();
+      };
+      const schedule = () => {
+        spinTimer = setTimeout(() => { spinRAF = requestAnimationFrame(step); }, IDLE_MS);
+      };
+      schedule();
+    }
+
     return () => {
       stopScroll?.();
       if (trailing) cancelAnimationFrame(trailing);
+      if (spinRAF) cancelAnimationFrame(spinRAF);
+      if (spinTimer) clearTimeout(spinTimer);
       themeWatch.disconnect();
     };
   }, [isLeft]);
