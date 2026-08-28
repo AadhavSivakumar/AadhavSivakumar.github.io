@@ -292,6 +292,27 @@ the reference is the anime.js site — 1px monochrome strokes on a warm near-bla
 - **Bodies sit OFF the page, not on it.** A fill of exactly
   `--background-color` reads as a HOLE in the dark theme, because the page
   carries its own gradient and is lighter than its own token where the art sits.
+- **The motor's parts are separated by MATERIAL** (`MAT` / `MAT_HEX` /
+  `MAT_W`): steel, iron, aluminium, copper, dark polymer, painted housing.
+  Assigned so that no two NEIGHBOURS along the exploded strip share one. Two
+  rules learned by getting them wrong:
+  the weight has to fall as the part gets bigger — a tint worth 0.3 on the
+  shaft is invisible, and the same 0.3 on the housing turns the assembled
+  machine into a coloured blob and throws the line art away; and the LINEWORK
+  should carry most of the difference (`MAT_LINE_W`), because a line costs no
+  area. The light theme needs ~1.55x the weight, because its bodies sit near
+  white and a pale tint mixed into near-white barely moves.
+  The vision side stays on `MAT.neutral` — its colours already mean something.
+- **`flush()` sorts by depth SLAB, then by style, not by exact depth.** Exact
+  depth is correct but interleaves styles, so almost nothing merges into a
+  shared draw call; giving each part its own material made that 20% worse.
+  Within one thin slab (1/56th of the depth range) the geometry is at the same
+  depth anyway, so grouping by style there is invisible and whole runs collapse
+  — 680 draw calls a frame down to 353, better than the 564 from before
+  materials existed. Fills sort before lines within a slab so a line still sits
+  on top of its own body. A/B'd against exact-depth sorting: under 1% of pixels
+  differ, and most of that is the propeller being at a different rotation phase
+  between the two captures.
 - **The ramp is WARM at both ends** (`WARM_HI` / `WARM_LO`), not `#fff`/`#000`.
   The page is warm off-white over warm near-black with a gold accent; dead
   neutral grey linework and fills read as foreign on it. The structural line is

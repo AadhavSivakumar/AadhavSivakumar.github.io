@@ -34,6 +34,12 @@ import { onScroll as onPageScroll, scrollProgress } from '../scrollDriver';
 // meridian maths, the ViT patch/token layout), the beat timings, both themes,
 // reduced-motion, and the >=992px gate in App.jsx.
 
+// LINE is an rgb() string by the time materials are built, not a hex
+const rgbStrToHex = str => {
+  const m = (str || '').match(/[\d.]+/g) || [0, 0, 0];
+  return '#' + m.slice(0, 3).map(v => Math.round(+v).toString(16).padStart(2, '0')).join('');
+};
+
 const hexToRgb = h => {
   const v = h.replace('#', '').trim();
   const n = v.length === 3 ? v.split('').map(c => c + c).join('') : v;
@@ -298,9 +304,31 @@ const PROP = (() => {
   return { solids, polys };
 })();
 
+// MATERIALS. In the exploded strip the parts were nine shapes in one grey, so
+// the only thing telling them apart was silhouette. A real parts diagram
+// separates them by material, and that is the axis used here — restrained and
+// warm rather than a rainbow, and assigned so that NEIGHBOURS along the strip
+// never share one. `w` is how far the fill is pulled off the page colour toward
+// the hue; the linework gets a lighter dose of the same so the wireframe
+// carries the difference too.
+//   0 neutral   the default, and everything on the vision side
+//   1 copper    the winding, and nothing else (as before)
+const MAT = {
+  neutral: 0, copper: 1, steel: 2, iron: 3, alu: 4, poly: 5, paint: 6,
+};
+// hex per slot; `copper` and `paint` are filled in from theme tokens
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B'];
+// Weight is inversely related to how much of the frame the part covers. A tint
+// worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
+// assembled machine into a coloured blob and throws away the line art. So the
+// big masses stay near the page colour and the small parts carry the colour —
+// and most of the separation is done by the LINEWORK, which costs no area.
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13];
+const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
+
 const MOTOR_SPEC = [
   {
-    id: 'shaft', lead: 0.02, dir: [0.06, -0.10, 1], spin: -180, spins: true,
+    id: 'shaft', mat: MAT.steel, lead: 0.02, dir: [0.06, -0.10, 1], spin: -180, spins: true,
     ghost: () => [ring(9.5, -166, 20), ring(9.5, 178, 20)],
     solids: () => [...surface(P_SHAFT, 14), ...disc(0, 9.5, -166, 14)],
     polys: () => [
@@ -309,7 +337,7 @@ const MOTOR_SPEC = [
     ],
   },
   {
-    id: 'rotor', lead: 0.11, dir: [-0.08, 0.12, 1], spin: 300, spins: true,
+    id: 'rotor', mat: MAT.steel, lead: 0.11, dir: [-0.08, 0.12, 1], spin: 300, spins: true,
     ghost: () => [ring(33, 0, 28)],
     solids: () => [
       ...surface([[-40, 33], [40, 33]], 22), ...disc(9.5, 33, -40, 22), ...disc(9.5, 33, 40, 22),
@@ -334,7 +362,7 @@ const MOTOR_SPEC = [
     // The cooling fan is its OWN part. It used to be drawn as part of the
     // rotor, 86 units behind it, which meant the exploded view had a rotor
     // with a fan floating off one end rather than a fan you could see arrive.
-    id: 'fan', lead: 0.14, dir: [0.10, -0.06, 1], spin: 260, spins: true,
+    id: 'fan', mat: MAT.poly, lead: 0.14, dir: [0.10, -0.06, 1], spin: 260, spins: true,
     ghost: () => [ring(44, -128, 20)],
     solids: () => [...surface([[-136, 16], [-118, 16]], 16), ...disc(9.5, 16, -136, 16)],
     polys: () => [
@@ -346,7 +374,7 @@ const MOTOR_SPEC = [
     ],
   },
   {
-    id: 'stator', lead: 0.20, dir: [0.10, 0.05, 1], spin: -260,
+    id: 'stator', mat: MAT.iron, lead: 0.20, dir: [0.10, 0.05, 1], spin: -260,
     ghost: () => [ring(62, 0, 32)],
     solids: () => [
       ...surface([[-45, 62], [45, 62]], 24), ...disc(31, 62, -45, 24), ...disc(31, 62, 45, 24),
@@ -361,7 +389,7 @@ const MOTOR_SPEC = [
     ],
   },
   {
-    id: 'rearbell', lead: 0.40, dir: [-0.05, -0.12, -1], spin: 220,
+    id: 'rearbell', mat: MAT.alu, lead: 0.40, dir: [-0.05, -0.12, -1], spin: 220,
     ghost: () => [ring(82, -104, 32)],
     solids: () => [...surface(P_COWL, 22), ...disc(26, 32, -160, 22)],
     polys: () => [
@@ -377,7 +405,7 @@ const MOTOR_SPEC = [
     ],
   },
   {
-    id: 'frontbell', lead: 0.49, dir: [0.08, 0.10, 1], spin: -240,
+    id: 'frontbell', mat: MAT.alu, lead: 0.49, dir: [0.08, 0.10, 1], spin: -240,
     ghost: () => [ring(82, 104, 32)],
     solids: () => [...surface(P_FRONT, 22), ...disc(14, 22, 146, 18)],
     polys: () => [
@@ -388,7 +416,7 @@ const MOTOR_SPEC = [
     ],
   },
   {
-    id: 'can', lead: 0.58, dir: [-0.10, 0.06, -1], spin: 200,
+    id: 'can', mat: MAT.paint, lead: 0.58, dir: [-0.10, 0.06, -1], spin: 200,
     ghost: () => [ring(88, 0, 32)],
     solids: () => [
       ...surface(P_FRAME_SOLID, 24),
@@ -404,7 +432,7 @@ const MOTOR_SPEC = [
   },
   {
     // The propeller goes on last, onto a shaft that is already turning.
-    id: 'prop', lead: 0.70, dir: [0.04, -0.08, 1], spin: 340, spins: true,
+    id: 'prop', mat: MAT.steel, lead: 0.70, dir: [0.04, -0.08, 1], spin: 340, spins: true,
     ghost: () => [ring(128, 176, 24)],
     solids: () => PROP.solids,
     polys: () => PROP.polys,
@@ -413,7 +441,7 @@ const MOTOR_SPEC = [
     // The terminal box is a RADIAL feature — it bolts onto the flank of the
     // frame — so it is the one part that leaves sideways rather than along the
     // axis. `side` is how far out it goes, in local units.
-    id: 'tbox', lead: 0.62, dir: [0, 0, 0], spin: 0, side: 300,
+    id: 'tbox', mat: MAT.poly, lead: 0.62, dir: [0, 0, 0], spin: 0, side: 300,
     ghost: () => [ringAt(6, 0, 142, 0, 12)],
     solids: () => [...boxFaces(30, 40, 26, 0, 100, 0)],
     polys: () => [
@@ -626,17 +654,19 @@ export default function Flourish3D({ side = 'left' }) {
     // ink colour for faces turned away from the light. Quantised so a few
     // hundred faces a frame do not churn a few hundred colour strings.
     let paperRGB = [18, 18, 18], inkRGB = [212, 180, 124], cuRGB = [206, 132, 73];
+    let matRGB = MAT_HEX.map(h => (h ? hexToRgb(h) : null));
+    let matLine = MAT_HEX.map(() => LINE);
     const WARM_HI = [246, 244, 242];      // warm white
     const WARM_LO = [37, 36, 35];         // warm near-black
     const toneCache = new Map();
     // `tint` is the material: 0 = plain page-coloured body, 1 = the winding,
     // which keeps a little of its own colour so copper still means copper.
-    const paperTone = (dif, tint) => {
+    const paperTone = (dif, mat) => {
       // Five levels a side rather than nine. The run-merging in flush() can
       // only join entries that share a colour, so the number of distinct tones
       // directly sets the draw-call count.
       const q = Math.max(-5, Math.min(5, Math.round(dif * 5)));
-      const key = q * 4 + tint + 64;
+      const key = (q + 5) * 8 + mat;
       let c = toneCache.get(key);
       if (c) return c;
       // dark theme: lift toward ink.  light theme: sink away from it.
@@ -655,11 +685,14 @@ export default function Flourish3D({ side = 'left' }) {
       const tgt = k >= 0 ? WARM_HI : WARM_LO;
       const mix = (a1, i) => Math.max(0, Math.min(255, Math.round(a1 + (tgt[i] - a1) * Math.abs(k))));
       let r = mix(paperRGB[0], 0), g = mix(paperRGB[1], 1), b2 = mix(paperRGB[2], 2);
-      if (tint) {
-        const w = 0.42;
-        r = Math.round(r + (cuRGB[0] - r) * w);
-        g = Math.round(g + (cuRGB[1] - g) * w);
-        b2 = Math.round(b2 + (cuRGB[2] - b2) * w);
+      // The light theme needs a heavier dose: its bodies sit near white, and a
+      // pale tint mixed into near-white barely moves. The dark theme's bodies
+      // are already dark, so the same weight reads much more strongly there.
+      const tint = matRGB[mat], w = MAT_W[mat] * (dark ? 1 : 1.55);
+      if (tint && w) {
+        r = Math.round(r + (tint[0] - r) * w);
+        g = Math.round(g + (tint[1] - g) * w);
+        b2 = Math.round(b2 + (tint[2] - b2) * w);
       }
       c = `rgb(${r},${g},${b2})`;
       toneCache.set(key, c);
@@ -675,7 +708,22 @@ export default function Flourish3D({ side = 'left' }) {
     };
     const readMaterials = () => {
       METAL = mkMaterial(ink, 1, 0.45); CU = mkMaterial(copper, 2, 0.1);
-      paperRGB = hexToRgb(paper); inkRGB = hexToRgb(ink); cuRGB = hexToRgb(copper); toneCache.clear();
+      paperRGB = hexToRgb(paper); inkRGB = hexToRgb(ink); cuRGB = hexToRgb(copper);
+      // copper and the housing paint come from the theme tokens; the rest are
+      // fixed, because "steel" and "aluminium" mean the same thing in both
+      // themes and only their contrast against the page changes.
+      matRGB = MAT_HEX.map(h => (h ? hexToRgb(h) : null));
+      matRGB[MAT.copper] = hexToRgb(copper);
+      // The housing is a warm painted grey, NOT the gold accent — the accent on
+      // a surface that size reads as decoration rather than as a machine.
+
+      // Each material's linework carries a lighter dose of the same tint, so
+      // the wireframe separates the parts too and not just the fills.
+      const L = hexToRgb(LINE.startsWith('#') ? LINE : rgbStrToHex(LINE));
+      matLine = matRGB.map(t => (t
+        ? `rgb(${Math.round(L[0] + (t[0] - L[0]) * MAT_LINE_W)},${Math.round(L[1] + (t[1] - L[1]) * MAT_LINE_W)},${Math.round(L[2] + (t[2] - L[2]) * MAT_LINE_W)})`
+        : LINE));
+      toneCache.clear();
     };
     readMaterials();
     // Repaint at the CURRENT progress. This used to call the piece's own
@@ -762,7 +810,17 @@ export default function Flourish3D({ side = 'left' }) {
     // Key light, upper-left-front.
     const KEY = (() => { const v = [-0.45, -0.62, 0.64]; const L = Math.hypot(v[0], v[1], v[2]); return [v[0] / L, v[1] / L, v[2] / L]; })();
     let bucket = [];
-    function submit(faces, T, base, alpha) {
+    // Style keys are interned to integers so the sort can order by them.
+    // Fills sort before lines within a slab, which keeps a line on top of its
+    // own body the way LINE_BIAS intends.
+    const styleIds = new Map();
+    const styleId = (isLine, colour, width) => {
+      const k = (isLine ? 'L' : 'F') + colour + (isLine ? '|' + width : '');
+      let v = styleIds.get(k);
+      if (v === undefined) { v = styleIds.size + 1; styleIds.set(k, v); }
+      return (isLine ? 100000 : 0) + v;
+    };
+    function submit(faces, T, base, alpha) {          // `base` is a MAT slot
       if (alpha <= 0.02 || !faces.length) return;
       const m = T.m, t = T.t;
       for (let fi = 0; fi < faces.length; fi++) {
@@ -799,10 +857,8 @@ export default function Flourish3D({ side = 'left' }) {
         // vertical on screen, so bodies came out flat.
         const d = (nx * KEY[0] + ny * KEY[1] + nz * KEY[2]) / nl;
         const zc = zsum / v.length;
-        bucket.push({
-          pts, z: zc, a: alpha * LOOK.surface,
-          c: paperTone(d, base === CU ? 1 : 0),
-        });
+        const col = paperTone(d, base);
+        bucket.push({ pts, z: zc, a: alpha * LOOK.surface, c: col, k: styleId(0, col, 0) });
         segs += v.length;
       }
     }
@@ -831,7 +887,8 @@ export default function Flourish3D({ side = 'left' }) {
           pts[i * 2] = sc[0]; pts[i * 2 + 1] = sc[1]; zsum += sc[2];
         }
         // nudged toward the viewer so a line ON a surface wins against it
-        bucket.push({ line: 1, pts, z: zsum / poly.length + LINE_BIAS, a: alpha, c: color, w: width });
+        bucket.push({ line: 1, pts, z: zsum / poly.length + LINE_BIAS, a: alpha, c: color, w: width,
+                      k: styleId(1, color, width) });
         segs += poly.length - 1;
       }
     }
@@ -845,7 +902,18 @@ export default function Flourish3D({ side = 'left' }) {
     // stroke carries fixed rasteriser setup.
     function flush() {
       if (!bucket.length) return;
-      bucket.sort((A, B) => A.z - B.z);          // far first
+      // Sort by depth SLAB first, then by style. Ordering strictly by depth is
+      // correct but interleaves styles, so almost nothing merges — and giving
+      // each part its own material made that worse, +20% draw calls. Within one
+      // thin slab the parts are at the same depth anyway, so grouping by style
+      // there is invisible and lets whole runs collapse into one call.
+      let zLo = Infinity, zHi = -Infinity;
+      for (let i = 0; i < bucket.length; i++) {
+        const z = bucket[i].z; if (z < zLo) zLo = z; if (z > zHi) zHi = z;
+      }
+      const slab = Math.max(1e-6, (zHi - zLo) / 56);
+      for (let i = 0; i < bucket.length; i++) bucket[i].s = ((bucket[i].z - zLo) / slab) | 0;
+      bucket.sort((A, B) => (A.s - B.s) || (A.k - B.k));
       let i = 0;
       while (i < bucket.length) {
         const f = bucket[i];
@@ -934,8 +1002,9 @@ export default function Flourish3D({ side = 'left' }) {
           part.dir[1] * away * 26 + (part.side || 0) * away,   // radial parts go sideways
           off,
         ]));
-        submit(part.solids, T, METAL, 1);
-        submitLines(part.polys, T, LINE, LOOK.line, LOOK.width);
+        const mat = part.mat || MAT.neutral;
+        submit(part.solids, T, mat, 1);
+        submitLines(part.polys, T, matLine[mat], LOOK.line, LOOK.width);
         part._T = T; part._a = 1;
       });
 
@@ -951,14 +1020,14 @@ export default function Flourish3D({ side = 'left' }) {
         // winding was converging on the fan's schedule.
         const c = seat(conv(STATOR_I));
         const T = chain(base, place(rotZ((revs(p) + idleSpin) * DEG), [0, 0, (LAID_OUT.copper || 0) * (1 - clamp(c, 0, 1))]));
-        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, CU, 1);
+        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, MAT.copper, 1);
         // END TURNS. These have to clear the stator body or the one coloured
         // thing on this piece is invisible: at r=50 inside a r=62 core they
         // were hidden by the core's own surface, and the whole strip measured
         // 92 warm pixels. They now bulge to r=64, just past the r=62 core, and
         // reach further along the axis so they read from the side too.
-        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, CU, 1);
-        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, CU, 1);
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, 1);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, 1);
         submitLines([ring(64, -58, 28), ring(64, 58, 28)], T, copper, LOOK.line, LOOK.width);
       }
       flush();     // ONE sorted pass over the whole machine: masses and lines
@@ -989,7 +1058,7 @@ export default function Flourish3D({ side = 'left' }) {
           piece.rise * EX_D * 0.62 * t,
           piece.at * EX_D * t,
         ])));
-        submit(piece.solid(), T, METAL, a);
+        submit(piece.solid(), T, MAT.neutral, a);
         // modelled as surfaces only, so without this they would be flat
         // page-coloured shapes sliding apart
         submitLines(piece.wire(), T, LINE, LOOK.line * a, LOOK.width);
@@ -1014,7 +1083,7 @@ export default function Flourish3D({ side = 'left' }) {
         const T = chain(stage, chain(square, place(IDENT, [0, 0, -30 + 46 * sens])));
         // the die itself, solid, before it dissolves into pixels
         const dieFade = 1 - win(p, 0.30, 0.10);
-        if (dieFade > 0.01) submit(plate(112, 86, 0, 0, 0), T, METAL, 0.85 * sens * dieFade);
+        if (dieFade > 0.01) submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade);
         flush();
         stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.5 * sens, 1);
 
