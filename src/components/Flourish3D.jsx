@@ -655,19 +655,31 @@ export default function Flourish3D({ side = 'left' }) {
     const canvas = host.querySelector('canvas');
     const ctx = canvas.getContext('2d');
 
+    // W/H are the DRAWING coordinate system and never change — every fit, every
+    // camera constant and every LOD threshold in this file is expressed in
+    // them. What changes with the viewport is how large that system is painted,
+    // which is `fit`: CSS sizes the host, and the context is scaled to match.
+    // Doing it this way means a phone gets a smaller, cheaper canvas without
+    // any of the composition tuning having to be redone for it.
     const W = 340, H = 660;
-    // Line art does not need a full 2x buffer. Every fill and stroke costs in
-    // proportion to the pixels it touches, so on a retina screen a cap of 2
-    // means four times the rasterising of a cap of 1. At 1.5 the strokes are
-    // still clean and the canvas is 44% smaller — and unlike anything else in
-    // here, this is a saving on the owner's machine specifically, since this
-    // one reports a ratio of 1 and sees none of it.
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-    canvas.style.width = `${W}px`;
-    canvas.style.height = `${H}px`;
     const CX = W / 2, CY = H / 2;
+    let fit = 1, dpr = 1;
+    const sizeCanvas = () => {
+      const cssW = host.clientWidth || W;
+      fit = cssW / W;
+      // Line art does not need a full 2x buffer: every fill and stroke costs in
+      // proportion to the pixels it touches, so a cap of 2 is four times the
+      // rasterising of a cap of 1. Phones are both denser and slower, so they
+      // get less. (Invisible from here — this box reports a ratio of 1.)
+      const cap = window.innerWidth < 992 ? 1.25 : 1.5;
+      dpr = Math.min(window.devicePixelRatio || 1, cap);
+      const bw = Math.max(1, Math.round(W * fit * dpr));
+      const bh = Math.max(1, Math.round(H * fit * dpr));
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw; canvas.height = bh;
+      }
+    };
+    sizeCanvas();
 
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let lastP = -1;
@@ -808,6 +820,21 @@ export default function Flourish3D({ side = 'left' }) {
       lastP = -1;
       draw(reduce ? (isLeft ? 0.97 : 0.9) : scrollProgress());
     };
+    // The host is sized by CSS, so a breakpoint change or a rotation resizes it
+    // without React re-mounting anything. Re-derive the backing store and
+    // repaint rather than leaving a stretched canvas behind.
+    let sizeRO = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      let lastW = host.clientWidth;
+      sizeRO = new ResizeObserver(() => {
+        if (host.clientWidth === lastW) return;
+        lastW = host.clientWidth;
+        sizeCanvas();
+        repaint();
+      });
+      sizeRO.observe(host);
+    }
+
     const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); repaint(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -1322,7 +1349,7 @@ export default function Flourish3D({ side = 'left' }) {
     // A whisper of a ground behind the piece, to stop it floating completely
     // free of the page. Built once, not per frame.
     function draw(p) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
       ctx.clearRect(0, 0, W, H);
       // The ground used to be painted here, as a full-canvas fillRect on every
       // frame — 340x660 of gradient rasterising for something that never
@@ -1393,7 +1420,9 @@ export default function Flourish3D({ side = 'left' }) {
     // is torn down with the component.
     const IDLE_FROM = 0.80;
     const IDLE_DPS = 150;          // degrees a second
-    const IDLE_MS = 50;            // 20fps
+    // 20fps on a desktop, 10 on a phone. This is the one thing here that runs
+    // while the page is completely still, so on a battery it gets half.
+    const IDLE_MS = window.innerWidth < 992 ? 100 : 50;
     let spinRAF = 0, spinTimer = 0, spinPrev = 0;
     if (!isLeft && !reduce) {
       const step = () => {
@@ -1417,6 +1446,7 @@ export default function Flourish3D({ side = 'left' }) {
       if (trailing) cancelAnimationFrame(trailing);
       if (spinRAF) cancelAnimationFrame(spinRAF);
       if (spinTimer) clearTimeout(spinTimer);
+      sizeRO?.disconnect();
       themeWatch.disconnect();
     };
   }, [isLeft]);

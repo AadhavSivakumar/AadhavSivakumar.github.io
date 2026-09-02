@@ -15,7 +15,6 @@ import { useTheme } from './hooks/useTheme';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
-  const [isWide, setIsWide] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 992);
   // Each flourish is one canvas doing its own projection, so the cost is CPU
   // maths rather than layout — but it is still a few thousand segments a frame
   // on every scroll. They are decoration, so on a low-core machine the cheapest
@@ -38,11 +37,6 @@ function App() {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    const onResize = () => setIsWide(window.innerWidth >= 992);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
     const rect = cardElement.getBoundingClientRect();
@@ -80,8 +74,13 @@ function App() {
     <MotionConfig reducedMotion="user">
       <ScrollProgress />
       {/* Page-wide decorative flourishes: one canvas per side, fixed to the
-          viewport behind all content, scrubbed by page scroll. */}
-      {isWide && canAfford3D && (
+          viewport behind all content, scrubbed by page scroll. NOT gated on
+          width any more — they were invisible on every phone. The stage sizes
+          itself from CSS and the renderer scales to match, so a phone gets a
+          smaller and cheaper canvas rather than none at all. About.jsx keeps
+          its own width gate for the lanyard, which genuinely cannot run
+          there. */}
+      {canAfford3D && (
         <div className="page-flourish-layer" aria-hidden="true">
           <Flourish3D side="left" />
           <Flourish3D side="right" />

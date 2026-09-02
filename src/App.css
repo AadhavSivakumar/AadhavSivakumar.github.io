@@ -524,9 +524,14 @@ html[data-theme="dark"] {
    units across at the bottom of the page. */
 .f3d {
   position: absolute;
-  top: calc(50vh - 330px);
-  width: 340px;
-  height: 660px;
+  /* The stage's size is a CSS variable so the renderer can read it back and
+     scale its output to match. Its DRAWING system stays 340x660 whatever this
+     says, so none of the composition tuning changes with the viewport. */
+  --fw: 340px;
+  --fh: 660px;
+  top: calc(50vh - var(--fh) / 2);
+  width: var(--fw);
+  height: var(--fh);
   pointer-events: none;
   /* Line art needs its contrast; the old 0.85 was there to knock back a
      heavily shaded render. Alphas in the renderer do that job now. */
@@ -554,6 +559,26 @@ html[data-theme="dark"] .f3d::before {
 /* Pull each stage toward the page edge; the art sits in its own margin. */
 .f3d--left { left: clamp(-70px, -1vw, 0px); }
 .f3d--right { right: clamp(-70px, -1vw, 0px); }
+
+/* MOBILE. These used to be hidden below 992px, because two 340px stages on a
+   390px screen sit squarely behind the text. They are shown now, but smaller,
+   fainter, pulled further off each edge, and staggered VERTICALLY so the two
+   of them frame the column rather than both landing behind the same
+   paragraph. */
+@media (max-width: 991px) {
+  .f3d { --fw: 244px; --fh: 474px; opacity: 0.72; }
+  .f3d--left  { left: -14px;  top: calc(32vh - var(--fh) / 2); }
+  .f3d--right { right: -14px; top: calc(71vh - var(--fh) / 2); }
+}
+@media (max-width: 600px) {
+  /* Barely off the edge, not half off it. Pulled 40px clear on a 178px stage
+     the pieces were slivers — technically visible, which is not the same thing
+     as visible. The vertical stagger is what keeps them out of each other's
+     way and off the same paragraph, not a horizontal retreat. */
+  .f3d { --fw: 190px; --fh: 369px; opacity: 0.68; }
+  .f3d--left  { left: -8px;  top: calc(29vh - var(--fh) / 2); }
+  .f3d--right { right: -8px; top: calc(73vh - var(--fh) / 2); }
+}
 
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
 

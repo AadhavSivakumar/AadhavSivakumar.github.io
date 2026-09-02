@@ -182,8 +182,26 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
 ## The side flourishes (`src/components/Flourish3D.jsx`)
 
 Two decorative pieces fixed to the viewport, one per side, mounted in the
-`page-flourish-layer` in `App.jsx` (≥992px, and skipped when
-`navigator.hardwareConcurrency <= 4`) and scrubbed by page scroll.
+`page-flourish-layer` in `App.jsx` and scrubbed by page scroll. They are
+skipped only when `navigator.hardwareConcurrency <= 4`.
+
+**They are NOT gated on width.** They used to be hidden below 992px, which
+meant every phone saw none of them. The stage now sizes itself from CSS
+(`--fw` / `--fh` on `.f3d`) and the renderer reads that back and scales its
+output to match, so a phone gets a smaller, cheaper canvas rather than nothing:
+0.45 megapixels of backing store at desktop, 0.14 at phone width, with the
+device-pixel-ratio cap dropping from 1.5 to 1.25 there as well.
+
+**W and H inside `Flourish3D.jsx` stay 340x660 whatever the viewport does.**
+That is the DRAWING coordinate system, and every fit, camera constant and LOD
+threshold in the file is expressed in it — only `ctx.setTransform` changes.
+Resize the stage in CSS and nothing about the composition needs re-tuning.
+
+On mobile the two pieces are staggered VERTICALLY (left around 29vh, right
+around 73vh) rather than pulled off the side edges. Retreating horizontally was
+tried first and reduced them to slivers — technically visible, which is not the
+same thing as visible. The vertical offset is what stops both landing behind
+the same paragraph.
 
 - **LEFT — "Detection"**: a camera **tears itself apart** — six pieces, each
   with its own direction and spin, thrown far enough to leave frame — down to its
