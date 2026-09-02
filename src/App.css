@@ -533,11 +533,23 @@ html[data-theme="dark"] {
   opacity: 0.95;
 }
 .f3d canvas { display: block; width: 100%; height: 100%; }
-/* The ground behind the pieces is painted by the renderer itself (buildStage).
-   It used to be painted HERE as well, and the two stacked — a 0.58 black
-   vignette twice over, which is the "black shadow behind it" that made the art
-   look like it was sitting at the bottom of a hole. One faint gradient, in one
-   place, is enough. */
+/* The faint ground behind the pieces. This lived in the renderer for a while,
+   as a full-canvas fillRect on every frame — a 340x660 gradient rasterised
+   sixty times a second for something that never changes. It is back here
+   because CSS paints it once. (It was once in BOTH places at 0.58 black, which
+   stacked into the "black shadow" that had to be removed; one faint gradient,
+   in one place, is the rule.) */
+.f3d::before {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 62% 46% at 50% 46%,
+    rgba(64, 52, 36, 0.05) 0%, rgba(64, 52, 36, 0.02) 55%, rgba(64, 52, 36, 0) 100%);
+}
+html[data-theme="dark"] .f3d::before {
+  background: radial-gradient(ellipse 62% 46% at 50% 46%,
+    rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.08) 55%, rgba(0, 0, 0, 0) 100%);
+}
 
 /* Pull each stage toward the page edge; the art sits in its own margin. */
 .f3d--left { left: clamp(-70px, -1vw, 0px); }

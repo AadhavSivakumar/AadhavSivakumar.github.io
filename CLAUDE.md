@@ -281,8 +281,36 @@ the reference is the anime.js site — 1px monochrome strokes on a warm near-bla
 - `submit()`/`submitLines()` collect for the WHOLE frame; `flush()` sorts back
   to front and draws. Sorting globally rather than per part is what lets the
   rotor read as being inside the frame.
-- The tone of a fill comes from ONE soft diffuse term against a fixed key
-  light — no specular, no environment reflection, no rim. That distinction is
+- The tone of a fill comes from THREE cheap terms — a key light, a hemispheric
+  sky term so an upward face is never as dark as a downward one, and a grazing
+  term that lifts the silhouette of a curved body. Still no specular and no
+  environment reflection: what made the old version look like photographed
+  metal was GLOSS, not shading. A single key light alone leaves the unlit side
+  of a cylinder a flat slab.
+- **Detail is level-of-detail.** Every part may carry a `detail` array of fine
+  polylines — bolt circles, lamination sheets, circlip grooves, lid screws,
+  blade ribs — submitted only when the part's projected radius exceeds
+  `LOD_PX` (44). Below that it is a smudge that costs exactly what it costs
+  when readable. This is what makes it possible to keep ADDING detail without
+  the frame getting slower.
+- **Parts that fall off the stage are skipped entirely.** One projection of the
+  part origin plus its own radius gives a screen bound; during the explosion
+  several parts are outside the 340x660 canvas and were being projected, lit,
+  sorted and drawn into a clip.
+- **Nothing in the draw loop allocates.** `cam()` writes into one reused triple
+  rather than returning a fresh `[x,y,z]` per vertex (5,000 a frame), and every
+  projected point goes into one growable `Float64Array` whose cursor resets per
+  frame, instead of an array per face and per polyline.
+- **The heaviest thing was never geometry, it was PIXELS.** Two changes worth
+  more than any of the above on a real machine: the device-pixel-ratio cap is
+  1.5 rather than 2 (0.90M backing-store pixels to 0.50M on a retina screen —
+  44% less rasterising, and invisible from here because this box reports a
+  ratio of 1), and the ground gradient moved back to CSS because it was a
+  full-canvas `fillRect` on EVERY frame for something that never changes.
+- **The redraw rate adapts.** Each draw is timed and the interval set to about
+  eight times its cost, clamped to 32-120ms, so a piece that is expensive on a
+  given machine is simply drawn less often. This is the only lever that responds
+  to hardware nobody here can measure. That distinction is
   the whole point: giving a body form is not the same as rendering photographed
   metal, and only the second one was the problem. Quantised and cached.
   ("How far up does the face point" was tried first; it is nearly constant
