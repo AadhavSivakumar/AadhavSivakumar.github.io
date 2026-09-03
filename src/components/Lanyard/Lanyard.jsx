@@ -82,9 +82,20 @@ function hangJitter(name) {
 // a ball-headed metal pin per badge that the strap loops over. Because the
 // badges are staggered, the pins land at different heights — reading as pins
 // pushed into different holes. Sizes are world units at sizeMul 1.
-const PIN_SHAFT_R = 0.055;
+// The peg now stands ~1.7 off the board instead of 0.47, so it needs some
+// thickness or it reads as a needle rather than a pegboard hook.
+const PIN_SHAFT_R = 0.085;
 const PIN_HEAD_R = 0.12;
-const PEG_BOARD_Z = -0.35; // panel sits just behind the strap plane
+// HOW FAR BACK THE BOARD HAS TO BE, worked out rather than nudged. A card
+// FLIPPING sweeps its corners through z by its own half-width: the largest
+// badge is scale 1.5, its collider half-width 0.8, so ±1.20 world units about
+// its centre. The board used to sit at -0.35 — less than a third of that — so
+// every flip drove a corner through the panel and the badge was sliced by it.
+// -1.75 leaves 0.30 of clearance behind the worst case.
+const PEG_BOARD_Z = -1.75;
+// And the card's own centre never goes behind this, so the sweep above is
+// measured from a known place. Hard clamp while dragging, soft push after.
+const CARD_MIN_Z = -0.25;
 
 function slotScale(slot) {
   return SLOT_SCALE[slot] ?? SLOT_SCALE[SLOT_SCALE.length - 1];
@@ -131,7 +142,12 @@ export default function Lanyard({
       <Canvas
         frameloop={onScreen ? 'always' : 'never'}
         camera={{ position, fov }}
-        dpr={[1, isMobile ? 1.5 : 2]}
+        // Same reasoning as the flourish canvases: shading cost scales with
+        // pixels, and a cap of 2 on a retina screen is four times the work of a
+        // cap of 1. This is the single biggest lever on the 3D scene, and it is
+        // one this environment cannot see (no WebGL, and it reports a ratio
+        // of 1 anyway).
+        dpr={[1, isMobile ? 1.25 : 1.5]}
         gl={{ alpha: transparent }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
@@ -654,6 +670,8 @@ function Band({
     () => new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
   );
   const [dragged, drag] = useState(false);
+  const releaseVel = useRef(new THREE.Vector3());
+  const releasePending = useRef(false);
   const [hovered, hover] = useState(false);
 
   useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
@@ -677,7 +695,41 @@ function Band({
       dir.copy(vec).sub(state.camera.position).normalize();
       vec.add(dir.multiplyScalar(state.camera.position.length()));
       [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
-      card.current?.setNextKinematicTranslation({ x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z });
+
+      let tx = vec.x - dragged.x, ty = vec.y - dragged.y, tz = vec.z - dragged.z;
+
+      // KEEP IT ON SCREEN. The drag target was whatever the pointer projected
+      // to, with nothing stopping it leaving the canvas — drag a badge down and
+      // it left the frame and was simply gone. Clamp the card's centre to the
+      // visible world box, allowing for its own half-size.
+      // Keep the card's CENTRE inside the frame, not the whole card. Requiring
+      // the whole card left barely any downward travel — the badges rest only
+      // a couple of units above the clamp — and a drag you cannot move is a
+      // worse bug than the one being fixed. Centre-inside guarantees at least
+      // half the badge stays visible at full stretch.
+      const halfW = state.viewport.width / 2 - 0.4;
+      const halfH = state.viewport.height / 2 - 0.4;
+      if (tx < -halfW) tx = -halfW; else if (tx > halfW) tx = halfW;
+      if (ty < -halfH) ty = -halfH; else if (ty > halfH) ty = halfH;
+      if (tz < CARD_MIN_Z) tz = CARD_MIN_Z;               // never behind the board
+
+      // FOLLOW WITH WEIGHT. Teleporting a kinematic body straight onto the
+      // pointer snapped the strap taut every frame. Easing toward the target
+      // lets the rope lead and lag the way a real lanyard does.
+      const cur = card.current.translation();
+      const a2 = Math.min(1, delta * 18);
+      const nx = cur.x + (tx - cur.x) * a2;
+      const ny = cur.y + (ty - cur.y) * a2;
+      const nz = cur.z + (tz - cur.z) * a2;
+      // Remember how fast it is travelling, so letting go throws it rather
+      // than dropping it. A kinematic body carries no velocity into the
+      // dynamic state, so without this every release killed the swing dead.
+      if (delta > 0) {
+        releaseVel.current.set(
+          (nx - cur.x) / delta, (ny - cur.y) / delta, (nz - cur.z) / delta,
+        );
+      }
+      card.current?.setNextKinematicTranslation({ x: nx, y: ny, z: nz });
     } else if (card.current && !hovered) {
       // A moving cursor gently pushes nearby cards away, making the
       // lanyards sway as the mouse passes (like the live /portfolio badges).
@@ -699,6 +751,32 @@ function Band({
         }
       }
     }
+    // The frame after a release, hand the drag's velocity to the now-dynamic
+    // body. Clamped, because flinging the pointer should swing a badge, not
+    // fire it off the pegboard.
+    if (!dragged && releasePending.current && card.current) {
+      releasePending.current = false;
+      const v = releaseVel.current;
+      const speed = v.length();
+      if (speed > 0.05) {
+        if (speed > 12) v.multiplyScalar(12 / speed);
+        card.current.wakeUp();
+        card.current.setLinvel({ x: v.x, y: v.y, z: v.z }, true);
+      }
+      releaseVel.current.set(0, 0, 0);
+    }
+
+    // Soft push back out if the physics has carried the card toward the board.
+    // A collider on the panel would do this too, at the cost of a collision
+    // pair per badge per step for a case that is a few centimetres deep.
+    if (!dragged && card.current) {
+      const cz = card.current.translation().z;
+      if (cz < CARD_MIN_Z) {
+        card.current.wakeUp();
+        card.current.applyImpulse({ x: 0, y: 0, z: (CARD_MIN_Z - cz) * 0.9 }, true);
+      }
+    }
+
     if (fixed.current) {
       [j1, j2].forEach(ref => {
         if (!ref.current.lerped) ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
@@ -715,7 +793,11 @@ function Band({
       curve.points[1].copy(j2.current.lerped);
       curve.points[2].copy(j1.current.lerped);
       curve.points[3].copy(fixed.current.translation());
-      band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+      // 24, not 32. meshline rebuilds its position and counter arrays on every
+      // setPoints call whatever it is handed, so the only real lever is how
+      // many points there are — and a four-point catmull-rom over a strap this
+      // short is smooth well before 32.
+      band.current.geometry.setPoints(curve.getPoints(isMobile ? 12 : 24));
 
       // Steer the card's yaw toward its front — or its back after a
       // click-flip — along the shortest path. While the cursor rests on the
@@ -765,6 +847,7 @@ function Band({
               card.current.wakeUp();
             }}
             onPointerUp={e => {
+              releasePending.current = true;
               e.target.releasePointerCapture(e.pointerId);
               drag(false);
               // A press without meaningful movement is a click: flip the

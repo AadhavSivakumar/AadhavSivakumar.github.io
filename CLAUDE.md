@@ -176,6 +176,27 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
   on a resize, and each band rebuilds its own copy of the 1678×1677 atlas —
   14.3 MB on the GPU with mips, ~86 MB for a set of six, leaked per settled
   resize before this.
+- **The drag target is CLAMPED to the visible world box.** It used to be
+  whatever the pointer projected to, with nothing stopping it leaving the
+  canvas: drag a badge toward the bottom and it left the frame and was gone.
+  Simulated rather than eyeballed (no WebGL here, so the scene cannot be
+  clicked): of six sample pointer positions, four put the card outside the
+  visible box before, none after. The clamp keeps the card's CENTRE inside, not
+  the whole card — requiring the whole card left barely any downward travel,
+  and a drag you cannot move is a worse bug than the one being fixed.
+- **How far back the pegboard has to be is a calculation, not a nudge.** A card
+  FLIPPING sweeps its corners through z by its own half-width — the largest
+  badge is scale 1.5 and its collider half-width 0.8, so ±1.20 world units. The
+  board sat at -0.35, less than a third of that, so every flip drove a corner
+  through the panel and the badge was sliced. It is at -1.75 now, with
+  `CARD_MIN_Z` (-0.25) holding the card's centre so the sweep is measured from a
+  known place: 0.30 of clearance behind the worst case. If the badge scale or
+  `sizeMul` ever changes, redo that sum.
+- Releasing a drag hands the drag velocity to the now-dynamic body (clamped),
+  because a kinematic body carries no velocity into the dynamic state and every
+  release used to kill the swing dead. The drag itself eases toward the pointer
+  rather than teleporting onto it, so the strap leads and lags instead of
+  snapping taut every frame.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
