@@ -30,18 +30,18 @@ export const aboutMeData = {
 };
 
 export const majorProjectsData = [
-  { id: 1, title: 'Project Millet', cardDescription: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery.', imageUrl: baseProjectImagePath + 'Millet.mp4', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery, aiming to enhance farming efficiency.' }] },
+  { id: 4, title: 'SMART compost sorting', cardDescription: 'Robotic compost sorting on a Franka Emika arm: RGB-D computer vision identifies contaminants in a waste stream and the arm removes them, all within a ROS framework. Undergraduate capstone.', imageUrl: baseProjectImagePath + 'smartsort.mp4', tags: ['Franka Emika Robot', 'Computer Vision', 'ROS'], status: 'Completed', modalContent: [{ type: 'text', value: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams.' }, { type: 'embed', value: baseProjectPdfPath + 'Capstone_final_report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 3, title: 'Glass-2-Bot', cardDescription: 'Telerobotic manipulation driven by Google Glass: computer vision turns the wearer\'s gaze and gestures into arm commands for remote object manipulation. Python, real-time vision, human-robot interface design.', imageUrl: baseProjectImagePath + 'glass2bot.mp4', tags: ['Google Glass', 'Computer Vision', 'Python', 'Telerobotics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions, demonstrating a novel human-robot interface.' }, { type: 'embed', value: baseProjectPdfPath + 'Adv__Mechatronics_Final_Report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'A tactile sensor on a flexible PCB (Altium) for robotic manipulation, reporting grip force and shear direction for delicate grasping. Built with the Tactile Manipulation Lab at UCSC.', imageUrl: baseProjectImagePath + 'tacmanipHQ.mp4', tags: ['C', 'Altium Designer'], status: 'Completed', modalContent: [{ type: 'text', value: "Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction, enhancing a robot's ability to handle delicate objects." }, { type: 'button', text: 'View Organization', link: 'https://tml.engineering.ucsc.edu/' }, { type: 'button', text: 'View Previous Research', link: 'https://tml.engineering.ucsc.edu/research/dexterous-manipulation/' }] },
+  { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'MuJoCo simulation of an autonomous grocery-restocking robot: kinematic modelling and path planning in Python for a retail environment.', imageUrl: baseProjectImagePath + 'stockbot.mp4', tags: ['Python', 'Mujoco', 'Kinematics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency and accuracy in a dynamic retail environment.' }, { type: 'text', value: "This project was a capstone for my undergraduate studies, showcasing the integration of advanced simulation with robotic control theory. The final system demonstrated a significant potential for reducing manual labor and improving inventory management in a simulated retail setting." }, { type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home' }] },
+  { id: 1, title: 'Project Millet', cardDescription: 'ROS-based autonomous drone on a Pixhawk 6x for precision agriculture: PID flight control and targeted payload delivery. In progress.', imageUrl: baseProjectImagePath + 'Millet.mp4', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery, aiming to enhance farming efficiency.' }] },
   { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data.', imageUrl: baseProjectImagePath + 'solegaitvidmute.mp4', tags: ['Python', 'Arduino', 'Comm Protocols'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data for healthcare and athletic performance.' }, { type: 'text', value: 'This project showcases my skills in embedded systems design, sensor integration, and data transmission. The goal is to create a low-cost, effective tool for physical therapists and athletes to monitor and improve gait patterns, preventing injuries and enhancing performance.' }, { type: 'embed', value: baseProjectPdfPath + 'Biomedical_devices_research_paper.pdf', title: 'Project Documentation PDF' }] },
-  { id: 3, title: 'Glass-2-Bot', cardDescription: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions.', imageUrl: baseProjectImagePath + 'glass2bot.mp4', tags: ['Google Glass', 'AI Vision', 'Python', 'Telerobotics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions, demonstrating a novel human-robot interface.' }, { type: 'embed', value: baseProjectPdfPath + 'Adv__Mechatronics_Final_Report.pdf', title: 'Project Documentation PDF' }] },
-  { id: 4, title: 'SMART compost sorting', cardDescription: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework to automate the identification and separation of contaminants.', imageUrl: baseProjectImagePath + 'smartsort.mp4', tags: ['Franka Emika Robot', 'AI Vision', 'ROS'], status: 'Completed', modalContent: [{ type: 'text', value: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams.' }, { type: 'embed', value: baseProjectPdfPath + 'Capstone_final_report.pdf', title: 'Project Documentation PDF' }] },
-  { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction.', imageUrl: baseProjectImagePath + 'tacmanipHQ.mp4', tags: ['C', 'Altium Designer'], status: 'Completed', modalContent: [{ type: 'text', value: "Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction, enhancing a robot's ability to handle delicate objects." }, { type: 'button', text: 'View Organization', link: 'https://tml.engineering.ucsc.edu/' }, { type: 'button', text: 'View Previous Research', link: 'https://tml.engineering.ucsc.edu/research/dexterous-manipulation/' }] },
-  { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency in a retail environment.', imageUrl: baseProjectImagePath + 'stockbot.mp4', tags: ['Python', 'Mujoco', 'Kinematics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency and accuracy in a dynamic retail environment.' }, { type: 'text', value: "This project was a capstone for my undergraduate studies, showcasing the integration of advanced simulation with robotic control theory. The final system demonstrated a significant potential for reducing manual labor and improving inventory management in a simulated retail setting." }, { type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home' }] },
 ];
 
 export const smallProjectsData = [
   { id: 'i', title: 'Point cloud visualization with 2D lidar', imageUrl: baseProjectImagePath + '2dlidar.mp4', tags: ['Python', 'Matplotlib', 'Lidar'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Interfaced an hls_lfcd lidar with Python to capture and visualize 2D point cloud data in real-time using Matplotlib, demonstrating foundational skills in sensor integration and data representation.' }] },
   { id: 'j', title: '3D space mapping with depth camera', imageUrl: baseProjectImagePath + '3dcamera.mp4', tags: ['Python', 'Open3D', 'Depth Camera'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Developing a system to capture and stitch together depth data from a camera to create a 3D map of an environment. This project explores point cloud processing and 3D reconstruction techniques.' }] },
-  { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath + 'deskrobarm.webp', tags: ['Python', 'AI Vision', 'Raspberry Pi'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Building a desktop robotic arm controlled by AI vision running on a Raspberry Pi. This project explores real-time object recognition and manipulation, creating an interactive and intelligent automated workspace assistant.' }] },
+  { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath + 'deskrobarm.webp', tags: ['Python', 'Computer Vision', 'Raspberry Pi'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Building a desktop robotic arm controlled by AI vision running on a Raspberry Pi. This project explores real-time object recognition and manipulation, creating an interactive and intelligent automated workspace assistant.' }] },
   { id: 'h', title: '3d Fruit Ninja Simulation', imageUrl: baseProjectImagePath + 'fruitninja.mp4', tags: ['Python', 'Webots'], status: 'In Progress', modalContent: [{ type: 'text', value: "Created a 3D simulation of the game 'Fruit Ninja' using Python, applying principles of physics-based modeling and 3D graphics to develop an interactive and engaging virtual experience." }] },
   { id: 'a', title: 'Sand Table', imageUrl: baseProjectImagePath + '2rplanarstraight.mp4', tags: ['Parallax Propeller', 'C++', 'Kinematics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Engineered a 2R planar manipulator controlled by a Parallax Propeller MCU to draw intricate patterns in sand. Applied C++ and kinematic principles to translate digital designs into precise, physical motion.' }, { type: 'embed', value: baseProjectPdfPath + 'Advanced_mechatronics_Project_2_report.pdf', title: 'Project Documentation PDF' }] },
   { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath + 'PONG.mp4', tags: ['Arduino', 'LED matrix'], status: 'Completed', modalContent: [{ type: 'text', value: 'Constructed a standalone version of the classic game PONG using an Arduino and an LED matrix. This project involved low-level hardware interfacing and efficient programming to create a responsive and engaging game.' }, { type: 'embed', value: baseProjectPdfPath + 'Advanced_Mechatronics_Project_1_report.pdf', title: 'Project Documentation PDF' }] },
@@ -62,6 +62,39 @@ export const resumeDocsData = [
 
 export const skillGroupsData = [
   {
+    // The group the target roles are screened on, so it is first and it is
+    // specific. Every item here is backed by something else on this site — a
+    // project, a job title, a tool already listed. Frameworks that are NOT yet
+    // stated anywhere (PyTorch, TensorRT, OpenCV…) are deliberately absent
+    // until the owner confirms them; a skills list is a set of claims.
+    id: 'ai-ml-data',
+    title: 'Machine Learning & Computer Vision',
+    cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
+    items: [
+      { name: 'Computer Vision', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg', description: 'Object detection and visual understanding for robots — used for contaminant sorting on a Franka arm, gaze/gesture telerobotics, and a vision-controlled desktop arm.' },
+      { name: 'Edge AI Deployment', imageUrl: 'https://api.iconify.design/mdi/chip.svg', description: 'Running vision models on embedded hardware (NVIDIA Jetson, Raspberry Pi) — the day job as an Edge AI Engineer at Roboflow.' },
+      { name: 'Roboflow', imageUrl: 'https://api.iconify.design/mdi/vector-polygon.svg', description: 'Dataset management, annotation, training and deployment of computer vision models.' },
+      { name: '3D Perception', imageUrl: 'https://api.iconify.design/mdi/cube-scan.svg', description: 'RGB-D and lidar sensing, point-cloud processing and 3D mapping (Open3D, depth cameras, 2D lidar).' },
+      { name: 'LLM & Gen-AI APIs', imageUrl: 'https://api.iconify.design/mdi/robot-outline.svg', description: 'Integrating large-language and generative model APIs (OpenAI, Gemini, Claude) into tools and pipelines.' },
+      { name: 'Python (Scientific)', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'NumPy/SciPy-style numerical work, data analysis and ML tooling.' },
+      { name: 'MATLAB', imageUrl: deviconsBaseUrl + 'matlab/matlab-original.svg', description: 'Numerical computing, algorithm prototyping and simulation.' }
+    ]
+  },
+  {
+    id: 'robotics-control',
+    title: 'Robotics & Control Systems',
+    cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
+    items: [
+      { name: 'Franka Emika Robot', imageUrl: baseSkillImagePath + 'Franka-Emika-Panda-robot.png', description: 'Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors.' },
+      { name: 'Pixhawk 6x', imageUrl: baseSkillImagePath + 'pixhawk.png', description: 'Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard.' },
+      { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/axis-arrow-lock.svg', description: 'Describing motion of objects and systems; crucial in robotics for arm positions and trajectories.' },
+      { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg', description: 'Feedback mechanism for industrial control and robotics, correcting errors based on P, I, D terms.' },
+      { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/filter-outline.svg', description: 'Algorithm for producing accurate estimates from noisy measurements over time.' },
+      { name: 'Telerobotics', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg', description: 'Controlling semi-autonomous robots from a distance using wireless or tethered connections.' },
+      { name: 'Webots', imageUrl: baseSkillImagePath + 'webots.png', description: 'Open-source robot simulator for modeling, programming, and simulating robots.' }
+    ]
+  },
+  {
     id: 'programming-software',
     title: 'Programming & Software Development',
     cardImageUrl: 'https://api.iconify.design/mdi/code-braces-box.svg',
@@ -79,20 +112,6 @@ export const skillGroupsData = [
       { name: 'ROS', imageUrl: baseSkillImagePath + 'ROS.png', description: 'Flexible framework for writing robot software, simplifying complex robot behavior development.' },
       { name: 'Firebase', imageUrl: baseSkillImagePath + 'firebase.png', description: "Google's platform for mobile/web app development with real-time databases, auth, and hosting." },
       { name: 'Android Studio', imageUrl: baseSkillImagePath + 'AndroidStudio.png', description: 'Official IDE for Android app development, built on IntelliJ IDEA for coding, debugging, and testing.' }
-    ]
-  },
-  {
-    id: 'robotics-control',
-    title: 'Robotics & Control Systems',
-    cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
-    items: [
-      { name: 'Franka Emika Robot', imageUrl: baseSkillImagePath + 'Franka-Emika-Panda-robot.png', description: 'Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors.' },
-      { name: 'Pixhawk 6x', imageUrl: baseSkillImagePath + 'pixhawk.png', description: 'Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard.' },
-      { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/axis-arrow-lock.svg', description: 'Describing motion of objects and systems; crucial in robotics for arm positions and trajectories.' },
-      { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg', description: 'Feedback mechanism for industrial control and robotics, correcting errors based on P, I, D terms.' },
-      { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/filter-outline.svg', description: 'Algorithm for producing accurate estimates from noisy measurements over time.' },
-      { name: 'Telerobotics', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg', description: 'Controlling semi-autonomous robots from a distance using wireless or tethered connections.' },
-      { name: 'Webots', imageUrl: baseSkillImagePath + 'webots.png', description: 'Open-source robot simulator for modeling, programming, and simulating robots.' }
     ]
   },
   {
@@ -116,17 +135,6 @@ export const skillGroupsData = [
       { name: 'Autodesk EAGLE', imageUrl: baseSkillImagePath + 'EAGLE.jpg', description: 'EDA tool for schematic capture, PCB layout, auto-router, and CAM features.' },
       { name: 'ORcad x Capture', imageUrl: baseSkillImagePath + 'OrCADCapture.webp', description: 'Cadence EDA tools for designing ICs, SoCs, and PCBs.' },
       { name: 'Pspice/LTspice', imageUrl: baseSkillImagePath + 'LTspice.png', description: 'SPICE-based analog circuit and digital logic simulation program for design verification.' }
-    ]
-  },
-  {
-    id: 'ai-ml-data',
-    title: 'AI, Machine Learning & Data',
-    cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
-    items: [
-      { name: 'AI Vision', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg', description: 'Enabling computers to "see" and interpret visual information like images and videos.' },
-      { name: 'Gen AI API', imageUrl: 'https://api.iconify.design/mdi/robot-confused-outline.svg', description: 'Using Generative AI APIs (ChatGPT, Gemini, Claude) for content generation, chatbots, etc.' },
-      { name: 'MATLAB', imageUrl: deviconsBaseUrl + 'matlab/matlab-original.svg', description: 'Numerical computing environment for data analysis, algorithm development, simulation.' },
-      { name: 'Python (AI/Data Focus)', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'Widely used in AI/ML for its extensive libraries (TensorFlow, PyTorch, scikit-learn).' }
     ]
   },
   {

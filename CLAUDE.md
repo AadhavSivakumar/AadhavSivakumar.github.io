@@ -89,6 +89,32 @@ The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `badgeCa
 
 To add a project or skill: append to the relevant array — the components map over the data, no other wiring needed.
 
+### The site is positioned for robotics / ML / computer-vision roles
+
+That is the owner's stated goal, and three things follow from it:
+
+- **`skillGroupsData` order is deliberate**: Machine Learning & Computer Vision
+  first, Robotics & Control second, then Programming, Embedded, Design, Sensors.
+  The group a recruiter screens on leads. It used to be fourth, with four vague
+  items ("AI Vision", "Gen AI API").
+- **A skills list is a set of claims. Every item must be backed by something
+  else on the site** — a project, the job title, a tool already listed.
+  Frameworks that are not yet evidenced anywhere (PyTorch, TensorFlow, ONNX,
+  TensorRT, OpenCV, CUDA…) are deliberately ABSENT until the owner confirms
+  them, however likely they are. Do not add them on inference.
+- **`majorProjectsData` leads with completed computer-vision and robotics
+  work** (compost sorting, Glass-2-Bot, tactile sensor, Stockbot) and the two
+  in-progress builds follow. Preserve `id` values when reordering; the order of
+  the array is the order on the page.
+- Metadata (`index.html` title/OG/description) names "Robotics & Computer
+  Vision Engineer" and the JSON-LD `Person` block carries role, employer,
+  degrees and profile links. **Every value in that block is a fact already
+  stated on the page**; if the bio changes, it changes too.
+
+What only the owner can supply, and has been asked for: the exact ML stack,
+what the Roboflow role involves, per-project outcomes with numbers, GitHub
+repo links per project, and any publications.
+
 ### Asset URLs
 
 Content images are referenced by **root-relative** URL — `/Media/web/projects/…`,

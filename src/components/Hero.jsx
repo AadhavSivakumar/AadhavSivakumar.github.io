@@ -189,7 +189,7 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        Robotics Engineer Specializing in Embedded AI and Autonomous Systems
+        Robotics &amp; Computer Vision Engineer — machine learning on edge hardware and autonomous systems
       </motion.p>
 
       <div className="hero-chips">
