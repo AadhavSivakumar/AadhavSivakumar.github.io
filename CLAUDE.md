@@ -143,8 +143,8 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
   `clearcoat: 1` / `clearcoatRoughness: 0.1` / `metalness: 0.35`, which against
   the Environment's intensity-10 Lightformer threw a specular sheet across the
   face and washed the name and role text out. A laminated badge does have a
-  slight sheen, so the clearcoat stays — weak and diffused (0.25 / 0.45) with
-  `metalness` down to 0.04. Metalness in particular has no business here: it
+  slight sheen, so the clearcoat stays — weak and diffused (now 0.10 / 0.5, see
+  the material bullet above) with `metalness` down to 0.04. Metalness in particular has no business here: it
   tints the reflection by the base colour and darkens the diffuse term, which is
   the opposite of what a white printed card does with light.
 - Badge faces are composited onto the card GLB's texture atlas at runtime (front = ID-badge layout, back = full-bleed photo). Front UV rect = left half of the atlas, back = right half.
@@ -197,6 +197,14 @@ Six ID badges (3 education left, 3 work right) hang on physics ropes around the 
   release used to kill the swing dead. The drag itself eases toward the pointer
   rather than teleporting onto it, so the strap leads and lags instead of
   snapping taut every frame.
+- **The pitch damper acts about the card's OWN pitch axis, transformed to
+  world.** It used to be applied about world x, which is the body's x only while
+  the card faces forward; after a click-flip the body's x points the other way,
+  so the damper pushed pitch AWAY from its target and a hovered, flipped card
+  wound itself up instead of settling. Reproduced numerically: a 0.20 rad error
+  went to 0.193 at yaw 0 and to 0.207 at yaw π; through the body axis, 0.193 in
+  both. The hover target's sign follows the flip for the same reason — "top
+  toward the viewer" is the opposite local pitch on a card facing away.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
@@ -349,13 +357,7 @@ the reference is the anime.js site — 1px monochrome strokes on a warm near-bla
 - **The redraw rate adapts.** Each draw is timed and the interval set to about
   eight times its cost, clamped to 32-120ms, so a piece that is expensive on a
   given machine is simply drawn less often. This is the only lever that responds
-  to hardware nobody here can measure. That distinction is
-  the whole point: giving a body form is not the same as rendering photographed
-  metal, and only the second one was the problem. Quantised and cached.
-  ("How far up does the face point" was tried first; it is nearly constant
-  across a cylinder whose axis is already near-vertical on screen, so bodies
-  came out completely flat — a silhouette with a wire around it and no
-  shading at all.)
+  to hardware nobody here can measure.
 - **Bodies sit OFF the page, not on it.** A fill of exactly
   `--background-color` reads as a HOLE in the dark theme, because the page
   carries its own gradient and is lighter than its own token where the art sits.
@@ -459,10 +461,6 @@ fan cover, endbell, rotor, stator with its copper, housing, front endbell — wi
 gaps wider than the parts are long. `LAID_OUT` holds those stations; each part
 converges on its own staggered window so the machine builds back to front, and
 the whole module is drawn small while spread and grows as it closes.
-
-The axis sits at ~41° above horizontal (`MOTOR_TILT`). The references are
-near-horizontal, but the stage is 340×660 and its diagonal is the longest run
-available; a horizontal strip would need a hero-width element, not a margin.
 
 **The copper must project past the core.** In every reference the windings are
 the one strongly coloured thing in the strip. The bars themselves sit at r=44
@@ -693,95 +691,34 @@ directories `scripts/copy-static.mjs` copies (`Media/web`, `Media/skills`,
 deployed — an earlier workflow copied them and uploaded ~414 MB per push, ~390 MB
 of it unreferenced. Deployed size is now ~44 MB.
 
-## Current progress (as of 2026-08-12)
+## Current progress (as of 2026-09-05)
 
-Working tree is clean and everything below is committed and live. The owner has
-signed off on the animation direction ("this looks much more like what I want")
-but **explicitly expects further improvements**, so treat the animation work as
-in-flight rather than final.
+Working tree is clean and everything is committed and live. The owner has been
+directing the animation work iteratively and **expects further improvements**,
+so treat it as in-flight rather than final.
 
-**Landed: the animation pass** (commits `flourish3d` → `unsine`, 2026-07-29 →
-2026-08-11):
+**What has landed, in order** (all on `master`, each push a production release):
 
-- **Real-CSS-3D side flourishes** (`Flourish3D.jsx`) replacing the SVG
-  `AboutFlourish` storyboards — one per side, scroll-scrubbed explode/assemble, real
-  perspective (verified ~1.18× near/far). See "The 3D side flourishes" above; that
-  section's invariants are the expensive part, do not relearn them. A second pass
-  added the two-slice voxel activation lattice with a true 3D spherical `stagger`
-  grid, the fixed volume-raster kernel (it used to trace a diagonal), a
-  `createTimeline` camera `seek()`-ed by scroll that dollies as well as orbits, and
-  out-back "seating" so FR3 parts overshoot ~7% and settle.
-- **Beige pegboard lanyard rack** replacing the straight overhead rail (see the lanyard
-  section) — pins per badge, gentle non-rigid stagger.
-- **Hero**: liquid-glass keyword chips (`HeroChip.jsx`, backdrop-filter + an SVG
-  `feDisplacementMap` that refracts the wave field), and the `/portfolio`-style sine
-  field behind the hero via `<SineWave variant="field" />` (wide 1000×350
-  viewBox so `preserveAspectRatio="none"` does not stretch the waves).
-  **The field's numbers are MEASURED off the live `/portfolio` hero, not
-  guessed** — 25 rows, `#C5A35C` at 2px, and the part that actually defines the
-  look: a per-row opacity ramp from 0.8 at the top to 0.1 at the bottom. Rows at
-  a uniform opacity read as wallpaper; the ramp is what makes it recede. There
-  used to be a radial hole masked out behind the name, and it is what stopped
-  the field reading as one continuous thing — gone now, with only a soft
-  top/bottom feather left because our hero blends into the page where
-  `/portfolio`'s is a full-bleed band.
-- **Lanyard badges**: aspect-corrected front-face text (`squash` in `drawBadgeFace`),
-  `drawContain` back faces so wide logos stop running off the edge, and a theme-inverted
-  strap texture so the webbing is visible in dark mode.
-- **Header**: animated sun↔moon theme toggle (mask-carved crescent + retracting rays)
-  instead of an emoji swap.
-- `AboutFlourish.jsx` and `AnimeEmblem.jsx` were **deleted** (unimported dead code)
-  with their `.about-flourish`/`.flr-*` and `.anime-emblem`/`.emblem-*` CSS. The UR5e
-  CAD-derived arm geometry only ever lived in `AboutFlourish.jsx` and is gone; the
-  live right-hand flourish is FR3-derived instead.
+- Production asset repair — 50 image URLs 404'd for eight months; now
+  root-relative and enforced at build time (see "Asset URLs").
+- Error boundary around the lanyard — a browser without WebGL used to render the
+  site completely blank.
+- Both flourishes rebuilt three times over: CSS-3D → Canvas2D (the DOM version
+  measured 33 ms a frame regardless of element count) → line art with
+  hidden-line removal, materials, LOD detail, and a propeller that keeps
+  turning. A WebGL2 backend was built and removed (see "ONE renderer").
+- Accessibility: keyboard-operable cards and dialog, skip link, focus rings as a
+  site-wide default, contrast tokens, reduced motion, heading outline, a pause
+  control for the covers, OG/Twitter metadata.
+- The lanyard badges: black card on the light site, material tuned by
+  simulation, texture disposal, atlas halved, drag clamped, pegboard clearance
+  computed, release momentum, flip-aware pitch damper.
+- Hero sine field measured off the live `/portfolio`; flourishes shown on
+  phones; one shared scroll driver; the never-stopping scroll-cue arrow found
+  and fenced.
 
-**Landed: production asset repair** (2026-08-12). An audit against the live site
-found the deployed portfolio materially broken; fixed in one pass:
-
-- All 50 content image URLs 404'd in production (the `Images/` → `Media/` rename,
-  see "Asset URLs"). Now root-relative and verified at build time.
-- Covers are served from `Media/web/projects` as web-sized derivatives: five GIFs
-  transcoded to h264 (`tacmanipHQ` 48 MB → 1.5 MB), oversized MP4s re-encoded
-  (`mechcomp` 21 MB → 1.3 MB), stills to WebP. `Gradpic.png` 18.2 MB → 191 KB WebP.
-  The Projects grid costs ~350 KB of posters up front instead of 139 MB.
-- `ProjectCard` plays covers from an IntersectionObserver with `preload="none"` +
-  poster, falls back to a still under `prefers-reduced-motion`, and has an
-  `onError` path the `<video>` branch previously lacked.
-- Iconify skill icons were requesting two `color` params and getting HTTP 500;
-  the six sensor icons that were never committed, and the dead Wikimedia MATLAB
-  hotlink, are now Iconify/devicon URLs.
-- Content: the `???` badge EXP, five "(Coming Soon)" labels on PDFs that are live,
-  and an empty `<iframe>` in the FPGA modal.
-
-**Landed: error boundary around the lanyard** (2026-08-12). A browser that
-cannot create a WebGL context used to render the site **completely blank**: the
-lazy `Lanyard` `<Canvas>` throws synchronously inside `THREE.WebGLRenderer`, and
-with nothing to catch it React unmounted the whole tree — empty `#root`, no
-hero, no content, on every screen ≥992px. `ErrorBoundary.jsx` now wraps it, and
-sits OUTSIDE the `<Suspense>` so it also catches a failed fetch of the ~3MB
-lazy chunk, which had the same consequence. Verified in headless Firefox (no GL
-drivers): all 7 sections, 17 project cards, 6 skill cards and both flourishes
-render, the lanyard strip is simply empty, and the boundary logs one warning.
-Note error boundaries catch render/lifecycle throws only — a WebGL context lost
-LATER, inside r3f's animation loop, still would not be caught.
-
-**Landed: both flourishes redone** (2026-08-12), to the brief "one should look
-like a motor assembling, the other like the process of machine learning". The
-Conv-Stack and FR3-harmonic-drive artwork is gone; see "The 3D side flourishes"
-above for what replaced it and why. Two structural changes came with it:
-
-- The hand-rolled scroll listener is gone — each side is now ONE anime.js
-  timeline driven by v4.5's own `onScroll` ScrollObserver, with `sync: 0.2`
-  smoothing. That removes two of the four unbatched scroll listeners the audit
-  flagged, and the per-scroll style writes with them.
-- Choreography that used to be hand-computed per frame is now declared as
-  timeline positions, and anime drives statically-placed elements by animating
-  **CSS variables inside their transform strings** rather than the transform.
-- The FR3 harmonic-drive anatomy (wave generator, flexspline, circular spline,
-  torque flexure) was **deliberately dropped**: at 6–8px in a page margin those
-  parts are illegible in principle, and a harmonic drive signifies *gearbox* to
-  specialists rather than *motor* to anyone. If that specificity matters, put it
-  somewhere a reader can actually read it (a label, or the About copy).
+The historical detail of each is in the commit messages, which are written to
+be read.
 
 **Open items:**
 
@@ -798,9 +735,7 @@ above for what replaced it and why. Two structural changes came with it:
   Shift+Tab returns focus to this document and the close button is always
   reachable, so nobody is stuck.
 - Visual QA pass pending: modal open/close feel, section-title cascades, both themes,
-  mobile layout. On the lanyard hover tilt — the rest-state signs are correct; the
-  real defect is that after a click-flip the pitch damper becomes positive feedback,
-  so fix it with a flip-aware sign rather than flipping `pitchErr` outright.
+  mobile layout.
 - Flourish tuning after the redo: the beat leads/spans at the top of each branch
   of the timeline, `perspective: 600px`, and the copper token. The pegboard's
   tone is still an open thread from the owner.

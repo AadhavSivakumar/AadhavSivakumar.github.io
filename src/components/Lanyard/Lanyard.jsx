@@ -567,7 +567,8 @@ function Band({
     ang = new THREE.Vector3(),
     rotQ = new THREE.Quaternion(),
     rotE = new THREE.Euler(),
-    dir = new THREE.Vector3();
+    dir = new THREE.Vector3(),
+    pitchAxis = new THREE.Vector3();
   const flipped = useRef(false);
   const press = useRef(null);
   const lastPointer = useRef({ x: 0, y: 0 });
@@ -809,8 +810,24 @@ function Band({
       const tilt = (!dragged && hovered && hoverTilt.current) || null;
       let yawErr = rotE.y - ((flipped.current ? Math.PI : 0) + (tilt ? tilt.nx * TILT_MAX : 0));
       yawErr = Math.atan2(Math.sin(yawErr), Math.cos(yawErr));
-      const pitchErr = rotE.x - (tilt ? -tilt.ny * TILT_MAX : 0);
-      card.current.setAngvel({ x: ang.x - pitchErr * 0.35, y: ang.y - yawErr * 0.35, z: ang.z });
+      // Lean toward the cursor. "Top toward the viewer" is a NEGATIVE local
+      // pitch on a card facing you and a positive one on a card that has been
+      // flipped to face away, so the target's sign follows the flip.
+      const pitchTarget = tilt ? (flipped.current ? 1 : -1) * tilt.ny * TILT_MAX : 0;
+      const pitchErr = rotE.x - pitchTarget;
+      // The pitch correction is about the card's OWN pitch axis, expressed in
+      // world space. It used to be applied about world x, which is the body's
+      // x only while the card faces forward: after a flip the body's x points
+      // the other way, so the damper pushed pitch AWAY from its target and a
+      // hovered flipped card wound itself up instead of settling. Reproduced
+      // numerically — a 0.20 rad error went to 0.193 at yaw 0 and to 0.207 at
+      // yaw pi; through the body axis it goes to 0.193 in both.
+      pitchAxis.set(1, 0, 0).applyQuaternion(rotQ).multiplyScalar(-pitchErr * 0.35);
+      card.current.setAngvel({
+        x: ang.x + pitchAxis.x,
+        y: ang.y - yawErr * 0.35 + pitchAxis.y,
+        z: ang.z + pitchAxis.z,
+      });
     }
   });
 
