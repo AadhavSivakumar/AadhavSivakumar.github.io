@@ -1136,3 +1136,35 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 @media (prefers-reduced-motion: reduce) {
   .cover-playback-toggle { transition: none; }
 }
+
+
+/* ── EXPERIENCE ─────────────────────────────────────────────────────────── */
+.exp-intro { max-width: 760px; margin: 0 auto 34px; text-align: center; color: var(--secondary-color); }
+.exp-list { display: flex; flex-direction: column; gap: 22px; max-width: 900px; margin: 0 auto; }
+.exp-card {
+  background-color: color-mix(in srgb, var(--surface-color) 92%, transparent);
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-color);
+  border-radius: 10px;
+  box-shadow: 0 5px 15px var(--shadow-color-ambient);
+  padding: 26px 28px 22px;
+}
+.exp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
+.exp-role { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.2rem; line-height: 1.35; margin: 0; }
+.exp-org { margin: 4px 0 0; color: var(--secondary-color); font-size: 0.95rem; }
+.exp-org-name { color: var(--accent-ink); font-weight: 600; }
+.exp-sep { margin: 0 8px; }
+.exp-period {
+  margin: 0; white-space: nowrap; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.02em;
+  color: var(--accent-ink); border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
+  border-radius: 999px; padding: 4px 12px; align-self: flex-start;
+}
+.exp-summary { margin: 14px 0 6px; line-height: 1.65; }
+.exp-bullets { margin: 10px 0 0; padding-left: 1.2em; line-height: 1.6; }
+.exp-bullets li { margin: 7px 0; }
+.exp-bullets li::marker { color: var(--accent-color); }
+.exp-tags { margin-top: 16px; }
+@media (max-width: 600px) {
+  .exp-card { padding: 20px 18px 18px; }
+  .exp-role { font-size: 1.05rem; }
+}

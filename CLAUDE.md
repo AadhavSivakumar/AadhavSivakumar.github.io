@@ -56,6 +56,7 @@ src/
     Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
     Projects.jsx, ProjectCard.jsx
     Skills.jsx, SkillGroupCard.jsx
+    Experience.jsx        # work + research history, rendered inline from experienceData
     Resume.jsx            # Resume / Extended CV / Transcript tiles (Drive embeds)
     Contact.jsx, Footer.jsx
     Modal.jsx             # single reusable modal; phased lift->expand->populate
@@ -83,6 +84,8 @@ All page content lives in `src/data/siteData.js`:
 - `aboutMeData` — about card + modal (title, teaser, `modalContent` blocks).
 - `majorProjectsData` / `smallProjectsData` — project cards. Shape: `{ id, title, cardDescription, imageUrl, tags, status, modalContent }`. `modalContent` is an array of `{ type: 'text' | 'button' | 'embed' | 'image', ... }` blocks rendered by `Modal.jsx`. Preserve existing `id` values.
 - `skillGroupsData` — skill category cards; each group has `items` of `{ name, imageUrl, description }`.
+- `experienceData` — the Experience section (`Experience.jsx`): `{ id, org, role, location, period, summary, bullets, tags }`, rendered inline with no modal because it is the section a recruiter reads.
+  **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
 - `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
 The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `badgeCards` at the top of `src/components/About.jsx`, with photos imported from `Media/lanyardimgs/`.
@@ -623,6 +626,15 @@ The check that catches all of them, and the number to keep at zero:
 scroll past the hero, hold still, count DOM mutations for 3s
   before: ~105    after: 0
 ```
+
+## `header` is a global element selector — do not use `<header>` inside a component
+
+`App.css` styles the bare `header` element as the fixed site header
+(`position: fixed; top: 0; width: 100%`). Any `<header>` rendered anywhere else
+on the page — inside a card, an article, a list item — is torn out of its
+parent and pinned to the top of the viewport over the nav. This happened to the
+Experience cards' role/employer/period block. Use a `<div>` for in-component
+headers, or scope that rule before adding a second `<header>`.
 
 ## Modal animation contract
 

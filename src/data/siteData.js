@@ -22,12 +22,64 @@ export const aboutMeData = {
   modalTitle: 'Aadhav Sivakumar',
   modalContent: [
     { type: 'text', value: "Hello! My name is Aadhav Sivakumar, and this website is meant to showcase projects I've worked on in the past, and projects that I'm currently working on. You're also able to view my resume, an extended CV, or look through the different skills, software, and hardware I have worked with previously." },
-    { type: 'text', value: "At present, I am an Edge AI Engineer at Roboflow. Before that I was a robotics researcher at NYU Tandon, where I earned my Master's in Mechatronics and Robotics and TA'd the Foundations of Robotics and Mathematics for Robotics courses with Professor Peng. Earlier I was a Robot Technician at Starship Technologies, working out of the Fordham University hub in the Bronx. I was born and raised in the Bay Area in California, and I went to undergrad at the University of California, Santa Cruz campus, where I studied Robotics Engineering with a minor in Electrical Engineering." },
+    { type: 'text', value: "I'm an Edge AI Engineer on Roboflow's Solutions Research & Development team in New York, where I deploy production computer-vision systems on NVIDIA Jetson at pharmaceutical, food and automotive manufacturing sites, build the robotics demos Roboflow shows at GTC and CVPR, and work on synthetic data and vision-language-action models for robotic manipulation. Alongside that I'm a researcher in NYU Tandon's CREO lab. Before Roboflow I was a robotics researcher at NYU Tandon, where I earned my Master's in Mechatronics and Robotics and TA'd the Foundations of Robotics and Mathematics for Robotics courses with Professor Peng. Earlier I was a Robot Technician at Starship Technologies, working out of the Fordham University hub in the Bronx. I was born and raised in the Bay Area in California, and I went to undergrad at the University of California, Santa Cruz campus, where I studied Robotics Engineering with a minor in Electrical Engineering." },
     { type: 'text', value: "I believe that the most effective engineering happens at the intersection of rigorous theory and reliable application. My experiences, ranging from deep academic research to maintaining active robot fleets in the field, have taught me that building intelligent systems requires not just understanding the algorithms, but also the environmental and societal impact of new technologies. I am driven by the challenge of bridging this gap, ensuring that complex robots are robust, efficient, and capable of solving real-world problems." },
     { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
     { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' }
   ]
 };
+
+// ── Experience ───────────────────────────────────────────────────────────────
+// Rendered by Experience.jsx. Written for a public page: industries and public
+// events are named, customers and contract values are not, and nothing here
+// describes internal infrastructure, unreleased product plans, or work the
+// owner has flagged as needing clearance. Keep it that way.
+export const experienceData = [
+  {
+    id: 'exp-roboflow',
+    org: 'Roboflow',
+    role: 'Edge AI Engineer, Solutions Research & Development',
+    location: 'New York, NY',
+    period: 'Present',
+    summary: 'Bridging industrial machine vision and robot learning: production vision systems on NVIDIA Jetson at manufacturing sites, the robotics demos Roboflow shows at major conferences, and research pipelines from teleoperation hardware through VLA policy fine-tuning.',
+    bullets: [
+      'Deploy production computer-vision inspection systems on NVIDIA Jetson (AGX Orin, AGX Thor) at pharmaceutical, food and automotive manufacturing sites — encoder-triggered line-scan and area-scan GigE Vision cameras, industrial lighting, Allen-Bradley PLC integration over EtherNet/IP, and custom operator HMIs.',
+      'Designed and built Roboflow\'s NVIDIA GTC 2026 and CVPR 2026 booth demos: vision-guided xArm 5 pick-and-place with RealSense on Jetson AGX Orin, a line-scan conveyor inspection station, real-time defect detection, and a multi-vendor camera kit — including every camera, optics, lighting and networking BOM.',
+      'Trained and optimized an RF-DETR-Seg part-presence model to 94.2% mAP@50 and roughly doubled per-stream edge throughput with neural architecture search + TensorRT; presented it in a public webinar on quality-control vision.',
+      'Robot learning: built a four-arm bimanual SO-ARM101 LeRobot teleoperation rig on Jetson and a GELLO leader arm for xArm 5 to collect imitation-learning data; fine-tune VLA policies (π0, ACT); automated multi-view RGB-D reconstruction with Open3D TSDF using robot kinematics as the pose source.',
+      'Work on synthetic data generation for industrial defect detection with NVIDIA tooling (Isaac Sim / Replicator, Cosmos), evaluating generative defect models and building the train/eval pipeline around them.',
+      'Technical lead for a collaborative-robot vendor integration that runs Roboflow inference fully offline and air-gapped on the robot after an online warm-up, with the field kit and runbooks for onsite engineering.',
+      'Provision, network and support a fleet of Jetson edge devices across industrial carrier boards (Advantech, ASUS, Seeed) — JetPack/BSP work, Docker and container registries, Tailscale fleet networking, GigE Vision subnets, PoE and 10GbE.',
+    ],
+    tags: ['NVIDIA Jetson', 'TensorRT', 'RF-DETR', 'PyTorch', 'GigE Vision', 'LeRobot', 'Isaac Sim', 'ROS 2', 'Open3D'],
+  },
+  {
+    id: 'exp-nyu',
+    org: 'NYU Tandon School of Engineering',
+    role: 'Robotics Researcher · MS, Mechatronics and Robotics',
+    location: 'Brooklyn, NY',
+    period: '2024 – 2026',
+    summary: 'Research on vision-language-action models for robotic manipulation in the CREO lab, alongside the master\'s degree and teaching.',
+    bullets: [
+      'Research on vision-language-action models for robotic manipulation (xArm 5), including the inference and fine-tuning hardware analysis for the lab.',
+      'Co-authored a Google TPU Research Award proposal on bimanual VLA fine-tuning and Real2Sim (Isaac Sim + 3D Gaussian Splatting), with an 86.7% π0 task-success preliminary result.',
+      'Teaching assistant for Foundations of Robotics and Mathematics for Robotics; developed STM32-based exam and project specifications for the Mechatronics course.',
+    ],
+    tags: ['VLA', 'openpi / JAX', 'Isaac Sim', 'xArm 5', 'STM32'],
+  },
+  {
+    id: 'exp-starship',
+    org: 'Starship Technologies',
+    role: 'Robot Technician',
+    location: 'Bronx, NY',
+    period: '2025',
+    summary: 'Kept an active fleet of autonomous sidewalk-delivery robots running in the field at the Fordham University hub.',
+    bullets: [
+      'Field maintenance, diagnostics and repair on a live fleet of autonomous delivery robots — the hands-on side of keeping autonomy running in the real world.',
+    ],
+    tags: ['Autonomous Robots', 'Field Operations'],
+  },
+];
 
 export const majorProjectsData = [
   { id: 4, title: 'SMART compost sorting', cardDescription: 'Robotic compost sorting on a Franka Emika arm: RGB-D computer vision identifies contaminants in a waste stream and the arm removes them, all within a ROS framework. Undergraduate capstone.', imageUrl: baseProjectImagePath + 'smartsort.mp4', tags: ['Franka Emika Robot', 'Computer Vision', 'ROS'], status: 'Completed', modalContent: [{ type: 'text', value: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams.' }, { type: 'embed', value: baseProjectPdfPath + 'Capstone_final_report.pdf', title: 'Project Documentation PDF' }] },
@@ -61,23 +113,42 @@ export const resumeDocsData = [
 ];
 
 export const skillGroupsData = [
+  // Order is deliberate: the groups robotics / ML / CV roles are screened on
+  // come first. Every item is something the owner has actually shipped with;
+  // the stack was confirmed from their own resume material, not inferred.
   {
-    // The group the target roles are screened on, so it is first and it is
-    // specific. Every item here is backed by something else on this site — a
-    // project, a job title, a tool already listed. Frameworks that are NOT yet
-    // stated anywhere (PyTorch, TensorRT, OpenCV…) are deliberately absent
-    // until the owner confirms them; a skills list is a set of claims.
     id: 'ai-ml-data',
     title: 'Machine Learning & Computer Vision',
     cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
     items: [
-      { name: 'Computer Vision', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg', description: 'Object detection and visual understanding for robots — used for contaminant sorting on a Franka arm, gaze/gesture telerobotics, and a vision-controlled desktop arm.' },
-      { name: 'Edge AI Deployment', imageUrl: 'https://api.iconify.design/mdi/chip.svg', description: 'Running vision models on embedded hardware (NVIDIA Jetson, Raspberry Pi) — the day job as an Edge AI Engineer at Roboflow.' },
-      { name: 'Roboflow', imageUrl: 'https://api.iconify.design/mdi/vector-polygon.svg', description: 'Dataset management, annotation, training and deployment of computer vision models.' },
-      { name: '3D Perception', imageUrl: 'https://api.iconify.design/mdi/cube-scan.svg', description: 'RGB-D and lidar sensing, point-cloud processing and 3D mapping (Open3D, depth cameras, 2D lidar).' },
-      { name: 'LLM & Gen-AI APIs', imageUrl: 'https://api.iconify.design/mdi/robot-outline.svg', description: 'Integrating large-language and generative model APIs (OpenAI, Gemini, Claude) into tools and pipelines.' },
-      { name: 'Python (Scientific)', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'NumPy/SciPy-style numerical work, data analysis and ML tooling.' },
-      { name: 'MATLAB', imageUrl: deviconsBaseUrl + 'matlab/matlab-original.svg', description: 'Numerical computing, algorithm prototyping and simulation.' }
+      { name: 'PyTorch', imageUrl: deviconsBaseUrl + 'pytorch/pytorch-original.svg', description: 'Training and fine-tuning detection, segmentation and policy models; LoRA fine-tuning.' },
+      { name: 'RF-DETR / YOLO / SAM', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg', description: 'Detection and segmentation: RF-DETR & RF-DETR-Seg, RT-DETR, YOLO11/v8/v9, SAM2/SAM3, DINOv2, ByteTrack.' },
+      { name: 'Vision-Language-Action', imageUrl: 'https://api.iconify.design/mdi/robot-industrial-outline.svg', description: 'Robot policies: π0/π0.5 (openpi), OpenVLA, SmolVLA, GR00T, ACT, Diffusion Policy — data collection through fine-tuning.' },
+      { name: 'JAX / Flax', imageUrl: 'https://api.iconify.design/mdi/function-variant.svg', description: 'openpi-based VLA fine-tuning.' },
+      { name: 'OpenCV', imageUrl: deviconsBaseUrl + 'opencv/opencv-original.svg', description: 'Image processing, camera calibration (ChArUco / ArUco / AprilTag), visual servoing.' },
+      { name: 'Open3D', imageUrl: 'https://api.iconify.design/mdi/cube-scan.svg', description: 'Point clouds, RGB-D fusion, multi-view TSDF reconstruction, 3D measurement.' },
+      { name: 'Depth & 3D Perception', imageUrl: 'https://api.iconify.design/mdi/axis-arrow.svg', description: 'Stereo, ToF and structured-light depth; Depth Anything 3; monocular-vs-stereo metrology trade-offs.' },
+      { name: 'Synthetic Data', imageUrl: 'https://api.iconify.design/mdi/shape-plus-outline.svg', description: 'Isaac Sim / Replicator domain randomization, Cosmos generative defect models, dataset packaging and evaluation.' },
+      { name: 'Model Optimization', imageUrl: 'https://api.iconify.design/mdi/speedometer.svg', description: 'Neural architecture search, INT8/FP8/NVFP4 quantization, AWQ/GPTQ — for real-time inference on edge hardware.' },
+      { name: 'Evaluation', imageUrl: 'https://api.iconify.design/mdi/chart-box-outline.svg', description: 'mAP, precision/recall, F1, PR curves; benchmark methodology for vision models.' },
+      { name: 'LLM & Gen-AI', imageUrl: 'https://api.iconify.design/mdi/robot-outline.svg', description: 'Local and hosted LLMs (vLLM, llama.cpp, Ollama), agent sandboxes, OpenAI / Gemini / Claude APIs.' },
+      { name: 'Python (Scientific)', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'NumPy/SciPy numerical work, data pipelines, ML tooling.' },
+    ]
+  },
+  {
+    id: 'edge-deployment',
+    title: 'Edge AI & Deployment',
+    cardImageUrl: 'https://api.iconify.design/mdi/chip.svg',
+    items: [
+      { name: 'NVIDIA Jetson', imageUrl: 'https://api.iconify.design/mdi/developer-board.svg', description: 'Orin Nano / NX / AGX and AGX Thor: JetPack 5–7, L4T flashing, BSP patching, device trees, power modes.' },
+      { name: 'TensorRT', imageUrl: 'https://api.iconify.design/mdi/lightning-bolt-outline.svg', description: 'Engine building and optimization for real-time edge inference.' },
+      { name: 'ONNX Runtime', imageUrl: 'https://api.iconify.design/mdi/graph-outline.svg', description: 'Portable model export and inference.' },
+      { name: 'Roboflow Inference & Workflows', imageUrl: 'https://api.iconify.design/mdi/vector-polygon.svg', description: 'Model serving, Workflows pipelines, active learning, offline / air-gapped deployment.' },
+      { name: 'Docker', imageUrl: deviconsBaseUrl + 'docker/docker-original.svg', description: 'Containerized edge stacks, nvidia-container-toolkit, OCI registries.' },
+      { name: 'DGX Spark', imageUrl: 'https://api.iconify.design/mdi/server-outline.svg', description: 'GB10 / aarch64 development and local model serving.' },
+      { name: 'Fleet Networking', imageUrl: 'https://api.iconify.design/mdi/lan.svg', description: 'Tailscale, GigE Vision subnets, jumbo frames, multi-NIC routing, PoE/UPOE, 10GbE and QSFP28 breakout.' },
+      { name: 'Observability', imageUrl: 'https://api.iconify.design/mdi/monitor-dashboard.svg', description: 'Grafana / Loki, TimescaleDB, Redis, deployment monitoring dashboards.' },
+      { name: 'Linux Systems', imageUrl: deviconsBaseUrl + 'linux/linux-original.svg', description: 'Ubuntu 22.04/24.04, drivers and kernels, systemd, udev, DKMS.' },
     ]
   },
   {
@@ -85,13 +156,29 @@ export const skillGroupsData = [
     title: 'Robotics & Control Systems',
     cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
     items: [
-      { name: 'Franka Emika Robot', imageUrl: baseSkillImagePath + 'Franka-Emika-Panda-robot.png', description: 'Collaborative 7-DOF robot arm for research and industry, with sensitive torque sensors.' },
-      { name: 'Pixhawk 6x', imageUrl: baseSkillImagePath + 'pixhawk.png', description: 'Advanced autopilot flight controller for drones and unmanned vehicles, based on FMUv6X standard.' },
-      { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/axis-arrow-lock.svg', description: 'Describing motion of objects and systems; crucial in robotics for arm positions and trajectories.' },
-      { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg', description: 'Feedback mechanism for industrial control and robotics, correcting errors based on P, I, D terms.' },
-      { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/filter-outline.svg', description: 'Algorithm for producing accurate estimates from noisy measurements over time.' },
-      { name: 'Telerobotics', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg', description: 'Controlling semi-autonomous robots from a distance using wireless or tethered connections.' },
-      { name: 'Webots', imageUrl: baseSkillImagePath + 'webots.png', description: 'Open-source robot simulator for modeling, programming, and simulating robots.' }
+      { name: 'ROS 2', imageUrl: 'https://api.iconify.design/simple-icons/ros.svg', description: 'Jazzy / Humble; ROS-based drones and manipulators.' },
+      { name: 'Robot Arms', imageUrl: 'https://api.iconify.design/mdi/robot-industrial-outline.svg', description: 'UFACTORY xArm 5, Franka Emika, Standard Bots RO1, SO-ARM101, GELLO leader arms.' },
+      { name: 'Teleoperation & Data Collection', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg', description: 'Bimanual LeRobot rigs, leader-follower arms, Dynamixel / Feetech servos, SpaceMouse and VR-controller teleop.' },
+      { name: 'Hand-Eye Calibration', imageUrl: 'https://api.iconify.design/mdi/target.svg', description: 'ChArUco / ArUco / AprilTag camera-to-robot calibration.' },
+      { name: 'Isaac Sim / Isaac Lab', imageUrl: 'https://api.iconify.design/mdi/cube-outline.svg', description: 'Simulation, Replicator synthetic data, URDF import, Real2Sim.' },
+      { name: 'MuJoCo & Webots', imageUrl: 'https://api.iconify.design/mdi/cube-send.svg', description: 'Physics simulation for manipulation and mobile robots.' },
+      { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/vector-line.svg', description: 'Forward/inverse kinematics and path planning.' },
+      { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg', description: 'Feedback control for flight, motion and servo systems.' },
+      { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/chart-bell-curve-cumulative.svg', description: 'State estimation and sensor fusion.' },
+      { name: 'Pixhawk / PX4', imageUrl: 'https://api.iconify.design/mdi/quadcopter.svg', description: 'Pixhawk 6x autonomous drone flight control.' },
+    ]
+  },
+  {
+    id: 'machine-vision-hw',
+    title: 'Machine Vision Hardware',
+    cardImageUrl: 'https://api.iconify.design/mdi/camera-iris.svg',
+    items: [
+      { name: 'Industrial Cameras', imageUrl: 'https://api.iconify.design/mdi/camera-outline.svg', description: 'LUCID Triton / Triton2 / Helios, Basler ace2 / blaze, Orbbec, RealSense, ZED, Zivid, Photoneo — area-scan, line-scan and depth.' },
+      { name: 'GigE Vision / GenICam', imageUrl: 'https://api.iconify.design/mdi/ethernet.svg', description: 'GigE (1–10G), USB3 Vision, CoaXPress, MIPI CSI-2, GMSL2; Arena SDK and pylon.' },
+      { name: 'Line-Scan & Triggering', imageUrl: 'https://api.iconify.design/mdi/barcode-scan.svg', description: 'Encoder-triggered line-scan capture for moving product on conveyors and thermoforming lines.' },
+      { name: 'Optics', imageUrl: 'https://api.iconify.design/mdi/circle-double.svg', description: 'FOV / DOF / MTF calculation, telecentric and varifocal lens selection, cross-polarization; built a lens calculator.' },
+      { name: 'Industrial Lighting', imageUrl: 'https://api.iconify.design/mdi/lightbulb-on-outline.svg', description: 'Line, coaxial and IP67 lighting with strobe controllers; 24V and PoE power budgeting.' },
+      { name: 'PLC Integration', imageUrl: 'https://api.iconify.design/mdi/connection.svg', description: 'Allen-Bradley over EtherNet/IP; controls-integration standards and installation runbooks.' },
     ]
   },
   {
@@ -99,19 +186,17 @@ export const skillGroupsData = [
     title: 'Programming & Software Development',
     cardImageUrl: 'https://api.iconify.design/mdi/code-braces-box.svg',
     items: [
-      { name: 'C', imageUrl: deviconsBaseUrl + 'c/c-original.svg', description: 'A powerful, general-purpose language for system programming, embedded systems, and performance-critical applications.' },
-      { name: 'C++', imageUrl: deviconsBaseUrl + 'cplusplus/cplusplus-original.svg', description: 'An extension of C with object-oriented features, used in game engines, OS, and complex software.' },
-      { name: 'Python', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'High-level, versatile language for web dev, data science, AI, scripting, and automation.' },
-      { name: 'Java', imageUrl: deviconsBaseUrl + 'java/java-original.svg', description: 'Class-based, object-oriented language for enterprise apps, Android development, and large systems.' },
-      { name: 'HTML5', imageUrl: deviconsBaseUrl + 'html5/html5-original.svg', description: 'Standard markup language for creating web pages and applications with rich multimedia and graphics.' },
-      { name: 'CSS3', imageUrl: deviconsBaseUrl + 'css3/css3-original.svg', description: 'Styling language for web documents, enabling animations, transitions, and responsive design.' },
-      { name: 'JavaScript', imageUrl: deviconsBaseUrl + 'javascript/javascript-original.svg', description: 'Essential for interactive web content; also used in non-browser environments via Node.js.' },
-      { name: 'React', imageUrl: deviconsBaseUrl + 'react/react-original.svg', description: 'A JavaScript library for building user interfaces, widely used for creating single-page applications and dynamic UIs.' },
-      { name: 'SQL', imageUrl: deviconsBaseUrl + 'postgresql/postgresql-original.svg', description: 'Language for managing and querying data in relational database management systems (RDBMS).' },
-      { name: 'Verilog', imageUrl: baseSkillImagePath + 'verilog.png', description: 'Hardware description language (HDL) for modeling electronic systems like FPGAs and ASICs.' },
-      { name: 'ROS', imageUrl: baseSkillImagePath + 'ROS.png', description: 'Flexible framework for writing robot software, simplifying complex robot behavior development.' },
-      { name: 'Firebase', imageUrl: baseSkillImagePath + 'firebase.png', description: "Google's platform for mobile/web app development with real-time databases, auth, and hosting." },
-      { name: 'Android Studio', imageUrl: baseSkillImagePath + 'AndroidStudio.png', description: 'Official IDE for Android app development, built on IntelliJ IDEA for coding, debugging, and testing.' }
+      { name: 'Python', imageUrl: deviconsBaseUrl + 'python/python-original.svg', description: 'Primary language for ML, robotics and tooling.' },
+      { name: 'C', imageUrl: deviconsBaseUrl + 'c/c-original.svg', description: 'Embedded firmware, register-level MCU work.' },
+      { name: 'C++', imageUrl: deviconsBaseUrl + 'cplusplus/cplusplus-original.svg', description: 'ROS nodes, control loops, performance-critical code.' },
+      { name: 'JavaScript / React', imageUrl: deviconsBaseUrl + 'react/react-original.svg', description: 'Web tooling, dashboards, this site (React, Three.js / R3F).' },
+      { name: 'Bash', imageUrl: deviconsBaseUrl + 'bash/bash-original.svg', description: 'Provisioning scripts, device automation, CI.' },
+      { name: 'SQL', imageUrl: 'https://api.iconify.design/mdi/database-outline.svg', description: 'Relational and time-series data (TimescaleDB).' },
+      { name: 'Verilog', imageUrl: 'https://api.iconify.design/mdi/chip.svg', description: 'FPGA digital design (Basys 3).' },
+      { name: 'Java', imageUrl: deviconsBaseUrl + 'java/java-original.svg', description: 'Object-oriented development, Android.' },
+      { name: 'MATLAB', imageUrl: deviconsBaseUrl + 'matlab/matlab-original.svg', description: 'Numerical computing, real-time sensor visualization.' },
+      { name: 'Git & GitHub Actions', imageUrl: deviconsBaseUrl + 'git/git-original.svg', description: 'Version control and CI/CD.' },
+      { name: 'LaTeX', imageUrl: 'https://api.iconify.design/mdi/format-text.svg', description: 'Technical writing, proposals, forms.' },
     ]
   },
   {
@@ -125,7 +210,8 @@ export const skillGroupsData = [
       { name: 'Arduino', imageUrl: baseSkillImagePath + 'Arduino.jpg', description: 'Open-source platform for interactive objects, popular for prototyping and education.' },
       { name: 'Raspberry Pi', imageUrl: baseSkillImagePath + 'raspberrypi.webp', description: 'Small single-board computers for robotics, IoT, home automation, and education.' },
       { name: 'Basys 3 FPGA', imageUrl: baseSkillImagePath + 'Basys3.webp', description: 'Entry-level FPGA board with Artix-7, used for learning digital logic with Verilog/VHDL.' },
-      { name: 'STM32 Nucleo', imageUrl: baseSkillImagePath + 'STM32.webp', description: 'Affordable boards with STM32 MCUs (ARM Cortex-M) for prototyping and concept testing.' },
+      { name: 'Nordic nRF54L15 / Zephyr', imageUrl: 'https://api.iconify.design/mdi/bluetooth.svg', description: 'Zephyr / nRF Connect SDK IMU firmware with real-time visualization.' },
+      { name: 'STM32 (H5, CubeIDE, HAL)', imageUrl: baseSkillImagePath + 'STM32.webp', description: 'Affordable boards with STM32 MCUs (ARM Cortex-M) for prototyping and concept testing.' },
       { name: 'ESP32/8266', imageUrl: baseSkillImagePath + 'ESP32.jpg', description: 'Low-cost Wi-Fi & Bluetooth/BLE MCUs for IoT, home automation, and wireless sensors.' },
       { name: 'Infineon PSoC 4', imageUrl: baseSkillImagePath + 'psoc4.jpg', description: 'Programmable System-on-Chip with ARM Cortex-M0/M0+ and programmable analog/digital blocks.' },
       { name: 'Parallax Propeller', imageUrl: baseSkillImagePath + 'propeller.jpg', description: 'Multicore MCU with eight 32-bit cores for true parallel processing and deterministic timing.' },

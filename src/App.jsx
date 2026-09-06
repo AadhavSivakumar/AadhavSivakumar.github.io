@@ -3,6 +3,7 @@ import { MotionConfig } from 'motion/react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import About from './components/About';
+import Experience from './components/Experience';
 import Projects from './components/Projects';
 import Skills from './components/Skills';
 import Resume from './components/Resume';
@@ -91,6 +92,7 @@ function App() {
       <main id="main">
         <Hero />
         <About onCardClick={handleCardClick} />
+        <Experience />
         <Projects onCardClick={handleCardClick} />
         <Skills onCardClick={handleCardClick} />
         <Resume onCardClick={handleCardClick} />

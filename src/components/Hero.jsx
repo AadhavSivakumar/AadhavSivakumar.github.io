@@ -7,11 +7,11 @@ import HeroChip from './HeroChip';
 // Keyword chips under the tagline, like the live /portfolio hero — clicking
 // one jumps to the section where that topic lives.
 const KEYWORDS = [
+  { label: 'Edge AI', target: 'experience' },
+  { label: 'Computer Vision', target: 'skills' },
+  { label: 'Robot Learning', target: 'experience' },
   { label: 'Robotics', target: 'projects' },
-  { label: 'Embedded AI', target: 'skills' },
-  { label: 'Machine Learning', target: 'projects' },
-  { label: 'Computer Vision', target: 'projects' },
-  { label: 'Mechatronics', target: 'skills' },
+  { label: 'Machine Vision', target: 'skills' },
 ];
 
 const NAME = 'Aadhav Sivakumar';
@@ -189,7 +189,7 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        Robotics &amp; Computer Vision Engineer — machine learning on edge hardware and autonomous systems
+        Edge AI engineer bridging industrial machine vision and robot learning
       </motion.p>
 
       <div className="hero-chips">
