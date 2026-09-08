@@ -52,11 +52,12 @@ src/
     HeroChip.jsx          # liquid-glass keyword pill (backdrop-filter + SVG refraction)
     SineWave.jsx          # staggered sine field behind the hero (variant="field")
     Flourish3D.jsx        # the two canvas side flourishes (see below)
-    About.jsx             # about card centered in the 3D lanyard stage
+    About.jsx             # the about card (the lanyard badges moved to Experience)
+    badgeCards.js         # the six badge definitions + photos; Experience hangs four of them
     Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
     Projects.jsx, ProjectCard.jsx
     Skills.jsx, SkillGroupCard.jsx
-    Experience.jsx        # work + research history, rendered inline from experienceData
+    Experience.jsx        # four rows: a big card + that organisation's lanyard badge in its own 3D canvas
     Resume.jsx            # Resume / Extended CV / Transcript tiles (Drive embeds)
     Contact.jsx, Footer.jsx
     Modal.jsx             # single reusable modal; phased lift->expand->populate
@@ -88,7 +89,7 @@ All page content lives in `src/data/siteData.js`:
   **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
 - `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
-The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `badgeCards` at the top of `src/components/About.jsx`, with photos imported from `Media/lanyardimgs/`.
+The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `src/components/badgeCards.js`, with photos imported from `Media/lanyardimgs/`. Each `experienceData` row names its badge with `badge: '<name>'`.
 
 To add a project or skill: append to the relevant array — the components map over the data, no other wiring needed.
 
@@ -105,10 +106,12 @@ That is the owner's stated goal, and three things follow from it:
   Frameworks that are not yet evidenced anywhere (PyTorch, TensorFlow, ONNX,
   TensorRT, OpenCV, CUDA…) are deliberately ABSENT until the owner confirms
   them, however likely they are. Do not add them on inference.
-- **`majorProjectsData` leads with completed computer-vision and robotics
-  work** (compost sorting, Glass-2-Bot, tactile sensor, Stockbot) and the two
-  in-progress builds follow. Preserve `id` values when reordering; the order of
-  the array is the order on the page.
+- **`majorProjectsData` is exactly the four the owner chose**: Glass-2-Bot,
+  SMART compost sorting, Stockbot, 3D Fruit Ninja, in that order. Everything
+  else — including Sluice and the tactile sensor — is in `smallProjectsData`,
+  strongest first. Preserve `id` values when moving entries between the two
+  arrays; a card promoted to major needs a `cardDescription`, which small cards
+  do not use.
 - Metadata (`index.html` title/OG/description) names "Robotics & Computer
   Vision Engineer" and the JSON-LD `Person` block carries role, employer,
   degrees and profile links. **Every value in that block is a fact already
@@ -146,7 +149,20 @@ convention, uses it as the `poster`, and the build check enforces its existence.
 
 ## The 3D lanyard (`src/components/Lanyard/`)
 
-Six ID badges (3 education left, 3 work right) hang on physics ropes around the about card, one shared Canvas/physics world. Ported from the ReactBits lanyard and heavily extended. Key invariants learned the hard way — keep them:
+ID badges on physics ropes, ported from the ReactBits lanyard and heavily
+extended. **They hang beside the Experience rows now** — one badge per row
+(Roboflow, Starship, NYU, UCSC), each in its own small `<Canvas>` in the
+300px `.exp-lanyard` column, mounted only once its row comes within 600px of
+the viewport (`useNearViewport`) so four WebGL contexts are not created on
+page load. The About section is just the card; its full-width six-badge strip
+is gone (the owner asked for the badges next to their boxes — "the lanyard",
+definite article — and duplicating six badges was not worth the GPU memory).
+Two badges from the old strip, Dublin High and "Researcher", have no row and
+are not rendered; their data is kept in `badgeCards.js`. A lone badge uses
+`side: 'center'`, because the left/right anchor maths always clears the centre
+by half a card plus a gap, which is right for a pair flanking a card and wrong
+for a badge with the column to itself. Key invariants learned the hard way —
+keep them:
 
 - **Rope joint offsets are module constants** (`J1_POS`…`CARD_POS`). Passing fresh arrays on re-render makes rapier teleport bodies and tears the straps.
 - **The chain spawns vertically at equilibrium.** A horizontal spawn makes neighboring cards collide mid-drop and fall asleep at a diagonal.
@@ -648,7 +664,7 @@ during the sequence via the `animating-out` class that `App.jsx` toggles.
 
 ## Performance rules
 
-- The Lanyard is imported with `React.lazy` in `About.jsx` and only rendered at ≥992px, so mobile never downloads the three.js stack or the 2.4MB `card.glb`. `vite.config.js` deliberately has **no `manualChunks`** — Rollup's automatic splitting keeps the 3D stack inside the lazy Lanyard chunk. A hand-rolled split was tried and created a vendor↔three chunk cycle that broke React at runtime; don't reintroduce one. After touching `vite.config.js`, re-verify `dist/assets/index-*.js` has no static `from"./..."` import of a chunk containing three.js.
+- The Lanyard is imported with `React.lazy` in `Experience.jsx` and only rendered at ≥992px (and only once a row is near the viewport), so mobile never downloads the three.js stack or the 2.4MB `card.glb`. Verified: the `Lanyard-*.js` chunk is not requested until the Experience section is scrolled to. `vite.config.js` deliberately has **no `manualChunks`** — Rollup's automatic splitting keeps the 3D stack inside the lazy Lanyard chunk. A hand-rolled split was tried and created a vendor↔three chunk cycle that broke React at runtime; don't reintroduce one. After touching `vite.config.js`, re-verify `dist/assets/index-*.js` has no static `from"./..."` import of a chunk containing three.js.
 
 ## Theming
 

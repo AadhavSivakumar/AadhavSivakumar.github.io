@@ -584,17 +584,9 @@ html[data-theme="dark"] .f3d::before {
 
 
 /* The 3D lanyards span their own full-width horizontal strip below the card. */
-.about-lanyard-strip {
-  position: relative;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  height: 74vh;
-  min-height: 640px;
-  overflow: hidden;
-}
-
-/* Lanyard canvas fills the strip exactly so the overhead rail the badges hang
-   from is visible at the top of the frame. */
+/* The lanyard canvas fills whatever hosts it — today, one .exp-lanyard column
+   per Experience row. (It used to fill a full-width strip under the about
+   card; that strip is gone, the badges hang beside their rows instead.) */
 .lanyard-wrapper {
   position: absolute;
   top: 0;
@@ -1140,7 +1132,24 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 
 /* ── EXPERIENCE ─────────────────────────────────────────────────────────── */
 .exp-intro { max-width: 760px; margin: 0 auto 34px; text-align: center; color: var(--secondary-color); }
-.exp-list { display: flex; flex-direction: column; gap: 22px; max-width: 900px; margin: 0 auto; }
+.exp-list { display: flex; flex-direction: column; gap: 26px; max-width: 1120px; margin: 0 auto; }
+/* One row per organisation: the card, and that organisation's badge hanging
+   in its own small 3D canvas beside it. The canvas column is fixed-width so a
+   badge is the same size on every row. */
+.exp-row { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: stretch; }
+.exp-lanyard {
+  position: relative;
+  min-height: 440px;
+  border-radius: 10px;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+@media (max-width: 991px) {
+  /* No lanyard below 992px — the 3D stack is not downloaded there at all — so
+     the card takes the whole row. */
+  .exp-row { grid-template-columns: 1fr; }
+  .exp-lanyard { display: none; }
+}
 .exp-card {
   background-color: color-mix(in srgb, var(--surface-color) 92%, transparent);
   border: 1px solid var(--border-color);

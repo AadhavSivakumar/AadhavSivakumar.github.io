@@ -4,7 +4,7 @@
 import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { drawBadgeFace } from './components/Lanyard/Lanyard';
-import { badgeCards } from './components/About';
+import { badgeCards } from './components/badgeCards';
 import '../src/App.css';
 
 const W = 1678, H = 1677;

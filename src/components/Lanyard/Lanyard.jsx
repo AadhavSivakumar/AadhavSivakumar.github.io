@@ -212,7 +212,11 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, .
   const stamp = `${layout.world.toFixed(1)}x${layout.px}@${sizeMul}`;
 
   const shown = cards.filter(c => (c.slot || 0) < maxSlots);
-  const anchorXOf = c => (inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1);
+  // `side: 'center'` is for a canvas holding ONE badge (the Experience rows):
+  // the left/right maths always clears the centre by half a card plus a gap,
+  // which is right for a pair flanking the about card and wrong for a badge
+  // that has the whole column to itself.
+  const anchorXOf = c => (c.side === 'center' ? 0 : (inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1));
   // Staggered hang height (see slotRise/hangJitter). The delta scales with the
   // badge size so the cascade stays proportional across sizeMul values.
   const anchorYOf = c => SLOT_BASE_Y + (slotRise(c.slot || 0) + hangJitter(c.badge?.name)) * sizeMul;
