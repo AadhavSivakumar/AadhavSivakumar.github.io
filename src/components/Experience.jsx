@@ -58,7 +58,7 @@ function RowLanyard({ badgeName, wide }) {
               gravity={[0, -40, 0]}
               cards={[{ ...card, side: 'center', slot: 0 }]}
               clearCenterPx={0}
-              sizeMul={1.15}
+              sizeMul={1.6}
               lanyardWidth={0.5}
             />
           </Suspense>

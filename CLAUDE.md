@@ -17,6 +17,26 @@ the foreground, or force-visible the elements and spoof visibility from the page
 capturing. Prefer *measuring* the DOM (`getBoundingClientRect`, computed transforms) over
 eyeballing screenshots; it works regardless of tab state.
 
+**WebGL CAN be screenshotted here — use `scripts/webgl-shot.mjs`.** Headless
+Firefox on this box cannot create a WebGL context even with every
+software-rendering pref forced, and for most of this project's history the
+lanyard could only be verified by simulating its maths. Chromium ships
+SwiftShader, a CPU rasteriser that gives a real WebGL 2.0 context, and Playwright
+(a devDependency) downloads a Chromium into `~/.cache/ms-playwright` without
+root:
+
+```
+npx playwright install chromium                       # once, ~150MB, no sudo
+npm run build && npx serve -s dist -l 4900 &
+node scripts/webgl-shot.mjs http://127.0.0.1:4900/ '#experience' out.png
+```
+
+It prints the renderer string (`SwiftShader`), so a silent fallback is visible.
+Statements below of the form "this environment has no WebGL" were true when
+written; they describe why things were verified numerically, not what is
+possible now. Anything touching the lanyard should be looked at this way
+before it ships.
+
 ```
 npm run dev        # Vite dev server
 npm run build      # vite build + scripts/copy-static.mjs, into dist/ (gitignored)
@@ -150,7 +170,10 @@ convention, uses it as the `poster`, and the build check enforces its existence.
 ## The 3D lanyard (`src/components/Lanyard/`)
 
 ID badges on physics ropes, ported from the ReactBits lanyard and heavily
-extended. **They hang beside the Experience rows now** — one badge per row
+extended. **Seen rendering for the first time on 2026-09-07** via the WebGL
+harness above: black cards, legible type, one pin each, centred — the material
+and layout work verified by simulation held up. **They hang beside the
+Experience rows now** — one badge per row
 (Roboflow, Starship, NYU, UCSC), each in its own small `<Canvas>` in the
 300px `.exp-lanyard` column, mounted only once its row comes within 600px of
 the viewport (`useNearViewport`) so four WebGL contexts are not created on
@@ -158,7 +181,12 @@ page load. The About section is just the card; its full-width six-badge strip
 is gone (the owner asked for the badges next to their boxes — "the lanyard",
 definite article — and duplicating six badges was not worth the GPU memory).
 Two badges from the old strip, Dublin High and "Researcher", have no row and
-are not rendered; their data is kept in `badgeCards.js`. A lone badge uses
+are not rendered; their data is kept in `badgeCards.js`. **The `.exp-lanyard`
+column is a FIXED 460px, sticky, never stretched to the card**: the camera's
+field of view is vertical, so a canvas that grows with a seven-bullet card
+renders its badge at over twice the size of the one beside a one-bullet card —
+seen, not guessed (300x1050 next to 300x440, the tall one running off the
+screen). Badge scale is `sizeMul` 1.6 in a 300px column. A lone badge uses
 `side: 'center'`, because the left/right anchor maths always clears the centre
 by half a card plus a gap, which is right for a pair flanking a card and wrong
 for a badge with the column to itself. Key invariants learned the hard way —

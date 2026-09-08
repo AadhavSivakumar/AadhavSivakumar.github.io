@@ -1136,10 +1136,16 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 /* One row per organisation: the card, and that organisation's badge hanging
    in its own small 3D canvas beside it. The canvas column is fixed-width so a
    badge is the same size on every row. */
-.exp-row { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: stretch; }
+.exp-row { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: start; }
+/* FIXED height, not stretched to the card. The camera's field of view is
+   vertical, so a canvas that grows with a seven-bullet card renders its badge
+   at over twice the size of the one beside a one-bullet card — seen, not
+   guessed: 300x1050 next to 300x440, and the tall one ran off the bottom of the
+   screen. Sticky, so the badge stays alongside a long card as it is read. */
 .exp-lanyard {
-  position: relative;
-  min-height: 440px;
+  position: sticky;
+  top: 96px;
+  height: 460px;
   border-radius: 10px;
   overflow: hidden;
   touch-action: pan-y;
