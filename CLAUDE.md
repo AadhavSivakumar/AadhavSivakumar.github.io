@@ -767,6 +767,23 @@ and must NOT be committed; CI builds it.
 `https://aadhavsivakumar.github.io/portfolio` is served by a **different repo**
 (`AadhavSivakumar/portfolio`) and is unaffected by deploys here.
 
+**That last sentence was false until 2026-09-10, and the way it was false is
+worth knowing.** The old portfolio hard-coded absolute
+`https://aadhavsivakumar.github.io/Media/...` URLs and shipped no media of its
+own, so it was being served its images out of THIS repo's Pages deployment.
+When the deploy here was narrowed from `cp -r Media dist/` to just `Media/web`
++ `Media/skills` (commit `52d7aa1`, the asset-repair pass — the change that
+took the root from ~414MB to ~44MB), 53 of the old site's images and videos
+404'd and nobody noticed for a month. The tell was that `Media/skills/*` still
+worked, because that is one of the two directories that survived the trim.
+
+It is fixed in the other repo, not here: that site now hosts its own media
+under `public/` and builds every URL from `import.meta.env.BASE_URL`, so the
+two are genuinely decoupled and the sentence above is true now. **Do not
+"restore" anything to the root deploy on its behalf**, and if you ever add a
+root-level asset directory, remember the root domain is a shared namespace
+between these two sites.
+
 What reaches the site root: everything Vite emits into `dist/`, plus the four
 directories `scripts/copy-static.mjs` copies (`Media/web`, `Media/skills`,
 `projectpdf`, `Resume`). `Media/projects`, `misc/` and `legacy/` are **not**
