@@ -17,6 +17,16 @@ the foreground, or force-visible the elements and spoof visibility from the page
 capturing. Prefer *measuring* the DOM (`getBoundingClientRect`, computed transforms) over
 eyeballing screenshots; it works regardless of tab state.
 
+**Driving the 3D scene with a mouse: give r3f a frame to raycast.**
+`page.mouse.move(x, y)` immediately followed by `page.mouse.down()` does
+nothing — the pointer-down fires before the renderer has processed the hover,
+so no mesh is picked and the drag silently never starts. It looks exactly like
+a stuck clamp: every frame identical. Move, `waitForTimeout(300)`, then press.
+To find a badge, sweep the pointer down the canvas and watch
+`document.body.style.cursor` turn `grab` — the Lanyard sets it on hover. And
+`gl.readPixels` returns nothing, because three.js does not preserve the drawing
+buffer; measure from `page.screenshot()` instead.
+
 **WebGL CAN be screenshotted here — use `scripts/webgl-shot.mjs`.** Headless
 Firefox on this box cannot create a WebGL context even with every
 software-rendering pref forced, and for most of this project's history the
@@ -231,8 +241,15 @@ keep them:
   takes the dark text with it. On a dark card the same specular lands on top of
   LIGHT text and the text survives. Type went up a size at the same time
   (name 15→19, role 11→12.5).
-- The BACK face stays a pale field in both themes on purpose: it carries logo
-  artwork, some of which is dark-on-transparent and would vanish on black.
+- The BACK face stays pale in both themes on purpose — it carries logo artwork,
+  some of it dark-on-transparent, which would vanish on black — **but it must
+  not be white.** At `#ffffff` a flipped badge on the LIGHT site was invisible:
+  measured off the render, the card field came out (245,244,243) against a page
+  of (243,241,238), a difference of 10. The emissive map is the card's own
+  texture, so a pale field emits hard and clips to white. It is `#a9a294` with a
+  `#6f6859` inset border now, rendering at (231,229,224). The transfer is very
+  compressive — 66 levels of albedo bought 14 levels of render — so reach for
+  the border before reaching for a darker field.
 - `badgeprobe.html` + `src/__badgeprobe.jsx` render the badge ARTWORK to a plain
   2D canvas, both themes, all six cards. The 3D scene needs WebGL, which this
   environment does not have; the artwork does not, so this is the only way to
@@ -249,14 +266,20 @@ keep them:
   on a resize, and each band rebuilds its own copy of the 1678×1677 atlas —
   14.3 MB on the GPU with mips, ~86 MB for a set of six, leaked per settled
   resize before this.
-- **The drag target is CLAMPED to the visible world box.** It used to be
-  whatever the pointer projected to, with nothing stopping it leaving the
-  canvas: drag a badge toward the bottom and it left the frame and was gone.
-  Simulated rather than eyeballed (no WebGL here, so the scene cannot be
-  clicked): of six sample pointer positions, four put the card outside the
-  visible box before, none after. The clamp keeps the card's CENTRE inside, not
-  the whole card — requiring the whole card left barely any downward travel,
-  and a drag you cannot move is a worse bug than the one being fixed.
+- **The drag target is CLAMPED so the WHOLE card stays in frame**, with a
+  0.15-unit margin so it stops just short of the edge rather than kissing it.
+  It originally clamped nothing (drag a badge down and it left the canvas and
+  was gone), then clamped the card's CENTRE — the right trade on the old
+  full-width strip, where the badges rested so close to the limit that a
+  stricter clamp left no travel at all. In the 300x460 Experience columns it
+  was wrong: driven with real pointer events, 61px of a 157px badge hung below
+  the canvas mid-drag. What made the strict clamp affordable was raising the
+  hang. Now ~70px of downward travel, ~94px sideways, and at the limit the card
+  sits 3px clear of the bottom edge.
+- **`SLOT_BASE_Y` is 3.65, raised from 2.4 the first time these could be seen.**
+  At 2.4 the badge came to rest 12px off the bottom of its column — badly
+  composed, and no room to drag. Do not lower it without re-running the drag
+  test; the strict clamp depends on the headroom it creates.
 - **How far back the pegboard has to be is a calculation, not a nudge.** A card
   FLIPPING sweeps its corners through z by its own half-width — the largest
   badge is scale 1.5 and its collider half-width 0.8, so ±1.20 world units. The
