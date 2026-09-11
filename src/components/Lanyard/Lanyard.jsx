@@ -62,7 +62,12 @@ const SLOT_SCALE = [1, 0.9, 0.82];
 // in one flat rank — a flat rank of equal-length vertical straps under a
 // straight crossbar reads as prison bars. Each badge rides at a staggered
 // height (slotRise + hangJitter) and the overhead rail curves to follow them.
-const SLOT_BASE_Y = 2.4;
+// Hang height. Raised from 2.4 once the badges moved into the 300x460
+// Experience columns and could finally be LOOKED AT: at 2.4 the card came to
+// rest 12px off the bottom of its column, so it was badly composed at rest and
+// any drag pushed it straight out of frame. 3.65 lifts it ~55px, which both
+// balances the column and leaves room to pull the badge down.
+const SLOT_BASE_Y = 3.65;
 
 // Per-slot vertical stagger: inner/recent badges hang a touch lower, older ones
 // a touch higher, so the pins aren't a dead-flat rank — but kept subtle (the
@@ -630,9 +635,20 @@ function Band({
       ctx.beginPath();
       ctx.rect(rx, ry, rw, rh);
       ctx.clip();
-      ctx.fillStyle = '#ffffff';
+      // NOT pure white. The back face has to stay pale — it carries logo
+      // artwork, some of it dark-on-transparent, which would vanish on black —
+      // but at #ffffff the flipped card was invisible against the light site's
+      // own near-white page. Seen only once WebGL worked here: flip a badge on
+      // the light theme and the card had no discernible edge at all. A warm
+      // off-white field with an inset border makes it read as an object while
+      // leaving the logos every bit as legible.
+      ctx.fillStyle = '#a9a294';
       ctx.fillRect(rx, ry, rw, rh);
       ctx.drawImage(img, rx + (rw - dw) / 2, ry + (rh - dh) / 2, dw, dh);
+      const bw = Math.max(2, rh * 0.012);
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = '#6f6859';
+      ctx.strokeRect(rx + bw / 2, ry + bw / 2, rw - bw, rh - bw);
       ctx.restore();
     };
 
@@ -707,13 +723,16 @@ function Band({
       // to, with nothing stopping it leaving the canvas — drag a badge down and
       // it left the frame and was simply gone. Clamp the card's centre to the
       // visible world box, allowing for its own half-size.
-      // Keep the card's CENTRE inside the frame, not the whole card. Requiring
-      // the whole card left barely any downward travel — the badges rest only
-      // a couple of units above the clamp — and a drag you cannot move is a
-      // worse bug than the one being fixed. Centre-inside guarantees at least
-      // half the badge stays visible at full stretch.
-      const halfW = state.viewport.width / 2 - 0.4;
-      const halfH = state.viewport.height / 2 - 0.4;
+      // Keep the WHOLE card inside the frame. This used to clamp the card's
+      // centre instead, because on the old full-width strip the badges rested
+      // so close to the limit that a stricter clamp left no drag travel at all.
+      // In the Experience columns, with the hang raised (SLOT_BASE_Y), there is
+      // room: ~70px of downward travel and ~94px sideways, and the badge never
+      // leaves its column. Measured, not assumed — the loose clamp let 61px of
+      // a 157px badge hang below the canvas mid-drag.
+      // +0.15 so the card stops just short of the frame rather than kissing it.
+      const halfW = state.viewport.width / 2 - (0.8 * scale + 0.15);
+      const halfH = state.viewport.height / 2 - (1.125 * scale + 0.15);
       if (tx < -halfW) tx = -halfW; else if (tx > halfW) tx = halfW;
       if (ty < -halfH) ty = -halfH; else if (ty > halfH) ty = halfH;
       if (tz < CARD_MIN_Z) tz = CARD_MIN_Z;               // never behind the board
