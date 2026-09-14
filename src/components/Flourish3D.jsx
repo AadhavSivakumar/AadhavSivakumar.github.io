@@ -1,20 +1,19 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
-import {
-  ROWS as WAVE_ROWS, VW as WAVE_VW, VH as WAVE_VH, STROKE as WAVE_STROKE, FIELD_A as WAVE_FIELD_A,
-  rowY as waveRowY, rowA as waveRowA, waveY, live as waveLive, heroPhase, heroHeight,
-  S_HANDOFF, S_MORPH, S_ART,
-} from '../waveField';
+import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets } from '../waveField';
 
-// The motor: an IEC-proportioned electric motor in line art, fixed to the
-// right-hand side of the viewport. It is FORMED FROM THE HERO'S SINE WAVES —
-// scroll, the field splits, the right half flies here and gathers itself into
-// the machine part by part (see the morph, below) — and then it holds.
+// Two line-art pieces fixed to the viewport, one per side: a CAMERA on the
+// left and an IEC-proportioned electric MOTOR on the right. Both are FORMED
+// FROM THE HERO'S SINE WAVES — scroll, and each row is cut at the centre; the
+// left half flies straight from the big field into the camera, the right half
+// into the motor, part by part — and then they hold.
 //
-// There used to be two pieces with page-long scroll sequences: a camera on
-// the left that tore itself down into a vision-transformer pipeline, and this
-// motor threading itself together on a spinning axle. The owner asked for
-// all of that to go. The geometry is what survived.
+// The strands are drawn by WaveField.jsx, the one canvas that spans both the
+// field and the stages. This file supplies where they land (the captured
+// finished frame) and fades each part's real drawing in as its strands
+// arrive. There used to be page-long scroll sequences on both sides (a
+// camera teardown into a vision-transformer pipeline, a motor threading
+// itself together on a spinning axle); the owner asked for those to go.
 //
 // ── Why this is a canvas and not 300 divs ──────────────────────────────────
 // It was CSS 3D: every part a div inside a `transform-style: preserve-3d` tree.
@@ -535,8 +534,58 @@ const MOTOR_LEN = 344;
 const MOTOR_K_MAX = 0.66;
 const motorModule = k => chain(place(IDENT, [0, 10, 0]), place(mul(MOTOR_TILT, scaleM(k)), [0, 0, 0]));
 
-export default function Flourish3D() {
+/* ══════════════════════════════════════════════════════════════════════════
+   LEFT — the camera
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// A mirrorless body and lens, assembled, in three-quarter view. It is formed
+// from the left half of the hero's waves and then holds, the way the motor
+// does on the right. (It used to tear itself down into a vision-transformer
+// pipeline over the whole page; the owner asked for the camera alone.)
+const CAM_SIL = [
+  [-51, 2], [-51, -14], [-37, -16], [-31, -30], [-8, -34], [0, -18], [28, -18],
+  [38, -12], [48, -10], [48, 36], [38, 46], [19, 50], [-27, 52], [-46, 44], [-51, 24],
+];
+const P_LENS = [[10, 33], [16, 33], [18, 26], [30, 26], [32, 29], [48, 29], [50, 25], [62, 25], [64, 27], [70, 27], [72, 20], [74, 0]];
+const CAM_FRONT_SOLID = extrude(CAM_SIL, 2, 19);
+const CAM_BACK_SOLID = extrude(CAM_SIL, -19, -2);
+const LENS_E1 = [...surface([[44, 27], [50, 25], [52, 22]], 18), ...disc(0, 27, 44, 18)];
+const LENS_E2 = [...surface([[62, 25], [68, 23], [70, 19]], 18), ...disc(0, 25, 62, 18)];
+const LENS_SOLID = [...surface(P_LENS, 20), ...disc(0, 20, 72, 20)];
+const CAM_TOP = [...boxFaces(22, 10, 16, 24, -30, 4), ...boxFaces(16, 9, 14, -32, -26, 4)];
+// Each piece carries its OWN wireframe. Deriving one from the face list wires
+// every triangle of a lathe's end-cap fan and the lens front comes out as a
+// sunburst; a shell comes out as a ladder of coincident quad edges.
+const shellWire = (z0, z1) => [
+  [...CAM_SIL.map(([x, y]) => [x, y, z0]), [CAM_SIL[0][0], CAM_SIL[0][1], z0]],
+  [...CAM_SIL.map(([x, y]) => [x, y, z1]), [CAM_SIL[0][0], CAM_SIL[0][1], z1]],
+  ...CAM_SIL.filter((_, i) => i % 3 === 0).map(([x, y]) => [[x, y, z0], [x, y, z1]]),
+];
+// Materials as on the motor: no two neighbours share one, the big shells get
+// the lightest dose. The two glass elements are drawn in the accent — gold
+// means the optical path.
+const CAMERA = [
+  { id: 'lens-front', mat: MAT.neutral, glass: true, solid: LENS_E2, wire: [ring(25, 62, 20), ring(19, 70, 20)] },
+  { id: 'lens-rear', mat: MAT.neutral, glass: true, solid: LENS_E1, wire: [ring(27, 44, 20), ring(22, 52, 20)] },
+  { id: 'barrel', mat: MAT.alu, solid: LENS_SOLID,
+    wire: [...revolve(P_LENS, 3, [[16, 33], [30, 26], [48, 29], [62, 25], [70, 27]]),
+           ...radial(10, a2 => [[at(a2, 29, 36), at(a2, 29, 46)]])] },     // focus-ring knurling
+  { id: 'front-shell', mat: MAT.paint, solid: CAM_FRONT_SOLID, wire: shellWire(2, 19) },
+  { id: 'top-plate', mat: MAT.steel, solid: CAM_TOP,
+    wire: [...boxWire(22, 10, 16, 24, -30, 4), ...boxWire(16, 9, 14, -32, -26, 4)],
+    detail: [ringAt(7, 24, -30, 20, 12), ringAt(9, -32, -26, 20, 12)] },   // shutter, dial
+  { id: 'back-shell', mat: MAT.paint, solid: CAM_BACK_SOLID, wire: shellWire(-19, -2) },
+];
+// Sized and placed to pair with the motor across the page; checked by the ink
+// bounding box, like everything else in this file.
+const CAM_SCALE = 2.25;
+const CAM_X = -22;
+const CAM_Y = -10;
+const CAM_TURN = mul(rotY(74 * DEG), scaleM(CAM_SCALE));
+
+export default function Flourish3D({ side = 'right' }) {
   const hostRef = useRef(null);
+  const isLeft = side === 'left';
 
   useEffect(() => {
     const host = hostRef.current;
@@ -722,12 +771,13 @@ export default function Flourish3D() {
         lastW = host.clientWidth;
         sizeCanvas();
         readHostA();
+        publish();
         repaint();
       });
       sizeRO.observe(host);
     }
 
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); morph = null; repaint(); });
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); publish(); repaint(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 
@@ -991,19 +1041,14 @@ export default function Flourish3D() {
       ptsN = 0;                      // the whole frame's points are done with
     }
 
-    // ── the motor ───────────────────────────────────────────────────────
-    // ONE frame, fully assembled, held. It used to run a page-long sequence —
-    // laid out as an exploded view, threading itself together on a spinning
-    // axle, then free-running at the bottom — and the camera on the other side
-    // tore itself down into a detection pipeline. The owner asked for all of
-    // that to go: the waves become the motor, and the motor stays.
-    //
-    // The view is the old sequence's last frame, so the fit measured for it
-    // still holds: camera yaw 16, pitch 14, dolly 30; module scale at
-    // MOTOR_K_MAX; the shaft's rotation where the old run left it.
-    const SPIN = 2600 * DEG;               // the rotation the old run ended on
+    // ── the pieces ──────────────────────────────────────────────────────
+    // Each is ONE frame, assembled, held. The motor's is the last frame of
+    // its old page-long run, so the fit measured for it still holds: camera
+    // yaw 16, pitch 14, dolly 30; module scale at MOTOR_K_MAX; the shaft's
+    // rotation where the old run left it.
+    const SPIN = 2600 * DEG;
     const ROLL = (90 + 250) * DEG;
-    let partA = null;                      // per-part alpha while the part materialises
+    let partA = null;                      // per-part alpha while a part materialises
     function drawMotor() {
       setCam(16 * DEG, 14 * DEG, 30);
       const runK = MOTOR_K_MAX;
@@ -1019,14 +1064,11 @@ export default function Flourish3D() {
         const mat = part.mat || MAT.neutral;
         submit(part.solids, T, mat, pa);
         submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
-        // LEVEL OF DETAIL: bolt circles, slot lines, screws — illegible below
-        // about 44px of part, so not drawn there at all.
-        // (not captured for the morph: detail appears with the part's drawing,
-        // and 268 strands converging on one small machine read as a tangle)
+        // LEVEL OF DETAIL, and not captured for the morph: fine detail
+        // arrives with its part's drawing rather than as a strand
         if (screenR > LOD_PX && part.detail && !cap) submitLines(part.detail, T, matLine[mat], LOOK.line * 0.8 * pa, LOOK.width);
       }
-      // COPPER: bars in the stator slots, and end turns bulging past the
-      // r=62 core — at r=50 they were hidden by the core's own surface.
+      // COPPER: bars in the stator slots, end turns bulging past the r=62 core
       const pc = partA ? (partA.copper ?? 0) : 1;
       if (pc > 0.004) {
         capId = 'copper';
@@ -1038,191 +1080,71 @@ export default function Flourish3D() {
       }
       flush();     // ONE sorted pass over the whole machine: masses and lines
     }
-
-    // ── the morph: sine rows become the motor ───────────────────────────
-    // The hero's wave field is cut down the middle; WaveField.jsx carries the
-    // right half to this stage (the left half leaves the page). Once it has
-    // arrived this piece draws the SAME rows itself — same constants, same
-    // frozen phase, so the cross-fade between the two canvases is invisible —
-    // and then gathers them into the motor.
-    //
-    // How it stays smooth:
-    //  - The finished frame is CAPTURED once (`cap`): every line it would
-    //    stroke, projected, tagged with its part.
-    //  - Parts are ordered top to bottom on screen, and the rows are dealt out
-    //    in that order, so each part forms from a contiguous band of rows and
-    //    the machine builds down the page one part after another.
-    //  - Each wave fragment FLIES as a rigid wave — turned to its line's
-    //    direction, scaled to its length — until its midpoint sits on the
-    //    line's midpoint, then BENDS the short remaining distance into the
-    //    line. Three things were tried first and all read as scribble: a
-    //    straight lerp (averages a wave with a circle: a knot), gathering to
-    //    the line's centre (every ring of a part shares one: a pile), and
-    //    laying the strand like a thread (the head arrives while the tail is
-    //    still in the field, so every strand became a long straight straw).
-    //  - Each part's real drawing — fills, hidden lines removed — fades in as
-    //    its own strands land, while those strands fade out. Doing that for
-    //    the whole machine at the end made the model appear to pop in.
-    const toRGB = c => (c.startsWith('#') ? hexToRgb(c) : hexToRgb(rgbStrToHex(c)));
-    const resample = (pts, n) => {
-      const m = pts.length / 2;
-      if (m === n) return pts;
-      const out = new Float64Array(n * 2);
-      const cum = new Float64Array(m); cum[0] = 0;
-      for (let i = 1; i < m; i++) cum[i] = cum[i - 1] + Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]);
-      const L = cum[m - 1];
-      let j = 0;
-      for (let k = 0; k < n; k++) {
-        const d = L * (n > 1 ? k / (n - 1) : 0);
-        while (j < m - 2 && cum[j + 1] < d) j++;
-        const seg = cum[j + 1] - cum[j];
-        const t = seg > 1e-9 ? (d - cum[j]) / seg : 0;
-        out[k * 2] = pts[j * 2] + (pts[j * 2 + 2] - pts[j * 2]) * t;
-        out[k * 2 + 1] = pts[j * 2 + 1] + (pts[j * 2 + 3] - pts[j * 2 + 1]) * t;
+    function drawCamera() {
+      setCam(-26 * DEG, 15 * DEG, -70);
+      const T = place(CAM_TURN, [CAM_X, CAM_Y, 0]);
+      for (const piece of CAMERA) {
+        const pa = partA ? (partA[piece.id] ?? 0) : 1;
+        if (pa <= 0.004) continue;
+        capId = piece.id;
+        submit(piece.solid, T, piece.mat, pa);
+        submitLines(piece.wire, T, piece.glass ? ink : matLine[piece.mat], LOOK.line * pa, LOOK.width);
+        if (piece.detail && !cap) submitLines(piece.detail, T, matLine[piece.mat], LOOK.line * 0.8 * pa, LOOK.width);
       }
-      return out;
-    };
-    const KY = H / WAVE_VH;
-    // a row's wave, in stage coordinates; the stage's LEFT edge is the one
-    // nearest the centre of the page, so d runs 0..VW/2 left to right
-    const stageWaveY = (i, xs) => {
-      const d = (xs * (WAVE_VW / 2)) / W;
-      return waveRowY(i) * KY + waveY(i, d, waveLive.phase, waveLive.freq) * KY;
-    };
-    // part windows within the morph: when each one starts, how long it takes
-    const PART_LEAD = 0.42, PART_SPAN = 0.58;
-    function buildMorph() {
+      flush();
+    }
+    const art = () => { if (isLeft) drawCamera(); else drawMotor(); };
+
+    // ── the targets the waves fly to ────────────────────────────────────
+    // The strands themselves are drawn by WaveField.jsx, from the big hero
+    // field straight to their lines — it is the one canvas that spans both
+    // the field and the stages. What this piece supplies is WHERE they land:
+    // its finished frame, CAPTURED once (`cap`: submitLines records projected
+    // polylines, tagged with their part, instead of drawing), filtered to the
+    // lines long enough to be worth a strand, and ranked by part, top to
+    // bottom. Published to the shared module; rebuilt on a theme change,
+    // which recolours the lines.
+    //
+    // Alphas are multiplied by the host's own opacity: the strands are drawn
+    // on a canvas without it, and have to land looking exactly like the lines
+    // that replace them.
+    const toRGB = c => (c.startsWith('#') ? hexToRgb(c) : hexToRgb(rgbStrToHex(c)));
+    function publish() {
       cap = [];
-      drawMotor();
-      // Short lines are not worth a strand of their own: they arrive with
-      // their part's drawing instead.
-      const recs = cap.filter(r => {
-        let L = 0;
-        for (let q = 2; q < r.pts.length; q += 2) L += Math.hypot(r.pts[q] - r.pts[q - 2], r.pts[q + 1] - r.pts[q - 1]);
-        return L >= 18;
-      });
-      cap = null;
-      const parts = new Map();
-      for (const r of recs) {
-        let sx = 0, sy = 0, x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      art();
+      const recs = [];
+      for (const r of cap) {
         const n = r.pts.length / 2;
+        let L = 0, sx = 0, sy = 0, x0 = Infinity, x1 = -Infinity;
         for (let i = 0; i < n; i++) {
           const x = r.pts[i * 2], y = r.pts[i * 2 + 1];
-          sx += x; sy += y;
-          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+          sx += x; sy += y; if (x < x0) x0 = x; if (x > x1) x1 = x;
+          if (i) L += Math.hypot(x - r.pts[i * 2 - 2], y - r.pts[i * 2 - 1]);
         }
-        r.cx = sx / n; r.cy = sy / n; r.bw = Math.max(6, x1 - x0); r.size = Math.max(6, x1 - x0, y1 - y0);
-        const P = parts.get(r.id) || { sy: 0, n: 0 };
-        P.sy += r.cy; P.n++; parts.set(r.id, P);
+        // short lines arrive with their part's drawing instead
+        if (L < 18) continue;
+        recs.push({ pts: r.pts, id: r.id, rgb: toRGB(r.c), a: r.a * hostA, w: r.w, cx: sx / n, cy: sy / n, bw: Math.max(6, x1 - x0) });
       }
+      cap = null;
+      const parts = new Map();
+      for (const r of recs) { const P = parts.get(r.id) || { sy: 0, n: 0 }; P.sy += r.cy; P.n++; parts.set(r.id, P); }
       const order = [...parts.keys()].sort((a, b) => parts.get(a).sy / parts.get(a).n - parts.get(b).sy / parts.get(b).n);
-      const rank = new Map(order.map((id, i) => [id, i]));
-      const nP = order.length;
-      const startOf = id => (nP > 1 ? rank.get(id) / (nP - 1) : 0) * PART_LEAD;
-      recs.sort((A, B) => (rank.get(A.id) - rank.get(B.id)) || (A.cy - B.cy));
-      const buckets = new Map();
-      const empty = [];
-      for (let i = 0; i < WAVE_ROWS; i++) {
-        const a = Math.floor((recs.length * i) / WAVE_ROWS), b = Math.floor((recs.length * (i + 1)) / WAVE_ROWS);
-        const own = recs.slice(a, b).sort((A, B) => A.cx - B.cx);
-        if (!own.length) { empty.push(i); continue; }
-        const total = own.reduce((acc, r) => acc + r.bw, 0) || 1;
-        let x = 0;
-        own.forEach((r, j) => {
-          const wpx = (r.bw / total) * W;
-          const xa = x, xb = x + wpx; x = xb;
-          const n = Math.max(r.pts.length / 2, Math.ceil(wpx / 5) + 1);
-          const tgt = resample(r.pts, n);
-          const dir = tgt[0] <= tgt[(n - 1) * 2] ? 1 : -1;
-          // a little stagger inside a part, so its strands do not move as a block
-          // where the strand lands: on the line's midpoint, along its direction
-          // (first->last, or first->middle for a closed ring), at its length
-          const h = (n >> 1) * 2, e = (n - 1) * 2;
-          let L = 0;
-          for (let q = 2; q <= e; q += 2) L += Math.hypot(tgt[q] - tgt[q - 2], tgt[q + 1] - tgt[q - 1]);
-          let vx = tgt[e] - tgt[0], vy = tgt[e + 1] - tgt[1];
-          if (Math.hypot(vx, vy) < 0.3 * L) { vx = tgt[h] - tgt[0]; vy = tgt[h + 1] - tgt[1]; }
-          const ang = Math.atan2(vy, vx);
-          const fly = { ca: Math.cos(ang), sa: Math.sin(ang), g: Math.max(0.15, Math.min(1.6, (Math.hypot(vx, vy) || L) / Math.max(1, wpx))), tmx: tgt[h], tmy: tgt[h + 1] };
-          const lead = startOf(r.id) + (own.length > 1 ? (j / (own.length - 1)) : 0) * 0.04;
-          // batched per ROW too: each row has its own opacity in the field
-          // (0.8 at the top to 0.1), and averaging it across a batch made the
-          // rows jump in brightness at the moment the two canvases swapped
-          const key = r.id + '|' + r.c + '|' + r.w + '|' + r.a + '|' + i;
-          let bk = buckets.get(key);
-          if (!bk) { bk = { id: r.id, rgb: toRGB(r.c), w: r.w, a: r.a, items: [], srcA: 0 }; buckets.set(key, bk); }
-          bk.items.push({ row: i, xa, xb, n, dir, tgt, lead, ...fly });
-          bk.srcA += waveRowA(i);
-        });
-      }
-      const list = [...buckets.values()];
-      for (const bk of list) bk.srcA /= bk.items.length;   // one row each, so exact
-      morph = { buckets: list, empty, order, startOf, n: recs.length };
+      morph = { order };
       canvas.dataset.morph = String(recs.length);
+      publishTargets(isLeft ? 'left' : 'right', { recs, order });
     }
-    const partT = (m, id) => win(m, morph.startOf(id), PART_SPAN);
+
+    // While the morph runs, each part's real drawing — fills, hidden lines
+    // removed — fades in as its own strands land, on the same schedule the
+    // field uses to move them.
     function prelude(s) {
-      const aIn = win(s, S_HANDOFF[0], S_HANDOFF[1]);
-      if (aIn <= 0.004) return;
+      if (!morph) publish();
       const m = win(s, S_MORPH[0], S_MORPH[1]);
-      if (!morph) buildMorph();
-      // the field's own opacity, undoing the host's so the two canvases match
-      const fieldA = (dark ? WAVE_FIELD_A.dark : WAVE_FIELD_A.light) / hostA;
-      const srcW = WAVE_STROKE / fit;
-      const gold = hexToRgb(ink);
-      // rows with nothing to become simply fade
-      for (const i of morph.empty) {
-        const a = waveRowA(i) * fieldA * (1 - smooth(m)) * aIn;
-        if (a <= 0.004) continue;
-        ctx.globalAlpha = a; ctx.strokeStyle = ink; ctx.lineWidth = srcW;
-        ctx.beginPath();
-        for (let k = 0; k <= 56; k++) { const x = (k / 56) * W, y = stageWaveY(i, x); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
-        ctx.stroke();
-      }
-      for (const bk of morph.buckets) {
-        const pt = partT(m, bk.id);
-        // style rides the second half, so a strand is still gold while it travels
-        const st = smooth(win(pt, 0.35, 0.65));
-        const fade = 1 - smooth(win(pt, 0.78, 0.22));
-        const a = (bk.srcA * fieldA + (bk.a - bk.srcA * fieldA) * st) * aIn * fade;
-        if (a <= 0.004) continue;
-        ctx.globalAlpha = a;
-        ctx.strokeStyle = `rgb(${Math.round(gold[0] + (bk.rgb[0] - gold[0]) * st)},${Math.round(gold[1] + (bk.rgb[1] - gold[1]) * st)},${Math.round(gold[2] + (bk.rgb[2] - gold[2]) * st)})`;
-        ctx.lineWidth = srcW + (bk.w - srcW) * st;
-        ctx.beginPath();
-        for (const it of bk.items) {
-          const mk = win(m, it.lead, PART_SPAN);
-          const e1 = smooth(win(mk, 0, 0.62));      // fly, still a wave
-          const e2 = smooth(win(mk, 0.42, 0.58));   // bend into the line
-          const n = it.n, tgt = it.tgt;
-          // the strand's own midpoint, which is what lands on the line's
-          const xm = (it.xa + it.xb) / 2, ym = stageWaveY(it.row, xm);
-          const { ca, sa, g, tmx, tmy } = it;
-          for (let k = 0; k < n; k++) {
-            const t = n > 1 ? k / (n - 1) : 0;
-            const xs = it.dir > 0 ? it.xa + (it.xb - it.xa) * t : it.xb - (it.xb - it.xa) * t;
-            const ys = stageWaveY(it.row, xs);
-            // 1 · FLY: the strand travels as a rigid wave, turned to its
-            //     line's direction, scaled to its length, centred on its
-            //     midpoint. Every line has its own midpoint — rings of one
-            //     part share a centre but not a midpoint — so nothing piles up.
-            const ox = (xs - xm) * g, oy = (ys - ym) * g;
-            const fx = tmx + ox * ca - oy * sa, fy = tmy + ox * sa + oy * ca;
-            const x1 = xs + (fx - xs) * e1, y1 = ys + (fy - ys) * e1;
-            // 2 · BEND: from there to the line is a short distance, so the
-            //     last move reads as a wave relaxing into shape.
-            const x = x1 + (tgt[k * 2] - x1) * e2, y = y1 + (tgt[k * 2 + 1] - y1) * e2;
-            if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-          }
-          segs += n - 1;
-        }
-        ctx.stroke();
-      }
-      // each part's real drawing fades in as its strands land
-      let any = false;
+      const n = morph.order.length;
       const pa = {};
-      for (const id of morph.order) { const v = smooth(win(partT(m, id), 0.62, 0.38)) * aIn; pa[id] = v; if (v > 0.004) any = true; }
-      if (any) { partA = pa; drawMotor(); partA = null; }
+      let any = false;
+      morph.order.forEach((id, r) => { const v = partArtA(partT(m, r, n)); pa[id] = v; if (v > 0.004) any = true; });
+      if (any) { partA = pa; art(); partA = null; }
     }
 
     const done = y => !reduce && heroPhase(y) >= S_ART;
@@ -1234,19 +1156,20 @@ export default function Flourish3D() {
       ctx.lineCap = 'round';
       segs = 0;
       const s = reduce ? Infinity : heroPhase(y);
-      if (s < S_ART) prelude(s); else drawMotor();
+      if (s < S_ART) prelude(s); else art();
       ctx.globalAlpha = 1;
       canvas.dataset.segs = String(segs);
     }
 
     // ── scroll driver ───────────────────────────────────────────────────
     // Shared listener and rAF (src/scrollDriver.js). Past the morph the
-    // motor is one fixed frame, so scrolling there redraws NOTHING — only the
-    // first frame past the line does, to land exactly on the finished motor.
+    // piece is one fixed frame, so scrolling there redraws NOTHING — only the
+    // first frame past the line does, to land exactly on the finished piece.
     let stopScroll = null;
     let trailing = 0;
+    publish();                             // the field needs the targets before the morph starts
     if (reduce) {
-      draw();                              // the finished motor, no morph
+      draw();                              // the finished piece, no morph
     } else {
       // ADAPTIVE RATE: time each draw and back off when it is expensive.
       let MIN_MS = 32;
@@ -1280,10 +1203,10 @@ export default function Flourish3D() {
       sizeRO?.disconnect();
       themeWatch.disconnect();
     };
-  }, []);
+  }, [isLeft]);
 
   return (
-    <div className="f3d f3d--right" ref={hostRef} aria-hidden="true">
+    <div className={`f3d f3d--${side}`} ref={hostRef} aria-hidden="true">
       <canvas />
     </div>
   );

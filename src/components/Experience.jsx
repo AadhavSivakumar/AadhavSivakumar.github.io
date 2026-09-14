@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import SectionTitle from './SectionTitle';
 import ErrorBoundary from './ErrorBoundary';
 import LiftCard from './LiftCard';
+import PageNext from './PageNext';
 import { experienceData } from '../data/siteData';
 import { badgeByName } from './badgeCards';
 
@@ -129,7 +130,7 @@ function ExperienceCard({ item, index, onCardClick }) {
   );
 }
 
-export default function Experience({ id, title, group, onCardClick }) {
+export default function Experience({ id, title, group, onCardClick, next }) {
   const wide = useIsWide();
   const rows = experienceData.filter(e => e.group === group);
   return (
@@ -149,6 +150,7 @@ export default function Experience({ id, title, group, onCardClick }) {
           </React.Fragment>
         ))}
       </div>
+      {next && <PageNext to={next.to} label={next.label} />}
     </section>
   );
 }

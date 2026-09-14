@@ -40,28 +40,42 @@ export const waveY = (i, d, phase, freq) => AMP * Math.sin((d + phase) * freq + 
 // ── the timeline, in HERO HEIGHTS scrolled ──────────────────────────────
 // `s = scrollY / heroHeight`, so the choreography is pinned to the hero
 // rather than to the page: adding a section below does not move it.
-//   0        the field, riding with the page
-//   SPLIT    each row is cut at the centre; the right half travels to the
-//            motor's stage, compressing to fit it, and the left half leaves
-//            off the left edge. Rows peel away one after another, top first,
-//            rather than the whole field sliding as a slab.
-//   HANDOFF  the field canvas fades out and the motor's canvas draws the same
-//            rows in its stage — a cross-fade between identical geometry
-//   MORPH    the rows gather themselves into the motor, part by part
-//   after    the motor holds; nothing redraws
-export const S_SPLIT = [0.02, 0.53];                  // whole split window
-export const SPLIT_STAGGER = 0.20;                    // first row to last row
-const SPLIT_SPAN = S_SPLIT[1] - SPLIT_STAGGER;        // each row's own travel
-export const S_HANDOFF = [0.55, 0.12];
-export const S_MORPH   = [0.62, 0.78];
-export const S_ART     = S_MORPH[0] + S_MORPH[1];     // 1.40
+//   0      the field, riding with the page
+//   MORPH  straight from the big field into the drawings. Every row is cut at
+//          the centre line; the LEFT half becomes the camera and the RIGHT
+//          half the motor, part by part, top to bottom. There is no stage in
+//          between where the rows first shrink into the side panels — the
+//          owner asked for the big waves to go straight to the pieces.
+//   after  the two pieces hold; nothing redraws
+export const S_MORPH = [0.04, 1.0];
+export const S_ART   = S_MORPH[0] + S_MORPH[1];     // 1.04
 
 export const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const win = (p, lead, span) => clamp01((p - lead) / span);
 export const smooth = t => t * t * (3 - 2 * t);
-// how far row i is through its split, 0..1, eased
-export const rowSplit = (i, s) =>
-  smooth(win(s, S_SPLIT[0] + (i / (ROWS - 1)) * SPLIT_STAGGER, SPLIT_SPAN));
+
+// ── the per-part schedule ───────────────────────────────────────────────
+// Both canvases need it: WaveField moves each part's strands on it, and the
+// piece fades that part's real drawing in on it. Parts are ranked top to
+// bottom on screen; part r of n starts at partStart(r, n) of the morph and
+// takes PART_SPAN of it.
+export const PART_LEAD = 0.42;
+export const PART_SPAN = 0.58;
+export const partStart = (rank, n) => (n > 1 ? rank / (n - 1) : 0) * PART_LEAD;
+export const partT = (m, rank, n) => win(m, partStart(rank, n), PART_SPAN);
+// how visible a part's real drawing is, from its own progress
+export const partArtA = pt => smooth(win(pt, 0.62, 0.38));
+// how visible its strands still are
+export const strandFade = pt => 1 - smooth(win(pt, 0.78, 0.22));
+
+// ── the targets ─────────────────────────────────────────────────────────
+// Each piece captures its finished drawing once — every line it strokes,
+// projected into its own 340x660 drawing units and tagged with its part —
+// and publishes it here. WaveField reads it and flies the strands there.
+// `v` bumps on every publish (a theme change recolours the lines, a resize
+// re-measures) so the field knows to rebuild its plan.
+export const targets = { left: null, right: null, v: 0 };
+export function publishTargets(side, data) { targets[side] = data; targets.v++; }
 
 // ── shared live state ───────────────────────────────────────────────────
 // The field canvas owns the drift phase; the flourishes read it during the

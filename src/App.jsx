@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MotionConfig } from 'motion/react';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import About from './components/About';
 import Experience from './components/Experience';
 import Projects from './components/Projects';
 import Skills from './components/Skills';
@@ -84,26 +83,28 @@ function App() {
           there. */}
       <div className="page-flourish-layer" aria-hidden="true">
         {/* The hero's sine field lives here too, not in the hero: it is what
-            the flourishes are made FROM. Scroll, and it splits down the
-            middle, each half flying to a side stage and gathering itself into
-            that piece's first frame. It is drawn on every machine — 25
-            strokes — while the pieces themselves stay gated. */}
+            the two pieces are made FROM. Scroll, and each row is cut at the
+            centre — the left half flies straight into the camera, the right
+            half into the motor. The field is drawn on every machine; the
+            pieces stay gated. */}
         <WaveField />
-        {canAfford3D && <Flourish3D />}
+        {canAfford3D && <Flourish3D side="left" />}
+        {canAfford3D && <Flourish3D side="right" />}
       </div>
       <a className="skip-link" href="#main">Skip to content</a>
       <Header theme={theme} toggleTheme={toggleTheme} />
       <main id="main">
         <Hero />
-        <About onCardClick={handleCardClick} />
         {/* One screen each, in the owner's order: industry experience, research,
-            major projects, additional projects, resume, skills, contact. */}
-        <Experience id="experience" title="Experience" group="industry" onCardClick={handleCardClick} />
-        <Experience id="research" title="Research" group="research" onCardClick={handleCardClick} />
+            major projects, additional projects, resume, skills, contact. Each
+            page but the last ends in a down button to the next (`next`). The
+            about card is in the contact page now. */}
+        <Experience id="experience" title="Experience" group="industry" onCardClick={handleCardClick} next={{ to: 'research', label: 'Research' }} />
+        <Experience id="research" title="Research" group="research" onCardClick={handleCardClick} next={{ to: 'projects', label: 'Major Projects' }} />
         <Projects onCardClick={handleCardClick} />
-        <Resume onCardClick={handleCardClick} />
-        <Skills onCardClick={handleCardClick} />
-        <Contact />
+        <Resume onCardClick={handleCardClick} next={{ to: 'skills', label: 'Technical Skills' }} />
+        <Skills onCardClick={handleCardClick} next={{ to: 'contact', label: 'Get In Touch' }} />
+        <Contact onCardClick={handleCardClick} />
       </main>
       <Footer />
       <Modal

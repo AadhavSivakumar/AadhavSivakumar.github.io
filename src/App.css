@@ -157,8 +157,35 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-block: 88px 28px;
+  /* The top clears the fixed 80px header. The bottom is room for the down
+     button (PageNext), which sits in that padding rather than in the flow,
+     so it never moves the content. */
+  padding-block: 80px 56px;
 }
+/* The down button at the bottom of each page. Static on purpose — no bobbing
+   loop (see PageNext.jsx). */
+.page-next {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  width: 38px;
+  height: 38px;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--secondary-color);
+  border: 1px solid var(--border-color);
+  background-color: color-mix(in srgb, var(--surface-color) 70%, transparent);
+  transition: color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.page-next:hover {
+  color: var(--accent-ink);
+  border-color: var(--accent-color);
+  transform: translateX(-50%) translateY(3px);
+  box-shadow: 0 6px 14px var(--shadow-color-ambient);
+}
+@media (prefers-reduced-motion: reduce) { .page-next, .page-next:hover { transition: none; transform: translateX(-50%); } }
 /* The title inherits the body's 1.7 line-height otherwise: ~25px of air
    above every page, which is most of what pushed them past one screen. */
 .page .section-title { font-size: clamp(2rem, 1.2rem + 1.6vw, 2.7rem); line-height: 1.15; margin-bottom: clamp(12px, 1.8vh, 26px); }
@@ -354,31 +381,6 @@ html[data-theme="dark"] {
 }
 .hero-scroll-cue:hover { color: var(--accent-ink); }
 
-/* About stage: the about card sits centered with the lanyard badges hanging
-   on both sides. Full-bleed so the six lanyards have room beyond the 1200px
-   section width; overflow clips the canvas top so the straps appear to come
-   from offscreen. */
-#about { position: relative; }
-
-/* Top row of the About section: the card, centered. */
-.about-top {
-  position: relative;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  min-height: 480px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 0 8px;
-}
-.about-card-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  z-index: 5;
-}
-
 /* Keyboard focus. The cards are divs with button semantics, so nothing gives
    them a focus ring for free. */
 /* The focus ring is a site-wide DEFAULT, not a list of components. It started
@@ -479,7 +481,9 @@ html[data-theme="dark"] .f3d::before {
     rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.08) 55%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* Pull the stage toward the page edge; the motor sits in its own margin. */
+/* Pull each stage toward the page edge; the art sits in its own margin. The
+   camera is on the left, the motor on the right. */
+.f3d--left { left: clamp(-70px, -1vw, 0px); }
 .f3d--right { right: clamp(-70px, -1vw, 0px); }
 
 /* MOBILE. These used to be hidden below 992px, because two 340px stages on a
@@ -489,6 +493,7 @@ html[data-theme="dark"] .f3d::before {
    paragraph. */
 @media (max-width: 991px) {
   .f3d { --fw: 244px; --fh: 474px; opacity: 0.72; }
+  .f3d--left  { left: -14px;  top: calc(32vh - var(--fh) / 2); }
   .f3d--right { right: -14px; top: calc(71vh - var(--fh) / 2); }
 }
 @media (max-width: 600px) {
@@ -497,6 +502,7 @@ html[data-theme="dark"] .f3d::before {
      as visible. The vertical stagger is what keeps them out of each other's
      way and off the same paragraph, not a horizontal retreat. */
   .f3d { --fw: 190px; --fh: 369px; opacity: 0.68; }
+  .f3d--left  { left: -8px;  top: calc(29vh - var(--fh) / 2); }
   .f3d--right { right: -8px; top: calc(73vh - var(--fh) / 2); }
 }
 
@@ -884,6 +890,25 @@ html[data-theme="dark"] .skill-group-card-image {
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 #contact { text-align: center; }
+/* The last page: the about card beside the invitation and the links. */
+.contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 520px);
+  gap: 48px;
+  justify-content: center;
+  align-items: center;
+}
+#contact .contact-body p { text-align: left; margin: 0 0 28px; max-width: none; }
+.contact-body .social-links { justify-content: flex-start; margin-top: 0; }
+.page--contact .about-me-card img { height: clamp(190px, 30vh, 290px); }
+.page--contact .about-me-card .project-content { padding: 18px 22px 22px; }
+.page--contact .about-me-card .project-content h3 { font-size: 2rem; margin-bottom: 8px; }
+.page--contact .about-me-card .project-content p { font-size: 0.92rem; line-height: 1.55; margin: 0; text-align: center; color: var(--secondary-color); }
+@media (max-width: 860px) {
+  .contact-layout { grid-template-columns: minmax(0, 420px); justify-content: center; gap: 28px; }
+  #contact .contact-body p { text-align: center; }
+  .contact-body .social-links { justify-content: center; }
+}
 .social-links { margin-top: 40px; display: flex; justify-content: center; gap: 35px; align-items: center; }
 .social-links a { color: var(--secondary-color); transition: transform 0.3s ease, color 0.3s ease; display: inline-block; }
 .social-links a:hover { transform: scale(1.25); color: var(--accent-ink); }
@@ -988,19 +1013,6 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 
 /* RESPONSIVE DESIGN */
 @media (max-width: 992px) {
-  .about-top {
-    width: 100%;
-    margin-left: 0;
-    min-height: 0;
-    padding: 0;
-  }
-  .about-card-wrapper {
-    flex-direction: column;
-    align-items: center;
-  }
-  .about-me-card {
-    max-width: 90%;
-  }
   .nav-link {
     padding: 6px 9px;
     font-size: 0.9rem;
@@ -1100,7 +1112,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    to 300x440). Taking it from the viewport keeps the pair equal. At 900px tall
    it is ~330px, so the badges draw ~72% of the size they had in the old 460px
    column. */
-.exp-page { --exp-row-h: clamp(280px, calc((100svh - 88px - 28px - 104px - 20px) / 2), 400px); }
+.exp-page { --exp-row-h: clamp(270px, calc((100svh - 80px - 56px - 96px - 16px) / 2), 400px); }
 /* Cards in the middle column, one per row; each badge in a side column
    spanning BOTH rows — the first on the right, top-aligned beside the first
    card, the second on the left, bottom-aligned beside the second. */
@@ -1190,6 +1202,14 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   .exp-foot { flex-direction: column; align-items: flex-start; }
 }
 
+/* MID-HEIGHT SCREENS (1536x864): a little tighter, so the down button's
+   reserved space does not push the research and additional-projects pages
+   past one screen. After the base rules, for the reason given below. */
+@media (max-height: 880px) and (min-width: 992px) {
+  .exp-card { padding: 14px 22px 12px; }
+  .small-project-card img, .small-project-card video { aspect-ratio: 9 / 4; }
+}
+
 /* SHORT SCREENS (1280x800, 1366x768): one highlight per experience card,
    shorter project covers and no skill-group icons, so every page still fits.
    LAST in the file on purpose: these override base rules of equal
@@ -1197,12 +1217,13 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    shrank. */
 @media (max-height: 840px) and (min-width: 992px) {
   .exp-bullets li:nth-child(n + 2) { display: none; }
-  .small-project-card img, .small-project-card video { aspect-ratio: 5 / 2; }
+  .small-project-card img, .small-project-card video { aspect-ratio: 3 / 1; }
   .major-project-card img, .major-project-card video { aspect-ratio: 2 / 1; }
   .skill-group-card-image-wrapper { display: none; }
   .skill-group-card { padding-top: 16px; }
   .small-projects-grid { --gap: 10px; }
-  .page { padding-block-end: 18px; }
+  .page { padding-block-end: 48px; }
+  .page-next { width: 34px; height: 34px; bottom: 8px; }
 }
 
 /* PHONES: the nav has one link per page (eight) plus the theme toggle — about

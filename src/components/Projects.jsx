@@ -2,6 +2,7 @@ import React from 'react';
 import ProjectCard from './ProjectCard';
 import SectionTitle from './SectionTitle';
 import CoverPlaybackToggle from './CoverPlaybackToggle';
+import PageNext from './PageNext';
 import { majorProjectsData, smallProjectsData } from '../data/siteData';
 
 export default function Projects({ onCardClick }) {
@@ -26,6 +27,7 @@ export default function Projects({ onCardClick }) {
             />
           ))}
         </div>
+        <PageNext to="additional-projects" label="Additional Projects" />
       </section>
 
       <section id="additional-projects" className="page page--wide" aria-labelledby="additional-projects-title">
@@ -42,6 +44,7 @@ export default function Projects({ onCardClick }) {
             />
           ))}
         </div>
+        <PageNext to="resume" label="Resume" />
       </section>
     </>
   );

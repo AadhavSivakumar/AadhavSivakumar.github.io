@@ -4,7 +4,6 @@ import { onScroll } from '../scrollDriver';
 
 // One link per page, in page order.
 const LINKS = [
-  { id: 'about', label: 'About' },
   { id: 'experience', label: 'Experience' },
   { id: 'research', label: 'Research' },
   { id: 'projects', label: 'Projects' },

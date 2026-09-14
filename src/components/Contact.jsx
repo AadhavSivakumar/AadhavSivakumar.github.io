@@ -2,6 +2,7 @@ import React from 'react';
 import Reveal from './Reveal';
 import SectionTitle from './SectionTitle';
 import useScrollReveal from '../hooks/useScrollReveal';
+import AboutCard from './About';
 
 const SOCIALS = [
   {
@@ -42,21 +43,28 @@ function SocialLink({ social, index }) {
   );
 }
 
-export default function Contact() {
+// The last page: the about card — portrait, name, the bio behind a click —
+// beside the invitation and the links.
+export default function Contact({ onCardClick }) {
   return (
-    <section id="contact" className="page" aria-labelledby="contact-title">
+    <section id="contact" className="page page--contact" aria-labelledby="contact-title">
       <SectionTitle id="contact-title">Get In Touch</SectionTitle>
-      <Reveal delay={0.1}>
-        <p>
-          I'm always open to discussing new opportunities in Robotics, Machine Learning, and
-          Mechatronics. Whether you have a question or just want to say hi, I'll try my best
-          to get back to you!
-        </p>
-      </Reveal>
-      <div className="social-links">
-        {SOCIALS.map((s, i) => (
-          <SocialLink key={s.label} social={s} index={i} />
-        ))}
+      <div className="contact-layout">
+        <AboutCard onCardClick={onCardClick} />
+        <div className="contact-body">
+          <Reveal delay={0.1}>
+            <p>
+              I'm always open to discussing new opportunities in Robotics, Machine Learning, and
+              Mechatronics. Whether you have a question or just want to say hi, I'll try my best
+              to get back to you!
+            </p>
+          </Reveal>
+          <div className="social-links">
+            {SOCIALS.map((s, i) => (
+              <SocialLink key={s.label} social={s} index={i} />
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );

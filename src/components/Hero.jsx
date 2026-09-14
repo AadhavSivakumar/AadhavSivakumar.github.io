@@ -187,8 +187,8 @@ export default function Hero() {
 
       <motion.button
         className="hero-scroll-cue"
-        aria-label="Scroll to About"
-        onClick={() => scrollTo('about')}
+        aria-label="Scroll to Experience"
+        onClick={() => scrollTo('experience')}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.8, duration: 0.8 }}

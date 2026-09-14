@@ -83,7 +83,8 @@ src/
     HeroChip.jsx          # liquid-glass keyword pill (backdrop-filter + SVG refraction)
     WaveField.jsx         # the hero sine field: fixed full-viewport canvas that splits into the flourishes
     Flourish3D.jsx        # the two canvas side flourishes (see below)
-    About.jsx             # the about card (the lanyard badges moved to Experience)
+    About.jsx             # the about card (portrait, name, bio modal) — rendered inside Contact
+    PageNext.jsx          # the static down button at the bottom of each page
     badgeCards.js         # the six badge definitions + photos; Experience hangs four of them
     Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
     Projects.jsx, ProjectCard.jsx
@@ -193,8 +194,8 @@ column on the RIGHT, top-aligned beside the first card, and the second in a
 250px column on the LEFT, bottom-aligned beside the second. Each canvas spans
 both rows in a column of its own, which is what lets a canvas stay 460px tall
 while two cards share one 900px screen. Squeezing each canvas to its row
-(~330px) was built first and seen: the badges drew at ~72% of their size. The About section is just the card; its full-width six-badge strip
-is gone (the owner asked for the badges next to their boxes — "the lanyard",
+(~330px) was built first and seen: the badges drew at ~72% of their size. There is no About section any more — the about card is on the Get In Touch
+page (see Pages); its old full-width six-badge strip is gone (the owner asked for the badges next to their boxes — "the lanyard",
 definite article — and duplicating six badges was not worth the GPU memory).
 Two badges from the old strip, Dublin High and "Researcher", have no row and
 are not rendered; their data is kept in `badgeCards.js`. **The `.exp-lanyard`
@@ -317,15 +318,21 @@ keep them:
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
-## The hero, and the sine field that becomes the motor
+## The hero, and the sine field that becomes the camera and the motor
 
 The front page follows the old `/portfolio` hero, at the owner's request: a
 full-viewport band, a 224px portrait disc (`Media/hero/frontpagepfp.webp`,
 imported so Vite bundles it) above the name, the keyword chips, and the gold
-sine field behind all of it. **Scroll, and the field splits down the middle:
-the right half flies to the motor's stage and gathers itself into the motor,
-part by part; the left half leaves off the left edge, fading.** Then the motor
-holds. That is the whole animation — see "The motor", below.
+sine field behind all of it. The hero's scroll cue goes to Experience — there
+is no About section in between any more. **Scroll, and every row is cut at the
+centre line: the LEFT half flies straight from the big field into the camera,
+the RIGHT half into the motor, part by part, top to bottom.** Then both pieces
+hold. That is the whole animation.
+
+"Straight" is the owner's word and it is load-bearing: an earlier version first
+shrank the rows into the two side panels (a compressed wave field in each
+stage), cross-faded canvases, and only then morphed. There is no intermediate
+stage now.
 
 **There is no gold glow on the page.** `body` used to paint a 10% accent
 radial gradient at 10%/10%, fixed to the viewport, and the owner saw it as a
@@ -333,75 +340,78 @@ warm light leaking in from the left. Its neutral partner at 90%/80% stays.
 
 - **The field is NOT in the hero.** It is `WaveField.jsx`, one fixed
   full-viewport canvas first in `.page-flourish-layer`, which rides the page by
-  drawing itself offset by `-scrollY` until it detaches. A row that has to
-  leave the hero and land on a fixed element cannot live inside the hero. The
-  aurora blobs and the old SVG `SineWave` are gone.
+  drawing itself offset by `-scrollY`. It draws EVERY strand the whole way,
+  because it is the only canvas that spans both the field and the two stages.
 - **Its numbers are /portfolio's, read from its source** (`SineWave.tsx` in the
   other repo): 1000x350 virtual box, 25 rows, amplitude 8, frequency 0.04
   (0.02 in portrait), -25° phase per row, opacity 0.8 → 0.1, the wave mirrored
   about the centre (`sin(|x-500| + phase)`), the mouse bulge, the 50ms-stagger
   drop-in entrance. Keep them in `src/waveField.js`.
-- **The timeline is in HERO HEIGHTS scrolled, not page progress**
-  (`S_SPLIT`, `S_HANDOFF`, `S_MORPH` in `waveField.js`), so adding a section
-  below does not move it. Rows peel off one after another, top first
-  (`rowSplit`, `SPLIT_STAGGER`), rather than the field sliding as one slab.
-- **The handoff is a cross-fade between identical geometry.** Once the rows
-  have arrived, the field canvas fades out while the motor's canvas draws the
-  SAME rows from the same constants at the same phase. Measured at one
-  instant: all 25 row crossings within 1px, peak alpha within ~5%. That only
-  holds because the drift slows to a stop as the LAST row arrives, so the
-  motor reads a constant `live.phase` — change that and a paused scroll
-  mid-handoff shows two copies sliding apart. The morph's strands are batched
-  per ROW for the same reason: batching by part averaged the rows' opacity and
-  every row jumped in brightness at the swap.
-- **The morph** (`prelude` in `Flourish3D.jsx`). The finished motor is
-  CAPTURED once (`cap`: submitLines records projected polylines, tagged with
-  their part via `capId`, instead of drawing). Parts are ordered top to bottom
-  on screen and the rows dealt out in that order, so each part forms from its
-  own band of rows and the machine builds down the stage one part after
-  another. Each strand FLIES as a rigid wave — turned to its line's direction,
-  scaled to its length — until its midpoint sits on the line's midpoint, then
-  BENDS the short remaining distance into the line. Each part's real drawing
-  (fills, hidden lines removed) fades in via `partA` as its own strands land.
-  The capture holds colours, so it is rebuilt on a theme change.
-  **What was tried and read as scribble, seen each time:** a straight lerp
-  (averages a wave with a circle: a knot); gathering each strand to its
-  line's centre (every ring of a part shares one: a pile); laying the strand
-  like a thread, head first (the tail is still in the field when the head
-  lands, so every strand became a long straight straw); and morphing all 268
-  lines. Only lines ≥18px long, without LOD detail, get a strand — 103 of
-  them; the rest arrive with their part's drawing. And the whole model fading
-  in at the end made it pop; per part it does not.
+- **The timeline is in HERO HEIGHTS scrolled, not page progress** (`S_MORPH`,
+  `S_ART` in `waveField.js`), so adding a section below does not move it. The
+  per-part schedule (`partStart`, `partT`, `partArtA`, `strandFade`) lives
+  there too, because BOTH canvases run on it: the field moves a part's
+  strands, the piece fades that part's real drawing in.
+- **The pieces publish where the strands land** (`publishTargets` /
+  `targets`). Each captures its finished frame once — `cap` makes
+  submitLines record projected polylines tagged with their part (`capId`)
+  instead of drawing — keeps the lines ≥18 drawing-units long (fine LOD
+  detail arrives with its part's drawing, not as a strand), ranks parts top
+  to bottom, and publishes. The field builds its plan from that: a side's lines
+  dealt across the 25 rows in part order, each half-row cut into one fragment
+  per line. Alphas are multiplied by the stage's CSS opacity, because the
+  strands land on a canvas without it. Republished on a theme change
+  (colours) and a resize.
+- **How a strand moves**: it FLIES as a rigid wave — turned to its line's
+  direction, scaled to its length — until its midpoint sits on the line's
+  midpoint, then BENDS the short remaining distance into the line. **What was
+  tried and read as scribble, each seen:** a straight lerp (averages a wave
+  with a circle: a knot); gathering to the line's centre (every ring of a part
+  shares one: a pile); laying the strand head first like a thread (every
+  strand became a long straight straw); and morphing all 268 motor lines
+  rather than the 103 long ones. The whole model fading in at the end made it
+  pop; per part it does not.
 - **Idle rules still hold.** The field redraws only while something moves: the
-  entrance, the drift (hero on screen, rows not yet frozen, tab visible, capped
-  at ~30fps because it moves ten pixels a second), the bulge while the pointer
-  is over the hero. Past the handoff the canvas is cleared once and nothing
-  runs. It is drawn on every machine; the motor stays gated on core count,
-  and without its stage the field just rides the page and fades.
-- **Frame cost, measured in Firefox**: hero at p50 17.1ms with the field, the
-  same with it hidden. The live SVG version measured 33ms. Under the SwiftShader
-  Chromium harness the hero reads 66-100ms — that is the CPU rasteriser
-  emulating a GPU for a full-viewport canvas under five `backdrop-filter`
-  chips, not the page. Measure frame time in Firefox, not there.
+  entrance, the drift (hero on screen, tab visible, ~30fps because it moves
+  ten pixels a second), the bulge while the pointer is over the hero. Past the
+  morph the canvas is cleared once and nothing runs. It is drawn on every
+  machine; the pieces stay gated on core count, and a half with no piece to
+  become just fades.
+- **Frame cost, measured in Firefox**: p50 17.0-17.1ms still in the hero and
+  while scrolling through the morph. Under the SwiftShader Chromium harness
+  the hero reads 66-100ms — that is the CPU rasteriser emulating a GPU for a
+  full-viewport canvas under five `backdrop-filter` chips, not the page.
+  Measure frame time in Firefox, not there.
 
-## The motor (`src/components/Flourish3D.jsx`)
+## The pieces (`src/components/Flourish3D.jsx`)
 
-ONE decorative piece, fixed to the right of the viewport in the
-`page-flourish-layer` (`App.jsx`), skipped only when
-`navigator.hardwareConcurrency <= 4`. It is formed from the hero's sine waves
-(previous section) and then **holds as one still frame for the rest of the
-page — no scroll sequence, no idle spin.** Past the morph, scrolling redraws
-nothing at all.
+Two decorative pieces fixed to the viewport in the `page-flourish-layer`
+(`App.jsx`), skipped only when `navigator.hardwareConcurrency <= 4`: a
+**camera on the left** (`side="left"`) and a **motor on the right**. Both are
+formed from the hero's sine waves (previous section) and then **hold as one
+still frame each for the rest of the page — no scroll sequence, no idle
+spin.** Past the morph, scrolling redraws nothing at all.
 
-**Everything else that used to be here is gone, at the owner's request (Sept
-2026):** the camera on the left that tore itself down into a
-vision-transformer pipeline, and the motor's own page-long sequence (laid out
-as an exploded view, threading itself onto a spinning axle, the free-running
-propeller at the bottom). The geometry survived. Much of what follows is the
-history of that renderer; where it talks about the camera, the left side, the
-exploded layout or progress through the page, it describes code that no
-longer exists — `LAID_OUT`, `revs`, the idle spin and the vision module are
-all in git history before this change.
+**What changed, at the owner's request (Sept 2026):** both used to run
+page-long sequences — the camera tearing itself down into a
+vision-transformer pipeline, the motor laid out as an exploded view and
+threading itself onto a spinning axle, with a free-running propeller at the
+bottom. Those are gone. The camera went entirely for one release and came
+back as a static piece. Much of what follows is the history of the renderer;
+where it talks about the explosion, the pipeline, or progress through the
+page, it describes code that no longer exists — `LAID_OUT`, `revs`, the idle
+spin and the vision pipeline are in git history (the camera's teardown and
+pipeline at `3e5b1c3`).
+
+**The camera** is six pieces (`CAMERA`): front and back shells, lens barrel,
+two glass elements drawn in the accent (gold = the optical path), and the top
+plate with its shutter and dial. Materials as on the motor — the big shells
+get the lightest dose. It faces INWARD, toward the page: the first framing had
+the lens nearly head-on (a white disc hiding the body), the second pointed it
+out of the page with its front 15px from the screen edge. `CAM_TURN`
+(rotY 74°) with camera yaw -26° and pitch 15°, at `CAM_SCALE` 2.25 and
+`CAM_X`/`CAM_Y` -22/-10: ink box 259x202 in the 340x660 stage, beside the
+motor's 221x259.
 
 **They are NOT gated on width.** They used to be hidden below 992px, which
 meant every phone saw none of them. The stage now sizes itself from CSS
@@ -415,7 +425,9 @@ That is the DRAWING coordinate system, and every fit, camera constant and LOD
 threshold in the file is expressed in it — only `ctx.setTransform` changes.
 Resize the stage in CSS and nothing about the composition needs re-tuning.
 
-On mobile the stage sits lower on the right (71-73vh) and fainter.
+On mobile the two stages are staggered VERTICALLY (left around 29-32vh,
+right around 71-73vh) rather than pulled off the side edges. Retreating
+horizontally was tried first and reduced them to slivers.
 
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
@@ -717,8 +729,17 @@ From Experience down, every section is a `.page` — at least the viewport tall,
 content centred under the fixed header — in the owner's order: **Experience
 (Roboflow, Starship) · Research (NYU, UCSC) · Major Projects · Additional
 Projects · Resume · Technical Skills · Get In Touch.** The nav has one link per
-page in that order ("More" is Additional Projects). The hero and About come
-first and are not pages.
+page in that order ("More" is Additional Projects). Only the hero comes before
+them. **Get In Touch carries the about card** (portrait, name, the bio behind
+a click) beside the invitation and the links; it used to be its own section
+right under the hero.
+
+**Every page but the last ends in a down button** (`PageNext`) to the next
+one. It is a link, so it works from the keyboard and without JavaScript, and
+html's `scroll-behavior` does the smooth scroll (instant under reduced motion).
+It does NOT bob like the hero's cue: six never-ending loops is exactly the
+failure mode "keeping a still page still" is about. It sits in the page's
+bottom padding (56px), absolutely positioned, so it never moves the content.
 
 **Each page's content is sized to fit one screen**, and that is checked by
 measurement, not by eye: every page's `offsetHeight` equals the viewport at
@@ -735,10 +756,14 @@ took, in case something is added and a page grows past the screen:
 - **Experience cards are teasers** (see `experienceData`), with the card
   height taken from the viewport (`--exp-row-h`), not the content.
 - **A short-screen block** (`max-height: 840px`) drops to one highlight per
-  experience card, shortens the covers and hides the skill icons. **It is the
-  LAST rule in `App.css` on purpose**: it overrides base rules of equal
-  specificity, and placed above them it silently lost — the covers never
-  shrank.
+  experience card, shortens the covers and hides the skill icons, and a
+  mid-height block (`max-height: 880px`, for 1536x864) tightens the experience
+  cards and small covers a little. **Both come after the base rules in
+  `App.css` on purpose**: they override rules of equal specificity, and placed
+  above them the short block silently lost — the covers never shrank.
+- **The down button's room was paid for** by trimming the page's top padding
+  to the header's own 80px. Adding it cost research and additional projects
+  ~25px at 1536x864 before that.
 
 Tablets in landscape (1024x768, 1100x820) still run a page or two 20-80px
 over and scroll within it; below 992px the pages stack naturally and the

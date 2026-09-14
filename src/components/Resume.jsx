@@ -2,6 +2,7 @@ import React from 'react';
 import Reveal from './Reveal';
 import SectionTitle from './SectionTitle';
 import useScrollReveal from '../hooks/useScrollReveal';
+import PageNext from './PageNext';
 import { resumeDocsData } from '../data/siteData';
 
 const DocIcon = () => (
@@ -25,7 +26,7 @@ function DocTile({ doc, index, onOpen }) {
   );
 }
 
-export default function Resume({ onCardClick }) {
+export default function Resume({ onCardClick, next }) {
   const openDoc = (e, doc) => {
     onCardClick(e.currentTarget, {
       id: doc.id,
@@ -49,6 +50,7 @@ export default function Resume({ onCardClick }) {
           <DocTile key={doc.id} doc={doc} index={i} onOpen={openDoc} />
         ))}
       </div>
+      {next && <PageNext to={next.to} label={next.label} />}
     </section>
   );
 }
