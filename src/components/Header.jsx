@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { onScroll } from '../scrollDriver';
 
+// One link per page, in page order.
 const LINKS = [
   { id: 'about', label: 'About' },
   { id: 'experience', label: 'Experience' },
+  { id: 'research', label: 'Research' },
   { id: 'projects', label: 'Projects' },
-  { id: 'skills', label: 'Skills' },
+  { id: 'additional-projects', label: 'More' },
   { id: 'resume', label: 'Resume' },
+  { id: 'skills', label: 'Skills' },
   { id: 'contact', label: 'Contact' },
 ];
 
@@ -75,6 +78,20 @@ function ThemeIcon({ theme }) {
 export default function Header({ theme, toggleTheme }) {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState(null);
+  const navRef = useRef(null);
+
+  // On a phone the nav is wider than the screen and swipes sideways, so the
+  // link for the page being read can be out of view. Keep it in view. This
+  // sets the nav's own scrollLeft — scrollIntoView would scroll the PAGE too.
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav || !active || nav.scrollWidth <= nav.clientWidth) return;
+    const link = nav.querySelector(`a[href="#${active}"]`);
+    if (!link) return;
+    const left = link.offsetLeft - nav.offsetLeft;
+    const target = left - (nav.clientWidth - link.offsetWidth) / 2;
+    nav.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+  }, [active]);
 
   useEffect(() => {
     return onScroll(y => setScrolled(y > 50));
@@ -87,14 +104,13 @@ export default function Header({ theme, toggleTheme }) {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const id = entry.target.id === 'additional-projects' ? 'projects' : entry.target.id;
-            setActive(id);
+            setActive(entry.target.id);
           }
         });
       },
       { rootMargin: '-35% 0px -55% 0px' }
     );
-    ['hero', 'additional-projects', ...LINKS.map((l) => l.id)].forEach((id) => {
+    ['hero', ...LINKS.map((l) => l.id)].forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
@@ -104,7 +120,7 @@ export default function Header({ theme, toggleTheme }) {
   return (
     <header className={scrolled ? 'scrolled' : ''}>
       <div className="logo"><a href="#hero">AS.</a></div>
-      <nav>
+      <nav ref={navRef}>
         {LINKS.map((link) => (
           <a
             key={link.id}

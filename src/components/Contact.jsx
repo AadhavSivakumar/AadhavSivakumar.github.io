@@ -44,7 +44,7 @@ function SocialLink({ social, index }) {
 
 export default function Contact() {
   return (
-    <section id="contact" aria-labelledby="contact-title">
+    <section id="contact" className="page" aria-labelledby="contact-title">
       <SectionTitle id="contact-title">Get In Touch</SectionTitle>
       <Reveal delay={0.1}>
         <p>

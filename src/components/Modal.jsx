@@ -191,7 +191,9 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     const isMp4 = itemData.imageUrl?.toLowerCase().endsWith('.mp4');
 
     let mediaEl = null;
-    if (!isResume) {
+    // An entry with no cover (an Experience row) gets no media block at all —
+    // an <img> with no src fell through to the "Img Error" placeholder.
+    if (!isResume && itemData.imageUrl) {
       if (isMp4) {
         // `muted` is required or the browser blocks the autoplay outright.
         mediaEl = (
@@ -220,7 +222,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
 
     return (
       <>
-        {!isResume && (
+        {mediaEl && (
           <motion.div variants={contentItem} className="modal-image-container">
             {mediaEl}
           </motion.div>
@@ -251,6 +253,20 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
                   allowFullScreen
                   id={isResume ? 'resume-modal-iframe' : undefined}
                 />
+              );
+            } else if (content.type === 'meta') {
+              return <motion.p key={i} variants={contentItem} className="modal-meta">{content.value}</motion.p>;
+            } else if (content.type === 'list') {
+              return (
+                <motion.ul key={i} variants={contentItem} className="modal-dynamic-list">
+                  {content.items.map((item, j) => <li key={j}>{item}</li>)}
+                </motion.ul>
+              );
+            } else if (content.type === 'tags') {
+              return (
+                <motion.div key={i} variants={contentItem} className="project-tags-container modal-tags">
+                  {content.items.map((t, j) => <span key={j} className="project-tag">{t}</span>)}
+                </motion.div>
               );
             } else if (content.type === 'image') {
               return (

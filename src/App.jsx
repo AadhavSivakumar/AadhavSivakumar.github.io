@@ -96,10 +96,13 @@ function App() {
       <main id="main">
         <Hero />
         <About onCardClick={handleCardClick} />
-        <Experience />
+        {/* One screen each, in the owner's order: industry experience, research,
+            major projects, additional projects, resume, skills, contact. */}
+        <Experience id="experience" title="Experience" group="industry" onCardClick={handleCardClick} />
+        <Experience id="research" title="Research" group="research" onCardClick={handleCardClick} />
         <Projects onCardClick={handleCardClick} />
-        <Skills onCardClick={handleCardClick} />
         <Resume onCardClick={handleCardClick} />
+        <Skills onCardClick={handleCardClick} />
         <Contact />
       </main>
       <Footer />

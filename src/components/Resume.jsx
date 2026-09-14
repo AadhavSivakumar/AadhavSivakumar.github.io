@@ -35,7 +35,7 @@ export default function Resume({ onCardClick }) {
   };
 
   return (
-    <section id="resume" aria-labelledby="resume-title">
+    <section id="resume" className="page" aria-labelledby="resume-title">
       <SectionTitle id="resume-title">Resume, CV & Transcripts</SectionTitle>
       <Reveal delay={0.1}>
         <p>

@@ -88,7 +88,7 @@ src/
     Lanyard/Lanyard.jsx   # multi-band physics lanyard (see below)
     Projects.jsx, ProjectCard.jsx
     Skills.jsx, SkillGroupCard.jsx
-    Experience.jsx        # four rows: a big card + that organisation's lanyard badge in its own 3D canvas
+    Experience.jsx        # one PAGE of two orgs (rendered twice: Experience, Research) — teaser cards + zig-zag lanyard badges
     Resume.jsx            # Resume / Extended CV / Transcript tiles (Drive embeds)
     Contact.jsx, Footer.jsx
     Modal.jsx             # single reusable modal; phased lift->expand->populate
@@ -116,7 +116,7 @@ All page content lives in `src/data/siteData.js`:
 - `aboutMeData` — about card + modal (title, teaser, `modalContent` blocks).
 - `majorProjectsData` / `smallProjectsData` — project cards. Shape: `{ id, title, cardDescription, imageUrl, tags, status, modalContent }`. `modalContent` is an array of `{ type: 'text' | 'button' | 'embed' | 'image', ... }` blocks rendered by `Modal.jsx`. Preserve existing `id` values.
 - `skillGroupsData` — skill category cards; each group has `items` of `{ name, imageUrl, description }`.
-- `experienceData` — the Experience section (`Experience.jsx`): `{ id, org, role, location, period, summary, bullets, tags }`, rendered inline with no modal because it is the section a recruiter reads.
+- `experienceData` — the Experience and Research pages (`Experience.jsx`): `{ id, group, badge, org, role, degree?, location, period, summary, bullets, tags }`. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary and the first two bullets, each clamped, and five tags — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
   **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
 - `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
@@ -184,20 +184,28 @@ ID badges on physics ropes, ported from the ReactBits lanyard and heavily
 extended. **Seen rendering for the first time on 2026-09-07** via the WebGL
 harness above: black cards, legible type, one pin each, centred — the material
 and layout work verified by simulation held up. **They hang beside the
-Experience rows now** — one badge per row
-(Roboflow, Starship, NYU, UCSC), each in its own small `<Canvas>` in the
-300px `.exp-lanyard` column, mounted only once its row comes within 600px of
-the viewport (`useNearViewport`) so four WebGL contexts are not created on
-page load. The About section is just the card; its full-width six-badge strip
+Experience and Research cards** — one badge per card (Roboflow, Starship on
+Experience; NYU, UCSC on Research), each in its own small `<Canvas>`, mounted
+only once it comes within 600px of the viewport (`useNearViewport`) so four
+WebGL contexts are not created on page load. **The badges ZIG-ZAG**: on each
+page the cards stack in the middle column, the first badge hangs in a 250px
+column on the RIGHT, top-aligned beside the first card, and the second in a
+250px column on the LEFT, bottom-aligned beside the second. Each canvas spans
+both rows in a column of its own, which is what lets a canvas stay 460px tall
+while two cards share one 900px screen. Squeezing each canvas to its row
+(~330px) was built first and seen: the badges drew at ~72% of their size. The About section is just the card; its full-width six-badge strip
 is gone (the owner asked for the badges next to their boxes — "the lanyard",
 definite article — and duplicating six badges was not worth the GPU memory).
 Two badges from the old strip, Dublin High and "Researcher", have no row and
 are not rendered; their data is kept in `badgeCards.js`. **The `.exp-lanyard`
-column is a FIXED 460px, sticky, never stretched to the card**: the camera's
-field of view is vertical, so a canvas that grows with a seven-bullet card
-renders its badge at over twice the size of the one beside a one-bullet card —
-seen, not guessed (300x1050 next to 300x440, the tall one running off the
-screen). Badge scale is `sizeMul` 1.6 in a 300px column. A lone badge uses
+canvas is a FIXED 460px, never stretched to a card**: the camera's field of
+view is vertical, so a canvas that grows with its card renders its badge at
+over twice the size of the one beside a short card — seen, not guessed
+(300x1050 next to 300x440). **`.exp-lanyard` must stay `position: relative`**:
+it is the containing block for the Lanyard's absolutely positioned canvas. It
+used to be `sticky`, which did that job silently; the first version of the
+pages dropped `sticky` and the badge hung over the middle of the cards.
+Badge scale is `sizeMul` 1.6. A lone badge uses
 `side: 'center'`, because the left/right anchor maths always clears the centre
 by half a card plus a gap, which is right for a pair flanking a card and wrong
 for a badge with the column to itself. Key invariants learned the hard way —
@@ -267,16 +275,20 @@ keep them:
   on a resize, and each band rebuilds its own copy of the 1678×1677 atlas —
   14.3 MB on the GPU with mips, ~86 MB for a set of six, leaked per settled
   resize before this.
-- **The drag target is CLAMPED so the WHOLE card stays in frame**, with a
-  0.15-unit margin so it stops just short of the edge rather than kissing it.
-  It originally clamped nothing (drag a badge down and it left the canvas and
-  was gone), then clamped the card's CENTRE — the right trade on the old
-  full-width strip, where the badges rested so close to the limit that a
-  stricter clamp left no travel at all. In the 300x460 Experience columns it
-  was wrong: driven with real pointer events, 61px of a 157px badge hung below
-  the canvas mid-drag. What made the strict clamp affordable was raising the
-  hang. Now ~70px of downward travel, ~94px sideways, and at the limit the card
-  sits 3px clear of the bottom edge.
+- **The drag target is CLAMPED so the WHOLE card stays in frame.** It
+  originally clamped nothing (drag a badge down and it left the canvas and was
+  gone), then clamped the card's CENTRE, then the collider's box plus 0.15.
+  **The margins are measured, not derived — 0.65 vertical, 0.4 sideways** —
+  because the visible card is not centred on its collider (the mesh group sits
+  1.2*scale below the body and the GLB has its own origin), so the collider's
+  half-extents under-state how far the art reaches. 0.15 had been measured 3px
+  clear on a straight drag at 300px wide; dragged into a CORNER of the 250px
+  column the badge's last row went over the edge. Found by probing with a
+  deliberately large margin (0.8: 13px clear below, 25px beside, at ~43.5px
+  per world unit) and solving. Now 5-6px clear at every corner, both badges,
+  at 1100, 1440 and 1920 wide. The drag test is: sweep the pointer down the
+  canvas until the cursor turns `grab`, press, drag 300px past each lower
+  corner, and read the badge's dark-pixel box off the render.
 - **`SLOT_BASE_Y` is 3.65, raised from 2.4 the first time these could be seen.**
   At 2.4 the badge came to rest 12px off the bottom of its column — badly
   composed, and no room to drag. Do not lower it without re-running the drag
@@ -698,6 +710,42 @@ The check that catches all of them, and the number to keep at zero:
 scroll past the hero, hold still, count DOM mutations for 3s
   before: ~105    after: 0
 ```
+
+## Pages: one screen each
+
+From Experience down, every section is a `.page` — at least the viewport tall,
+content centred under the fixed header — in the owner's order: **Experience
+(Roboflow, Starship) · Research (NYU, UCSC) · Major Projects · Additional
+Projects · Resume · Technical Skills · Get In Touch.** The nav has one link per
+page in that order ("More" is Additional Projects). The hero and About come
+first and are not pages.
+
+**Each page's content is sized to fit one screen**, and that is checked by
+measurement, not by eye: every page's `offsetHeight` equals the viewport at
+1440x900, 1536x864, 1920x1080, 1280x800 and (within 2px) 1366x768. What it
+took, in case something is added and a page grows past the screen:
+
+- **The title's line-height.** `.section-title` inherited the body's 1.7 —
+  ~25px of air above every page. `.page .section-title` sets 1.15.
+- **Major projects four across, skills four across, additional projects five
+  to a row** (the last row centred), with covers at a fixed aspect ratio; small
+  cards carry title, status and two tags on one line faded at the edge — the
+  description is in the modal. A second line of chips was enough to push the
+  grid past the screen.
+- **Experience cards are teasers** (see `experienceData`), with the card
+  height taken from the viewport (`--exp-row-h`), not the content.
+- **A short-screen block** (`max-height: 840px`) drops to one highlight per
+  experience card, shortens the covers and hides the skill icons. **It is the
+  LAST rule in `App.css` on purpose**: it overrides base rules of equal
+  specificity, and placed above them it silently lost — the covers never
+  shrank.
+
+Tablets in landscape (1024x768, 1100x820) still run a page or two 20-80px
+over and scroll within it; below 992px the pages stack naturally and the
+lanyards are not loaded. On phones the nav is ~750px wide, so it swipes
+sideways (masked at the right edge) and the header keeps the active link in
+view by setting the nav's own `scrollLeft` — `scrollIntoView` would scroll the
+page as well.
 
 ## `header` is a global element selector — do not use `<header>` inside a component
 

@@ -106,18 +106,11 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
     );
   }
 
-  const tagsToShow = isMajor ? project.tags : project.tags?.slice(0, 3);
-  const hasMoreTags = !isMajor && project.tags?.length > 3;
+  // Small cards carry their first two tags on one line: thirteen of them share
+  // one screen now, and the rest are in the modal.
+  const tagsToShow = isMajor ? project.tags : project.tags?.slice(0, 2);
   const statusClass = project.status?.toLowerCase().replace(/ /g, '-');
 
-  let cardDesc = '';
-  if (!isMajor && project.modalContent?.[0]?.type === 'text') {
-    const text = project.modalContent[0].value;
-    // Trim back to a word boundary — a raw substring(0, 70) cut mid-word.
-    cardDesc = text.length > 70
-      ? text.slice(0, 70).replace(/\s+\S*$/, '') + '…'
-      : text;
-  }
 
   return (
     <LiftCard
@@ -144,18 +137,12 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
       ) : (
         <div className="small-project-content">
           <h4>{project.title}</h4>
-          <p>{cardDesc}</p>
-          {tagsToShow?.length > 0 && (
-            <div className="project-tags-container">
-              {tagsToShow.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
-              {hasMoreTags && <span className="project-tag">...</span>}
-            </div>
-          )}
-          {project.status && (
-            <div className="project-status-container">
-              <span className={`project-tag status-${statusClass}`}>{project.status}</span>
-            </div>
-          )}
+          {/* One row: status first, then the first two tags. The description
+              lives in the modal — thirteen cards share one screen. */}
+          <div className="project-tags-container">
+            {project.status && <span className={`project-tag status-${statusClass}`}>{project.status}</span>}
+            {tagsToShow?.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
+          </div>
         </div>
       )}
     </LiftCard>

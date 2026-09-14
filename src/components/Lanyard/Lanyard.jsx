@@ -730,9 +730,18 @@ function Band({
       // room: ~70px of downward travel and ~94px sideways, and the badge never
       // leaves its column. Measured, not assumed — the loose clamp let 61px of
       // a 157px badge hang below the canvas mid-drag.
-      // +0.15 so the card stops just short of the frame rather than kissing it.
-      const halfW = state.viewport.width / 2 - (0.8 * scale + 0.15);
-      const halfH = state.viewport.height / 2 - (1.125 * scale + 0.15);
+      // The margins are MEASURED, not derived: the visible card is not centred
+      // on its collider (the mesh group sits 1.2*scale below the body, and
+      // the GLB has its own origin), so the collider's half-extents
+      // under-state how far the art reaches. Probed in the 250x460 column by
+      // dragging each badge into both lower corners with a large margin and
+      // reading the clearance off the render: at 0.8 the badge cleared the
+      // bottom by 13px and the sides by 25px, at ~43.5px per world unit.
+      // 0.65 / 0.4 leave ~6px below and ~8px beside it. (0.15 had been
+      // measured 3px clear on a straight drag at 300px wide; into a corner of
+      // the narrower column the badge's last row went over the edge.)
+      const halfW = state.viewport.width / 2 - (0.8 * scale + 0.4);
+      const halfH = state.viewport.height / 2 - (1.125 * scale + 0.65);
       if (tx < -halfW) tx = -halfW; else if (tx > halfW) tx = halfW;
       if (ty < -halfH) ty = -halfH; else if (ty > halfH) ty = halfH;
       if (tz < CARD_MIN_Z) tz = CARD_MIN_Z;               // never behind the board

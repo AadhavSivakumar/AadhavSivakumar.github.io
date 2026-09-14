@@ -5,7 +5,7 @@ import { skillGroupsData } from '../data/siteData';
 
 export default function Skills({ onCardClick }) {
   return (
-    <section id="skills" aria-labelledby="skills-title">
+    <section id="skills" className="page page--wide" aria-labelledby="skills-title">
       <SectionTitle id="skills-title">Technical Skills</SectionTitle>
       <div className="skill-groups-grid">
         {skillGroupsData.map((group, i) => (

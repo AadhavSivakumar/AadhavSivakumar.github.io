@@ -2,7 +2,8 @@ import React from 'react';
 import LiftCard from './LiftCard';
 
 export default function SkillGroupCard({ group, onCardClick, index = 0 }) {
-  const MAX_SKILLS = 8;
+  // Six, so eight groups fit one screen four across; the modal lists them all.
+  const MAX_SKILLS = 6;
 
   return (
     <LiftCard

@@ -36,9 +36,14 @@ export const aboutMeData = {
 // owner has flagged as needing clearance. Keep it that way.
 export const experienceData = [
   // Rows in the order the owner asked for. `badge` names the lanyard card
-  // (badgeCards.js) that hangs beside the row.
+  // (badgeCards.js) that hangs beside the row. `group` says which page the
+  // row is on: 'industry' is the Experience page (Roboflow, Starship),
+  // 'research' the Research page (NYU, UCSC) — two rows per page, each page
+  // one screen. The card shows the summary and the first two bullets; the
+  // whole entry opens in the modal.
   {
     id: 'exp-roboflow',
+    group: 'industry',
     badge: 'Roboflow',
     org: 'Roboflow',
     role: 'Edge AI Engineer, Solutions Research & Development',
@@ -58,6 +63,7 @@ export const experienceData = [
   },
   {
     id: 'exp-starship',
+    group: 'industry',
     badge: 'Starship',
     org: 'Starship Technologies',
     role: 'Robot Technician',
@@ -71,9 +77,11 @@ export const experienceData = [
   },
   {
     id: 'exp-nyu',
+    group: 'research',
     badge: 'NYU',
     org: 'NYU Tandon School of Engineering',
-    role: 'Robotics Researcher · MS, Mechatronics and Robotics',
+    role: 'Robotics Researcher',
+    degree: 'MS, Mechatronics and Robotics',
     location: 'Brooklyn, NY',
     period: '2024 – 2026',
     summary: 'Research on vision-language-action models for robotic manipulation in the CREO lab, alongside the master\'s degree and teaching.',
@@ -86,9 +94,11 @@ export const experienceData = [
   },
   {
     id: 'exp-ucsc',
+    group: 'research',
     badge: 'UCSC',
     org: 'University of California, Santa Cruz',
-    role: 'BS, Robotics Engineering · Minor in Electrical Engineering',
+    role: 'Undergraduate Researcher',
+    degree: 'BS, Robotics Engineering · Minor in Electrical Engineering',
     location: 'Santa Cruz, CA',
     period: '2020 – 2024',
     summary: 'Robotics Engineering with an electrical-engineering minor, undergraduate research in the Tactile Manipulation Lab, and a MuJoCo grocery-robot capstone.',

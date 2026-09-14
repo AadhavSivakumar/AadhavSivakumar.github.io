@@ -144,6 +144,27 @@ header nav { display: flex; align-items: center; gap: 6px; }
 section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relative; z-index: 10; }
 .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
 
+/* PAGES. From Experience down, every section is one screen, in the owner's
+   order: Experience (Roboflow, Starship), Research (NYU, UCSC), Major
+   Projects, Additional Projects, Resume, Technical Skills, Get In Touch. A
+   page is at least the viewport tall with its content centred in what is left
+   under the fixed header; the content of each is sized to fit 1440x900 and
+   1536x864, the common laptop screens. Shorter screens scroll within a page
+   rather than squashing it. */
+.page {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 88px 28px;
+}
+/* The title inherits the body's 1.7 line-height otherwise: ~25px of air
+   above every page, which is most of what pushed them past one screen. */
+.page .section-title { font-size: clamp(2rem, 1.2rem + 1.6vw, 2.7rem); line-height: 1.15; margin-bottom: clamp(12px, 1.8vh, 26px); }
+.page .st-underline { margin-top: 10px; }
+.page--wide { max-width: 1360px; }
+
 /* Section titles: anime.js letter cascade + underline draw */
 .st-word { display: inline-block; white-space: nowrap; }
 .st-letter { display: inline-block; opacity: 0; will-change: transform; }
@@ -528,9 +549,6 @@ html[data-theme="dark"] .f3d::before {
 #projects h3 {
   margin-top: 60px;
 }
-#additional-projects h3 {
-  margin-top: 100px;
-}
 
 
 .major-project-card, .small-project-card, .skill-group-card, .about-me-card {
@@ -572,26 +590,43 @@ html[data-theme="dark"] .f3d::before {
   z-index: 2;
 }
 
-.major-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
-.major-project-card { border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
-.major-project-card img, .major-project-card video { width: 100%; height: 300px; object-fit: cover; }
+/* Four across, so all four fit one screen. */
+.major-projects-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
+@media (max-width: 900px) { .major-projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .major-projects-grid { grid-template-columns: 1fr; } }
+.major-project-card { border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); display: flex; flex-direction: column; }
+.major-project-card img, .major-project-card video { width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
 
 .major-projects-grid .major-project-card .project-content {
-  padding: 25px;
+  padding: 16px 18px 18px;
   text-align: left;
 }
 .major-projects-grid .major-project-card .project-content h4 {
-  font-size: 1.7rem;
+  font-size: 1.3rem;
+  line-height: 1.25;
+  margin-bottom: 8px;
 }
 .major-projects-grid .major-project-card .project-content p {
   color: var(--secondary-color);
-  margin-bottom: 10px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+.major-projects-grid .project-tags-container { margin-top: 10px; gap: 6px; }
+.major-projects-grid .project-status-container { margin-top: 8px; }
 
 
-.small-projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; }
-.small-project-card { border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
-.small-project-card img, .small-project-card video { width: 100%; height: 150px; object-fit: cover; display: block; }
+/* All thirteen on one screen: five to a row, the last row centred. */
+.small-projects-grid { --cols: 5; --gap: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); }
+.small-project-card { flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)); min-width: 0; border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
+@media (max-width: 1000px) { .small-projects-grid { --cols: 4; } }
+@media (max-width: 860px) { .small-projects-grid { --cols: 3; } }
+@media (max-width: 600px) { .small-projects-grid { --cols: 2; --gap: 10px; } }
+.small-project-card img, .small-project-card video { width: 100%; height: auto; aspect-ratio: 2 / 1; object-fit: cover; display: block; }
 
 /* Styles for GIFs on project cards */
 .major-project-card img.is-gif,
@@ -603,9 +638,24 @@ html[data-theme="dark"] .small-project-card img.is-gif {
   background-color: #2a2a2a;
 }
 
-.small-project-content { padding: 15px; }
-.small-project-content h4 { font-family: 'Poppins'; font-weight: 600; font-size: 1.1rem; margin-bottom: 5px; }
-.small-project-content p { font-size: 0.9rem; color: var(--secondary-color); margin-bottom: 8px; }
+.small-project-content { padding: 10px 12px 12px; }
+.small-project-content h4 {
+  font-family: 'Poppins'; font-weight: 600; font-size: 0.92rem; line-height: 1.3; margin-bottom: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 2.6em;
+}
+/* One line of chips, faded at the card's edge rather than wrapping: a second
+   line of chips pushed the grid past one screen. */
+.small-project-content .project-tags-container {
+  margin-top: 8px; gap: 5px; flex-wrap: nowrap; overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent);
+}
+/* Left-aligned whatever the phone rule for tag rows says: centring a one-line
+   row that overflows clips BOTH ends, and the status chip is the first. */
+.small-project-content .project-tags-container { justify-content: flex-start; }
+.small-project-content .project-tag { flex: 0 0 auto; white-space: nowrap; }
+.small-project-content .project-tag { padding: 3px 9px; font-size: 0.66rem; }
 
 .project-tags-container {
   display: flex;
@@ -659,18 +709,20 @@ html[data-theme="dark"] .project-tag:not(.status-completed):not(.status-in-progr
   background-color: #FFA500;
 }
 
+/* Four across, two rows: every group on one screen. */
 .skill-groups-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  margin-top: 40px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
 }
+@media (max-width: 900px) { .skill-groups-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .skill-groups-grid { grid-template-columns: 1fr; } }
 .skill-group-card {
   border-radius: 10px;
   overflow: visible;
   box-shadow: 0 5px 15px var(--shadow-color-ambient);
   text-align: center;
-  padding: 25px 20px 45px 20px;
+  padding: 18px 16px 34px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -678,12 +730,12 @@ html[data-theme="dark"] .project-tag:not(.status-completed):not(.status-in-progr
 }
 .skill-group-card-image-wrapper {
   position: relative;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   line-height: 0;
 }
 .skill-group-card-image {
-  width: 80px;
-  height: 80px;
+  width: 46px;
+  height: 46px;
   background-color: var(--accent-color);
   -webkit-mask-size: contain;
   mask-size: contain;
@@ -702,20 +754,21 @@ html[data-theme="dark"] .skill-group-card-image {
 }
 .skill-group-card-title {
   font-family: 'Playfair Display', serif;
-  font-size: 1.5rem;
-  margin-bottom: 10px;
+  font-size: 1.15rem;
+  line-height: 1.3;
+  margin-bottom: 4px;
   color: var(--primary-color);
 }
 .skill-group-card-tags-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 8px;
-  margin-top: 15px;
+  gap: 5px 6px;
+  margin-top: 10px;
   justify-content: center;
 }
 .skill-group-more-info {
   position: absolute;
-  bottom: 15px;
+  bottom: 12px;
   left: 0;
   right: 0;
   text-align: center;
@@ -903,6 +956,12 @@ html[data-theme="dark"] .modal-view-button:hover {
 html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180deg); }
 
 .modal-dynamic-text { margin-bottom: 20px; white-space: pre-wrap; line-height: 1.7; }
+/* Experience entries: the org/location/period line, the degree, the full list */
+.modal-meta { margin: -6px 0 10px; color: var(--accent-ink); font-weight: 600; font-size: 0.95rem; }
+.modal-dynamic-list { margin: 0 0 20px; padding-left: 1.2em; line-height: 1.65; }
+.modal-dynamic-list li { margin: 8px 0; }
+.modal-dynamic-list li::marker { color: var(--accent-color); }
+.modal-tags { margin: 4px 0 24px; }
 .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
 .modal-dynamic-button {
   display: inline-block; padding: 10px 20px; background-color: var(--accent-btn);
@@ -1028,56 +1087,138 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 }
 
 
-/* ── EXPERIENCE ─────────────────────────────────────────────────────────── */
-.exp-intro { max-width: 760px; margin: 0 auto 34px; text-align: center; color: var(--secondary-color); }
-.exp-list { display: flex; flex-direction: column; gap: 26px; max-width: 1120px; margin: 0 auto; }
-/* One row per organisation: the card, and that organisation's badge hanging
-   in its own small 3D canvas beside it. The canvas column is fixed-width so a
-   badge is the same size on every row. */
-.exp-row { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: start; }
-/* FIXED height, not stretched to the card. The camera's field of view is
-   vertical, so a canvas that grows with a seven-bullet card renders its badge
-   at over twice the size of the one beside a one-bullet card — seen, not
-   guessed: 300x1050 next to 300x440, and the tall one ran off the bottom of the
-   screen. Sticky, so the badge stays alongside a long card as it is read. */
+/* ── EXPERIENCE / RESEARCH ─────────────────────────────────────────────────
+   Two pages, two rows each, both rows on one screen. A row is a teaser card
+   (the whole entry opens in the modal) and that organisation's lanyard badge
+   in its own 3D canvas beside it.
+
+   The canvas is as tall as the row, and the row height comes from the SCREEN,
+   not the card: two rows plus the title fill what is left under the header.
+   The height has to be the same on both rows — the camera's field of view is
+   vertical, so the badge's size follows the canvas height, and a canvas sized
+   to its card drew one badge twice the size of the other (seen: 300x1050 next
+   to 300x440). Taking it from the viewport keeps the pair equal. At 900px tall
+   it is ~330px, so the badges draw ~72% of the size they had in the old 460px
+   column. */
+.exp-page { --exp-row-h: clamp(280px, calc((100svh - 88px - 28px - 104px - 20px) / 2), 400px); }
+/* Cards in the middle column, one per row; each badge in a side column
+   spanning BOTH rows — the first on the right, top-aligned beside the first
+   card, the second on the left, bottom-aligned beside the second. */
+.exp-grid {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 250px;
+  grid-template-rows: auto auto;
+  column-gap: 22px;
+  row-gap: 16px;
+  width: 100%;
+}
+.exp-card--0 { grid-column: 2; grid-row: 1; }
+.exp-card--1 { grid-column: 2; grid-row: 2; }
+.exp-lanyard--0 { grid-column: 3; grid-row: 1 / span 2; align-self: start; }
+.exp-lanyard--1 { grid-column: 1; grid-row: 1 / span 2; align-self: end; }
+/* FIXED 460px: the composition, the drag clamp and its headroom were tuned
+   and driven with real pointer events at this height (see CLAUDE.md). The
+   badge's on-screen size follows the canvas height, so both are equal. */
 .exp-lanyard {
-  position: sticky;
-  top: 96px;
+  /* The containing block for the Lanyard's absolutely positioned canvas. It
+     used to be `sticky`, which did this job silently; without it the canvas
+     positions itself against the whole section and the badge hangs over the
+     middle of the cards. */
+  position: relative;
   height: 460px;
   border-radius: 10px;
   overflow: hidden;
   touch-action: pan-y;
 }
+@media (max-width: 1180px) { .exp-grid { grid-template-columns: 210px minmax(0, 1fr) 210px; column-gap: 16px; } }
 @media (max-width: 991px) {
   /* No lanyard below 992px — the 3D stack is not downloaded there at all — so
-     the card takes the whole row. */
-  .exp-row { grid-template-columns: 1fr; }
+     the cards take the whole width. */
+  .exp-grid { grid-template-columns: 1fr; }
+  .exp-card--0, .exp-card--1 { grid-column: 1; }
   .exp-lanyard { display: none; }
 }
 .exp-card {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--exp-row-h);
   background-color: color-mix(in srgb, var(--surface-color) 92%, transparent);
   border: 1px solid var(--border-color);
   border-left: 3px solid var(--accent-color);
   border-radius: 10px;
   box-shadow: 0 5px 15px var(--shadow-color-ambient);
-  padding: 26px 28px 22px;
+  padding: 18px 24px 16px;
+  cursor: pointer;
+  transition: transform 0.3s ease-out, box-shadow 0.4s ease, border-color 0.4s ease;
 }
-.exp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
-.exp-role { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.2rem; line-height: 1.35; margin: 0; }
-.exp-org { margin: 4px 0 0; color: var(--secondary-color); font-size: 0.95rem; }
+.exp-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px var(--shadow-color-ambient); }
+@media (max-width: 991px) { .exp-card { min-height: 0; } }
+/* A grid, not a wrapping flex row: a long role pushed the period chip onto a
+   line of its own and cost the card 40px. */
+.exp-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 16px; }
+.exp-role { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.15rem; line-height: 1.35; margin: 0; }
+.exp-org { margin: 3px 0 0; color: var(--secondary-color); font-size: 0.92rem; }
 .exp-org-name { color: var(--accent-ink); font-weight: 600; }
 .exp-sep { margin: 0 8px; }
+.exp-degree { margin: 2px 0 0; color: var(--secondary-color); font-size: 0.86rem; }
 .exp-period {
-  margin: 0; white-space: nowrap; font-weight: 600; font-size: 0.85rem; letter-spacing: 0.02em;
+  margin: 0; white-space: nowrap; font-weight: 600; font-size: 0.82rem; letter-spacing: 0.02em;
   color: var(--accent-ink); border: 1px solid color-mix(in srgb, var(--accent-color) 45%, var(--border-color));
-  border-radius: 999px; padding: 4px 12px; align-self: flex-start;
+  border-radius: 999px; padding: 3px 12px; align-self: flex-start;
 }
-.exp-summary { margin: 14px 0 6px; line-height: 1.65; }
-.exp-bullets { margin: 10px 0 0; padding-left: 1.2em; line-height: 1.6; }
-.exp-bullets li { margin: 7px 0; }
+/* The card is a teaser: the summary and each highlight are clamped, and the
+   modal carries the full text. */
+.exp-summary {
+  margin: 9px 0 2px; font-size: 0.9rem; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.exp-bullets { margin: 4px 0 0; padding-left: 1.2em; font-size: 0.87rem; line-height: 1.45; color: var(--secondary-color); }
+.exp-bullets li { margin: 4px 0; }
 .exp-bullets li::marker { color: var(--accent-color); }
-.exp-tags { margin-top: 16px; }
+.exp-bullets li > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.exp-foot { margin-top: auto; padding-top: 8px; display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.exp-tags { margin-top: 0; gap: 6px; }
+.exp-more { white-space: nowrap; font-size: 0.82rem; font-weight: 600; color: var(--accent-ink); }
+.exp-card:hover .exp-more { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 600px) {
-  .exp-card { padding: 20px 18px 18px; }
-  .exp-role { font-size: 1.05rem; }
+  .exp-card { padding: 18px 16px 16px; }
+  .exp-role { font-size: 1.02rem; }
+  /* the period chip goes under the role, not beside it: beside it, the role
+     was squeezed to one word a line */
+  .exp-head { grid-template-columns: 1fr; gap: 8px; }
+  .exp-period { justify-self: start; }
+  .exp-foot { flex-direction: column; align-items: flex-start; }
+}
+
+/* SHORT SCREENS (1280x800, 1366x768): one highlight per experience card,
+   shorter project covers and no skill-group icons, so every page still fits.
+   LAST in the file on purpose: these override base rules of equal
+   specificity, and placed above them they silently lost — the covers never
+   shrank. */
+@media (max-height: 840px) and (min-width: 992px) {
+  .exp-bullets li:nth-child(n + 2) { display: none; }
+  .small-project-card img, .small-project-card video { aspect-ratio: 5 / 2; }
+  .major-project-card img, .major-project-card video { aspect-ratio: 2 / 1; }
+  .skill-group-card-image-wrapper { display: none; }
+  .skill-group-card { padding-top: 16px; }
+  .small-projects-grid { --gap: 10px; }
+  .page { padding-block-end: 18px; }
+}
+
+/* PHONES: the nav has one link per page (eight) plus the theme toggle — about
+   750px of it on a 390px screen. It swipes sideways instead of being clipped;
+   before this, everything past the third link, the theme toggle included,
+   could not be reached on a phone at all. */
+@media (max-width: 768px) {
+  header nav {
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    padding-right: 24px;
+  }
+  header nav::-webkit-scrollbar { display: none; }
+  header nav > * { flex: 0 0 auto; }
+  header .logo { flex: 0 0 auto; margin-right: 10px; }
 }
