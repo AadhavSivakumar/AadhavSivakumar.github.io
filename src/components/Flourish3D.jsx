@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
-import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets } from '../waveField';
+import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actT } from '../waveField';
 
 // Two line-art pieces fixed to the viewport, one per side: a CAMERA on the
 // left and an IEC-proportioned electric MOTOR on the right. Both are FORMED
@@ -583,6 +583,73 @@ const CAM_X = -22;
 const CAM_Y = -10;
 const CAM_TURN = mul(rotY(74 * DEG), scaleM(CAM_SCALE));
 
+// ── act two, left: the camera explodes down to its sensor ──────────────────
+// How each piece leaves, in assembly order along the camera's own optical
+// axis: glass forward, shells back, the top plate straight up. `at` is the
+// station along the axis (+ out the front), `rise` lifts a piece clear.
+const CAM_EXPLODE = {
+  'lens-front': { at: 1.00, rise: 0, order: 0 },
+  'lens-rear': { at: 0.72, rise: 0, order: 1 },
+  'barrel': { at: 0.44, rise: 0, order: 2 },
+  'front-shell': { at: 0.20, rise: 0, order: 3 },
+  'top-plate': { at: 0.00, rise: -1, order: 4 },
+  'back-shell': { at: -0.34, rise: 0, order: 5 },
+};
+// The sensor left behind: a die in its package, then 8x6 photosites that
+// light to their own values, so the grid IS an image (a soft bright blob
+// off-centre), not graph paper.
+const PX_C = 8, PX_R = 6, PX = 13;
+const pxPos = i => [((i % PX_C) - (PX_C - 1) / 2) * PX, (Math.floor(i / PX_C) - (PX_R - 1) / 2) * PX];
+const pxVal = i => {
+  const [x, y] = pxPos(i);
+  const d = Math.hypot((x - 13) / 38, (y + 7) / 29);
+  return clamp(1.15 - d, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7));
+};
+const SENSOR_SCALE = 1.75;
+// bond pads round the package edge: what makes a rectangle read as a chip
+const SENSOR_PADS = (() => {
+  const out = [];
+  for (let i = 0; i < 12; i++) { const x = -55 + i * 10; out.push([[x, -50, 0], [x, -56, 0]], [[x, 50, 0], [x, 56, 0]]); }
+  for (let i = 0; i < 9; i++) { const y = -40 + i * 10; out.push([[-63, y, 0], [-69, y, 0]], [[63, y, 0], [69, y, 0]]); }
+  return out;
+})();
+
+// ── act two, right: the motor becomes a 2R arm ─────────────────────────────
+// A planar two-link arm in the plane facing the viewer. The motor turns its
+// axis toward the viewer and settles in as the SHOULDER actuator; a base
+// rises under it; link 1 grows off its output shaft, the elbow joint appears
+// at its end, link 2 grows from that, and a gripper closes the chain.
+// Angles are screen-style (y down): -52 deg is up and to the right.
+const ARM = {
+  SH: [-94, 24],           // shoulder, in stage units from the centre
+  K: 0.40,                 // motor scale as the shoulder actuator
+  L1: 150, R1: 17,         // link 1 length and half-width
+  L2: 108, R2: 13,
+  TH1: -58, TH2: 80,       // final joint angles
+  Z1: 72,                  // link 1 sits on the output shaft, in front of the motor
+};
+// a link's outline: a stadium from the joint at the origin out along +x.
+// Wound like CAM_SIL, so extrude() culls it the same way.
+function stadium(L, r, n = 8) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const a = (90 + (180 * i) / n) * DEG; pts.push([r * Math.cos(a), r * Math.sin(a)]); }
+  for (let i = 0; i <= n; i++) { const a = (-90 + (180 * i) / n) * DEG; pts.push([L + r * Math.cos(a), r * Math.sin(a)]); }
+  return pts;
+}
+const silWire = (sil, z0, z1, every = 4) => [
+  [...sil.map(([x, y]) => [x, y, z0]), [sil[0][0], sil[0][1], z0]],
+  [...sil.map(([x, y]) => [x, y, z1]), [sil[0][0], sil[0][1], z1]],
+  ...sil.filter((_, i) => i % every === 0).map(([x, y]) => [[x, y, z0], [x, y, z1]]),
+];
+// a joint drum along z, radius r, from z0 to z1
+const drum = (r, z0, z1) => [...surface([[z0, r], [z1, r]], 18), ...disc(0, r, z1, 18), ...disc(0, r, z0, 18)];
+const drumWire = (r, z0, z1) => [ring(r, z0, 22), ring(r, z1, 22), ring(r * 0.45, z1, 14)];
+const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
+const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
+const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
+const finger = (y) => ({ solid: boxFaces(26, 6, 12, 13, y, 4), wire: boxWire(26, 6, 12, 13, y, 4) });
+
+
 export default function Flourish3D({ side = 'right' }) {
   const hostRef = useRef(null);
   const isLeft = side === 'left';
@@ -1095,6 +1162,135 @@ export default function Flourish3D({ side = 'right' }) {
     }
     const art = () => { if (isLeft) drawCamera(); else drawMotor(); };
 
+    // ── act two ─────────────────────────────────────────────────────────
+    // Scrolling from Experience to Research (`actT`, 0..1): the camera
+    // explodes down to its sensor and the sensor resolves into pixels; the
+    // motor becomes the shoulder of a 2R arm. Both then hold.
+    function drawCameraAct(t) {
+      // the view squares up to the sensor as the camera leaves
+      const q = smooth(win(t, 0.16, 0.44));
+      setCam(-26 * (1 - q) * DEG, 15 * (1 - q) * DEG, -70 + 70 * q);
+      const home = place(CAM_TURN, [CAM_X, CAM_Y, 0]);
+      const EX_D = 440;
+      // 1 · the camera comes apart along its own optical axis, each piece
+      // holding its orientation, and fades as it leaves the stage — soon
+      // enough that the shells are gone before the sensor needs the room
+      for (const piece of CAMERA) {
+        const ex = CAM_EXPLODE[piece.id];
+        const mv = smooth(win(t, 0.02 + ex.order * 0.03, 0.30));
+        const a = 1 - win(t, 0.10 + ex.order * 0.03, 0.14);
+        if (a <= 0.01) continue;
+        const T = chain(home, place(IDENT, [0, ex.rise * EX_D * 0.62 * mv, ex.at * EX_D * mv]));
+        submit(piece.solid, T, piece.mat, a);
+        submitLines(piece.wire, T, piece.glass ? ink : matLine[piece.mat], LOOK.line * a, LOOK.width);
+      }
+      flush();
+      // 2 · the sensor is what is left: it turns from the camera's
+      // three-quarter view to face the viewer, comes forward and grows
+      const sens = smooth(win(t, 0.14, 0.30));
+      if (sens <= 0) return;
+      const sc = 1 + (SENSOR_SCALE - 1) * smooth(win(t, 0.2, 0.4));
+      const T = place(mul(rotY(74 * (1 - sens) * DEG), scaleM(sc)), [CAM_X * (1 - sens), CAM_Y * (1 - sens), -30 + 46 * sens]);
+      // the die, solid, until the photosites take it over
+      const dieFade = 1 - win(t, 0.58, 0.22);
+      if (dieFade > 0.01) { submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade); flush(); }
+      stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.55 * sens, 1);
+      stroke(SENSOR_PADS, T, LINE, 0.5 * sens, 1);
+      // 3 · pixels: each photosite lights to its own value, so the grid IS
+      // an image. Bucketed by brightness so 48 cells cost 4 fills, not 48.
+      const buckets = [[], [], [], []];
+      for (let i = 0; i < PX_C * PX_R; i++) {
+        const a = smooth(win(t, 0.46 + (i / (PX_C * PX_R)) * 0.30, 0.10));
+        if (a <= 0.02) continue;
+        const [x, y] = pxPos(i);
+        const v = pxVal(i) * a;
+        const sz = PX * 0.76 * (0.30 + 0.70 * a);
+        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), 1.5));
+      }
+      for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, 0.12 + 0.72 * ((b + 1) / 4));
+    }
+
+    function drawMotorAct(t) {
+      const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
+      setCam(16 * DEG, (14 - 4 * a) * DEG, 30 * (1 - a));
+      const k = MOTOR_K_MAX + (ARM.K - MOTOR_K_MAX) * a;
+      // its axis swings round to point at the viewer: the joint axis of a
+      // planar arm
+      const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
+      const pos = [ARM.SH[0] * a, 10 + (ARM.SH[1] - 10) * a, 0];
+      const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
+      const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
+      const propA = 1 - win(t, 0.03, 0.18);          // the propeller goes; the shaft stays
+      for (let i = 0; i < MOTOR.length; i++) {
+        const part = MOTOR[i];
+        const pa = part.id === 'prop' ? propA : 1;
+        if (pa <= 0.01) continue;
+        const T = chain(roll, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
+        const mat = part.mat || MAT.neutral;
+        submit(part.solids, T, mat, pa);
+        submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
+      }
+      {
+        const T = chain(roll, place(rotZ(SPIN), [0, 0, 0]));
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, 1);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, 1);
+      }
+      // the base rises in under the shoulder
+      const b = smooth(win(t, 0.24, 0.26));
+      const [sx, sy] = ARM.SH;
+      const rMot = 86 * ARM.K;                         // frame radius at shoulder scale
+      if (b > 0.01) {
+        const top = sy + rMot, plinthY = sy + rMot + 46;
+        const colH = (plinthY - top) * b;
+        const col = { solid: boxFaces(44, colH, 56, sx, top + colH / 2, 0), wire: boxWire(44, colH, 56, sx, top + colH / 2, 0) };
+        submit(col.solid, place(IDENT, [0, 0, 0]), MAT.alu, b);
+        submitLines(col.wire, place(IDENT, [0, 0, 0]), matLine[MAT.alu], LOOK.line * b, LOOK.width);
+        const P = place(IDENT, [sx, plinthY + 10 + 30 * (1 - b), 0]);
+        submit(BASE_PLINTH.solid, P, MAT.iron, b);
+        submitLines(BASE_PLINTH.wire, P, matLine[MAT.iron], LOOK.line * b, LOOK.width);
+      }
+      // link 1 grows off the output shaft, swinging from straight up
+      const g1 = smooth(win(t, 0.32, 0.26));
+      const th1 = (-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45))) * DEG;
+      const J1 = place(rotZ(th1), [sx, sy, ARM.Z1 * ARM.K / 0.4]);
+      if (g1 > 0.01) {
+        const sil = stadium(ARM.L1 * g1, ARM.R1);
+        submit(extrude(sil, -9, 9), J1, MAT.paint, 1);
+        submitLines(silWire(sil, -9, 9), J1, matLine[MAT.paint], LOOK.line, LOOK.width);
+        submitLines([ring(ARM.R1 * 0.55, 9, 16)], J1, matLine[MAT.steel], LOOK.line, LOOK.width);   // shaft collar
+      }
+      // the elbow, then link 2 from it
+      const e = smooth(win(t, 0.52, 0.14));
+      const J2 = chain(J1, place(IDENT, [ARM.L1 * g1, 0, 0]));
+      if (e > 0.01) {
+        const E = chain(J2, place(scaleM(e), [0, 0, 6]));
+        submit(ELBOW.solid, E, MAT.steel, 1);
+        submitLines(ELBOW.wire, E, matLine[MAT.steel], LOOK.line, LOOK.width);
+      }
+      const g2 = smooth(win(t, 0.56, 0.26));
+      const th2 = ARM.TH2 * smooth(win(t, 0.56, 0.40)) * DEG;
+      const L2p = chain(J2, place(rotZ(th2), [0, 0, 26]));
+      if (g2 > 0.01) {
+        const sil = stadium(ARM.L2 * g2, ARM.R2);
+        submit(extrude(sil, -7, 7), L2p, MAT.paint, 1);
+        submitLines(silWire(sil, -7, 7), L2p, matLine[MAT.paint], LOOK.line, LOOK.width);
+      }
+      // the wrist and a two-finger gripper close the chain
+      const gr = smooth(win(t, 0.78, 0.16));
+      if (gr > 0.01) {
+        const Wr = chain(L2p, place(scaleM(gr), [ARM.L2 * g2, 0, 0]));
+        submit(WRIST.solid, Wr, MAT.steel, 1);
+        submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line, LOOK.width);
+        const open = 5 + 5 * smooth(win(t, 0.88, 0.12));
+        for (const y of [-open, open]) {
+          const f = finger(y);
+          submit(f.solid, Wr, MAT.neutral, 1);
+          submitLines(f.wire, Wr, matLine[MAT.neutral], LOOK.line, LOOK.width);
+        }
+      }
+      flush();
+    }
+
     // ── the targets the waves fly to ────────────────────────────────────
     // The strands themselves are drawn by WaveField.jsx, from the big hero
     // field straight to their lines — it is the one canvas that spans both
@@ -1147,7 +1343,13 @@ export default function Flourish3D({ side = 'right' }) {
       if (any) { partA = pa; art(); partA = null; }
     }
 
-    const done = y => !reduce && heroPhase(y) >= S_ART;
+    // Two HELD states, where scrolling redraws nothing: the finished pieces
+    // (after the morph, before act two) and act two's end.
+    const held = y => {
+      if (reduce || heroPhase(y) < S_ART) return null;
+      const t = actT(y);
+      return t <= 0 ? 'pieces' : t >= 1 ? 'act2' : null;
+    };
     function draw(y = window.scrollY) {
       ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
       ctx.clearRect(0, 0, W, H);
@@ -1156,7 +1358,11 @@ export default function Flourish3D({ side = 'right' }) {
       ctx.lineCap = 'round';
       segs = 0;
       const s = reduce ? Infinity : heroPhase(y);
-      if (s < S_ART) prelude(s); else art();
+      if (s < S_ART) prelude(s);
+      else {
+        const t = reduce ? 0 : actT(y);
+        if (t <= 0) art(); else if (isLeft) drawCameraAct(t); else drawMotorAct(t);
+      }
       ctx.globalAlpha = 1;
       canvas.dataset.segs = String(segs);
     }
@@ -1182,7 +1388,7 @@ export default function Flourish3D({ side = 'right' }) {
         lastDraw = performance.now();
       };
       stopScroll = onPageScroll(y => {
-        if (lastY >= 0 && (Math.abs(y - lastY) < 0.5 || (done(y) && done(lastY)))) return;
+        if (lastY >= 0 && (Math.abs(y - lastY) < 0.5 || (held(y) && held(y) === held(lastY)))) return;
         pendingY = y;
         if (performance.now() - lastDraw >= MIN_MS) {
           if (trailing) { cancelAnimationFrame(trailing); trailing = 0; }

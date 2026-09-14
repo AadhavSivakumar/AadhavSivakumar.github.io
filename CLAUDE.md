@@ -198,11 +198,19 @@ while two cards share one 900px screen. Squeezing each canvas to its row
 page (see Pages); its old full-width six-badge strip is gone (the owner asked for the badges next to their boxes — "the lanyard",
 definite article — and duplicating six badges was not worth the GPU memory).
 Two badges from the old strip, Dublin High and "Researcher", have no row and
-are not rendered; their data is kept in `badgeCards.js`. **The `.exp-lanyard`
-canvas is a FIXED 460px, never stretched to a card**: the camera's field of
-view is vertical, so a canvas that grows with its card renders its badge at
-over twice the size of the one beside a short card — seen, not guessed
-(300x1050 next to 300x440). **`.exp-lanyard` must stay `position: relative`**:
+are not rendered; their data is kept in `badgeCards.js`. **The canvas HEIGHT
+is the badge size.** The camera's field of view is vertical, so everything in
+the scene — badge, strap, board — is drawn at a scale set by the canvas
+height, while every physics constant is in world units that do not care. A
+canvas that grew with its card once drew one badge twice the size of the one
+beside a short card (300x1050 next to 300x440). So `.exp-lanyard` is
+`clamp(460px, 2 * --exp-row-h - 20px, 600px)`: the same on both badges of a
+page, and as tall as the two rows it spans allow. **That is how the badges were
+made bigger** (~30%, to 600px at 1440x900), at the owner's request — not by
+`sizeMul`, which would have meant re-deriving the drag clamp, the pegboard's
+flip clearance and the hang. The pegboard was made smaller at the same time,
+in `LanyardRack`'s geometry (1.7 x 1.2, x sizeMul, from 3.2 x 2.0), which is
+pure scenery. **`.exp-lanyard` must stay `position: relative`**:
 it is the containing block for the Lanyard's absolutely positioned canvas. It
 used to be `sticky`, which did that job silently; the first version of the
 pages dropped `sticky` and the badge hung over the middle of the cards.
@@ -287,7 +295,9 @@ keep them:
   column the badge's last row went over the edge. Found by probing with a
   deliberately large margin (0.8: 13px clear below, 25px beside, at ~43.5px
   per world unit) and solving. Now 5-6px clear at every corner, both badges,
-  at 1100, 1440 and 1920 wide. The drag test is: sweep the pointer down the
+  at 1100, 1440 and 1920 wide in 460px canvases, and 15-16px in the 600px
+  ones. Both half-extents are floored at 0: a narrow, tall canvas has little
+  world width, and a negative half-width would flip the card side to side. The drag test is: sweep the pointer down the
   canvas until the cursor turns `grab`, press, drag 300px past each lower
   corner, and read the badge's dark-pixel box off the render.
 - **`SLOT_BASE_Y` is 3.65, raised from 2.4 the first time these could be seen.**
@@ -412,6 +422,27 @@ out of the page with its front 15px from the screen edge. `CAM_TURN`
 (rotY 74°) with camera yaw -26° and pitch 15°, at `CAM_SCALE` 2.25 and
 `CAM_X`/`CAM_Y` -22/-10: ink box 259x202 in the 340x660 stage, beside the
 motor's 221x259.
+
+**Act two: between Experience and Research** (`actT` in `waveField.js`: from
+a fifth of the way down Experience to the top of Research, measured off the
+pages themselves). The **camera explodes** along its own optical axis
+(`CAM_EXPLODE`: glass forward, shells back, the top plate up), each piece
+fading as it leaves — the shells fast enough to be gone before the sensor
+needs the room — while the view squares up. **The sensor is what is left**: it
+turns to face the viewer and grows (`SENSOR_SCALE`), the die fades as its
+8x6 photosites light to their own values (`pxVal`: a soft bright blob, so the
+grid IS an image, not graph paper), and bond pads round the package make it
+read as a chip. **The motor becomes a 2R arm** (`ARM`): it swings its axis
+round to point at the viewer — the joint axis of a planar arm — shrinks into
+the shoulder actuator and drops its propeller; a column and plinth rise under
+it; link 1 grows off the output shaft swinging down from vertical; the elbow
+drum appears; link 2 grows and bends; a wrist and two-finger gripper close the
+chain. Links are extruded stadiums (`stadium`, wound like `CAM_SIL` so
+`extrude()` culls them the same way). Both then HOLD for the rest of the page;
+`held()` skips redraws in the two held states. Fitted by ink box: the arm
+16-318 of 340 wide (the first cut ran the gripper off the right edge and the
+plinth into the left one), the sensor 45-294. Measured in Firefox: p50 16.5ms
+scrolling through it.
 
 **They are NOT gated on width.** They used to be hidden below 992px, which
 meant every phone saw none of them. The stage now sizes itself from CSS
@@ -748,8 +779,15 @@ took, in case something is added and a page grows past the screen:
 
 - **The title's line-height.** `.section-title` inherited the body's 1.7 —
   ~25px of air above every page. `.page .section-title` sets 1.15.
-- **Major projects four across, skills four across, additional projects five
-  to a row** (the last row centred), with covers at a fixed aspect ratio; small
+- **Major projects are SIDEWAYS rows, the picture zig-zagging** — left on the
+  first, right on the second (`:nth-child(even)` swaps the grid columns) —
+  with the row height taken from the screen (`--mp-h`: what is left under the
+  title and the playback toggle, in four) and the picture 16:10 at that
+  height. The owner's words were "picture on the left and text on the right,
+  then the next one should be picture on the left and text on the right";
+  read as alternating, and flagged. Skills four across, additional projects
+  five to a row (the last row centred), with covers at a fixed aspect ratio;
+  small
   cards carry title, status and two tags on one line faded at the edge — the
   description is in the modal. A second line of chips was enough to push the
   grid past the screen.

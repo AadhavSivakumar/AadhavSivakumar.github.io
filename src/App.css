@@ -596,34 +596,56 @@ html[data-theme="dark"] .f3d::before {
   z-index: 2;
 }
 
-/* Four across, so all four fit one screen. */
-.major-projects-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
-@media (max-width: 900px) { .major-projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 640px) { .major-projects-grid { grid-template-columns: 1fr; } }
-.major-project-card { border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); display: flex; flex-direction: column; }
-.major-project-card img, .major-project-card video { width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
+/* SIDEWAYS, one under another, the picture ZIG-ZAGGING: left on the first,
+   right on the second, and so on. The row height comes from the screen so all
+   four fit one page: what is left under the title and the playback toggle,
+   in four. The picture is 16:10 at that height; the text takes the rest. */
+.major-projects-grid {
+  --mp-h: clamp(108px, calc((100svh - 80px - 56px - 108px - 36px - 3 * 14px) / 4), 200px);
+  display: flex; flex-direction: column; gap: 14px;
+  width: 100%; max-width: 1100px; margin: 0 auto;
+}
+.major-projects-grid .major-project-card {
+  display: grid; grid-template-columns: calc(var(--mp-h) * 1.6) minmax(0, 1fr);
+  height: var(--mp-h); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient);
+}
+.major-projects-grid .major-project-card:nth-child(even) { grid-template-columns: minmax(0, 1fr) calc(var(--mp-h) * 1.6); }
+.major-projects-grid .major-project-card:nth-child(even) > img,
+.major-projects-grid .major-project-card:nth-child(even) > video { grid-column: 2; grid-row: 1; }
+.major-projects-grid .major-project-card:nth-child(even) > .project-content { grid-column: 1; grid-row: 1; }
+.major-project-card img, .major-project-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+@media (max-width: 700px) {
+  /* phones: the picture back on top */
+  .major-projects-grid .major-project-card,
+  .major-projects-grid .major-project-card:nth-child(even) { display: flex; flex-direction: column; height: auto; }
+  .major-project-card img, .major-project-card video { height: auto; aspect-ratio: 16 / 10; }
+}
 
 .major-projects-grid .major-project-card .project-content {
-  padding: 16px 18px 18px;
+  padding: 12px 22px;
   text-align: left;
+  display: flex; flex-direction: column; justify-content: center; min-width: 0;
 }
 .major-projects-grid .major-project-card .project-content h4 {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   line-height: 1.25;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 .major-projects-grid .major-project-card .project-content p {
   color: var(--secondary-color);
   font-size: 0.88rem;
-  line-height: 1.55;
-  margin-bottom: 4px;
+  line-height: 1.5;
+  margin-bottom: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 6;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.major-projects-grid .project-tags-container { margin-top: 10px; gap: 6px; }
-.major-projects-grid .project-status-container { margin-top: 8px; }
+/* tags and status on one line */
+.major-projects-grid .project-content { --tag-row: 1; }
+.major-projects-grid .project-tags-container { margin-top: 8px; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+.major-projects-grid .project-tag { flex: 0 0 auto; white-space: nowrap; }
+
 
 
 /* All thirteen on one screen: five to a row, the last row centred. */
@@ -1128,16 +1150,22 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 .exp-card--1 { grid-column: 2; grid-row: 2; }
 .exp-lanyard--0 { grid-column: 3; grid-row: 1 / span 2; align-self: start; }
 .exp-lanyard--1 { grid-column: 1; grid-row: 1 / span 2; align-self: end; }
-/* FIXED 460px: the composition, the drag clamp and its headroom were tuned
-   and driven with real pointer events at this height (see CLAUDE.md). The
-   badge's on-screen size follows the canvas height, so both are equal. */
+/* The canvas HEIGHT is the badge size. The camera's field of view is
+   vertical, so everything in the scene — badge, strap, board — is drawn at a
+   scale set by the canvas's height, and every physics constant (the drag
+   clamp, the pegboard's flip clearance, the hang) is in world units that do
+   not care. So the badge was made bigger by making the canvas taller — up to
+   600px, as tall as the two rows it spans allow (~30% larger than at the
+   460px it was tuned at) — and not by sizeMul, which would have meant
+   re-deriving all of those. Both canvases on a page get the same height, so
+   the two badges always match. */
 .exp-lanyard {
   /* The containing block for the Lanyard's absolutely positioned canvas. It
      used to be `sticky`, which did this job silently; without it the canvas
      positions itself against the whole section and the badge hangs over the
      middle of the cards. */
   position: relative;
-  height: 460px;
+  height: clamp(460px, calc(2 * var(--exp-row-h) - 20px), 600px);
   border-radius: 10px;
   overflow: hidden;
   touch-action: pan-y;
@@ -1218,7 +1246,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 @media (max-height: 840px) and (min-width: 992px) {
   .exp-bullets li:nth-child(n + 2) { display: none; }
   .small-project-card img, .small-project-card video { aspect-ratio: 3 / 1; }
-  .major-project-card img, .major-project-card video { aspect-ratio: 2 / 1; }
+  .major-projects-grid .major-project-card .project-content p { -webkit-line-clamp: 2; }
   .skill-group-card-image-wrapper { display: none; }
   .skill-group-card { padding-top: 16px; }
   .small-projects-grid { --gap: 10px; }

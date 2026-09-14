@@ -367,9 +367,13 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
     const minX = Math.min(...xs), maxX = Math.max(...xs);
     const minY = Math.min(...ys), maxY = Math.max(...ys);
     const tile = 1.5; // world units per 4-hole tile
-    const w = maxX - minX + 3.2 * sizeMul;
-    const top = maxY + 0.8 * sizeMul; // clears the highest pin
-    const bottom = minY - 1.2 * sizeMul; // above the badge tops, below lowest pin
+    // A small board: just enough panel to read as a pegboard behind the pin.
+    // It was 3.2 x 2.0 (x sizeMul) and filled the column; the owner asked for
+    // it smaller and the badge bigger. The badge grew through the canvas
+    // height instead (see .exp-lanyard), so nothing here is physics.
+    const w = maxX - minX + 1.7 * sizeMul;
+    const top = maxY + 0.5 * sizeMul; // clears the highest pin
+    const bottom = minY - 0.7 * sizeMul; // below the lowest pin, above the badge
     const h = top - bottom;
     return { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2, tile };
   }, [anchors, sizeMul]);
@@ -740,8 +744,10 @@ function Band({
       // 0.65 / 0.4 leave ~6px below and ~8px beside it. (0.15 had been
       // measured 3px clear on a straight drag at 300px wide; into a corner of
       // the narrower column the badge's last row went over the edge.)
-      const halfW = state.viewport.width / 2 - (0.8 * scale + 0.4);
-      const halfH = state.viewport.height / 2 - (1.125 * scale + 0.65);
+      // Never negative: a narrow, tall column leaves little world width, and a
+      // negative half-width would make the clamp flip the card side to side.
+      const halfW = Math.max(0, state.viewport.width / 2 - (0.8 * scale + 0.4));
+      const halfH = Math.max(0, state.viewport.height / 2 - (1.125 * scale + 0.65));
       if (tx < -halfW) tx = -halfW; else if (tx > halfW) tx = halfW;
       if (ty < -halfH) ty = -halfH; else if (ty > halfH) ty = halfH;
       if (tz < CARD_MIN_Z) tz = CARD_MIN_Z;               // never behind the board

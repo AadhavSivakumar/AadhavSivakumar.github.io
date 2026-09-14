@@ -123,16 +123,12 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
         <div className="project-content">
           <h4>{project.title}</h4>
           <p>{project.cardDescription}</p>
-          {tagsToShow?.length > 0 && (
-            <div className="project-tags-container">
-              {tagsToShow.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
-            </div>
-          )}
-          {project.status && (
-            <div className="project-status-container">
-              <span className={`project-tag status-${statusClass}`}>{project.status}</span>
-            </div>
-          )}
+          {/* status first, then the tags, on one line: the card is a short
+              sideways row now */}
+          <div className="project-tags-container">
+            {project.status && <span className={`project-tag status-${statusClass}`}>{project.status}</span>}
+            {tagsToShow?.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
+          </div>
         </div>
       ) : (
         <div className="small-project-content">

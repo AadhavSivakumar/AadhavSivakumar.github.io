@@ -68,6 +68,35 @@ export const partArtA = pt => smooth(win(pt, 0.62, 0.38));
 // how visible its strands still are
 export const strandFade = pt => 1 - smooth(win(pt, 0.78, 0.22));
 
+// ── the second act: Experience -> Research ──────────────────────────────
+// While the page scrolls from Experience to Research, the camera explodes
+// down to its sensor and the sensor resolves into pixels, and the motor
+// becomes the shoulder of a 2R robot arm. Its progress comes from where
+// those two pages actually ARE: it starts a fifth of the way from the top of
+// Experience to the top of Research and completes when Research reaches the
+// top of the screen. Measured lazily, re-measured on resize and whenever the
+// body changes size.
+let act = null;
+export function actT(y) {
+  if (!act) {
+    if (typeof document === 'undefined') return 0;
+    const a = document.getElementById('experience'), b = document.getElementById('research');
+    if (!a || !b) return 0;
+    const ta = a.getBoundingClientRect().top + window.scrollY;
+    const tb = b.getBoundingClientRect().top + window.scrollY;
+    act = { t0: ta + 0.2 * (tb - ta), t1: tb };
+  }
+  return clamp01((y - act.t0) / Math.max(1, act.t1 - act.t0));
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => { act = null; }, { passive: true });
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => { act = null; });
+    const start = () => document.body && ro.observe(document.body);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  }
+}
+
 // ── the targets ─────────────────────────────────────────────────────────
 // Each piece captures its finished drawing once — every line it strokes,
 // projected into its own 340x660 drawing units and tagged with its part —
