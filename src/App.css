@@ -59,8 +59,9 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
   font-family: 'Poppins', sans-serif;
-  background: radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--accent-color) 10%, transparent) 0%, transparent 30%),
-  radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--primary-color) 5%, transparent) 0%, transparent 40%),
+  /* No gold glow in the corner. A 10% accent radial sat at 10%/10% here, fixed
+     to the viewport, and read as a warm light leaking in from the left. */
+  background: radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--primary-color) 5%, transparent) 0%, transparent 40%),
   var(--background-color);
   background-attachment: fixed;
   color: var(--primary-color);
@@ -457,8 +458,7 @@ html[data-theme="dark"] .f3d::before {
     rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.08) 55%, rgba(0, 0, 0, 0) 100%);
 }
 
-/* Pull each stage toward the page edge; the art sits in its own margin. */
-.f3d--left { left: clamp(-70px, -1vw, 0px); }
+/* Pull the stage toward the page edge; the motor sits in its own margin. */
 .f3d--right { right: clamp(-70px, -1vw, 0px); }
 
 /* MOBILE. These used to be hidden below 992px, because two 340px stages on a
@@ -468,7 +468,6 @@ html[data-theme="dark"] .f3d::before {
    paragraph. */
 @media (max-width: 991px) {
   .f3d { --fw: 244px; --fh: 474px; opacity: 0.72; }
-  .f3d--left  { left: -14px;  top: calc(32vh - var(--fh) / 2); }
   .f3d--right { right: -14px; top: calc(71vh - var(--fh) / 2); }
 }
 @media (max-width: 600px) {
@@ -477,7 +476,6 @@ html[data-theme="dark"] .f3d::before {
      as visible. The vertical stagger is what keeps them out of each other's
      way and off the same paragraph, not a horizontal retreat. */
   .f3d { --fw: 190px; --fh: 369px; opacity: 0.68; }
-  .f3d--left  { left: -8px;  top: calc(29vh - var(--fh) / 2); }
   .f3d--right { right: -8px; top: calc(73vh - var(--fh) / 2); }
 }
 

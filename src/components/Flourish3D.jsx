@@ -1,21 +1,20 @@
 import React, { useEffect, useRef } from 'react';
-import { onScroll as onPageScroll, scrollProgress, scrollMax } from '../scrollDriver';
+import { onScroll as onPageScroll } from '../scrollDriver';
 import {
   ROWS as WAVE_ROWS, VW as WAVE_VW, VH as WAVE_VH, STROKE as WAVE_STROKE, FIELD_A as WAVE_FIELD_A,
   rowY as waveRowY, rowA as waveRowA, waveY, live as waveLive, heroPhase, heroHeight,
   S_HANDOFF, S_MORPH, S_ART,
 } from '../waveField';
 
-// Page-wide decorative flourishes — one per side, fixed to the viewport and
-// scrubbed by page scroll.
+// The motor: an IEC-proportioned electric motor in line art, fixed to the
+// right-hand side of the viewport. It is FORMED FROM THE HERO'S SINE WAVES —
+// scroll, the field splits, the right half flies here and gathers itself into
+// the machine part by part (see the morph, below) — and then it holds.
 //
-//   LEFT  — "Detection": a camera takes itself apart down to its sensor; the
-//           sensor resolves into pixels; the pixels are cut into PATCHES and
-//           flattened into a token sequence (the move that defines a Vision
-//           Transformer); the tokens attend to each other; the result is a
-//           detection.
-//   RIGHT — "Down the Shaft": an IEC-proportioned electric motor threading
-//           itself together on one axis, then running.
+// There used to be two pieces with page-long scroll sequences: a camera on
+// the left that tore itself down into a vision-transformer pipeline, and this
+// motor threading itself together on a spinning axle. The owner asked for
+// all of that to go. The geometry is what survived.
 //
 // ── Why this is a canvas and not 300 divs ──────────────────────────────────
 // It was CSS 3D: every part a div inside a `transform-style: preserve-3d` tree.
@@ -35,9 +34,8 @@ import {
 // expensive part entirely — the browser composites ONE element per side — and
 // makes complexity nearly free.
 //
-// What carried over unchanged: the geometry (the IEC D80 motor profiles, the
-// meridian maths, the ViT patch/token layout), the beat timings, both themes,
-// reduced-motion, and the >=992px gate in App.jsx.
+// What carried over: the geometry (the IEC D80 motor profiles, the meridian
+// maths), both themes and reduced-motion (which shows the finished motor).
 
 // LINE is an rgb() string by the time materials are built, not a hex
 const rgbStrToHex = str => {
@@ -56,9 +54,6 @@ const DEG = Math.PI / 180;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const win = (p, lead, span) => clamp((p - lead) / span, 0, 1);
 const smooth = t => t * t * (3 - 2 * t);
-// out-back: overshoots ~7% and settles, so parts snap into place the way
-// machined things do rather than easing to a dead stop
-const seat = t => { const u = t - 1; return 1 + 2.4 * u * u * u + 1.4 * u * u; };
 const hash = i => { const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
 
 /* ── linear algebra ─────────────────────────────────────────────────────── */
@@ -540,119 +535,8 @@ const MOTOR_LEN = 344;
 const MOTOR_K_MAX = 0.66;
 const motorModule = k => chain(place(IDENT, [0, 10, 0]), place(mul(MOTOR_TILT, scaleM(k)), [0, 0, 0]));
 
-// Where each part sits when fully exploded, in assembly order along the axis —
-// fan cover and endbell at the back, then rotor, stator, housing, front endbell.
-// This is the layout every reference photo uses.
-// Gaps wider than the parts are long, which is what every reference exploded
-// view does — at the old spacing the rotor and stator overlapped and the strip
-// read as one object with lumps rather than as parts laid out.
-// Centred on the axis: the stations used to run -980..+760, so the strip's
-// middle sat 110 units behind the module origin and the whole layout hung off
-// one corner of a 340x660 stage with the end parts cropped.
-// These are OFFSETS, and every part already sits somewhere on the axis in
-// machine coordinates — the fan's blades are modelled at z = -130, the front
-// bell at +122. Adding a station to that double-counts, which is why the
-// laid-out strip used to bunch in the middle with holes at both ends. So the
-// numbers below are (target - natural centre), for targets evenly spaced 220
-// apart from -750 to +570 in assembly order: rear bell, fan, rotor, stator,
-// frame, front bell, and the shaft drawn out the front. The terminal box rides
-// with the frame and leaves sideways instead (`side`).
-const LAID_OUT = {
-  rearbell: -620, fan: -400, rotor: -310, stator: -90, copper: -90,
-  can: 130, tbox: 130, frontbell: 228, shaft: 564, prop: 614,
-};
-
-/* ══════════════════════════════════════════════════════════════════════════
-   LEFT — the detection pipeline
-   ══════════════════════════════════════════════════════════════════════════ */
-
-const PX_C = 8, PX_R = 6, PX = 13;
-const PATCH_C = 4, PATCH_R = 3, PATCH = 26;
-const NTOK = PATCH_C * PATCH_R;
-const ATT_N = 4;
-const IMG_Y = -150, SEQ_Y = 26, OUT_Y = 162;
-
-const pxPos = i => [((i % PX_C) - (PX_C - 1) / 2) * PX, (Math.floor(i / PX_C) - (PX_R - 1) / 2) * PX];
-const pxVal = i => {
-  const [x, y] = pxPos(i);
-  const d = Math.hypot((x - 13) / 38, (y + 7) / 29);
-  return clamp(1.15 - d, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7));
-};
-const patchPos = k => [((k % PATCH_C) - (PATCH_C - 1) / 2) * PATCH, (Math.floor(k / PATCH_C) - (PATCH_R - 1) / 2) * PATCH];
-// the sequence recedes along Z — the one thing a flat transformer diagram
-// cannot show — and fans in X so the attention links stay separable
-const tokPos = i => [(i - NTOK / 2) * 9, Math.abs(i - NTOK / 2) * -2, -78 + i * 13];
-
-// A camera body seen side-on: pentaprism hump, grip swell, mount boss.
-const CAM_SIL = [
-  [-51, 2], [-51, -14], [-37, -16], [-31, -30], [-8, -34], [0, -18], [28, -18],
-  [38, -12], [48, -10], [48, 36], [38, 46], [19, 50], [-27, 52], [-46, 44], [-51, 24],
-];
-const P_LENS = [[10, 33], [16, 33], [18, 26], [30, 26], [32, 29], [48, 29], [50, 25], [62, 25], [64, 27], [70, 27], [72, 20], [74, 0]];
-
-// The camera comes apart into six pieces so the explode reads as a real
-// teardown rather than a body sliding off a lens: front shell, back shell,
-// lens barrel, two lens elements, and the top-plate furniture. Each gets its
-// own direction and spin.
-const CAM_FRONT_SOLID = extrude(CAM_SIL, 2, 19);
-const CAM_BACK_SOLID = extrude(CAM_SIL, -19, -2);
-const LENS_E1 = [...surface([[44, 27], [50, 25], [52, 22]], 18), ...disc(0, 27, 44, 18)];
-const LENS_E2 = [...surface([[62, 25], [68, 23], [70, 19]], 18), ...disc(0, 25, 62, 18)];
-const CAM_TOP = [...boxFaces(22, 10, 16, 24, -30, 4), ...boxFaces(16, 9, 14, -32, -26, 4)];
-// THE CAMERA COMES APART ALONG ITS OWN OPTICAL AXIS, in assembly order, the
-// way a parts diagram lays a camera out: lens groups forward off the front,
-// shells back off the rear, the top plate lifted straight up. It used to throw
-// all six pieces on their own diagonal with 130-260 degrees of tumble each,
-// which read as an explosion in a bin rather than a teardown.
-//
-// `at` is the station along the axis (+ is out the front, - is out the back),
-// `rise` lifts a piece clear of the strip so it does not queue behind another,
-// and `order` is when it leaves. Nothing spins.
-// Each piece carries its OWN wireframe. Deriving one from the face list wires
-// every triangle of a lathe's end-cap fan and the lens front comes out as a
-// sunburst; a shell comes out as a ladder of coincident quad edges.
-const shellWire = (z0, z1) => [
-  [...CAM_SIL.map(([x, y]) => [x, y, z0]), [CAM_SIL[0][0], CAM_SIL[0][1], z0]],
-  [...CAM_SIL.map(([x, y]) => [x, y, z1]), [CAM_SIL[0][0], CAM_SIL[0][1], z1]],
-  ...CAM_SIL.filter((_, i) => i % 3 === 0).map(([x, y]) => [[x, y, z0], [x, y, z1]]),
-];
-const CAM_PIECES = [
-  // out the FRONT, furthest-forward element first
-  { solid: () => LENS_E2, wire: () => [ring(25, 62, 20), ring(19, 70, 20)],
-    at: 1.00, rise: 0.00, order: 0 },
-  { solid: () => LENS_E1, wire: () => [ring(27, 44, 20), ring(22, 52, 20)],
-    at: 0.72, rise: 0.00, order: 1 },
-  { solid: () => LENS_SOLID,
-    wire: () => [...revolve(P_LENS, 3, [[16, 33], [30, 26], [48, 29], [62, 25], [70, 27]]),
-                 ...radial(10, a2 => [[at(a2, 29, 36), at(a2, 29, 46)]])],
-    at: 0.44, rise: 0.00, order: 2 },
-  { solid: () => CAM_FRONT_SOLID, wire: () => shellWire(2, 19),
-    at: 0.20, rise: 0.00, order: 3 },
-  // straight UP off the body
-  { solid: () => CAM_TOP,
-    wire: () => [...boxWire(22, 10, 16, 24, -30, 4), ...boxWire(16, 9, 14, -32, -26, 4)],
-    at: 0.00, rise: -1.00, order: 4 },
-  // out the BACK
-  { solid: () => CAM_BACK_SOLID, wire: () => shellWire(-19, -2),
-    at: -0.34, rise: 0.00, order: 5 },
-];
-
-const CAM_BODY = [-19, 19].map(z => [...CAM_SIL.map(([x, y]) => [x, y, z]), [CAM_SIL[0][0], CAM_SIL[0][1], z]]);
-const CAM_STRUTS = CAM_SIL.filter((_, i) => i % 3 === 0).map(([x, y]) => [[x, y, -19], [x, y, 19]]);
-const CAM_DETAIL = [ringAt(7, 24, -30, 20, 12), ringAt(9, -32, -26, 20, 12)];   // shutter, dial
-const CAM_SOLID = extrude(CAM_SIL, -19, 19);
-const LENS_SOLID = [...surface(P_LENS, 20), ...disc(0, 20, 72, 20)];
-const LENS = [
-  ...revolve(P_LENS, 3, [[16, 33], [30, 26], [48, 29], [62, 25], [70, 27]]),
-  ...radial(10, a => [[at(a, 29, 36), at(a, 29, 46)]]),        // focus-ring knurling
-  ring(18, 74, 24),
-];
-
-/* ── the component ──────────────────────────────────────────────────────── */
-
-export default function Flourish3D({ side = 'left' }) {
+export default function Flourish3D() {
   const hostRef = useRef(null);
-  const isLeft = side === 'left';
 
   useEffect(() => {
     const host = hostRef.current;
@@ -687,10 +571,14 @@ export default function Flourish3D({ side = 'left' }) {
     sizeCanvas();
 
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let lastP = -1, lastY = 0;
+    let lastY = -1;                // scroll position of the last paint
+    let morph = null;              // the wave->motor morph, built lazily, rebuilt on theme change
+    let hostA = 0.95;
+    const readHostA = () => { hostA = parseFloat(getComputedStyle(host).opacity) || 1; };
+    readHostA();
 
     // theme colours, read once and refreshed when the theme attribute changes
-    let ink = '#C5A35C', copper = '#A85A2A', slate = '#4E7C8C', err = '#A8503B';
+    let ink = '#C5A35C', copper = '#A85A2A';
     let paper = '#F7F5F2', dark = false, LINE = '#1a1a1a';
     const readTheme = () => {
       const cs = getComputedStyle(document.documentElement);
@@ -709,8 +597,6 @@ export default function Flourish3D({ side = 'left' }) {
       }
       ink = cs.getPropertyValue('--accent-color').trim() || ink;
       copper = cs.getPropertyValue('--f3d-copper').trim() || copper;
-      slate = cs.getPropertyValue('--ml-neg').trim() || slate;
-      err = cs.getPropertyValue('--ml-err').trim() || err;
     };
     readTheme();
     // ── LOOK ────────────────────────────────────────────────────────────
@@ -822,8 +708,8 @@ export default function Flourish3D({ side = 'left' }) {
     // every theme toggle and the canvas kept the previous theme's colours
     // until something else happened to scroll the page.
     const repaint = () => {
-      lastP = -1;
-      draw(reduce ? (isLeft ? 0.97 : 0.9) : scrollProgress());
+      lastY = -1;
+      draw();
     };
     // The host is sized by CSS, so a breakpoint change or a rotation resizes it
     // without React re-mounting anything. Re-derive the backing store and
@@ -874,6 +760,7 @@ export default function Flourish3D({ side = 'left' }) {
     // its colour, alpha and width. The prelude uses one such capture — the
     // piece's first frame — as the target the arriving sine rows gather into.
     let cap = null;
+    let capId = '';                // which part a captured line belongs to
     const record = (poly, m, t, color, alpha, width) => {
       const pts = new Float64Array(poly.length * 2);
       for (let i = 0; i < poly.length; i++) {
@@ -885,11 +772,8 @@ export default function Flourish3D({ side = 'left' }) {
         );
         pts[i * 2] = sc[0]; pts[i * 2 + 1] = sc[1];
       }
-      cap.push({ pts, c: color, a: alpha, w: width });
+      cap.push({ pts, c: color, a: alpha, w: width, id: capId });
     };
-    // A multiplier on everything the piece draws, so the prelude can fade the
-    // finished drawing in over the lines that are becoming it.
-    let ART_A = 1;
     function stroke(polys, T, color, alpha, width) {
       if (alpha <= 0.004 || !polys.length) return;
       const m = T.m, t = T.t;
@@ -908,7 +792,7 @@ export default function Flourish3D({ side = 'left' }) {
         }
         segs += poly.length - 1;
       }
-      ctx.globalAlpha = alpha * ART_A;
+      ctx.globalAlpha = alpha;
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.stroke();
@@ -932,7 +816,7 @@ export default function Flourish3D({ side = 'left' }) {
         ctx.closePath();
         segs += poly.length - 1;
       }
-      ctx.globalAlpha = alpha * ART_A;
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = color;
       ctx.fill();
     }
@@ -1092,7 +976,7 @@ export default function Flourish3D({ side = 'left' }) {
           for (let q = o + 2; q < last; q += 2) ctx.lineTo(PTS[q], PTS[q + 1]);
           if (!e.line) ctx.closePath();
         }
-        ctx.globalAlpha = f.a * ART_A;
+        ctx.globalAlpha = f.a;
         if (f.line) {
           ctx.strokeStyle = f.c;
           ctx.lineWidth = f.w;
@@ -1107,299 +991,78 @@ export default function Flourish3D({ side = 'left' }) {
       ptsN = 0;                      // the whole frame's points are done with
     }
 
-    // Axial explode offsets, in assembly order out from the middle. After the
-    // machine has come together it opens back UP into a held exploded view —
-    // a solid-shaded body hides its own internals, so staying assembled would
-    // throw away everything inside it.
-    // THE AXLE TURNS, AND PARTS GO ONTO IT. It starts turning as soon as it
-    // lands and accelerates all the way down the page, so every part that
-    // arrives is being threaded onto something already spinning. Everything
-    // mounted on the shaft (`spins: true`) turns with it.
-    //   revs(p) = the shaft's accumulated rotation in degrees
-    const revs = p => 2600 * Math.pow(win(p, 0.06, 0.94), 1.7);
-    // Once the motor is assembled it RUNS: the shaft, and everything on it,
-    // keep turning after the scroll stops instead of freezing mid-revolution.
-    // Deliberately breaking the "leave the page idle" rule, but on a leash —
-    // right-hand piece only, only past IDLE_FROM, capped at 20fps, and rAF
-    // stops it dead when the tab is hidden.
-    let idleSpin = 0;
-
-    function drawMotor(p) {
-      setCam((-24 + 40 * p) * DEG, (6 + 8 * p) * DEG, -120 + 150 * p);
-      // It STARTS laid out as an exploded view and comes together. Each part
-      // converges on its own window, back to front, so the machine builds up
-      // along the axle rather than everything sliding home at once.
-      // Staggered so the LAST part still has room to seat before the page
-      // ends. Hard-coding 0.10 per part stopped working the moment there were
-      // more than six of them.
-      const step = 0.50 / Math.max(1, MOTOR.length - 1);
-      const conv = k => smooth(win(p, 0.08 + k * step, 0.28));
-      const built = smooth(win(p, 0.10, 0.80));
-
-      // THE SCALE IS DERIVED FROM THE CURRENT SPREAD, not from progress.
-      // A fixed "small while spread, larger once closed" ramp gets this wrong,
-      // because the strip is at its longest in the MIDDLE of the sequence —
-      // the parts are still far apart while the module has already grown — not
-      // at the start. Measured off the canvas, that put the motor 338px wide in
-      // a 340px stage and running off the top for the first third of the page.
-      // Fitting the run every frame makes clipping impossible by construction.
-      const offsetOf = k => (LAID_OUT[MOTOR[k].id] || 0) * (1 - clamp(seat(conv(k)), 0, 1));
-      let lo = 0, hi = 0;
+    // ── the motor ───────────────────────────────────────────────────────
+    // ONE frame, fully assembled, held. It used to run a page-long sequence —
+    // laid out as an exploded view, threading itself together on a spinning
+    // axle, then free-running at the bottom — and the camera on the other side
+    // tore itself down into a detection pipeline. The owner asked for all of
+    // that to go: the waves become the motor, and the motor stays.
+    //
+    // The view is the old sequence's last frame, so the fit measured for it
+    // still holds: camera yaw 16, pitch 14, dolly 30; module scale at
+    // MOTOR_K_MAX; the shaft's rotation where the old run left it.
+    const SPIN = 2600 * DEG;               // the rotation the old run ended on
+    const ROLL = (90 + 250) * DEG;
+    let partA = null;                      // per-part alpha while the part materialises
+    function drawMotor() {
+      setCam(16 * DEG, 14 * DEG, 30);
+      const runK = MOTOR_K_MAX;
+      const base = chain(motorModule(runK), place(rotZ(ROLL), [0, 0, 0]));
       for (let k = 0; k < MOTOR.length; k++) {
-        const o = offsetOf(k); if (o < lo) lo = o; if (o > hi) hi = o;
-      }
-      const runK = clamp(MOTOR_RUN_PX / ((hi - lo) + MOTOR_LEN), 0.22, MOTOR_K_MAX);
-      const base = chain(motorModule(runK),
-        place(rotZ((90 + 250 * built) * DEG), [0, 0, 0]));
-
-      let culled = 0, lodOff = 0;
-      MOTOR.forEach((part, k) => {
-        const c = seat(conv(k));                       // 0 laid out -> 1 seated
-        const away = 1 - clamp(c, 0, 1);
-        const off = (LAID_OUT[part.id] || 0) * away;
-        // a small lateral drift while apart, so the strip is not a dead-straight
-        // queue, plus the axle's own rotation for anything mounted on it
-        let m = rotZ((part.spins ? revs(p) + idleSpin : 0) * DEG + away * part.spin * 0.25 * DEG);
-        const T = chain(base, place(m, [
-          part.dir[0] * away * 26,
-          part.dir[1] * away * 26 + (part.side || 0) * away,   // radial parts go sideways
-          off,
-        ]));
-        // How big is this part on screen? One projection of its origin gives
-        // the perspective factor, and the part's own radius does the rest.
+        const part = MOTOR[k];
+        const pa = partA ? (partA[part.id] ?? 0) : 1;
+        if (pa <= 0.004) continue;
+        capId = part.id;
+        const T = chain(base, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
         const oc = cam(T.t[0], T.t[1], T.t[2]);
-        const px = oc[0], py = oc[1];
-        const kf = PERSP / (PERSP - oc[2]);
-        const screenR = (part.r || 60) * runK * kf;
-
-        // OFF-STAGE PARTS COST NOTHING. During the explosion several parts are
-        // outside the 340x660 stage entirely, and they were still being
-        // projected, lit, sorted and drawn into a canvas that clips them.
-        if (px + screenR < 0 || px - screenR > W || py + screenR < 0 || py - screenR > H) {
-          part._T = null; culled++; return;
-        }
-
+        const screenR = (part.r || 60) * runK * (PERSP / (PERSP - oc[2]));
         const mat = part.mat || MAT.neutral;
-        submit(part.solids, T, mat, 1);
-        submitLines(part.polys, T, matLine[mat], LOOK.line, LOOK.width);
-        // LEVEL OF DETAIL. The fine stuff — bolt circles, slot lines, screws,
-        // knurling — is illegible below about 40px of part and costs exactly as
-        // much to draw as it does when it is readable. This is what makes it
-        // possible to keep adding detail without the frame getting slower.
-        if (screenR > LOD_PX && part.detail) {
-          submitLines(part.detail, T, matLine[mat], LOOK.line * 0.8, LOOK.width);
-        } else if (part.detail) lodOff++;
-        part._T = T; part._a = 1;
-      });
-      canvas.dataset.culled = `${culled}/${lodOff}`;
-
-      // Copper: bars lying IN the stator slots, tied by an end-turn ring past
-      // each end of the stack. A coil around the shaft axis is a solenoid, not
-      // a motor winding.
-      // COPPER. In every reference the windings are the one strongly coloured
-      // thing in the strip, so they travel with the stator and the end turns
-      // are always present rather than winding on late.
-      {
-        // Indexed by ID, not by position. This was conv(2), which was the
-        // stator until the fan was inserted ahead of it — after that the
-        // winding was converging on the fan's schedule.
-        const c = seat(conv(STATOR_I));
-        const T = chain(base, place(rotZ((revs(p) + idleSpin) * DEG), [0, 0, (LAID_OUT.copper || 0) * (1 - clamp(c, 0, 1))]));
-        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, MAT.copper, 1);
-        // END TURNS. These have to clear the stator body or the one coloured
-        // thing on this piece is invisible: at r=50 inside a r=62 core they
-        // were hidden by the core's own surface, and the whole strip measured
-        // 92 warm pixels. They now bulge to r=64, just past the r=62 core, and
-        // reach further along the axis so they read from the side too.
-        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, 1);
-        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, 1);
-        submitLines([ring(64, -58, 28), ring(64, 58, 28)], T, copper, LOOK.line, LOOK.width);
+        submit(part.solids, T, mat, pa);
+        submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
+        // LEVEL OF DETAIL: bolt circles, slot lines, screws — illegible below
+        // about 44px of part, so not drawn there at all.
+        // (not captured for the morph: detail appears with the part's drawing,
+        // and 268 strands converging on one small machine read as a tangle)
+        if (screenR > LOD_PX && part.detail && !cap) submitLines(part.detail, T, matLine[mat], LOOK.line * 0.8 * pa, LOOK.width);
+      }
+      // COPPER: bars in the stator slots, and end turns bulging past the
+      // r=62 core — at r=50 they were hidden by the core's own surface.
+      const pc = partA ? (partA.copper ?? 0) : 1;
+      if (pc > 0.004) {
+        capId = 'copper';
+        const T = chain(base, place(rotZ(SPIN), [0, 0, 0]));
+        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, MAT.copper, pc);
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, pc);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, pc);
+        submitLines([ring(64, -58, 28), ring(64, 58, 28)], T, copper, LOOK.line * pc, LOOK.width);
       }
       flush();     // ONE sorted pass over the whole machine: masses and lines
     }
 
-    function drawVision(p) {
-      setCam((26 - 48 * p) * DEG, (7 + 9 * p) * DEG, -70 + 170 * p);
-      const stage = place(IDENT, [0, IMG_Y, 0]);
-
-      // 1 · THE CAMERA COMES APART — cleanly. Every piece travels along the one
-      // optical axis (or straight up, for the top plate), in assembly order,
-      // holding its own orientation the whole way. What is left behind is the
-      // sensor.
-      // The camera was drawn at its natural size and measured 92x98px against
-      // the motor's 200x400 — the two sides of the page did not read as a pair.
-      // The scale rides on `turn`, so the explosion offsets scale with it.
-      const CAM_SCALE = 1.55;
-      const turn = place(mul(rotY(-42 * DEG), scaleM(CAM_SCALE)), [0, 0, 0]);
-      const EX_D = 360;
-      const camT = [];
-      CAM_PIECES.forEach((piece) => {
-        const i = piece.order;
-        const t = smooth(win(p, 0.07 + i * 0.020, 0.24));
-        const a = 1 - win(p, 0.20 + i * 0.020, 0.14);
-        if (a <= 0.01) return;
-        const T = chain(stage, chain(turn, place(IDENT, [
-          0,
-          piece.rise * EX_D * 0.62 * t,
-          piece.at * EX_D * t,
-        ])));
-        submit(piece.solid(), T, MAT.neutral, a);
-        // modelled as surfaces only, so without this they would be flat
-        // page-coloured shapes sliding apart
-        submitLines(piece.wire(), T, LINE, LOOK.line * a, LOOK.width);
-      });
-      flush();
-      // the outline detail rides only the two shells, and only while close
-      const shellA = 1 - win(p, 0.14, 0.12);
-      if (shellA > 0.01) {
-        const t0 = smooth(win(p, 0.07 + 3 * 0.020, 0.24));   // rides the front shell
-        const shell = chain(stage, chain(turn, place(IDENT, [0, 0, 0.20 * EX_D * t0])));
-        stroke(CAM_BODY.concat(CAM_STRUTS, CAM_DETAIL), shell, LINE, LOOK.line * shellA, LOOK.width);
-      }
-
-      // 2 · THE SENSOR IS WHAT IS LEFT. It squares up to the viewer, comes
-      // forward, and then its face resolves into photosites — the die does not
-      // sit behind a grid, it BECOMES the grid: the package outline fades as
-      // the cells take over.
-      const sens = smooth(win(p, 0.20, 0.14));
-      if (sens > 0) {
-        // un-rotate out of the camera's three-quarter view as it takes over
-        const square = place(rotY(-42 * (1 - sens) * DEG), [0, 0, 0]);
-        const T = chain(stage, chain(square, place(IDENT, [0, 0, -30 + 46 * sens])));
-        // the die itself, solid, before it dissolves into pixels
-        const dieFade = 1 - win(p, 0.30, 0.10);
-        if (dieFade > 0.01) submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade);
-        flush();
-        stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.5 * sens, 1);
-
-        // photosites light to their own values, so the grid IS the image.
-        // Bucketed by brightness so 48 cells cost 4 strokes, not 48.
-        const buckets = [[], [], [], []];
-        for (let i = 0; i < PX_C * PX_R; i++) {
-          const a = smooth(win(p, 0.28 + (i / (PX_C * PX_R)) * 0.10, 0.05));
-          if (a <= 0.02) continue;
-          const [x, y] = pxPos(i);
-          const v = pxVal(i) * a;
-          // each cell grows out of the die's own surface into its own tile
-          const sz = PX * 0.76 * (0.30 + 0.70 * a);
-          buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), 1.5));
-        }
-        // filled, not stroked: the cell's VALUE is its opacity, which is what
-        // makes the grid read as an image rather than as graph paper
-        for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, 0.12 + 0.72 * ((b + 1) / 4));
-
-        // 3 · patches: the image cut into fixed tiles
-        const pt = win(p, 0.40, 0.10);
-        if (pt > 0) {
-          const fr = [];
-          for (let k = 0; k < NTOK; k++) {
-            if (k / NTOK > pt * 1.15) break;
-            const [x, y] = patchPos(k);
-            fr.push(rect(PATCH - 3, PATCH - 3, x, y, 4));
-          }
-          stroke(fr, T, slate, 0.85 * (1 - 0.55 * win(p, 0.52, 0.12)), 1.2);
-        }
-      }
-
-      // 4 · flatten: every patch flies off the sensor into the sequence
-      const seq = place(IDENT, [0, SEQ_Y, 0]);
-      const toks = [], ticks = [];
-      for (let i = 0; i < NTOK; i++) {
-        const a = smooth(win(p, 0.50 + i * 0.006, 0.09));
-        if (a <= 0.02) continue;
-        const t = tokPos(i), pp = patchPos(i);
-        const x = pp[0] + (t[0] - pp[0]) * a;
-        const y = (IMG_Y - SEQ_Y) * (1 - a) + t[1] * a;
-        const z = 4 + (t[2] - 4) * a;
-        toks.push(rect(19, 19, x, y, z));
-        if (win(p, 0.56 + i * 0.004, 0.05) > 0.02) ticks.push([[x - 5, y + 14, z], [x + 5, y + 14, z]]);
-      }
-      fill(toks, seq, slate, 0.13);
-      stroke(toks, seq, slate, 0.85, 1.1);
-      stroke(ticks, seq, ink, 0.55, 1);
-
-      // the transformer blocks the sequence passes through
-      const blk = win(p, 0.60, 0.10);
-      if (blk > 0) stroke([0, 1, 2].map(k => rect(84, 62, 0, 0, -56 + k * 56)), seq, ink, 0.2 * blk, 1);
-
-      // 5 · attention: all-pairs from the CLS token, then a collapse onto a few
-      // strong links, which is what a trained head actually looks like
-      const att = win(p, 0.64, 0.10);
-      if (att > 0) {
-        const cls = tokPos(-1);
-        const keep = [], drop = [];
-        for (let i = 0; i < NTOK; i++) (hash(i * 9.3) > 0.62 ? keep : drop).push([cls, tokPos(i)]);
-        const collapse = win(p, 0.76, 0.12);
-        stroke(drop, seq, slate, 0.32 * att * (1 - collapse), 1);
-        stroke(keep, seq, slate, 0.32 * att + 0.5 * collapse, 1 + 1.4 * collapse);
-        fill([rect(15, 15, cls[0], cls[1], cls[2])], seq, ink, 0.3 * att);
-        stroke([rect(15, 15, cls[0], cls[1], cls[2])], seq, ink, 0.9 * att, 1.3);
-      }
-
-      // the attention map beside it
-      const mat = win(p, 0.68, 0.10);
-      if (mat > 0) {
-        const T = chain(place(IDENT, [66, SEQ_Y + 4, -26]), place(rotY(22 * DEG), [0, 0, 0]));
-        stroke([rect(ATT_N * 13, ATT_N * 13, 0, 0, 0)], T, ink, 0.45 * mat, 1);
-        const hot = [], cool = [];
-        for (let i = 0; i < ATT_N * ATT_N; i++) {
-          const w = hash(i * 5.1);
-          const on = w > 0.68 ? 1 : 1 - win(p, 0.78, 0.10);
-          if (on < 0.06) continue;
-          const x = ((i % ATT_N) - (ATT_N - 1) / 2) * 13, y = (Math.floor(i / ATT_N) - (ATT_N - 1) / 2) * 13;
-          (w > 0.55 ? hot : cool).push(rect(10, 10, x, y, 0));
-        }
-        fill(cool, T, slate, 0.18 * mat);
-        fill(hot, T, slate, 0.8 * mat);
-        stroke(hot.concat(cool), T, slate, 0.5 * mat, 1);
-      }
-
-      // 6 · the detection
-      const out = place(IDENT, [0, OUT_Y, 0]);
-      const fr = win(p, 0.84, 0.06);
-      if (fr > 0) stroke([rect(112, 84, 0, 0, 0)], out, ink, 0.4 * fr, 1);
-      const bx = seat(win(p, 0.88, 0.08));
-      if (bx > 0.01) {
-        const g = 1 + 0.5 * (1 - clamp(bx, 0, 1));
-        stroke([rect(60 * g, 46 * g, 0, 0, 2)], out, err, clamp(bx, 0, 1), 2);
-        const c = win(p, 0.90, 0.05);
-        if (c > 0) {
-          const corners = [];
-          for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) corners.push(rect(7 * c, 7 * c, sx * 30, sy * 23, 3));
-          stroke(corners, out, err, c, 1.6);
-        }
-        const lb = win(p, 0.93, 0.05);
-        if (lb > 0) fill([rect(36 * lb, 10, -30 + 18 * lb, -30, 3)], out, err, 0.9);
-        const cf = win(p, 0.95, 0.06);
-        if (cf > 0) stroke([[[-30, 30, 3], [-30 + 44 * cf, 30, 3]]], out, err, 0.85, 3);
-      }
-    }
-
-    // ── the frame ───────────────────────────────────────────────────────
-    // A whisper of a ground behind the piece, to stop it floating completely
-    // free of the page. Built once, not per frame.
-    // ── the prelude: sine rows become the drawing ───────────────────────
-    // The hero's wave field is cut down the middle and each half travels to
-    // this stage (WaveField.jsx does that part). Once it has arrived this
-    // piece takes over: it draws the SAME rows itself — identical geometry
-    // from the shared module, so the cross-fade between the two canvases is
-    // invisible — and then gathers them into its own first frame. Every
-    // polyline of that frame is captured once (see `cap`), sorted top to
-    // bottom, dealt out across the rows by rank, and each row is cut into one
-    // wave fragment per polyline it owns. A fragment and its polyline are
-    // resampled to the same point count and lerped; colour, width and alpha
-    // lerp with them. The finished drawing fades in under the last 30% of the
-    // morph while the moving lines fade out over the last 20%, which is what
-    // hides the lines the finished frame occludes — the morph is 2D and knows
-    // nothing about hidden-line removal, so it cannot do that itself.
-    const art = pa => { if (isLeft) drawVision(pa); else drawMotor(pa); };
-    // Page progress at which the piece's own timeline begins: the point where
-    // the morph completes, converted from hero-heights into page progress.
-    const artP = p => {
-      const P0 = (S_ART * heroHeight()) / Math.max(1, scrollMax());
-      return P0 >= 0.999 ? p : clamp((p - P0) / (1 - P0), 0, 1);
-    };
-    let morph = null;                   // built lazily, rebuilt on theme change
+    // ── the morph: sine rows become the motor ───────────────────────────
+    // The hero's wave field is cut down the middle; WaveField.jsx carries the
+    // right half to this stage (the left half leaves the page). Once it has
+    // arrived this piece draws the SAME rows itself — same constants, same
+    // frozen phase, so the cross-fade between the two canvases is invisible —
+    // and then gathers them into the motor.
+    //
+    // How it stays smooth:
+    //  - The finished frame is CAPTURED once (`cap`): every line it would
+    //    stroke, projected, tagged with its part.
+    //  - Parts are ordered top to bottom on screen, and the rows are dealt out
+    //    in that order, so each part forms from a contiguous band of rows and
+    //    the machine builds down the page one part after another.
+    //  - Each wave fragment FLIES as a rigid wave — turned to its line's
+    //    direction, scaled to its length — until its midpoint sits on the
+    //    line's midpoint, then BENDS the short remaining distance into the
+    //    line. Three things were tried first and all read as scribble: a
+    //    straight lerp (averages a wave with a circle: a knot), gathering to
+    //    the line's centre (every ring of a part shares one: a pile), and
+    //    laying the strand like a thread (the head arrives while the tail is
+    //    still in the field, so every strand became a long straight straw).
+    //  - Each part's real drawing — fills, hidden lines removed — fades in as
+    //    its own strands land, while those strands fade out. Doing that for
+    //    the whole machine at the end made the model appear to pop in.
     const toRGB = c => (c.startsWith('#') ? hexToRgb(c) : hexToRgb(rgbStrToHex(c)));
     const resample = (pts, n) => {
       const m = pts.length / 2;
@@ -1419,176 +1082,191 @@ export default function Flourish3D({ side = 'left' }) {
       }
       return out;
     };
+    const KY = H / WAVE_VH;
+    // a row's wave, in stage coordinates; the stage's LEFT edge is the one
+    // nearest the centre of the page, so d runs 0..VW/2 left to right
+    const stageWaveY = (i, xs) => {
+      const d = (xs * (WAVE_VW / 2)) / W;
+      return waveRowY(i) * KY + waveY(i, d, waveLive.phase, waveLive.freq) * KY;
+    };
+    // part windows within the morph: when each one starts, how long it takes
+    const PART_LEAD = 0.42, PART_SPAN = 0.58;
     function buildMorph() {
       cap = [];
-      const savedSpin = idleSpin; idleSpin = 0;
-      art(0);
-      idleSpin = savedSpin;
-      const recs = cap; cap = null;
+      drawMotor();
+      // Short lines are not worth a strand of their own: they arrive with
+      // their part's drawing instead.
+      const recs = cap.filter(r => {
+        let L = 0;
+        for (let q = 2; q < r.pts.length; q += 2) L += Math.hypot(r.pts[q] - r.pts[q - 2], r.pts[q + 1] - r.pts[q - 1]);
+        return L >= 18;
+      });
+      cap = null;
+      const parts = new Map();
       for (const r of recs) {
-        let sx = 0, sy = 0, lo = Infinity, hi = -Infinity;
+        let sx = 0, sy = 0, x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
         const n = r.pts.length / 2;
-        for (let i = 0; i < n; i++) { const x = r.pts[i * 2]; sx += x; sy += r.pts[i * 2 + 1]; if (x < lo) lo = x; if (x > hi) hi = x; }
-        r.cx = sx / n; r.cy = sy / n; r.bw = Math.max(10, hi - lo);
+        for (let i = 0; i < n; i++) {
+          const x = r.pts[i * 2], y = r.pts[i * 2 + 1];
+          sx += x; sy += y;
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+        r.cx = sx / n; r.cy = sy / n; r.bw = Math.max(6, x1 - x0); r.size = Math.max(6, x1 - x0, y1 - y0);
+        const P = parts.get(r.id) || { sy: 0, n: 0 };
+        P.sy += r.cy; P.n++; parts.set(r.id, P);
       }
-      recs.sort((A, B) => A.cy - B.cy);
-      // deal out across the rows by rank, so vertical order is kept and every
-      // row takes part
-      const rows = [];
+      const order = [...parts.keys()].sort((a, b) => parts.get(a).sy / parts.get(a).n - parts.get(b).sy / parts.get(b).n);
+      const rank = new Map(order.map((id, i) => [id, i]));
+      const nP = order.length;
+      const startOf = id => (nP > 1 ? rank.get(id) / (nP - 1) : 0) * PART_LEAD;
+      recs.sort((A, B) => (rank.get(A.id) - rank.get(B.id)) || (A.cy - B.cy));
+      const buckets = new Map();
+      const empty = [];
       for (let i = 0; i < WAVE_ROWS; i++) {
         const a = Math.floor((recs.length * i) / WAVE_ROWS), b = Math.floor((recs.length * (i + 1)) / WAVE_ROWS);
         const own = recs.slice(a, b).sort((A, B) => A.cx - B.cx);
+        if (!own.length) { empty.push(i); continue; }
         const total = own.reduce((acc, r) => acc + r.bw, 0) || 1;
         let x = 0;
-        const frags = own.map(r => {
+        own.forEach((r, j) => {
           const wpx = (r.bw / total) * W;
           const xa = x, xb = x + wpx; x = xb;
-          // enough samples for the fragment to still be a smooth wave at m=0
-          const n = Math.max(r.pts.length / 2, Math.ceil(wpx / 6) + 1);
+          const n = Math.max(r.pts.length / 2, Math.ceil(wpx / 5) + 1);
           const tgt = resample(r.pts, n);
-          // run the fragment the way the polyline runs, so ends meet ends
           const dir = tgt[0] <= tgt[(n - 1) * 2] ? 1 : -1;
-          return { xa, xb, n, dir, tgt, c: r.c, rgb: toRGB(r.c), a: r.a, w: r.w };
+          // a little stagger inside a part, so its strands do not move as a block
+          // where the strand lands: on the line's midpoint, along its direction
+          // (first->last, or first->middle for a closed ring), at its length
+          const h = (n >> 1) * 2, e = (n - 1) * 2;
+          let L = 0;
+          for (let q = 2; q <= e; q += 2) L += Math.hypot(tgt[q] - tgt[q - 2], tgt[q + 1] - tgt[q - 1]);
+          let vx = tgt[e] - tgt[0], vy = tgt[e + 1] - tgt[1];
+          if (Math.hypot(vx, vy) < 0.3 * L) { vx = tgt[h] - tgt[0]; vy = tgt[h + 1] - tgt[1]; }
+          const ang = Math.atan2(vy, vx);
+          const fly = { ca: Math.cos(ang), sa: Math.sin(ang), g: Math.max(0.15, Math.min(1.6, (Math.hypot(vx, vy) || L) / Math.max(1, wpx))), tmx: tgt[h], tmy: tgt[h + 1] };
+          const lead = startOf(r.id) + (own.length > 1 ? (j / (own.length - 1)) : 0) * 0.04;
+          // batched per ROW too: each row has its own opacity in the field
+          // (0.8 at the top to 0.1), and averaging it across a batch made the
+          // rows jump in brightness at the moment the two canvases swapped
+          const key = r.id + '|' + r.c + '|' + r.w + '|' + r.a + '|' + i;
+          let bk = buckets.get(key);
+          if (!bk) { bk = { id: r.id, rgb: toRGB(r.c), w: r.w, a: r.a, items: [], srcA: 0 }; buckets.set(key, bk); }
+          bk.items.push({ row: i, xa, xb, n, dir, tgt, lead, ...fly });
+          bk.srcA += waveRowA(i);
         });
-        rows.push(frags);
       }
-      // batch by target style
-      const byStyle = new Map();
-      rows.forEach((frags, i) => {
-        for (const f of frags) {
-          const key = f.c + '|' + f.w + '|' + Math.round(f.a * 8);
-          let b = byStyle.get(key);
-          if (!b) { b = { rgb: f.rgb, w: f.w, a: f.a, items: [], srcA: 0 }; byStyle.set(key, b); }
-          b.items.push({ f, row: i });
-          b.srcA += waveRowA(i);
-        }
-      });
-      const buckets = [...byStyle.values()];
-      for (const b of buckets) b.srcA /= b.items.length;
-      const empty = rows.map((f, i) => (f.length ? -1 : i)).filter(i => i >= 0);
-      morph = { buckets, empty, n: recs.length };
+      const list = [...buckets.values()];
+      for (const bk of list) bk.srcA /= bk.items.length;   // one row each, so exact
+      morph = { buckets: list, empty, order, startOf, n: recs.length };
       canvas.dataset.morph = String(recs.length);
     }
-    // a row's wave, in stage coordinates
-    const KY = H / WAVE_VH;
-    const stageWaveY = (i, xs) => {
-      const d = isLeft ? ((W - xs) * (WAVE_VW / 2)) / W : (xs * (WAVE_VW / 2)) / W;
-      return waveRowY(i) * KY + waveY(i, d, waveLive.phase, waveLive.freq) * KY;
-    };
-    let hostA = 0.95;
-    const readHostA = () => { hostA = parseFloat(getComputedStyle(host).opacity) || 1; };
-    readHostA();
-    const inkRGBof = () => hexToRgb(ink);
+    const partT = (m, id) => win(m, morph.startOf(id), PART_SPAN);
     function prelude(s) {
       const aIn = win(s, S_HANDOFF[0], S_HANDOFF[1]);
       if (aIn <= 0.004) return;
-      const m = smooth(win(s, S_MORPH[0], S_MORPH[1]));
-      const artA = win(m, 0.70, 0.30);
-      const lineA = 1 - win(m, 0.80, 0.20);
+      const m = win(s, S_MORPH[0], S_MORPH[1]);
       if (!morph) buildMorph();
       // the field's own opacity, undoing the host's so the two canvases match
       const fieldA = (dark ? WAVE_FIELD_A.dark : WAVE_FIELD_A.light) / hostA;
       const srcW = WAVE_STROKE / fit;
-      const gold = inkRGBof();
-      if (lineA > 0.004) {
-        // rows with nothing to become simply fade
-        for (const i of morph.empty) {
-          const a = waveRowA(i) * fieldA * (1 - m) * aIn * lineA;
-          if (a <= 0.004) continue;
-          ctx.globalAlpha = a; ctx.strokeStyle = ink; ctx.lineWidth = srcW;
-          ctx.beginPath();
-          for (let k = 0; k <= 56; k++) { const x = (k / 56) * W, y = stageWaveY(i, x); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
-          ctx.stroke();
-        }
-        for (const b of morph.buckets) {
-          // colour, width and alpha ride the morph
-          const r = Math.round(gold[0] + (b.rgb[0] - gold[0]) * m);
-          const g = Math.round(gold[1] + (b.rgb[1] - gold[1]) * m);
-          const bl = Math.round(gold[2] + (b.rgb[2] - gold[2]) * m);
-          const a = (b.srcA * fieldA + (b.a - b.srcA * fieldA) * m) * aIn * lineA;
-          if (a <= 0.004) continue;
-          ctx.globalAlpha = a;
-          ctx.strokeStyle = `rgb(${r},${g},${bl})`;
-          ctx.lineWidth = srcW + (b.w - srcW) * m;
-          ctx.beginPath();
-          for (const { f, row } of b.items) {
-            // rows gather one after another, top first
-            const mk = smooth(win(m, (row / WAVE_ROWS) * 0.30, 0.70));
-            const n = f.n, tgt = f.tgt;
-            for (let k = 0; k < n; k++) {
-              const t = n > 1 ? k / (n - 1) : 0;
-              const xs = f.dir > 0 ? f.xa + (f.xb - f.xa) * t : f.xb - (f.xb - f.xa) * t;
-              const ys = stageWaveY(row, xs);
-              const x = xs + (tgt[k * 2] - xs) * mk, y = ys + (tgt[k * 2 + 1] - ys) * mk;
-              if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
-            }
-            segs += n - 1;
-          }
-          ctx.stroke();
-        }
+      const gold = hexToRgb(ink);
+      // rows with nothing to become simply fade
+      for (const i of morph.empty) {
+        const a = waveRowA(i) * fieldA * (1 - smooth(m)) * aIn;
+        if (a <= 0.004) continue;
+        ctx.globalAlpha = a; ctx.strokeStyle = ink; ctx.lineWidth = srcW;
+        ctx.beginPath();
+        for (let k = 0; k <= 56; k++) { const x = (k / 56) * W, y = stageWaveY(i, x); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+        ctx.stroke();
       }
-      if (artA > 0.004) { ART_A = aIn * artA; art(0); ART_A = 1; }
+      for (const bk of morph.buckets) {
+        const pt = partT(m, bk.id);
+        // style rides the second half, so a strand is still gold while it travels
+        const st = smooth(win(pt, 0.35, 0.65));
+        const fade = 1 - smooth(win(pt, 0.78, 0.22));
+        const a = (bk.srcA * fieldA + (bk.a - bk.srcA * fieldA) * st) * aIn * fade;
+        if (a <= 0.004) continue;
+        ctx.globalAlpha = a;
+        ctx.strokeStyle = `rgb(${Math.round(gold[0] + (bk.rgb[0] - gold[0]) * st)},${Math.round(gold[1] + (bk.rgb[1] - gold[1]) * st)},${Math.round(gold[2] + (bk.rgb[2] - gold[2]) * st)})`;
+        ctx.lineWidth = srcW + (bk.w - srcW) * st;
+        ctx.beginPath();
+        for (const it of bk.items) {
+          const mk = win(m, it.lead, PART_SPAN);
+          const e1 = smooth(win(mk, 0, 0.62));      // fly, still a wave
+          const e2 = smooth(win(mk, 0.42, 0.58));   // bend into the line
+          const n = it.n, tgt = it.tgt;
+          // the strand's own midpoint, which is what lands on the line's
+          const xm = (it.xa + it.xb) / 2, ym = stageWaveY(it.row, xm);
+          const { ca, sa, g, tmx, tmy } = it;
+          for (let k = 0; k < n; k++) {
+            const t = n > 1 ? k / (n - 1) : 0;
+            const xs = it.dir > 0 ? it.xa + (it.xb - it.xa) * t : it.xb - (it.xb - it.xa) * t;
+            const ys = stageWaveY(it.row, xs);
+            // 1 · FLY: the strand travels as a rigid wave, turned to its
+            //     line's direction, scaled to its length, centred on its
+            //     midpoint. Every line has its own midpoint — rings of one
+            //     part share a centre but not a midpoint — so nothing piles up.
+            const ox = (xs - xm) * g, oy = (ys - ym) * g;
+            const fx = tmx + ox * ca - oy * sa, fy = tmy + ox * sa + oy * ca;
+            const x1 = xs + (fx - xs) * e1, y1 = ys + (fy - ys) * e1;
+            // 2 · BEND: from there to the line is a short distance, so the
+            //     last move reads as a wave relaxing into shape.
+            const x = x1 + (tgt[k * 2] - x1) * e2, y = y1 + (tgt[k * 2 + 1] - y1) * e2;
+            if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+          }
+          segs += n - 1;
+        }
+        ctx.stroke();
+      }
+      // each part's real drawing fades in as its strands land
+      let any = false;
+      const pa = {};
+      for (const id of morph.order) { const v = smooth(win(partT(m, id), 0.62, 0.38)) * aIn; pa[id] = v; if (v > 0.004) any = true; }
+      if (any) { partA = pa; drawMotor(); partA = null; }
     }
 
-    function draw(p, y = window.scrollY) {
+    const done = y => !reduce && heroPhase(y) >= S_ART;
+    function draw(y = window.scrollY) {
       ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      // The ground used to be painted here, as a full-canvas fillRect on every
-      // frame — 340x660 of gradient rasterising for something that never
-      // changes. It is a CSS background on .f3d now and costs nothing per frame.
       ctx.globalAlpha = 1;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       segs = 0;
       const s = reduce ? Infinity : heroPhase(y);
-      if (s < S_ART) prelude(s); else art(reduce ? p : artP(p));
+      if (s < S_ART) prelude(s); else drawMotor();
       ctx.globalAlpha = 1;
       canvas.dataset.segs = String(segs);
     }
 
     // ── scroll driver ───────────────────────────────────────────────────
-    // The listener and the rAF are shared with the rest of the page (see
-    // src/scrollDriver.js); what stays local is the part that is specific to
-    // this piece — no redraw unless the progress ACTUALLY moved. That
-    // threshold is the thing that keeps a static page idle. (anime's onScroll
-    // with a numeric `sync` never settles — it kept rewriting the scene
-    // ~1200x/second on a completely static page.)
+    // Shared listener and rAF (src/scrollDriver.js). Past the morph the
+    // motor is one fixed frame, so scrolling there redraws NOTHING — only the
+    // first frame past the line does, to land exactly on the finished motor.
     let stopScroll = null;
     let trailing = 0;
-
     if (reduce) {
-      draw(isLeft ? 0.97 : 0.9);          // one composed, representative frame
+      draw();                              // the finished motor, no morph
     } else {
-      // CAP THE REDRAW RATE. A draw costs a few ms of main thread, and there
-      // are two of these, so at 60fps the pair was spending most of a frame
-      // budget on decoration while the lanyard and the project covers wanted
-      // the same frame. Scroll-scrubbed background art does not need 60fps;
-      // it needs to not be stale when the scroll stops, which is what the
-      // trailing frame is for.
-      // ADAPTIVE RATE. 32ms is the target, but this runs on machines I cannot
-      // measure — the lanyard, the project covers and the page's own layout are
-      // all competing for the same main thread. So time each draw and back off
-      // when it is expensive: a piece costing 10ms gets drawn a third as often
-      // as one costing 2ms. That is the difference between decoration that
-      // degrades on a slow machine and decoration that makes it stutter.
+      // ADAPTIVE RATE: time each draw and back off when it is expensive.
       let MIN_MS = 32;
-      let lastDraw = -1e9, pendingP = 0, pendingY = 0;
-      const paint = (q, yy) => {
-        lastP = q; lastY = yy;
+      let lastDraw = -1e9, pendingY = 0;
+      const paint = yy => {
+        lastY = yy;
         const t0 = performance.now();
-        draw(q, yy);
-        MIN_MS = clamp((performance.now() - t0) * 8, 32, 120);   // ~12% of wall time
+        draw(yy);
+        MIN_MS = clamp((performance.now() - t0) * 8, 32, 120);
         lastDraw = performance.now();
       };
-      stopScroll = onPageScroll((y, p) => {
-        if (Math.abs(p - lastP) < 0.0004) return;
-        pendingP = p; pendingY = y;
+      stopScroll = onPageScroll(y => {
+        if (lastY >= 0 && (Math.abs(y - lastY) < 0.5 || (done(y) && done(lastY)))) return;
+        pendingY = y;
         if (performance.now() - lastDraw >= MIN_MS) {
           if (trailing) { cancelAnimationFrame(trailing); trailing = 0; }
-          paint(p, y);
+          paint(y);
         } else if (!trailing) {
           const again = () => {
-            if (performance.now() - lastDraw >= MIN_MS) { trailing = 0; paint(pendingP, pendingY); }
+            if (performance.now() - lastDraw >= MIN_MS) { trailing = 0; paint(pendingY); }
             else trailing = requestAnimationFrame(again);
           };
           trailing = requestAnimationFrame(again);
@@ -1596,46 +1274,16 @@ export default function Flourish3D({ side = 'left' }) {
       });
     }
 
-    // ── free-running spin ───────────────────────────────────────────────
-    // The motor keeps turning at the bottom of the page. It is the one thing
-    // here that animates without the scroll driving it, so it is fenced in:
-    // the motor side only, only once the machine is assembled, 20fps, and it
-    // is torn down with the component.
-    const IDLE_FROM = 0.80;
-    const IDLE_DPS = 150;          // degrees a second
-    // 20fps on a desktop, 10 on a phone. This is the one thing here that runs
-    // while the page is completely still, so on a battery it gets half.
-    const IDLE_MS = window.innerWidth < 992 ? 100 : 50;
-    let spinRAF = 0, spinTimer = 0, spinPrev = 0;
-    if (!isLeft && !reduce) {
-      const step = () => {
-        spinRAF = 0;
-        if (artP(lastP) < IDLE_FROM) { spinPrev = 0; schedule(); return; }
-        const now = performance.now();
-        const dt = spinPrev ? Math.min(0.25, (now - spinPrev) / 1000) : 0;
-        spinPrev = now;
-        idleSpin += dt * IDLE_DPS;
-        draw(lastP, lastY);
-        schedule();
-      };
-      const schedule = () => {
-        spinTimer = setTimeout(() => { spinRAF = requestAnimationFrame(step); }, IDLE_MS);
-      };
-      schedule();
-    }
-
     return () => {
       stopScroll?.();
       if (trailing) cancelAnimationFrame(trailing);
-      if (spinRAF) cancelAnimationFrame(spinRAF);
-      if (spinTimer) clearTimeout(spinTimer);
       sizeRO?.disconnect();
       themeWatch.disconnect();
     };
-  }, [isLeft]);
+  }, []);
 
   return (
-    <div className={`f3d f3d--${side}`} ref={hostRef} aria-hidden="true">
+    <div className="f3d f3d--right" ref={hostRef} aria-hidden="true">
       <canvas />
     </div>
   );

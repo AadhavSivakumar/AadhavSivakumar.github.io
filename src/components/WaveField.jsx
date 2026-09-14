@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
 import {
   ROWS, VW, VH, STROKE, FIELD_A, BULGE, FREQ_LAND, FREQ_PORT, DRIFT,
-  rowY, rowA, waveY, S_SPLIT, S_HANDOFF, win, smooth, live, heroPhase, heroHeight,
+  rowY, rowA, waveY, S_HANDOFF, win, rowSplit, live, heroPhase, heroHeight,
 } from '../waveField';
 
 // The hero's sine field, as ONE fixed full-viewport canvas behind the page.
@@ -32,7 +32,7 @@ export default function WaveField() {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let W = 1, H = 1, dpr = 1, portrait = false;
-    let stages = null;                 // { L: rect, R: rect } of the two flourish stages, or null
+    let stages = null;                 // { L, R }: R is the motor's stage, L a matching one off the left edge
     let heroH = heroHeight();
     let scrollY = window.scrollY;
     const t0 = performance.now();
@@ -54,13 +54,15 @@ export default function WaveField() {
       const bw = Math.round(W * dpr), bh = Math.round(H * dpr);
       if (canvas.width !== bw || canvas.height !== bh) { canvas.width = bw; canvas.height = bh; }
       heroH = heroHeight();
-      const L = document.querySelector('.f3d--left'), R = document.querySelector('.f3d--right');
-      if (L && R) {
-        const lr = L.getBoundingClientRect(), rr = R.getBoundingClientRect();
-        stages = lr.width > 0 && rr.width > 0
-          ? { L: { x: lr.left, y: lr.top, w: lr.width, h: lr.height }, R: { x: rr.left, y: rr.top, w: rr.width, h: rr.height } }
-          : null;
-      } else stages = null;
+      // Only the right half has somewhere to go: the motor's stage. The left
+      // half is sent to a mirror of it just past the left edge of the screen,
+      // fading as it goes, so the split still reads as a split.
+      const R = document.querySelector('.f3d--right');
+      const rr = R && R.getBoundingClientRect();
+      stages = rr && rr.width > 0
+        ? { R: { x: rr.left, y: rr.top, w: rr.width, h: rr.height },
+            L: { x: -rr.width - 24, y: rr.top, w: rr.width, h: rr.height } }
+        : null;
     };
     measure();
 
@@ -102,14 +104,14 @@ export default function WaveField() {
       const layerA = fieldA * (1 - win(s, S_HANDOFF[0], S_HANDOFF[1]));
       if (layerA <= 0.004) return false;
 
-      const u = stages ? smooth(win(s, S_SPLIT[0], S_SPLIT[1])) : 0;
-      // Without stages to fly to (a low-core machine draws no flourishes) the
+      // Without a stage to fly to (a low-core machine draws no motor) the
       // field simply rides the page and fades where the handoff would be.
+      const uLast = stages ? rowSplit(ROWS - 1, s) : 0;
       const elapsed = now - t0;
       const phase = live.phase;
       const freq = live.freq;
-      const bulgeH = (portrait ? BULGE.port : BULGE.land) * (1 - u);
-      const bulge = mx !== null && bulgeH > 0;
+      const bulgeMax = portrait ? BULGE.port : BULGE.land;
+      const bulge = mx !== null && uLast < 1;
 
       const kyFull = heroH / VH;
       ctx.lineWidth = STROKE;
@@ -130,9 +132,14 @@ export default function WaveField() {
         const yv = -50 + (rowY(i) + 50) * e;
         const a = rowA(i) * e * layerA;
         if (a <= 0.004) continue;
-        ctx.globalAlpha = a;
-        ctx.beginPath();
+        const u = stages ? rowSplit(i, s) : 0;
+        const bulgeH = bulgeMax * (1 - u);
         for (let side = 0; side < 2; side++) {
+          // the left half fades as it leaves; the right half keeps its alpha
+          const sa = side === 0 ? a * (1 - u) * (1 - u) : a;
+          if (sa <= 0.004) continue;
+          ctx.globalAlpha = sa;
+          ctx.beginPath();
           const S = stages ? (side === 0 ? stages.L : stages.R) : null;
           const kyStage = S ? S.h / VH : kyFull;
           const ky = kyFull + (kyStage - kyFull) * u;
@@ -142,7 +149,7 @@ export default function WaveField() {
             const d = side === 0 ? (VW / 2) * (1 - k / N) : (VW / 2) * (k / N);
             const xv = side === 0 ? (VW / 2) - d : (VW / 2) + d;
             let w = waveY(i, d, phase, freq);
-            if (bulge) {
+            if (bulge && bulgeH > 0) {
               const dx = xv - mx, dy = yv - my, d2 = dx * dx + dy * dy;
               if (d2 < BULGE.cutoff2) w -= bulgeH * Math.exp(-d2 / (2 * BULGE.radius * BULGE.radius));
             }
@@ -158,11 +165,11 @@ export default function WaveField() {
             y += w * ky;
             if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
           }
+          ctx.stroke();
         }
-        ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      return drew || bulge || u < 0.999;      // is anything still moving?
+      return drew || bulge || uLast < 0.999;      // is anything still moving?
     }
 
     // ── the loop ────────────────────────────────────────────────────────
@@ -183,9 +190,9 @@ export default function WaveField() {
       const dt = prev ? Math.min(0.1, (now - prev) / 1000) : 0;
       prev = now;
       const s = heroPhase(scrollY);
-      const u = stages ? smooth(win(s, S_SPLIT[0], S_SPLIT[1])) : 0;
-      // the drift slows to a stop as the rows arrive, so the flourishes read
-      // a constant phase at the handoff
+      // The drift slows to a stop as the LAST row arrives, so the motor's
+      // canvas reads a constant phase at the handoff.
+      const u = stages ? rowSplit(ROWS - 1, s) : 0;
       if (!reduce && heroOnScreen()) live.phase -= DRIFT * dt * (1 - u);
       const drifting = !reduce && heroOnScreen() && u < 0.999 && document.visibilityState !== 'hidden';
       if (mx === null && !needDraw && now - lastDraw < DRIFT_MS) {

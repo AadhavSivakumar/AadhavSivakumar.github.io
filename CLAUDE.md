@@ -305,14 +305,19 @@ keep them:
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
-## The hero, and the sine field that becomes the flourishes
+## The hero, and the sine field that becomes the motor
 
 The front page follows the old `/portfolio` hero, at the owner's request: a
 full-viewport band, a 224px portrait disc (`Media/hero/frontpagepfp.webp`,
 imported so Vite bundles it) above the name, the keyword chips, and the gold
-sine field behind all of it. **Scroll, and the field splits down the middle;
-each half flies to a side stage and gathers itself into that piece's first
-wireframe — the camera on the left, the laid-out motor on the right.**
+sine field behind all of it. **Scroll, and the field splits down the middle:
+the right half flies to the motor's stage and gathers itself into the motor,
+part by part; the left half leaves off the left edge, fading.** Then the motor
+holds. That is the whole animation — see "The motor", below.
+
+**There is no gold glow on the page.** `body` used to paint a 10% accent
+radial gradient at 10%/10%, fixed to the viewport, and the owner saw it as a
+warm light leaking in from the left. Its neutral partner at 90%/80% stays.
 
 - **The field is NOT in the hero.** It is `WaveField.jsx`, one fixed
   full-viewport canvas first in `.page-flourish-layer`, which rides the page by
@@ -326,42 +331,65 @@ wireframe — the camera on the left, the laid-out motor on the right.**
   drop-in entrance. Keep them in `src/waveField.js`.
 - **The timeline is in HERO HEIGHTS scrolled, not page progress**
   (`S_SPLIT`, `S_HANDOFF`, `S_MORPH` in `waveField.js`), so adding a section
-  below does not move it. The pieces' own timelines are remapped to start
-  where the morph ends (`artP` in `Flourish3D.jsx`), which is why everything
-  in the flourish section below is still expressed as 0..1 progress.
+  below does not move it. Rows peel off one after another, top first
+  (`rowSplit`, `SPLIT_STAGGER`), rather than the field sliding as one slab.
 - **The handoff is a cross-fade between identical geometry.** Once the rows
-  have arrived, the field canvas fades out while each flourish draws the SAME
-  rows from the same constants at the same phase. Measured row crossings on
-  both canvases at one instant: within 1px on both sides. That only holds
-  because the drift is slowed to a stop as the rows arrive (speed x (1 - u)),
-  so the flourish reads a constant `live.phase` — change that and a paused
-  scroll mid-handoff shows two copies sliding apart.
-- **The morph** (`prelude` in `Flourish3D.jsx`): the piece's first frame is
-  CAPTURED once (`cap` — stroke/submitLines record projected polylines instead
-  of drawing), sorted top to bottom, dealt across the 25 rows by rank, and each
-  row is cut into one wave fragment per polyline it owns. Fragment and polyline
-  are resampled to the same count and lerped; colour, width and alpha lerp
-  with them. The morph is 2D and knows nothing about hidden lines, so the
-  finished drawing fades in (`ART_A`) under the last 30% while the moving lines
-  fade over the last 20% — that is what hides the occluded ones. The capture
-  holds colours, so it is rebuilt on a theme change.
+  have arrived, the field canvas fades out while the motor's canvas draws the
+  SAME rows from the same constants at the same phase. Measured at one
+  instant: all 25 row crossings within 1px, peak alpha within ~5%. That only
+  holds because the drift slows to a stop as the LAST row arrives, so the
+  motor reads a constant `live.phase` — change that and a paused scroll
+  mid-handoff shows two copies sliding apart. The morph's strands are batched
+  per ROW for the same reason: batching by part averaged the rows' opacity and
+  every row jumped in brightness at the swap.
+- **The morph** (`prelude` in `Flourish3D.jsx`). The finished motor is
+  CAPTURED once (`cap`: submitLines records projected polylines, tagged with
+  their part via `capId`, instead of drawing). Parts are ordered top to bottom
+  on screen and the rows dealt out in that order, so each part forms from its
+  own band of rows and the machine builds down the stage one part after
+  another. Each strand FLIES as a rigid wave — turned to its line's direction,
+  scaled to its length — until its midpoint sits on the line's midpoint, then
+  BENDS the short remaining distance into the line. Each part's real drawing
+  (fills, hidden lines removed) fades in via `partA` as its own strands land.
+  The capture holds colours, so it is rebuilt on a theme change.
+  **What was tried and read as scribble, seen each time:** a straight lerp
+  (averages a wave with a circle: a knot); gathering each strand to its
+  line's centre (every ring of a part shares one: a pile); laying the strand
+  like a thread, head first (the tail is still in the field when the head
+  lands, so every strand became a long straight straw); and morphing all 268
+  lines. Only lines ≥18px long, without LOD detail, get a strand — 103 of
+  them; the rest arrive with their part's drawing. And the whole model fading
+  in at the end made it pop; per part it does not.
 - **Idle rules still hold.** The field redraws only while something moves: the
   entrance, the drift (hero on screen, rows not yet frozen, tab visible, capped
   at ~30fps because it moves ten pixels a second), the bulge while the pointer
   is over the hero. Past the handoff the canvas is cleared once and nothing
-  runs. It is drawn on every machine; the flourishes stay gated on core count,
-  and without stages the field just rides the page and fades.
+  runs. It is drawn on every machine; the motor stays gated on core count,
+  and without its stage the field just rides the page and fades.
 - **Frame cost, measured in Firefox**: hero at p50 17.1ms with the field, the
   same with it hidden. The live SVG version measured 33ms. Under the SwiftShader
   Chromium harness the hero reads 66-100ms — that is the CPU rasteriser
   emulating a GPU for a full-viewport canvas under five `backdrop-filter`
   chips, not the page. Measure frame time in Firefox, not there.
 
-## The side flourishes (`src/components/Flourish3D.jsx`)
+## The motor (`src/components/Flourish3D.jsx`)
 
-Two decorative pieces fixed to the viewport, one per side, mounted in the
-`page-flourish-layer` in `App.jsx` and scrubbed by page scroll. They are
-skipped only when `navigator.hardwareConcurrency <= 4`.
+ONE decorative piece, fixed to the right of the viewport in the
+`page-flourish-layer` (`App.jsx`), skipped only when
+`navigator.hardwareConcurrency <= 4`. It is formed from the hero's sine waves
+(previous section) and then **holds as one still frame for the rest of the
+page — no scroll sequence, no idle spin.** Past the morph, scrolling redraws
+nothing at all.
+
+**Everything else that used to be here is gone, at the owner's request (Sept
+2026):** the camera on the left that tore itself down into a
+vision-transformer pipeline, and the motor's own page-long sequence (laid out
+as an exploded view, threading itself onto a spinning axle, the free-running
+propeller at the bottom). The geometry survived. Much of what follows is the
+history of that renderer; where it talks about the camera, the left side, the
+exploded layout or progress through the page, it describes code that no
+longer exists — `LAID_OUT`, `revs`, the idle spin and the vision module are
+all in git history before this change.
 
 **They are NOT gated on width.** They used to be hidden below 992px, which
 meant every phone saw none of them. The stage now sizes itself from CSS
@@ -375,23 +403,7 @@ That is the DRAWING coordinate system, and every fit, camera constant and LOD
 threshold in the file is expressed in it — only `ctx.setTransform` changes.
 Resize the stage in CSS and nothing about the composition needs re-tuning.
 
-On mobile the two pieces are staggered VERTICALLY (left around 29vh, right
-around 73vh) rather than pulled off the side edges. Retreating horizontally was
-tried first and reduced them to slivers — technically visible, which is not the
-same thing as visible. The vertical offset is what stops both landing behind
-the same paragraph.
-
-- **LEFT — "Detection"**: a camera **tears itself apart** — six pieces, each
-  with its own direction and spin, thrown far enough to leave frame — down to its
-  **sensor**;
-  the sensor resolves into **pixels**; the pixels are cut into **patches** and
-  flattened into a token sequence (the move that defines a **Vision
-  Transformer**); the tokens **attend** to each other and the map collapses onto
-  a few strong links; the result is a **detection** — box, corners, label,
-  confidence.
-- **RIGHT — "Down the Shaft"**: an electric motor threading itself together on
-  one axis in assembly order — shaft, rotor, wound stator, bells, finned frame,
-  fan cowl — then running.
+On mobile the stage sits lower on the right (71-73vh) and fainter.
 
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
@@ -554,83 +566,24 @@ the reference is the anime.js site — 1px monochrome strokes on a warm near-bla
   visibly. There is headroom — ~3,900 segments and ~670 draw calls a frame still
   measures free (p50 17ms with the flourishes shown AND hidden).
 
-### Fitting the art to the stage
+### The motor's one frame
 
-The stage is 340x660 and the art has to stay inside it. Do not eyeball this —
-there is a measurement for it (see Verifying): the ink bounding box read
-straight off the canvas, per side, per scroll position.
+It is the old sequence's LAST frame, so the fit measured for it still holds:
+camera yaw 16°, pitch 14°, dolly 30; module scale `MOTOR_K_MAX`; the axis at
+`MOTOR_TILT` (~69° on screen — the parts have diameter as well as length, and
+the diagonal of a 340x660 box is 63°, not the 41° it once was); the shaft
+rotated where the old run left it (`SPIN`). Change any of those and re-run the
+ink bounding-box measurement (see Verifying).
 
-- **The motor's scale is SOLVED every frame, not ramped.**
-  `k = MOTOR_RUN_PX / (currentSpread + MOTOR_LEN)`, clamped. A fixed
-  "small while spread, larger once closed" ramp gets it wrong, because the strip
-  is longest in the MIDDLE of the sequence — parts still far apart while the
-  module has already grown — not at the start. Measured, that ramp put the motor
-  338px wide in a 340px stage and running off the top for the first third of the
-  page.
-- **The axis is steep (~69 degrees on screen).** It used to be 41, chosen as
-  "the diagonal", but the diagonal of a 340x660 box is 63 degrees. The parts
-  have diameter as well as length, so the fit test has to include their radius.
-- **`LAID_OUT` values are OFFSETS added to where a part already sits.** The fan
-  is modelled at z=-130, the front bell at +122. Adding a station on top
-  double-counts, which is why the strip used to bunch in the middle with holes
-  at both ends. The numbers are (target - natural centre), for targets evenly
-  spaced 220 apart.
-- The convergence stagger is derived from `MOTOR.length`. Hard-coding 0.10 per
-  part stopped working the moment there were more than six.
-- Anything that indexes a part must index it BY ID. The copper was `conv(2)`,
-  which was the stator until the fan was inserted ahead of it — after that the
-  winding converged on the fan's schedule.
-
-**The camera comes apart along its own optical axis**, in assembly order, each
-piece holding its orientation: lens groups forward off the front, top plate
-straight up, shells back off the rear. It used to throw all six on their own
-diagonal with 130-260 degrees of tumble each, which read as an explosion in a
-bin rather than a teardown. Each piece carries its OWN wireframe — deriving one
-from the face list wires every triangle of a lathe's end-cap fan and the lens
-front comes out as a sunburst.
-
-**There is a PROPELLER on the drive end, and it keeps turning.** Each blade is
-a twisted surface — walk out along the span and lay the chord across a direction
-that is part tangential and part axial. That angle is the pitch, and it has to
-fall from root to tip (34° → 12° here) or the blade reads as a flat paddle
-rather than a screw.
-
-**The free-running spin is the one thing on the page that animates without the
-scroll driving it**, which is a deliberate exception to the idle rule above, so
-it is fenced in: the motor side only, only past p 0.80, capped at 20fps, and
-rAF stops it dead when the tab is hidden. Verified by sitting still for three
-seconds — 0 redraws mid-page on both sides, ~45 on the right at the bottom.
-If you add anything else that animates off the scroll, fence it the same way
-and re-run that check.
-
-**The motor STARTS as a laid-out exploded view and comes together.** That is
-the shape every reference exploded view of a motor uses (the owner supplied
-four): the axis near horizontal, the parts strung along it in assembly order —
-fan cover, endbell, rotor, stator with its copper, housing, front endbell — with
-gaps wider than the parts are long. `LAID_OUT` holds those stations; each part
-converges on its own staggered window so the machine builds back to front, and
-the whole module is drawn small while spread and grows as it closes.
-
-**The copper must project past the core.** In every reference the windings are
-the one strongly coloured thing in the strip. The bars themselves sit at r=44
-inside a closed stator body and are invisible from the side, so the END TURNS
-bulge out to r=50 past both ends of the stack — that is what carries the colour.
-
-**The motor is a spinning axle that parts are threaded onto.** The shaft starts
-turning the moment it lands (`revs(p)`, ~7 accelerating revolutions across the
-page) and everything mounted on it — rotor, winding — turns with it, so each
-arriving part is being added to something already running. It ends FULLY
-ASSEMBLED with every feature on it.
-
-That is a deliberate reversal: an earlier version opened back up into a held
-exploded view at p 0.62, on the reasoning that a solid shaded body hides its own
-internals. The owner asked for the opposite — parts accumulating onto the axle,
-all features ending up on the motor — so the internals being hidden at the end
-is the accepted cost. The exploded language now lives on the LEFT side, where
-the camera tears itself apart properly.
-
-Measured cost of shading: unchanged. p50 17.1ms with the flourishes against
-17.3ms with them hidden, and 17.0 vs 17.0 on a static page.
+- Anything that indexes a part must index it BY ID (`STATOR_I`, `partA[id]`).
+- **The copper must project past the core.** The bars sit at r=46 inside a
+  closed stator and are invisible from the side; the END TURNS bulge to r=64
+  past the r=62 core, and that is what carries the colour. At r=50 they were
+  hidden by the core's own surface.
+- **The propeller's pitch falls from root to tip** (34° → 12°), or the blade
+  reads as a flat paddle rather than a screw.
+- A wound stator is copper IN THE SLOTS with end turns; a coil around the
+  shaft axis is a solenoid.
 
 ### How it is put together
 
@@ -676,9 +629,8 @@ throttled when the whole TAB is hidden, never when something scrolls out of view
 - **Connectors sharing an origin must FAN.** The attention links all run from
   the CLS token to a sequence receding along Z; without an X spread they were
   near-collinear and filled in as one solid wedge.
-- **One meaning per colour**: gold = optical path and structure, slate = compute
-  (patches, tokens, attention), rust = the result, copper = the motor winding
-  and nothing else.
+- **One meaning per colour**: gold is the sine field and nothing on the
+  finished motor; copper is the winding and nothing else.
 - **A cylinder made of longitudinal slats reads as a fence.** Circumferential
   rings follow the perspective ellipse and read as a turned body.
 - **A coil wound around the shaft axis is a SOLENOID, not a motor winding.**
@@ -714,7 +666,7 @@ Two measurements do most of the work, and both beat looking at it:
 
 **There is ONE scroll listener on the page** (`src/scrollDriver.js`): one passive
 listener, one rAF, subscribers called with `(scrollY, progress)` from inside that
-frame. The progress bar, the header shadow and both flourishes go through it.
+frame. The progress bar, the header shadow, the wave field and the motor go through it.
 The document height is measured on resize and by a `ResizeObserver` on `<body>`,
 not inside the handler — reading `scrollHeight` per event forces a layout flush,
 which is what two of the four old handlers did.

@@ -89,8 +89,7 @@ function App() {
             that piece's first frame. It is drawn on every machine — 25
             strokes — while the pieces themselves stay gated. */}
         <WaveField />
-        {canAfford3D && <Flourish3D side="left" />}
-        {canAfford3D && <Flourish3D side="right" />}
+        {canAfford3D && <Flourish3D />}
       </div>
       <a className="skip-link" href="#main">Skip to content</a>
       <Header theme={theme} toggleTheme={toggleTheme} />

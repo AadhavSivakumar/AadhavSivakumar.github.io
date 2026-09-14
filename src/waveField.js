@@ -41,21 +41,27 @@ export const waveY = (i, d, phase, freq) => AMP * Math.sin((d + phase) * freq + 
 // `s = scrollY / heroHeight`, so the choreography is pinned to the hero
 // rather than to the page: adding a section below does not move it.
 //   0        the field, riding with the page
-//   SPLIT    each row is cut at the centre and the halves travel out to the
-//            two flourish stages, compressing to fit them
-//   HANDOFF  the field canvas fades out and each flourish draws the same rows
-//            in its own stage — a cross-fade between identical geometry
-//   MORPH    the rows gather themselves into the first wireframe of each
-//            piece: the camera, the laid-out motor
-//   after    the pieces' own timelines run, remapped to start here
-export const S_SPLIT   = [0.02, 0.53];
+//   SPLIT    each row is cut at the centre; the right half travels to the
+//            motor's stage, compressing to fit it, and the left half leaves
+//            off the left edge. Rows peel away one after another, top first,
+//            rather than the whole field sliding as a slab.
+//   HANDOFF  the field canvas fades out and the motor's canvas draws the same
+//            rows in its stage — a cross-fade between identical geometry
+//   MORPH    the rows gather themselves into the motor, part by part
+//   after    the motor holds; nothing redraws
+export const S_SPLIT = [0.02, 0.53];                  // whole split window
+export const SPLIT_STAGGER = 0.20;                    // first row to last row
+const SPLIT_SPAN = S_SPLIT[1] - SPLIT_STAGGER;        // each row's own travel
 export const S_HANDOFF = [0.55, 0.12];
-export const S_MORPH   = [0.64, 0.50];
-export const S_ART     = S_MORPH[0] + S_MORPH[1];   // 1.14
+export const S_MORPH   = [0.62, 0.78];
+export const S_ART     = S_MORPH[0] + S_MORPH[1];     // 1.40
 
 export const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const win = (p, lead, span) => clamp01((p - lead) / span);
 export const smooth = t => t * t * (3 - 2 * t);
+// how far row i is through its split, 0..1, eased
+export const rowSplit = (i, s) =>
+  smooth(win(s, S_SPLIT[0] + (i / (ROWS - 1)) * SPLIT_STAGGER, SPLIT_SPAN));
 
 // ── shared live state ───────────────────────────────────────────────────
 // The field canvas owns the drift phase; the flourishes read it during the
