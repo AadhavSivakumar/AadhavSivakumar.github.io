@@ -12,6 +12,7 @@ import Footer from './components/Footer';
 import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
 import Flourish3D from './components/Flourish3D';
+import WaveField from './components/WaveField';
 import { useTheme } from './hooks/useTheme';
 
 function App() {
@@ -81,12 +82,16 @@ function App() {
           smaller and cheaper canvas rather than none at all. About.jsx keeps
           its own width gate for the lanyard, which genuinely cannot run
           there. */}
-      {canAfford3D && (
-        <div className="page-flourish-layer" aria-hidden="true">
-          <Flourish3D side="left" />
-          <Flourish3D side="right" />
-        </div>
-      )}
+      <div className="page-flourish-layer" aria-hidden="true">
+        {/* The hero's sine field lives here too, not in the hero: it is what
+            the flourishes are made FROM. Scroll, and it splits down the
+            middle, each half flying to a side stage and gathering itself into
+            that piece's first frame. It is drawn on every machine — 25
+            strokes — while the pieces themselves stay gated. */}
+        <WaveField />
+        {canAfford3D && <Flourish3D side="left" />}
+        {canAfford3D && <Flourish3D side="right" />}
+      </div>
       <a className="skip-link" href="#main">Skip to content</a>
       <Header theme={theme} toggleTheme={toggleTheme} />
       <main id="main">

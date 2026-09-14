@@ -5,10 +5,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import Flourish3D from './components/Flourish3D';
+import WaveField from './components/WaveField';
 import './App.css';
 
+// No #hero here, so the wave module takes one viewport height as the hero:
+// the first 1.14 viewport-heights of scroll are the field, the split and the
+// morph, and the pieces' own timelines run over the rest of the spacer.
 ReactDOM.createRoot(document.getElementById('root')).render(
   <div className="page-flourish-layer" aria-hidden="true">
+    <WaveField />
     <Flourish3D side="left" />
     <Flourish3D side="right" />
   </div>

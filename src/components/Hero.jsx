@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
-import SineWave from './SineWave';
 import HeroChip from './HeroChip';
+import portrait from '../../Media/hero/frontpagepfp.webp';
 
 // Keyword chips under the tagline, like the live /portfolio hero — clicking
 // one jumps to the section where that topic lives.
@@ -87,57 +87,29 @@ export default function Hero() {
   });
 
 
-  // The aurora blobs and the sine field are infinite CSS animations, so they
-
-  // kept the compositor busy for the WHOLE session — including while the hero
-
-  // was scrolled far off screen. That is cheap on its own, but it forces a
-
-  // composite every frame, and everything else on the page (notably the two
-
-  // 3D flourishes) then pays for it too. Pause them when the hero is not in
-
-  // view; CSS does the actual pausing via .hero--idle.
-
+  // The scroll cue is a motion loop writing inline styles, so it has to be
+  // told when the hero leaves the screen — it was still running ~37 writes a
+  // second with the hero scrolled off the top of the page. rAF is throttled
+  // when the TAB is hidden, never when something merely scrolls out of view.
+  // (The aurora blobs and the SVG wave field this observer used to pause are
+  // gone: the field is the WaveField canvas now, which idles itself.)
   useEffect(() => {
-
     const el = heroRef.current;
-
     if (!el || typeof IntersectionObserver === 'undefined') return undefined;
-
     const io = new IntersectionObserver(
-
-      ([e]) => {
-        el.classList.toggle('hero--idle', !e.isIntersecting);
-        // The CSS class only stops CSS animations. The scroll cue is a motion
-        // loop writing inline styles, so it needs to be told separately — it
-        // was still running ~37 writes/second with the hero scrolled off the
-        // top of the page. rAF is throttled when the TAB is hidden, never when
-        // something merely scrolls out of view.
-        setHeroOnScreen(e.isIntersecting);
-      },
-
+      ([e]) => setHeroOnScreen(e.isIntersecting),
       { rootMargin: '80px' }
-
     );
-
     io.observe(el);
-
     return () => io.disconnect();
-
   }, []);
 
 
   return (
     <section id="hero" ref={heroRef} aria-labelledby="hero-title">
-      <div className="hero-aurora" aria-hidden="true">
-        <div className="aurora-blob aurora-a" />
-        <div className="aurora-blob aurora-b" />
-      </div>
-
-      {/* Full-width animated sine field behind everything — the glass chips
-          refract this through backdrop-filter. */}
-      <SineWave variant="field" />
+      {/* The sine field behind this is the WaveField canvas in App.jsx — fixed
+          to the viewport so it can leave the hero and become the two side
+          pieces. The glass chips refract it through backdrop-filter. */}
 
       {/* Shared liquid-glass displacement filter. As a backdrop-filter, its
           SourceGraphic IS the backdrop, so feDisplacementMap warps the wave
@@ -170,6 +142,16 @@ export default function Hero() {
           </filter>
         </defs>
       </svg>
+
+      {/* The portrait, as on /portfolio: a 224px disc above the name. */}
+      <motion.div
+        className="hero-photo"
+        initial={{ opacity: 0, y: 16, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ delay: 0.35, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <img src={portrait} alt="" width="480" height="480" decoding="async" fetchpriority="high" />
+      </motion.div>
 
       <h1 id="hero-title" ref={nameRef} aria-label={NAME}>
         {NAME.split(' ').map((word, wi, words) => (

@@ -1,5 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { onScroll as onPageScroll, scrollProgress } from '../scrollDriver';
+import { onScroll as onPageScroll, scrollProgress, scrollMax } from '../scrollDriver';
+import {
+  ROWS as WAVE_ROWS, VW as WAVE_VW, VH as WAVE_VH, STROKE as WAVE_STROKE, FIELD_A as WAVE_FIELD_A,
+  rowY as waveRowY, rowA as waveRowA, waveY, live as waveLive, heroPhase, heroHeight,
+  S_HANDOFF, S_MORPH, S_ART,
+} from '../waveField';
 
 // Page-wide decorative flourishes — one per side, fixed to the viewport and
 // scrubbed by page scroll.
@@ -682,7 +687,7 @@ export default function Flourish3D({ side = 'left' }) {
     sizeCanvas();
 
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let lastP = -1;
+    let lastP = -1, lastY = 0;
 
     // theme colours, read once and refreshed when the theme attribute changes
     let ink = '#C5A35C', copper = '#A85A2A', slate = '#4E7C8C', err = '#A8503B';
@@ -830,12 +835,13 @@ export default function Flourish3D({ side = 'left' }) {
         if (host.clientWidth === lastW) return;
         lastW = host.clientWidth;
         sizeCanvas();
+        readHostA();
         repaint();
       });
       sizeRO.observe(host);
     }
 
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); repaint(); });
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); morph = null; repaint(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 
@@ -863,9 +869,31 @@ export default function Flourish3D({ side = 'left' }) {
     // One beginPath/stroke per style group, so the draw-call count stays in the
     // dozens no matter how many segments there are.
     let segs = 0;
+    // CAPTURE MODE. While `cap` is an array, nothing is drawn: every polyline
+    // that would have been stroked is projected and recorded instead, with
+    // its colour, alpha and width. The prelude uses one such capture — the
+    // piece's first frame — as the target the arriving sine rows gather into.
+    let cap = null;
+    const record = (poly, m, t, color, alpha, width) => {
+      const pts = new Float64Array(poly.length * 2);
+      for (let i = 0; i < poly.length; i++) {
+        const q = poly[i];
+        const sc = cam(
+          m[0] * q[0] + m[1] * q[1] + m[2] * q[2] + t[0],
+          m[3] * q[0] + m[4] * q[1] + m[5] * q[2] + t[1],
+          m[6] * q[0] + m[7] * q[1] + m[8] * q[2] + t[2],
+        );
+        pts[i * 2] = sc[0]; pts[i * 2 + 1] = sc[1];
+      }
+      cap.push({ pts, c: color, a: alpha, w: width });
+    };
+    // A multiplier on everything the piece draws, so the prelude can fade the
+    // finished drawing in over the lines that are becoming it.
+    let ART_A = 1;
     function stroke(polys, T, color, alpha, width) {
       if (alpha <= 0.004 || !polys.length) return;
       const m = T.m, t = T.t;
+      if (cap) { for (let pi = 0; pi < polys.length; pi++) if (polys[pi].length > 1) record(polys[pi], m, t, color, alpha, width); return; }
       ctx.beginPath();
       for (let pi = 0; pi < polys.length; pi++) {
         const poly = polys[pi];
@@ -880,14 +908,14 @@ export default function Flourish3D({ side = 'left' }) {
         }
         segs += poly.length - 1;
       }
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * ART_A;
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.stroke();
     }
 
     function fill(polys, T, color, alpha) {
-      if (alpha <= 0.004 || !polys.length) return;
+      if (alpha <= 0.004 || !polys.length || cap) return;
       const m = T.m, t = T.t;
       ctx.beginPath();
       for (let pi = 0; pi < polys.length; pi++) {
@@ -904,7 +932,7 @@ export default function Flourish3D({ side = 'left' }) {
         ctx.closePath();
         segs += poly.length - 1;
       }
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * ART_A;
       ctx.fillStyle = color;
       ctx.fill();
     }
@@ -938,7 +966,7 @@ export default function Flourish3D({ side = 'left' }) {
       return (isLine ? 100000 : 0) + v;
     };
     function submit(faces, T, base, alpha) {          // `base` is a MAT slot
-      if (alpha <= 0.02 || !faces.length) return;
+      if (alpha <= 0.02 || !faces.length || cap) return;
       const m = T.m, t = T.t;
       for (let fi = 0; fi < faces.length; fi++) {
         const f = faces[fi], v = f.v, n = f.n;
@@ -1001,6 +1029,7 @@ export default function Flourish3D({ side = 'left' }) {
     function submitLines(polys, T, color, alpha, width) {
       if (alpha <= 0.004 || !polys.length) return;
       const m = T.m, t = T.t;
+      if (cap) { for (let pi = 0; pi < polys.length; pi++) if (polys[pi].length > 1) record(polys[pi], m, t, color, alpha, width); return; }
       for (let pi = 0; pi < polys.length; pi++) {
         const poly = polys[pi];
         if (poly.length < 2) continue;
@@ -1032,6 +1061,7 @@ export default function Flourish3D({ side = 'left' }) {
     // a frame where the shaded version had a dozen batched ones — and each
     // stroke carries fixed rasteriser setup.
     function flush() {
+      if (cap) { bucket.length = 0; ptsN = 0; return; }
       if (!bucket.length) return;
       // Sort by depth SLAB first, then by style. Ordering strictly by depth is
       // correct but interleaves styles, so almost nothing merges — and giving
@@ -1062,7 +1092,7 @@ export default function Flourish3D({ side = 'left' }) {
           for (let q = o + 2; q < last; q += 2) ctx.lineTo(PTS[q], PTS[q + 1]);
           if (!e.line) ctx.closePath();
         }
-        ctx.globalAlpha = f.a;
+        ctx.globalAlpha = f.a * ART_A;
         if (f.line) {
           ctx.strokeStyle = f.c;
           ctx.lineWidth = f.w;
@@ -1348,7 +1378,159 @@ export default function Flourish3D({ side = 'left' }) {
     // ── the frame ───────────────────────────────────────────────────────
     // A whisper of a ground behind the piece, to stop it floating completely
     // free of the page. Built once, not per frame.
-    function draw(p) {
+    // ── the prelude: sine rows become the drawing ───────────────────────
+    // The hero's wave field is cut down the middle and each half travels to
+    // this stage (WaveField.jsx does that part). Once it has arrived this
+    // piece takes over: it draws the SAME rows itself — identical geometry
+    // from the shared module, so the cross-fade between the two canvases is
+    // invisible — and then gathers them into its own first frame. Every
+    // polyline of that frame is captured once (see `cap`), sorted top to
+    // bottom, dealt out across the rows by rank, and each row is cut into one
+    // wave fragment per polyline it owns. A fragment and its polyline are
+    // resampled to the same point count and lerped; colour, width and alpha
+    // lerp with them. The finished drawing fades in under the last 30% of the
+    // morph while the moving lines fade out over the last 20%, which is what
+    // hides the lines the finished frame occludes — the morph is 2D and knows
+    // nothing about hidden-line removal, so it cannot do that itself.
+    const art = pa => { if (isLeft) drawVision(pa); else drawMotor(pa); };
+    // Page progress at which the piece's own timeline begins: the point where
+    // the morph completes, converted from hero-heights into page progress.
+    const artP = p => {
+      const P0 = (S_ART * heroHeight()) / Math.max(1, scrollMax());
+      return P0 >= 0.999 ? p : clamp((p - P0) / (1 - P0), 0, 1);
+    };
+    let morph = null;                   // built lazily, rebuilt on theme change
+    const toRGB = c => (c.startsWith('#') ? hexToRgb(c) : hexToRgb(rgbStrToHex(c)));
+    const resample = (pts, n) => {
+      const m = pts.length / 2;
+      if (m === n) return pts;
+      const out = new Float64Array(n * 2);
+      const cum = new Float64Array(m); cum[0] = 0;
+      for (let i = 1; i < m; i++) cum[i] = cum[i - 1] + Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]);
+      const L = cum[m - 1];
+      let j = 0;
+      for (let k = 0; k < n; k++) {
+        const d = L * (n > 1 ? k / (n - 1) : 0);
+        while (j < m - 2 && cum[j + 1] < d) j++;
+        const seg = cum[j + 1] - cum[j];
+        const t = seg > 1e-9 ? (d - cum[j]) / seg : 0;
+        out[k * 2] = pts[j * 2] + (pts[j * 2 + 2] - pts[j * 2]) * t;
+        out[k * 2 + 1] = pts[j * 2 + 1] + (pts[j * 2 + 3] - pts[j * 2 + 1]) * t;
+      }
+      return out;
+    };
+    function buildMorph() {
+      cap = [];
+      const savedSpin = idleSpin; idleSpin = 0;
+      art(0);
+      idleSpin = savedSpin;
+      const recs = cap; cap = null;
+      for (const r of recs) {
+        let sx = 0, sy = 0, lo = Infinity, hi = -Infinity;
+        const n = r.pts.length / 2;
+        for (let i = 0; i < n; i++) { const x = r.pts[i * 2]; sx += x; sy += r.pts[i * 2 + 1]; if (x < lo) lo = x; if (x > hi) hi = x; }
+        r.cx = sx / n; r.cy = sy / n; r.bw = Math.max(10, hi - lo);
+      }
+      recs.sort((A, B) => A.cy - B.cy);
+      // deal out across the rows by rank, so vertical order is kept and every
+      // row takes part
+      const rows = [];
+      for (let i = 0; i < WAVE_ROWS; i++) {
+        const a = Math.floor((recs.length * i) / WAVE_ROWS), b = Math.floor((recs.length * (i + 1)) / WAVE_ROWS);
+        const own = recs.slice(a, b).sort((A, B) => A.cx - B.cx);
+        const total = own.reduce((acc, r) => acc + r.bw, 0) || 1;
+        let x = 0;
+        const frags = own.map(r => {
+          const wpx = (r.bw / total) * W;
+          const xa = x, xb = x + wpx; x = xb;
+          // enough samples for the fragment to still be a smooth wave at m=0
+          const n = Math.max(r.pts.length / 2, Math.ceil(wpx / 6) + 1);
+          const tgt = resample(r.pts, n);
+          // run the fragment the way the polyline runs, so ends meet ends
+          const dir = tgt[0] <= tgt[(n - 1) * 2] ? 1 : -1;
+          return { xa, xb, n, dir, tgt, c: r.c, rgb: toRGB(r.c), a: r.a, w: r.w };
+        });
+        rows.push(frags);
+      }
+      // batch by target style
+      const byStyle = new Map();
+      rows.forEach((frags, i) => {
+        for (const f of frags) {
+          const key = f.c + '|' + f.w + '|' + Math.round(f.a * 8);
+          let b = byStyle.get(key);
+          if (!b) { b = { rgb: f.rgb, w: f.w, a: f.a, items: [], srcA: 0 }; byStyle.set(key, b); }
+          b.items.push({ f, row: i });
+          b.srcA += waveRowA(i);
+        }
+      });
+      const buckets = [...byStyle.values()];
+      for (const b of buckets) b.srcA /= b.items.length;
+      const empty = rows.map((f, i) => (f.length ? -1 : i)).filter(i => i >= 0);
+      morph = { buckets, empty, n: recs.length };
+      canvas.dataset.morph = String(recs.length);
+    }
+    // a row's wave, in stage coordinates
+    const KY = H / WAVE_VH;
+    const stageWaveY = (i, xs) => {
+      const d = isLeft ? ((W - xs) * (WAVE_VW / 2)) / W : (xs * (WAVE_VW / 2)) / W;
+      return waveRowY(i) * KY + waveY(i, d, waveLive.phase, waveLive.freq) * KY;
+    };
+    let hostA = 0.95;
+    const readHostA = () => { hostA = parseFloat(getComputedStyle(host).opacity) || 1; };
+    readHostA();
+    const inkRGBof = () => hexToRgb(ink);
+    function prelude(s) {
+      const aIn = win(s, S_HANDOFF[0], S_HANDOFF[1]);
+      if (aIn <= 0.004) return;
+      const m = smooth(win(s, S_MORPH[0], S_MORPH[1]));
+      const artA = win(m, 0.70, 0.30);
+      const lineA = 1 - win(m, 0.80, 0.20);
+      if (!morph) buildMorph();
+      // the field's own opacity, undoing the host's so the two canvases match
+      const fieldA = (dark ? WAVE_FIELD_A.dark : WAVE_FIELD_A.light) / hostA;
+      const srcW = WAVE_STROKE / fit;
+      const gold = inkRGBof();
+      if (lineA > 0.004) {
+        // rows with nothing to become simply fade
+        for (const i of morph.empty) {
+          const a = waveRowA(i) * fieldA * (1 - m) * aIn * lineA;
+          if (a <= 0.004) continue;
+          ctx.globalAlpha = a; ctx.strokeStyle = ink; ctx.lineWidth = srcW;
+          ctx.beginPath();
+          for (let k = 0; k <= 56; k++) { const x = (k / 56) * W, y = stageWaveY(i, x); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+          ctx.stroke();
+        }
+        for (const b of morph.buckets) {
+          // colour, width and alpha ride the morph
+          const r = Math.round(gold[0] + (b.rgb[0] - gold[0]) * m);
+          const g = Math.round(gold[1] + (b.rgb[1] - gold[1]) * m);
+          const bl = Math.round(gold[2] + (b.rgb[2] - gold[2]) * m);
+          const a = (b.srcA * fieldA + (b.a - b.srcA * fieldA) * m) * aIn * lineA;
+          if (a <= 0.004) continue;
+          ctx.globalAlpha = a;
+          ctx.strokeStyle = `rgb(${r},${g},${bl})`;
+          ctx.lineWidth = srcW + (b.w - srcW) * m;
+          ctx.beginPath();
+          for (const { f, row } of b.items) {
+            // rows gather one after another, top first
+            const mk = smooth(win(m, (row / WAVE_ROWS) * 0.30, 0.70));
+            const n = f.n, tgt = f.tgt;
+            for (let k = 0; k < n; k++) {
+              const t = n > 1 ? k / (n - 1) : 0;
+              const xs = f.dir > 0 ? f.xa + (f.xb - f.xa) * t : f.xb - (f.xb - f.xa) * t;
+              const ys = stageWaveY(row, xs);
+              const x = xs + (tgt[k * 2] - xs) * mk, y = ys + (tgt[k * 2 + 1] - ys) * mk;
+              if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+            }
+            segs += n - 1;
+          }
+          ctx.stroke();
+        }
+      }
+      if (artA > 0.004) { ART_A = aIn * artA; art(0); ART_A = 1; }
+    }
+
+    function draw(p, y = window.scrollY) {
       ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
       ctx.clearRect(0, 0, W, H);
       // The ground used to be painted here, as a full-canvas fillRect on every
@@ -1358,7 +1540,8 @@ export default function Flourish3D({ side = 'left' }) {
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       segs = 0;
-      if (isLeft) drawVision(p); else drawMotor(p);
+      const s = reduce ? Infinity : heroPhase(y);
+      if (s < S_ART) prelude(s); else art(reduce ? p : artP(p));
       ctx.globalAlpha = 1;
       canvas.dataset.segs = String(segs);
     }
@@ -1389,23 +1572,23 @@ export default function Flourish3D({ side = 'left' }) {
       // as one costing 2ms. That is the difference between decoration that
       // degrades on a slow machine and decoration that makes it stutter.
       let MIN_MS = 32;
-      let lastDraw = -1e9, pendingP = 0;
-      const paint = q => {
-        lastP = q;
+      let lastDraw = -1e9, pendingP = 0, pendingY = 0;
+      const paint = (q, yy) => {
+        lastP = q; lastY = yy;
         const t0 = performance.now();
-        draw(q);
+        draw(q, yy);
         MIN_MS = clamp((performance.now() - t0) * 8, 32, 120);   // ~12% of wall time
         lastDraw = performance.now();
       };
       stopScroll = onPageScroll((y, p) => {
         if (Math.abs(p - lastP) < 0.0004) return;
-        pendingP = p;
+        pendingP = p; pendingY = y;
         if (performance.now() - lastDraw >= MIN_MS) {
           if (trailing) { cancelAnimationFrame(trailing); trailing = 0; }
-          paint(p);
+          paint(p, y);
         } else if (!trailing) {
           const again = () => {
-            if (performance.now() - lastDraw >= MIN_MS) { trailing = 0; paint(pendingP); }
+            if (performance.now() - lastDraw >= MIN_MS) { trailing = 0; paint(pendingP, pendingY); }
             else trailing = requestAnimationFrame(again);
           };
           trailing = requestAnimationFrame(again);
@@ -1427,12 +1610,12 @@ export default function Flourish3D({ side = 'left' }) {
     if (!isLeft && !reduce) {
       const step = () => {
         spinRAF = 0;
-        if (lastP < IDLE_FROM) { spinPrev = 0; schedule(); return; }
+        if (artP(lastP) < IDLE_FROM) { spinPrev = 0; schedule(); return; }
         const now = performance.now();
         const dt = spinPrev ? Math.min(0.25, (now - spinPrev) / 1000) : 0;
         spinPrev = now;
         idleSpin += dt * IDLE_DPS;
-        draw(lastP);
+        draw(lastP, lastY);
         schedule();
       };
       const schedule = () => {

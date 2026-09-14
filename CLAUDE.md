@@ -74,13 +74,14 @@ src/
   App.jsx                 # section composition + modal open/close state
   App.css                 # ALL styling: theme tokens, sections, cards, modal, hero, nav
   data/siteData.js        # ALL page content (see "Editing content")
+  waveField.js            # constants + timeline shared by WaveField and Flourish3D
   hooks/useTheme.js       # light/dark via data-theme attr + localStorage
   hooks/useScrollReveal.js # anime.js scroll-into-view entrance used by every card
   components/
     Header.jsx            # fixed nav, scroll-spy + animated gold pill (layoutId)
-    Hero.jsx              # anime.js letter cascade, aurora bg, keyword chips
+    Hero.jsx              # portrait disc, anime.js letter cascade, keyword chips
     HeroChip.jsx          # liquid-glass keyword pill (backdrop-filter + SVG refraction)
-    SineWave.jsx          # staggered sine field behind the hero (variant="field")
+    WaveField.jsx         # the hero sine field: fixed full-viewport canvas that splits into the flourishes
     Flourish3D.jsx        # the two canvas side flourishes (see below)
     About.jsx             # the about card (the lanyard badges moved to Experience)
     badgeCards.js         # the six badge definitions + photos; Experience hangs four of them
@@ -303,6 +304,58 @@ keep them:
   toward the viewer" is the opposite local pitch on a card facing away.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
+
+## The hero, and the sine field that becomes the flourishes
+
+The front page follows the old `/portfolio` hero, at the owner's request: a
+full-viewport band, a 224px portrait disc (`Media/hero/frontpagepfp.webp`,
+imported so Vite bundles it) above the name, the keyword chips, and the gold
+sine field behind all of it. **Scroll, and the field splits down the middle;
+each half flies to a side stage and gathers itself into that piece's first
+wireframe — the camera on the left, the laid-out motor on the right.**
+
+- **The field is NOT in the hero.** It is `WaveField.jsx`, one fixed
+  full-viewport canvas first in `.page-flourish-layer`, which rides the page by
+  drawing itself offset by `-scrollY` until it detaches. A row that has to
+  leave the hero and land on a fixed element cannot live inside the hero. The
+  aurora blobs and the old SVG `SineWave` are gone.
+- **Its numbers are /portfolio's, read from its source** (`SineWave.tsx` in the
+  other repo): 1000x350 virtual box, 25 rows, amplitude 8, frequency 0.04
+  (0.02 in portrait), -25° phase per row, opacity 0.8 → 0.1, the wave mirrored
+  about the centre (`sin(|x-500| + phase)`), the mouse bulge, the 50ms-stagger
+  drop-in entrance. Keep them in `src/waveField.js`.
+- **The timeline is in HERO HEIGHTS scrolled, not page progress**
+  (`S_SPLIT`, `S_HANDOFF`, `S_MORPH` in `waveField.js`), so adding a section
+  below does not move it. The pieces' own timelines are remapped to start
+  where the morph ends (`artP` in `Flourish3D.jsx`), which is why everything
+  in the flourish section below is still expressed as 0..1 progress.
+- **The handoff is a cross-fade between identical geometry.** Once the rows
+  have arrived, the field canvas fades out while each flourish draws the SAME
+  rows from the same constants at the same phase. Measured row crossings on
+  both canvases at one instant: within 1px on both sides. That only holds
+  because the drift is slowed to a stop as the rows arrive (speed x (1 - u)),
+  so the flourish reads a constant `live.phase` — change that and a paused
+  scroll mid-handoff shows two copies sliding apart.
+- **The morph** (`prelude` in `Flourish3D.jsx`): the piece's first frame is
+  CAPTURED once (`cap` — stroke/submitLines record projected polylines instead
+  of drawing), sorted top to bottom, dealt across the 25 rows by rank, and each
+  row is cut into one wave fragment per polyline it owns. Fragment and polyline
+  are resampled to the same count and lerped; colour, width and alpha lerp
+  with them. The morph is 2D and knows nothing about hidden lines, so the
+  finished drawing fades in (`ART_A`) under the last 30% while the moving lines
+  fade over the last 20% — that is what hides the occluded ones. The capture
+  holds colours, so it is rebuilt on a theme change.
+- **Idle rules still hold.** The field redraws only while something moves: the
+  entrance, the drift (hero on screen, rows not yet frozen, tab visible, capped
+  at ~30fps because it moves ten pixels a second), the bulge while the pointer
+  is over the hero. Past the handoff the canvas is cleared once and nothing
+  runs. It is drawn on every machine; the flourishes stay gated on core count,
+  and without stages the field just rides the page and fades.
+- **Frame cost, measured in Firefox**: hero at p50 17.1ms with the field, the
+  same with it hidden. The live SVG version measured 33ms. Under the SwiftShader
+  Chromium harness the hero reads 66-100ms — that is the CPU rasteriser
+  emulating a GPU for a full-viewport canvas under five `backdrop-filter`
+  chips, not the page. Measure frame time in Firefox, not there.
 
 ## The side flourishes (`src/components/Flourish3D.jsx`)
 

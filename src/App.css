@@ -158,129 +158,26 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 }
 
 /* HERO */
-#hero { position: relative; overflow: hidden; min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
+/* A full viewport tall, as on /portfolio, with the portrait disc above the
+   name. The sine field behind it is NOT in this section any more — it is the
+   fixed WaveField canvas in the flourish layer, so it can leave the hero and
+   become the two side pieces (see .wave-layer below). The section is
+   transparent so that field shows through, and the glass chips refract it. */
+#hero { position: relative; overflow: hidden; min-height: 100vh; min-height: 100svh; padding: 96px 16px 32px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background-color: transparent; }
 #hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); margin-bottom: 20px; }
+.hero-photo {
+  width: clamp(150px, 16vw, 224px);
+  height: clamp(150px, 16vw, 224px);
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 32px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px color-mix(in srgb, var(--accent-color) 35%, transparent);
+  background: var(--surface-color);
+}
+.hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.05); }
 #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
 .hero-word { display: inline-block; white-space: nowrap; }
 .hero-letter { display: inline-block; will-change: transform; }
-
-/* Staggered sine-wave curtains flanking the hero (port of the /portfolio look).
-   Each row carries a negative animation-delay so the stack ripples. */
-.sine-wave-container {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 300px;
-  height: 420px;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.75;
-}
-.sine-wave--left {
-  left: 0;
-  -webkit-mask-image: linear-gradient(to left, transparent 0%, black 22%, black 78%, transparent 100%);
-  mask-image: linear-gradient(to left, transparent 0%, black 22%, black 78%, transparent 100%);
-}
-.sine-wave--right {
-  right: 0;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%);
-}
-.sine-wave-container svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.sine-wave-container svg path {
-  stroke: var(--accent-color);
-  stroke-width: 2px;
-  fill: none;
-  animation-duration: 3s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-.sine-wave--left svg path { animation-name: sine-move-left; }
-.sine-wave--right svg path { animation-name: sine-move-right; }
-
-@keyframes sine-move-left {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-200px); }
-}
-@keyframes sine-move-right {
-  from { transform: translateX(-200px); }
-  to   { transform: translateX(0); }
-}
-
-@media (max-width: 992px) {
-  .sine-wave-container { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sine-wave-container svg path { animation: none; }
-}
-
-/* Soft animated aurora behind the hero */
-.hero-aurora { position: absolute; inset: 0; overflow: visible; pointer-events: none; z-index: -1; }
-.aurora-blob {
-  position: absolute;
-  width: 44vw;
-  height: 44vw;
-  max-width: 640px;
-  max-height: 640px;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.35;
-}
-.aurora-a {
-  top: -10%;
-  left: -5%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent-color) 55%, transparent) 0%, transparent 65%);
-  animation: aurora-drift-a 16s ease-in-out infinite alternate;
-}
-.aurora-b {
-  bottom: -20%;
-  right: -8%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent-color) 35%, transparent) 0%, transparent 65%);
-  animation: aurora-drift-b 20s ease-in-out infinite alternate;
-}
-@keyframes aurora-drift-a {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(12vw, 8vh) scale(1.15); }
-}
-@keyframes aurora-drift-b {
-  from { transform: translate(0, 0) scale(1.1); }
-  to   { transform: translate(-10vw, -6vh) scale(0.95); }
-}
-
-/* Full-width hero wave field — paints into the hero backdrop (z-index:-1) so
-   the glass chips can refract it. A soft radial hole keeps the headline crisp
-   while the lower band (behind the chips) stays at full strength. */
-.hero-wavefield {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-  /* The per-row ramp in SineWave.jsx does the fading now, the way /portfolio
-     does it. What is left here is a soft top/bottom feather so the field does
-     not end on a hard line where the hero meets the page — /portfolio can end
-     square because its hero is a full-bleed band. The radial hole that used to
-     be punched behind the name is GONE: it is what stopped this reading as one
-     continuous field. */
-  opacity: 0.42;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 82%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 82%, transparent 100%);
-}
-.hero-wavefield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.hero-wavefield path {
-  stroke: var(--accent-color);
-  stroke-width: 2px;
-  fill: none;
-  /* Slow. At 3s the field was travelling fast enough to read as a screensaver;
-     /portfolio's is not animated at all. */
-  animation: sine-move-left 8s linear infinite;
-}
-html[data-theme="dark"] .hero-wavefield { opacity: 0.34; }
-@media (max-width: 992px) { .hero-wavefield { opacity: 0.24; } }
-@media (prefers-reduced-motion: reduce) {
-  .hero-wavefield path { animation: none; }
-}
 
 .hero-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
 /* ---- Liquid-glass chip tokens (readable on light + dark) ---- */
@@ -510,6 +407,10 @@ html[data-theme="dark"] {
   pointer-events: none;
   overflow: hidden;
 }
+/* The hero's sine field (WaveField.jsx): one full-viewport canvas, first in
+   the layer so the two pieces paint over it. It rides the page by drawing
+   itself offset by -scrollY, then splits and flies to the .f3d stages. */
+.wave-layer { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* ── Side flourishes (Flourish3D.jsx) ─────────────────────────────────────
    ONE canvas per side. This used to be ~350 divs in a `transform-style:
@@ -1077,7 +978,6 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    this media query exists for.
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  .aurora-blob { animation: none; }
   .hero-scroll-cue, .hero-scroll-cue * { animation: none; }
   .lift-card, .doc-tile, .social-links a, .project-tag { transition: none; }
   .lift-card:hover, .doc-tile:hover { transform: none; }

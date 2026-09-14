@@ -83,6 +83,10 @@ export function onScroll(fn) {
 }
 
 // For anything that needs the measurement the driver already has.
+export function scrollMax() {
+  if (!listening) measure();
+  return maxScroll;
+}
 export function scrollProgress() {
   return Math.min(1, Math.max(0, window.scrollY / maxScroll));
 }
