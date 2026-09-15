@@ -605,45 +605,63 @@ html[data-theme="dark"] .f3d::before {
   display: flex; flex-direction: column; gap: 14px;
   width: 100%; max-width: 1100px; margin: 0 auto;
 }
+/* MIN-height, not height: the text decides. A fixed height clipped the tag
+   row off the bottom of the card at 1440x900 and 1280x800 (measured: 3-13px
+   of it below the card's edge), because the centred text block was taller
+   than the row and spilled out of both ends. The picture stretches to
+   whatever height the row ends up. */
 .major-projects-grid .major-project-card {
   display: grid; grid-template-columns: calc(var(--mp-h) * 1.6) minmax(0, 1fr);
-  height: var(--mp-h); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient);
+  min-height: var(--mp-h); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient);
 }
 .major-projects-grid .major-project-card:nth-child(even) { grid-template-columns: minmax(0, 1fr) calc(var(--mp-h) * 1.6); }
 .major-projects-grid .major-project-card:nth-child(even) > img,
-.major-projects-grid .major-project-card:nth-child(even) > video { grid-column: 2; grid-row: 1; }
-.major-projects-grid .major-project-card:nth-child(even) > .project-content { grid-column: 1; grid-row: 1; }
-.major-project-card img, .major-project-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.major-projects-grid .major-project-card:nth-child(even) > video { grid-column: 2 / 3; grid-row: 1 / 2; }
+.major-projects-grid .major-project-card:nth-child(even) > .project-content { grid-column: 1 / 2; grid-row: 1 / 2; }
+.major-project-card img, .major-project-card video { width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
+/* The picture is taken OUT of the row-height calculation: absolutely
+   positioned, but placed in its grid cell, which then serves as its box. As
+   an ordinary grid item a tall poster set the row height by its own aspect
+   ratio. Both children are placed explicitly, because an absolute child does
+   not take part in auto-placement and the text would slide into its column.
+   BOTH LINES, always: for an absolutely positioned grid child an unstated
+   end line means the container's far edge, not "span 1" — `grid-column: 1`
+   spread the picture under the text on every odd card. */
+.major-projects-grid .major-project-card { position: relative; }
+.major-projects-grid .major-project-card > img,
+.major-projects-grid .major-project-card > video { position: absolute; inset: 0; grid-column: 1 / 2; grid-row: 1 / 2; }
+.major-projects-grid .major-project-card > .project-content { grid-column: 2 / 3; grid-row: 1 / 2; }
 @media (max-width: 700px) {
   /* phones: the picture back on top */
   .major-projects-grid .major-project-card,
-  .major-projects-grid .major-project-card:nth-child(even) { display: flex; flex-direction: column; height: auto; }
-  .major-project-card img, .major-project-card video { height: auto; aspect-ratio: 16 / 10; }
+  .major-projects-grid .major-project-card:nth-child(even) { display: flex; flex-direction: column; height: auto; min-height: 0; }
+  .major-projects-grid .major-project-card > img,
+  .major-projects-grid .major-project-card > video { position: static; height: auto; aspect-ratio: 16 / 10; }
 }
 
 .major-projects-grid .major-project-card .project-content {
-  padding: 12px 22px;
+  padding: 14px 24px;
   text-align: left;
-  display: flex; flex-direction: column; justify-content: center; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0;
 }
 .major-projects-grid .major-project-card .project-content h4 {
-  font-size: 1.25rem;
+  font-size: 1.18rem;
   line-height: 1.25;
-  margin-bottom: 5px;
+  margin: 0;
 }
 .major-projects-grid .major-project-card .project-content p {
   color: var(--secondary-color);
-  font-size: 0.88rem;
+  font-size: 0.87rem;
   line-height: 1.5;
-  margin-bottom: 0;
+  margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 /* tags and status on one line */
 .major-projects-grid .project-content { --tag-row: 1; }
-.major-projects-grid .project-tags-container { margin-top: 8px; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+.major-projects-grid .project-tags-container { margin-top: 2px; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
 .major-projects-grid .project-tag { flex: 0 0 auto; white-space: nowrap; }
 
 
@@ -691,53 +709,39 @@ html[data-theme="dark"] .small-project-card img.is-gif {
   gap: 8px;
   margin-top: 15px;
 }
+/* TAGS: a flat, lightly tinted pill. They were a metallic gold gradient with
+   an inset highlight and a text shadow — "such a shiny gold", in the owner's
+   words, and next to them the status chips were neon (#7CFC00 lime, #FFA500
+   orange). Now a wash of the accent with a darker ink of it, and the two
+   statuses a muted green and amber in the same register. Contrast, text on
+   pill: tag 8.2:1 light / 8.1:1 dark, completed 5.6 / 8.3, in progress
+   5.3 / 7.7 — all above the 4.5:1 an 11px label needs. */
 .project-tag {
-  background: linear-gradient(145deg, #a98642, #f9e099 50%, #b8914c);
-  /* Measured against the DARKEST stop of the gradient behind it (#a98642),
-     not the light middle: #4B380C scored 3.30:1 there. The tag is 11px, so
-     even at 600 weight it is "normal" text and needs 4.5:1, not 3:1. */
-  color: #2A1E04;
+  background-color: color-mix(in srgb, var(--accent-color) 16%, var(--surface-color));
+  color: #5A4312;
   font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
   font-size: 0.7rem;
-  border: 1px solid #8c6d31;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0,0,0,0.1);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+  line-height: 1.5;
+  border: 1px solid color-mix(in srgb, var(--accent-color) 42%, transparent);
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
-html[data-theme="dark"] .project-tag:not(.status-completed):not(.status-in-progress) {
-  background: linear-gradient(145deg, #b8914c, #ffeeb3 50%, #c49f5f);
-  border-color: #a08244;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0,0,0,0.2);
+html[data-theme="dark"] .project-tag {
+  background-color: color-mix(in srgb, var(--accent-color) 14%, var(--surface-color));
+  border-color: color-mix(in srgb, var(--accent-color) 38%, transparent);
+  color: #E6CD98;
 }
 
 .project-status-container {
   margin-top: 12px;
 }
 
-/* Flat, vibrant status tags overriding the shiny default */
-.project-tag.status-completed,
-.project-tag.status-in-progress {
-  background-image: none;
-  border: none;
-  text-shadow: none;
-  box-shadow: none;
-  color: #4B380C;
-  font-weight: 500;
-}
+.project-tag.status-completed { background-color: #E6F2E3; border-color: #BFDDB8; color: #2E6B2A; }
+.project-tag.status-in-progress { background-color: #FBEBD3; border-color: #EDC98F; color: #8A5510; }
+html[data-theme="dark"] .project-tag.status-completed { background-color: #22331F; border-color: #3E5A39; color: #A6D89E; }
+html[data-theme="dark"] .project-tag.status-in-progress { background-color: #3A2C17; border-color: #5E4520; color: #EDBB6B; }
 
-/* Pastel green tag for 'Completed' status */
-.project-tag.status-completed {
-  background-color: #7CFC00;
-}
-
-/* Pastel orange tag for 'In Progress' status */
-.project-tag.status-in-progress {
-  background-color: #FFA500;
-}
-
-/* Four across, two rows: every group on one screen. */
 .skill-groups-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1246,7 +1250,9 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 @media (max-height: 840px) and (min-width: 992px) {
   .exp-bullets li:nth-child(n + 2) { display: none; }
   .small-project-card img, .small-project-card video { aspect-ratio: 3 / 1; }
-  .major-projects-grid .major-project-card .project-content p { -webkit-line-clamp: 2; }
+  .major-projects-grid { gap: 10px; }
+  .major-projects-grid .major-project-card .project-content { padding: 10px 22px; gap: 4px; }
+  .major-projects-grid .major-project-card .project-content h4 { font-size: 1.05rem; }
   .skill-group-card-image-wrapper { display: none; }
   .skill-group-card { padding-top: 16px; }
   .small-projects-grid { --gap: 10px; }

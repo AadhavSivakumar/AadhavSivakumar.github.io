@@ -139,8 +139,12 @@ That is the owner's stated goal, and three things follow from it:
   TensorRT, OpenCV, CUDA…) are deliberately ABSENT until the owner confirms
   them, however likely they are. Do not add them on inference.
 - **`majorProjectsData` is exactly the four the owner chose**: Glass-2-Bot,
-  SMART compost sorting, Stockbot, 3D Fruit Ninja, in that order. Everything
-  else — including Sluice and the tactile sensor — is in `smallProjectsData`,
+  SMART compost sorting, Stockbot, and the MuJoCo forward/inverse kinematics
+  simulation for a 6-DOF arm (id `'h'`, once titled "3D Fruit Ninja
+  Simulation" — the owner renamed it; the description is taken from the
+  MujocoSim repo's notebooks: FK/IK for position and velocity on a UR10e, then
+  a Fruit Ninja demo), in that order. Sluice was removed at the owner's
+  request. Everything else — including the tactile sensor — is in `smallProjectsData`,
   strongest first. Preserve `id` values when moving entries between the two
   arrays; a card promoted to major needs a `cardDescription`, which small cards
   do not use.
@@ -177,7 +181,10 @@ repeat of that rename cannot reach production.
 and point `siteData.js` at the derivative. Covers should be ≲1 MB; the originals
 run to tens of MB each and are not deployed. A `.mp4` cover **must** ship a
 `<name>-poster.webp` beside it: `ProjectCard.jsx` derives the poster URL by that
-convention, uses it as the `poster`, and the build check enforces its existence.
+convention, uses it as the `poster` — and as the fallback image when the
+browser cannot play the video (no H.264 in many Linux Chromium builds; it used
+to fall through to "Image Not Found") — and the build check enforces its
+existence.
 
 ## The 3D lanyard (`src/components/Lanyard/`)
 
@@ -787,7 +794,14 @@ took, in case something is added and a page grows past the screen:
   title and the playback toggle, in four) and the picture 16:10 at that
   height. The owner's words were "picture on the left and text on the right,
   then the next one should be picture on the left and text on the right";
-  read as alternating, and flagged. Skills four across, additional projects
+  read as alternating, and flagged. **The card has a MIN-height, not a
+  height**: at a fixed height the vertically centred text overflowed both
+  ends and the card clipped 3-13px of the tag row at 1440x900 and 1280x800.
+  The picture is taken out of the row-height sum (absolutely positioned in its
+  own grid cell); both grid lines are always stated, because for an absolute
+  grid child an unstated end line means the container's far edge —
+  `grid-column: 1` spread the picture under the text on every odd card.
+  Skills four across, additional projects
   five to a row (the last row centred), with covers at a fixed aspect ratio;
   small
   cards carry title, status and two tags on one line faded at the edge — the
@@ -848,10 +862,15 @@ colour, because `#D4B47C` on `#121212` is already 9.47:1. Do not collapse them
 back into one token — that is exactly the state this came from, where the
 header logo sat at 2.20:1 and the modal CTA buttons at 2.40:1.
 
-The project tags are their own case: the text sits on a *gradient*, so measure
-against its darkest stop (`#a98642`), not the light middle. `#4B380C` scored
-3.30:1 there and is now `#2A1E04` (4.80:1). At 11px the tag is normal text
-under WCAG regardless of its 600 weight, so 3:1 does not apply.
+**The tags are flat, not gold.** `.project-tag` — on every card, the
+skills, the experience cards and the modal — used to be the metallic gold
+gradient with an inset highlight and a text shadow; the owner found it "such a
+shiny gold", and beside it the status chips were neon (`#7CFC00`, `#FFA500`).
+It is now a 16% wash of the accent with a dark ink of it, and the statuses a
+muted green and amber. Text on pill, measured: tag 8.2:1 light / 8.1:1 dark,
+completed 5.6 / 8.3, in progress 5.3 / 7.7. At 11px a tag is normal text under
+WCAG regardless of its 600 weight, so the floor is 4.5:1, not 3:1 — re-measure
+if the colours move.
 
 ## Focus, and the auto-playing covers
 

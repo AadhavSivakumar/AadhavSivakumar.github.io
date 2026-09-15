@@ -59,10 +59,13 @@ function CoverVideo({ src, title, placeholder }) {
   }, [playing]);
 
   // Under reduced motion the cover stays a still frame — no loop, no fetch.
+  // A video the browser cannot play (no H.264 in many Linux Chromium builds)
+  // falls back to its POSTER, which every .mp4 cover ships beside it; it used
+  // to fall straight through to the "Image Not Found" placeholder.
   if (reduceMotion() || failed) {
     return (
       <img
-        src={failed ? placeholder : poster}
+        src={poster}
         alt={title}
         loading="lazy"
         onError={(e) => { e.target.onerror = null; e.target.src = placeholder; }}
