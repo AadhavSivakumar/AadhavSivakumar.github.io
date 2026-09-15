@@ -65,7 +65,7 @@ prevent.
 - **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
 - **motion** (`motion/react`, the framer-motion successor) — only four files import it: the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), and the modal's phased open/close sequence (`Modal.jsx`). It does **not** drive the card reveals or the hover lift.
 - **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`), and — via `src/hooks/useScrollReveal.js` — **every scroll-into-view card entrance** on the site (`LiftCard`, `Reveal`, `Resume`'s tiles, `Contact`'s links). The hook suppresses inline CSS transitions during the entrance and clears them on completion so the CSS hover/tap states resume. Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
-- **three.js / @react-three/fiber / drei / rapier / meshline** — the 3D lanyard badges in the About section. This whole stack is **lazy-loaded** (see Performance below).
+- **three.js / @react-three/fiber / drei / rapier / meshline** — the 3D lanyard badges beside the Experience and Research cards. This whole stack is **lazy-loaded** (see Performance below).
 
 ## Source layout
 
@@ -103,7 +103,7 @@ scripts/
 
 `legacy/` holds pre-React versions of the site — archive only, never edit to change the current site, and **not deployed**. `misc/` is unreferenced data and is likewise not deployed. `Media/` holds local images:
 
-- `Media/lanyardimgs/` — badge photos, *imported* by `About.jsx` so Vite bundles them.
+- `Media/lanyardimgs/` — badge photos, *imported* by `badgeCards.js` so Vite bundles them.
 - `Media/projects/` — the full-size originals (hundreds of MB, including per-project subdirectories of raw footage). **Not deployed, and nothing on the site links to them.**
 - `Media/web/` — the web-sized derivatives the site actually serves, built from those originals. Deployed.
 - `Media/skills/` — skill icons. Deployed.
@@ -192,8 +192,8 @@ WebGL contexts are not created on page load. **The badges ZIG-ZAG**: on each
 page the cards stack in the middle column, the first badge hangs in a 250px
 column on the RIGHT, top-aligned beside the first card, and the second in a
 250px column on the LEFT, bottom-aligned beside the second. Each canvas spans
-both rows in a column of its own, which is what lets a canvas stay 460px tall
-while two cards share one 900px screen. Squeezing each canvas to its row
+both rows in a column of its own, which is what lets a canvas be taller than
+either row (460-600px, see below) while two cards share one 900px screen. Squeezing each canvas to its row
 (~330px) was built first and seen: the badges drew at ~72% of their size. There is no About section any more — the about card is on the Get In Touch
 page (see Pages); its old full-width six-badge strip is gone (the owner asked for the badges next to their boxes — "the lanyard",
 definite article — and duplicating six badges was not worth the GPU memory).
@@ -224,7 +224,7 @@ keep them:
 - **The chain spawns vertically at equilibrium.** A horizontal spawn makes neighboring cards collide mid-drop and fall asleep at a diagonal.
 - **`BandField` debounces resizes (300ms) then remounts bands via key** — physics bodies don't follow anchors when the canvas aspect changes.
 - **The strap-smoothing lerp alpha is clamped to 1.** Unclamped, `delta * 50` exceeds 1 below 50fps and `Vector3.lerp` extrapolates, exploding the straps into screen-height streaks.
-- When the viewport can't fit 3 badges per side, outermost badges are dropped instead of stacking (the fit test is in `BandField`, comparing `inner + (n-1)*step` against the half-world width). Note the ≥992px gate in `About.jsx` admits widths where 2 of the 6 badges are already dropped.
+- When the viewport can't fit 3 badges per side, outermost badges are dropped instead of stacking (the fit test is in `BandField`, comparing `inner + (n-1)*step` against the half-world width). (Historical: it mattered for the old six-badge strip. Every canvas now holds one centred badge.)
 - **The card has to hold its contrast against the environment, and that is a
   MATERIAL problem, not an artwork one.** Simulated through the material's own
   maths (flat card, ambient + IBL diffuse + GGX specular + clearcoat lobe, ACES
@@ -398,9 +398,11 @@ warm light leaking in from the left. Its neutral partner at 90%/80% stays.
 Two decorative pieces fixed to the viewport in the `page-flourish-layer`
 (`App.jsx`), skipped only when `navigator.hardwareConcurrency <= 4`: a
 **camera on the left** (`side="left"`) and a **motor on the right**. Both are
-formed from the hero's sine waves (previous section) and then **hold as one
-still frame each for the rest of the page — no scroll sequence, no idle
-spin.** Past the morph, scrolling redraws nothing at all.
+formed from the hero's sine waves (previous section), **hold as one still
+frame each on the Experience page, change once between Experience and
+Research (act two, below), and then hold again for the rest of the page — no
+other scroll sequence, no idle spin.** In the two held states scrolling
+redraws nothing at all (`held()`).
 
 **What changed, at the owner's request (Sept 2026):** both used to run
 page-long sequences — the camera tearing itself down into a
@@ -929,11 +931,16 @@ directories `scripts/copy-static.mjs` copies (`Media/web`, `Media/skills`,
 deployed — an earlier workflow copied them and uploaded ~414 MB per push, ~390 MB
 of it unreferenced. Deployed size is now ~44 MB.
 
-## Current progress (as of 2026-09-05)
+## Current progress (as of 2026-09-15)
 
-Working tree is clean and everything is committed and live. The owner has been
-directing the animation work iteratively and **expects further improvements**,
-so treat it as in-flight rather than final.
+Working tree is clean and everything is committed and live (last: `19b7ece`,
+verified against production — every page one 900px screen, six down buttons,
+the about card in Get In Touch, four 250x600 badge canvases, no page errors or
+failed requests). The owner has been directing the design iteratively and
+**expects further improvements**, so treat it as in-flight rather than final.
+Every animation and layout decision of the September rounds is written up in
+its own section above: the hero and the waves, the pieces and act two, Pages,
+and the lanyard.
 
 **What has landed, in order** (all on `master`, each push a production release):
 
@@ -954,6 +961,15 @@ so treat it as in-flight rather than final.
 - Hero sine field measured off the live `/portfolio`; flourishes shown on
   phones; one shared scroll driver; the never-stopping scroll-cue arrow found
   and fenced.
+- Positioned for robotics / ML / CV roles: Roboflow role, public-safe
+  experience entries, the four major projects the owner chose, claim-backed
+  skills (see "The site is positioned…").
+- September redesign: the /portfolio-style hero; the sine field flying
+  straight into a camera (left) and a motor (right); act two between
+  Experience and Research (camera to sensor pixels, motor to 2R arm); every
+  section one screen with a down button; zig-zag lanyard badges, bigger, on
+  smaller pegboards; sideways zig-zag major projects; the about card moved to
+  Get In Touch.
 
 The historical detail of each is in the commit messages, which are written to
 be read.

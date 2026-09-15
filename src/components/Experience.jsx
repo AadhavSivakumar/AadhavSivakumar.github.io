@@ -138,10 +138,10 @@ export default function Experience({ id, title, group, onCardClick, next }) {
       <SectionTitle id={`${id}-title`}>{title}</SectionTitle>
       {/* The cards stack in the middle column and the badges ZIG-ZAG: the
           first hangs on the right beside the first card, the second on the
-          left beside the second. That lets each lanyard canvas keep its full
-          460px height — the height its composition and drag clamp were tuned
-          and tested at — while two rows share one screen: each canvas spans
-          both rows, in a column of its own. */}
+          left beside the second. Each canvas spans both rows in a column of
+          its own, so it can be taller than either row (460-600px; the height
+          IS the badge size — see .exp-lanyard) while two rows share one
+          screen. */}
       <div className="exp-grid">
         {rows.map((item, i) => (
           <React.Fragment key={item.id}>
