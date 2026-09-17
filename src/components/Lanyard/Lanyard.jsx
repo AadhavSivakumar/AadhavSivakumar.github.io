@@ -35,10 +35,14 @@ const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 // chain starts hanging vertically at equilibrium — a horizontal start makes
 // neighboring cards collide while dropping and fall asleep mid-swing,
 // freezing the straps at a diagonal.
-const J1_POS = [0, -0.5, 0];
-const J2_POS = [0, -1, 0];
-const J3_POS = [0, -1.5, 0];
-const CARD_POS = [0, -3, 0];
+// A SHORT strap: three rope segments of ROPE_SEG each (it was 1.0 — the owner
+// asked for less string and a bigger badge). The spawn offsets step by the
+// same length, because the chain must start hanging at its own equilibrium.
+const ROPE_SEG = 0.62;
+const J1_POS = [0, -ROPE_SEG, 0];
+const J2_POS = [0, -2 * ROPE_SEG, 0];
+const J3_POS = [0, -3 * ROPE_SEG, 0];
+const CARD_POS = [0, -3 * ROPE_SEG - 1.4, 0];
 
 // Cursor-proximity sway: a moving pointer within SWAY_RADIUS (world units)
 // of a card nudges it away, strongest up close.
@@ -92,12 +96,13 @@ function hangJitter(name) {
 const PIN_SHAFT_R = 0.085;
 const PIN_HEAD_R = 0.12;
 // HOW FAR BACK THE BOARD HAS TO BE, worked out rather than nudged. A card
-// FLIPPING sweeps its corners through z by its own half-width: the largest
-// badge is scale 1.5, its collider half-width 0.8, so ±1.20 world units about
-// its centre. The board used to sit at -0.35 — less than a third of that — so
-// every flip drove a corner through the panel and the badge was sliced by it.
-// -1.75 leaves 0.30 of clearance behind the worst case.
-const PEG_BOARD_Z = -1.75;
+// FLIPPING sweeps its corners through z by its own half-width (collider half
+// width 0.8 x its scale) about a centre held at CARD_MIN_Z. The board used to
+// sit at -0.35 — less than a third of that — so every flip drove a corner
+// through the panel and the badge was sliced by it. Now a FORMULA of the
+// badge's scale, with 0.30 of clearance behind the worst case, so growing the
+// badge cannot quietly reintroduce the bug: at sizeMul 2.05 it is -2.19.
+const boardZ = scale => -(0.25 + 0.8 * scale + 0.30);
 // And the card's own centre never goes behind this, so the sweep above is
 // measured from a known place. Hard clamp while dragging, soft push after.
 const CARD_MIN_Z = -0.25;
@@ -371,9 +376,9 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
     // It was 3.2 x 2.0 (x sizeMul) and filled the column; the owner asked for
     // it smaller and the badge bigger. The badge grew through the canvas
     // height instead (see .exp-lanyard), so nothing here is physics.
-    const w = maxX - minX + 1.7 * sizeMul;
-    const top = maxY + 0.5 * sizeMul; // clears the highest pin
-    const bottom = minY - 0.7 * sizeMul; // below the lowest pin, above the badge
+    const w = maxX - minX + 1.12 * sizeMul;
+    const top = maxY + 0.36 * sizeMul; // clears the highest pin
+    const bottom = minY - 0.48 * sizeMul; // below the lowest pin, above the badge
     const h = top - bottom;
     return { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2, tile };
   }, [anchors, sizeMul]);
@@ -383,22 +388,24 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
   boardMat.needsUpdate = true;
   pegTex.repeat.set(geom.w / geom.tile, geom.h / geom.tile);
 
-  const shaftLen = 0.12 - PEG_BOARD_Z; // board face → just in front of the straps
+  // the board sits back far enough for this badge's own flip sweep
+  const boardDepth = boardZ(sizeMul);
+  const shaftLen = 0.12 - boardDepth; // board face → just in front of the straps
   const bezel = 0.28 * sizeMul;
   return (
     <group>
       {/* mounting bezel/frame behind the panel so it reads as a mounted board */}
-      <mesh position={[geom.cx, geom.cy, PEG_BOARD_Z - 0.06]} material={frameMat}>
+      <mesh position={[geom.cx, geom.cy, boardDepth - 0.06]} material={frameMat}>
         <planeGeometry args={[geom.w + bezel, geom.h + bezel]} />
       </mesh>
-      <mesh position={[geom.cx, geom.cy, PEG_BOARD_Z]} material={boardMat}>
+      <mesh position={[geom.cx, geom.cy, boardDepth]} material={boardMat}>
         <planeGeometry args={[geom.w, geom.h]} />
       </mesh>
       {anchors.map((a, i) => (
         <group key={i} position={[a.x, a.y, 0]}>
           {/* pin shaft: a stub pushed through the board toward the viewer */}
           <mesh
-            position={[0, 0, PEG_BOARD_Z + shaftLen / 2]}
+            position={[0, 0, boardDepth + shaftLen / 2]}
             rotation={[Math.PI / 2, 0, 0]}
             material={shaftMat}
           >
@@ -699,9 +706,9 @@ function Band({
   const releasePending = useRef(false);
   const [hovered, hover] = useState(false);
 
-  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
+  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], ROPE_SEG]);
+  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], ROPE_SEG]);
+  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], ROPE_SEG]);
   useSphericalJoint(j3, card, [
     [0, 0, 0],
     [0, 1.5 * scale, 0]
@@ -734,20 +741,20 @@ function Band({
       // room: ~70px of downward travel and ~94px sideways, and the badge never
       // leaves its column. Measured, not assumed — the loose clamp let 61px of
       // a 157px badge hang below the canvas mid-drag.
-      // The margins are MEASURED, not derived: the visible card is not centred
-      // on its collider (the mesh group sits 1.2*scale below the body, and
-      // the GLB has its own origin), so the collider's half-extents
-      // under-state how far the art reaches. Probed in the 250x460 column by
-      // dragging each badge into both lower corners with a large margin and
-      // reading the clearance off the render: at 0.8 the badge cleared the
-      // bottom by 13px and the sides by 25px, at ~43.5px per world unit.
-      // 0.65 / 0.4 leave ~6px below and ~8px beside it. (0.15 had been
-      // measured 3px clear on a straight drag at 300px wide; into a corner of
-      // the narrower column the badge's last row went over the edge.)
+      // The extents are MEASURED, not derived: the visible card is not centred
+      // on its collider (the mesh group sits 1.2*scale below the body, and the
+      // GLB has its own origin), so the collider's half-extents under-state
+      // how far the art reaches. Probed by dragging each badge into both lower
+      // corners with a deliberately large margin and reading the clearance off
+      // the render: at 0.8 the badge cleared the bottom by 13px and the sides
+      // by 25px, at ~43.5px per world unit and scale 1.6. That put the art's
+      // true half-extents at ~1.44 and ~0.94 of the scale, and those are the
+      // numbers below — PROPORTIONAL, so a bigger badge stays inside without
+      // re-probing. The constant on the end is the gap left to the frame.
       // Never negative: a narrow, tall column leaves little world width, and a
       // negative half-width would make the clamp flip the card side to side.
-      const halfW = Math.max(0, state.viewport.width / 2 - (0.8 * scale + 0.4));
-      const halfH = Math.max(0, state.viewport.height / 2 - (1.125 * scale + 0.65));
+      const halfW = Math.max(0, state.viewport.width / 2 - (0.94 * scale + 0.18));
+      const halfH = Math.max(0, state.viewport.height / 2 - (1.4375 * scale + 0.15));
       if (tx < -halfW) tx = -halfW; else if (tx > halfW) tx = halfW;
       if (ty < -halfH) ty = -halfH; else if (ty > halfH) ty = halfH;
       if (tz < CARD_MIN_Z) tz = CARD_MIN_Z;               // never behind the board

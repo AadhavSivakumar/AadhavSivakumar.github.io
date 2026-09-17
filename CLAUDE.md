@@ -221,7 +221,13 @@ pure scenery. **`.exp-lanyard` must stay `position: relative`**:
 it is the containing block for the Lanyard's absolutely positioned canvas. It
 used to be `sticky`, which did that job silently; the first version of the
 pages dropped `sticky` and the badge hung over the middle of the cards.
-Badge scale is `sizeMul` 1.6. A lone badge uses
+Badge scale is `sizeMul` 2.05, on a SHORT strap (`ROPE_SEG` 0.62 a segment,
+was 1.0) and a thin line (`lanyardWidth` 0.32, was 0.5), hanging from a small
+board — the owner asked for a smaller cork board, less string and a bigger
+badge, in that order, over two rounds. **Everything that depends on the badge's
+size is now a formula of it**, so the next "make it bigger" does not silently
+reintroduce a bug that was found by hand: the board's depth (`boardZ(scale)`,
+the flip-sweep clearance) and the drag clamp's half-extents. A lone badge uses
 `side: 'center'`, because the left/right anchor maths always clears the centre
 by half a card plus a gap, which is right for a pair flanking a card and wrong
 for a badge with the column to itself. Key invariants learned the hard way —
@@ -301,10 +307,13 @@ keep them:
   clear on a straight drag at 300px wide; dragged into a CORNER of the 250px
   column the badge's last row went over the edge. Found by probing with a
   deliberately large margin (0.8: 13px clear below, 25px beside, at ~43.5px
-  per world unit) and solving. Now 5-6px clear at every corner, both badges,
-  at 1100, 1440 and 1920 wide in 460px canvases, and 15-16px in the 600px
-  ones. Both half-extents are floored at 0: a narrow, tall canvas has little
-  world width, and a negative half-width would flip the card side to side. The drag test is: sweep the pointer down the
+  per world unit) at `sizeMul` 1.6 — which puts the art's true half-extents at
+  ~1.44 and ~0.94 of the scale. Those ratios are what the clamp uses, so the
+  badge can grow without re-probing. At 2.05 in a 250x600 column that leaves
+  ~50px of downward travel and only ~5px sideways: a big badge in a narrow
+  column has nowhere to go, which is the trade the owner asked for. Both
+  half-extents are floored at 0: a narrow, tall canvas has little world width,
+  and a negative half-width would flip the card side to side. The drag test is: sweep the pointer down the
   canvas until the cursor turns `grab`, press, drag 300px past each lower
   corner, and read the badge's dark-pixel box off the render.
 - **`SLOT_BASE_Y` is 3.65, raised from 2.4 the first time these could be seen.**
@@ -312,13 +321,14 @@ keep them:
   composed, and no room to drag. Do not lower it without re-running the drag
   test; the strict clamp depends on the headroom it creates.
 - **How far back the pegboard has to be is a calculation, not a nudge.** A card
-  FLIPPING sweeps its corners through z by its own half-width — the largest
-  badge is scale 1.5 and its collider half-width 0.8, so ±1.20 world units. The
-  board sat at -0.35, less than a third of that, so every flip drove a corner
-  through the panel and the badge was sliced. It is at -1.75 now, with
-  `CARD_MIN_Z` (-0.25) holding the card's centre so the sweep is measured from a
-  known place: 0.30 of clearance behind the worst case. If the badge scale or
-  `sizeMul` ever changes, redo that sum.
+  FLIPPING sweeps its corners through z by its own half-width (collider half
+  width 0.8 x scale). The board sat at -0.35, less than a third of that, so
+  every flip drove a corner through the panel and the badge was sliced. It is
+  `boardZ(scale) = -(0.25 + 0.8 * scale + 0.30)` now, with `CARD_MIN_Z`
+  (-0.25) holding the card's centre so the sweep is measured from a known
+  place, and 0.30 of clearance behind the worst case — -2.19 at `sizeMul`
+  2.05. It is a function BECAUSE it was a hard-coded sum that the first
+  badge-size change would have invalidated.
 - Releasing a drag hands the drag velocity to the now-dynamic body (clamped),
   because a kinematic body carries no velocity into the dynamic state and every
   release used to kill the swing dead. The drag itself eases toward the pointer
@@ -846,6 +856,30 @@ in via motion variants); closing reverses it (`departing` → `collapse` →
 during the sequence via the `animating-out` class that `App.jsx` toggles.
 
 ## Performance rules
+
+**The scroll cost of this page was a CSS backdrop filter, not a library.**
+Asked whether fewer frameworks would raise the frame rate, measured over a
+scripted pass down the whole page in Firefox (249 frames, 1440x900):
+
+| what is switched off | p50 | p90 | frames > 20ms |
+|---|---|---|---|
+| nothing | 17.1 | 33.5 | 54 |
+| the lanyards (WebGL + rapier) | 17.1 | 33.3 | 55 |
+| both canvas pieces | 16.7 | 33.2 | 43 |
+| **the cards' `backdrop-filter`** | **16.6** | **17.2** | **1** |
+
+`blur(4px)` on `.lift-card` and `.doc-tile` (16px on hover) has to read back
+and blur everything behind twenty-odd elements on every frame they move. It is
+gone; the fill went from 70% to 86% of the surface colour to compensate, and
+the page now measures p50 16.7 / p90 17.2 with everything on, 6 frames over
+20ms. The hero chips keep their glass — there are five of them, on one screen.
+
+So: **the libraries are a DOWNLOAD cost, not a frame cost.** `index-*.js` is
+~400KB and the lazy `Lanyard-*.js` ~3MB (three + rapier + drei + meshline),
+fetched only when the Experience page comes near. anime.js and motion do
+nothing at all on a still page — the idle check is 0 mutations. If the weight
+ever has to come down, the target is that 3MB chunk (the badges), not
+anime.js or motion.
 
 - The Lanyard is imported with `React.lazy` in `Experience.jsx` and only rendered at ≥992px (and only once a row is near the viewport), so mobile never downloads the three.js stack or the 2.4MB `card.glb`. Verified: the `Lanyard-*.js` chunk is not requested until the Experience section is scrolled to. `vite.config.js` deliberately has **no `manualChunks`** — Rollup's automatic splitting keeps the 3D stack inside the lazy Lanyard chunk. A hand-rolled split was tried and created a vendor↔three chunk cycle that broke React at runtime; don't reintroduce one. After touching `vite.config.js`, re-verify `dist/assets/index-*.js` has no static `from"./..."` import of a chunk containing three.js.
 
