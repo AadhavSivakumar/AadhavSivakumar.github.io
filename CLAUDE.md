@@ -98,8 +98,12 @@ src/
     Reveal.jsx            # shared fade/rise-on-scroll wrapper
     SectionTitle.jsx      # anime.js letter-cascade h2 + underline draw
     ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
+  robots/                 # the REAL machines, baked from MuJoCo Menagerie models (see below)
+    index.js              # lazy loader, mesh preparation, forward kinematics
+    soarm.json fr3.json ur5e.json d435i.json   # baked meshes: mm, Z-up, decimated
 scripts/
   copy-static.mjs         # post-build asset copy + referenced-asset existence check
+  bake-robots.mjs         # Menagerie meshes -> src/robots/*.json (raw meshes not committed)
 ```
 
 `legacy/` holds pre-React versions of the site — archive only, never edit to change the current site, and **not deployed**. `misc/` is unreferenced data and is likewise not deployed. `Media/` holds local images:
@@ -455,9 +459,15 @@ settle point):
 | Projects → Additional Projects | it becomes **two UR arms** on a torso | the model returns **detections** |
 | Additional Projects → Resume | the pair holds, working | the detections become a **world model** |
 
-**The robots are named ones — motor → SO-ARM101 → Franka Research 3 →
-Generalist-style bimanual — and each has to be UNMISTAKABLE at its settle
-point.** They are drawn as SKINS over one kinematic chain (`SKIN`,
+**The machines are the REAL ONES.** The owner rejected two rounds of hand-drawn
+approximations ("looks nothing like the SO-ARM101", "use actual 3D models
+before doing things willy nilly"), so the SO-ARM100, the Franka FR3, the UR5e
+and the RealSense D435i are their MuJoCo Menagerie models, baked by
+`scripts/bake-robots.mjs` into `src/robots/*.json` and posed by forward
+kinematics from the MJCF body trees. How that works, and what it cost to get
+right, is under "Baked meshes" below. The procedural skins that follow are the
+FALLBACK drawn until the JSON chunks (51-153 KB each, lazy) have loaded, and
+what remains of the earlier attempts: SKINS over one kinematic chain (`SKIN`,
 `skinSoarm` / `skinFR3` / `skinUR`) with a BASE per robot (`drawBase`): the
 SO-ARM101 by dark servo blocks with horn discs, a two-plate printed upper arm
 sandwiching the elbow servo, a boxy printed forearm, boxy jaws, and a round
@@ -551,6 +561,50 @@ Resize the stage in CSS and nothing about the composition needs re-tuning.
 On mobile the two stages are staggered VERTICALLY (left around 29-32vh,
 right around 71-73vh) rather than pulled off the side edges. Retreating
 horizontally was tried first and reduced them to slivers.
+
+### Baked meshes: the real machines
+
+`scripts/bake-robots.mjs <menagerie dir>` reads the Menagerie's STL/OBJ meshes
+for `trs_so_arm100`, `franka_fr3`, `universal_robots_ur5e` and
+`realsense_d435i` (~120 MB, fetched to a scratch dir, NOT committed), and per
+part: welds vertices, DECIMATES by vertex clustering to a face budget (a robot
+lands around 2,000 triangles, the camera ~800 — what the renderer draws at
+60fps next to everything else), keeps FEATURE EDGES (dihedral > 55°) and
+every manifold edge with its two faces, and writes millimetres, Z-up, with the
+body tree (positions, quaternions, joint axes) copied from the MJCF by hand.
+The runtime (`src/robots/index.js`) does the forward kinematics and
+`submitMesh` in `Flourish3D.jsx` draws a part as front faces (page-coloured
+occluders, lit by the three-term shading) plus lines: the feature edges at
+0.45 strength and the SILHOUETTE at full — an edge whose two faces face
+opposite ways, found per frame from the same winding test that culls. That
+silhouette is what makes a smooth tube read as a drawn outline.
+
+Things learned by getting them wrong, in order:
+- **Winding.** STL exports and OBJs disagree, and the stage's frame is
+  left-handed (x right, y DOWN, z toward the viewer), so every part is
+  re-wound OUTWARD at bake (`orientOutward`, by where most face normals point
+  relative to the centroid) and the renderer flips the screen-winding test
+  (`MESH_FLIP`). Wrong, a part shows its back faces and every internal line.
+- **Hollow shells.** The camera casing has an inner surface; its inward faces
+  showed through every gap and the camera looked transparent. `peelInterior`
+  drops inward-facing faces from any part that is more than a quarter inward.
+- **Facets are not features.** At 28° the decimation's own facets qualified as
+  feature edges and the robots read as wireframes on the dark theme; 55° and
+  half-strength feature lines fixed it.
+- **Frames.** MuJoCo is Z-up; `standing()` turns Z to screen-up and scales mm
+  to stage px; the camera uses `facing()` (its sensors are on +Z, so Z stays
+  toward the viewer and Y is flipped with a half turn). MuJoCo quaternions are
+  (w, x, y, z); its default euler sequence is intrinsic xyz.
+- **Signs.** In this UR5e model a positive elbow bends the forearm UP.
+- **Poses** (`RB`) are joint angles in each MJCF's joint order, checked by
+  screenshot at the settle points and by the ink bounding box; the stage
+  overhangs the screen edge by 14-20 px, so keep ink inside ~x 20-320.
+- **Screenshot harness gotcha:** the settle snap moves the page two seconds
+  after a scripted scroll and the eased glide takes a second, so mid-act
+  captures were blank or of the wrong frame. `?nosnap` on the URL turns the
+  snap off for harnesses.
+- The morph's capture (`cap`) records mesh lines too, so the hero's waves fly
+  into the real camera's outline.
 
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 

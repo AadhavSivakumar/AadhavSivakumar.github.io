@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
 import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actAt } from '../waveField';
 import { onSettle } from '../scrollSnap';
+import { loadRobots, standing, facing, bodyPlacements } from '../robots/index.js';
 
 // Two line-art pieces fixed to the viewport, one per side: a CAMERA on the
 // left and an IEC-proportioned electric MOTOR on the right. Both are FORMED
@@ -331,15 +332,16 @@ const MAT = {
   // because the arm did not read as the robot when its printed parts came out
   // the same near-black as everything else on the dark theme.
   pla: 7,
+  urblue: 8,          // the UR5e's joint caps
 };
 // hex per slot; `copper` and `paint` are filled in from theme tokens
-const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2'];
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC'];
 // Weight is inversely related to how much of the frame the part covers. A tint
 // worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
 // assembled machine into a coloured blob and throws away the line art. So the
 // big masses stay near the page colour and the small parts carry the colour —
 // and most of the separation is done by the LINEWORK, which costs no area.
-const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78];
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55];
 const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
 
 const MOTOR_SPEC = [
@@ -772,7 +774,7 @@ export default function Flourish3D({ side = 'right' }) {
     const TONE_STEPS = 14;
     const paperTone = (lit, mat) => {
       const q = Math.max(0, Math.min(TONE_STEPS, Math.round(lit * TONE_STEPS)));
-      const key = q * 8 + mat;
+      const key = q * 16 + mat;
       let c = toneCache.get(key);
       if (c) return c;
       // dark theme: lift toward ink.  light theme: sink away from it.
@@ -1127,6 +1129,108 @@ export default function Flourish3D({ side = 'right' }) {
     // its old page-long run, so the fit measured for it still holds: camera
     // yaw 16, pitch 14, dolly 30; module scale at MOTOR_K_MAX; the shaft's
     // rotation where the old run left it.
+    // ── baked meshes: the real machines ─────────────────────────────────
+    // The robots and the camera are decimated meshes from their MuJoCo
+    // Menagerie models (see scripts/bake-robots.mjs), drawn as this renderer
+    // draws everything else: front faces as page-coloured occluders, and lines
+    // on top. The lines are the mesh's FEATURE EDGES (baked) plus its
+    // SILHOUETTE, which is view-dependent and found here per frame: an edge
+    // whose two faces face opposite ways. That is what makes a smooth tube or
+    // casing read as a drawn outline rather than a shaded blob.
+    //   part  a prepared part from src/robots (shared vertices, faces, edges)
+    //   T     its placement (from bodyPlacements)
+    //   mat   MAT slot;  a  alpha;  lineCol  line colour
+    let MESH_SCR = new Float64Array(1 << 12);       // projected vertices, x y z per vertex
+    let MESH_FRONT = new Uint8Array(1 << 10);
+    const MESH_FLIP = true;                         // the bake's winding is CCW in a right-handed frame; the stage is left-handed
+    function submitMesh(part, T, mat, a, lineCol, lineA) {
+      if (a <= 0.004) return;
+      const m = T.m, t = T.t;
+      const nv = part.nv, nf = part.nf, v = part.v, f = part.f, n = part.n;
+      if (MESH_SCR.length < nv * 3) MESH_SCR = new Float64Array(nv * 3 * 2);
+      if (MESH_FRONT.length < nf) MESH_FRONT = new Uint8Array(nf * 2);
+      // project every vertex once
+      let cxs = 0, cys = 0, rmax = 0;
+      for (let i = 0; i < nv; i++) {
+        const x = v[i * 3], y = v[i * 3 + 1], z = v[i * 3 + 2];
+        const sc = cam(m[0] * x + m[1] * y + m[2] * z + t[0], m[3] * x + m[4] * y + m[5] * z + t[1], m[6] * x + m[7] * y + m[8] * z + t[2]);
+        MESH_SCR[i * 3] = sc[0]; MESH_SCR[i * 3 + 1] = sc[1]; MESH_SCR[i * 3 + 2] = sc[2];
+      }
+      // off-stage parts cost nothing
+      for (let i = 0; i < nv; i++) { cxs += MESH_SCR[i * 3]; cys += MESH_SCR[i * 3 + 1]; }
+      cxs /= nv; cys /= nv;
+      for (let i = 0; i < nv; i++) { const d = Math.abs(MESH_SCR[i * 3] - cxs) + Math.abs(MESH_SCR[i * 3 + 1] - cys); if (d > rmax) rmax = d; }
+      if (cxs + rmax < 0 || cxs - rmax > W || cys + rmax < 0 || cys - rmax > H) return;
+      // faces: cull by screen winding, light by rotated normal, bucket as fills
+      // (in capture mode only the facing is computed, for the lines below)
+      for (let i = 0; i < nf; i++) {
+        const ia = f[i * 3], ib = f[i * 3 + 1], ic = f[i * 3 + 2];
+        const ax = MESH_SCR[ia * 3], ay = MESH_SCR[ia * 3 + 1], bx = MESH_SCR[ib * 3], by = MESH_SCR[ib * 3 + 1], cx = MESH_SCR[ic * 3], cy = MESH_SCR[ic * 3 + 1];
+        let area = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
+        if (MESH_FLIP) area = -area;
+        const front = area > 0;
+        MESH_FRONT[i] = front ? 1 : 0;
+        if (!front || cap) continue;
+        const nx0 = n[i * 3], ny0 = n[i * 3 + 1], nz0 = n[i * 3 + 2];
+        const nx = m[0] * nx0 + m[1] * ny0 + m[2] * nz0, ny = m[3] * nx0 + m[4] * ny0 + m[5] * nz0, nz = m[6] * nx0 + m[7] * ny0 + m[8] * nz0;
+        const nl = Math.hypot(nx, ny, nz) || 1;
+        const inx = nx / nl, iny = ny / nl, inz = nz / nl;
+        const key = inx * KEY[0] + iny * KEY[1] + inz * KEY[2];
+        const grazing = 1 - Math.abs(inz);
+        let lit = 0.5 + 0.40 * key + 0.15 * -iny + 0.16 * grazing * grazing;
+        lit = lit < 0 ? 0 : lit > 1 ? 1 : lit;
+        ptsRoom(6);
+        const o = ptsN;
+        PTS[o] = ax; PTS[o + 1] = ay; PTS[o + 2] = bx; PTS[o + 3] = by; PTS[o + 4] = cx; PTS[o + 5] = cy;
+        ptsN += 6;
+        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3;
+        const col = paperTone(lit, mat);
+        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0) });
+        segs += 3;
+      }
+      // lines: the silhouette at full strength, feature edges with a front
+      // face fainter — a decimated mesh has facets, and drawn at full strength
+      // they read as a wireframe rather than as a drawn machine
+      const e = part.e, feat = part.feature, ne = e.length / 4;
+      const la = (lineA == null ? LOOK.line : lineA) * a;
+      if (la <= 0.004) return;
+      const laF = la * 0.45;
+      for (let i = 0; i < ne; i++) {
+        const fa = e[i * 4 + 2], fb = e[i * 4 + 3];
+        const fra = MESH_FRONT[fa], frb = fb < 0 ? 0 : MESH_FRONT[fb];
+        const silhouette = fb < 0 ? fra === 1 : fra !== frb;
+        if (!silhouette && !(feat[i] && (fra || frb))) continue;
+        const ia = e[i * 4], ib = e[i * 4 + 1];
+        const alpha = silhouette ? la : laF;
+        if (cap) {                            // the morph's targets: mesh lines too
+          cap.push({ pts: new Float64Array([MESH_SCR[ia * 3], MESH_SCR[ia * 3 + 1], MESH_SCR[ib * 3], MESH_SCR[ib * 3 + 1]]), c: lineCol, a: alpha, w: LOOK.width, id: capId });
+          continue;
+        }
+        ptsRoom(4);
+        const o = ptsN;
+        PTS[o] = MESH_SCR[ia * 3]; PTS[o + 1] = MESH_SCR[ia * 3 + 1]; PTS[o + 2] = MESH_SCR[ib * 3]; PTS[o + 3] = MESH_SCR[ib * 3 + 1];
+        ptsN += 4;
+        const z = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2]) / 2 + LINE_BIAS;
+        bucket.push({ line: 1, o, n: 2, z, a: alpha, c: lineCol, w: LOOK.width, k: styleId(1, lineCol, LOOK.width) });
+        segs += 1;
+      }
+    }
+    // material names from the menagerie -> this renderer's slots
+    const MESH_MAT = { white: MAT.pla, black: MAT.poly, gray: MAT.steel, jointgray: MAT.steel, linkgray: MAT.alu, urblue: MAT.urblue, green: MAT.steel };
+    // Draw a whole robot at joint angles q (radians), with an optional
+    // per-body alpha (for parts arriving or leaving) and a global alpha.
+    function drawRobot(robot, base, q, alpha, bodyAlpha) {
+      if (!robot) return;
+      const T = bodyPlacements(robot, base, q);
+      for (const part of robot.parts) {
+        const bi = robot.index.get(part.body);
+        const a = alpha * (bodyAlpha ? (bodyAlpha[part.body] ?? 1) : 1);
+        if (a <= 0.004) continue;
+        const mat = MESH_MAT[part.mat] ?? MAT.neutral;
+        submitMesh(part, T[bi], mat, a, matLine[mat]);
+      }
+    }
+
     // ── what runs while the page is SETTLED on a page ───────────────────
     // The one thing here that animates without the scroll driving it, so it
     // is fenced: only while `scrollSnap` says the page is sitting still on a
@@ -1137,6 +1241,8 @@ export default function Flourish3D({ side = 'right' }) {
     //   camera — takes a picture: the iris shuts and the rim flashes
     //   arm    — works: the joints sweep and the gripper opens and closes
     //   sensor — reads out: a band sweeps the grid and the picture changes
+    let ROBOTS = null;                     // the baked machines, once loaded
+    loadRobots().then(r => { ROBOTS = r; if (lastY >= 0) draw(lastY); }).catch(() => {});
     let idleT = 0;                         // seconds of idle animation, kept across stops
     let idleOn = false;
     const SHUTTER = 2.6;                   // seconds between pictures
@@ -1203,7 +1309,9 @@ export default function Flourish3D({ side = 'right' }) {
       stroke([ring(27.5, 74.2, 24)], T, ink, 0.95 * shut, 1.6);
       stroke([ring(30.5, 73.8, 24)], T, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
     }
-    const art = () => { if (isLeft) drawCamera(); else drawMotor(); };
+    const art = () => {
+      if (isLeft) { if (ROBOTS) drawCameraMesh(1, 0); else drawCamera(); } else drawMotor();
+    };
 
     // ── act two ─────────────────────────────────────────────────────────
     // Scrolling from Experience to Research (`actT`, 0..1): the camera
@@ -1217,8 +1325,10 @@ export default function Flourish3D({ side = 'right' }) {
       const EX_D = 440;
       // 1 · the camera comes apart along its own optical axis, each piece
       // holding its orientation, and fades as it leaves the stage — soon
-      // enough that the shells are gone before the sensor needs the room
-      for (const piece of CAMERA) {
+      // enough that the shells are gone before the sensor needs the room.
+      // The real D435i when its model has loaded; the drawn one until then.
+      if (ROBOTS) drawCameraMesh(1, Math.max(0.001, t));
+      else for (const piece of CAMERA) {
         const ex = CAM_EXPLODE[piece.id];
         const mv = smooth(win(t, 0.02 + ex.order * 0.03, 0.30));
         const a = 1 - win(t, 0.10 + ex.order * 0.03, 0.14);
@@ -1527,7 +1637,7 @@ export default function Flourish3D({ side = 'right' }) {
     // beam, a UR base at each end of the beam, a camera bar above looking down
     // at a work surface in front. No torso, no head — a workcell, not a
     // humanoid.
-    const STAND_X = -14, BEAM_Y = -8;
+    const STAND_X = 12, BEAM_Y = -8, ARM_DX = 78;   // the pair's bases sit ARM_DX either side of the stand
     function drawStand(u, alpha) {
       if (u <= 0.01) return;
       const F = place(IDENT, [0, 0, 0]);
@@ -1540,21 +1650,21 @@ export default function Flourish3D({ side = 'right' }) {
       box(120, 18, 96, STAND_X, 150, -10, MAT.iron);
       box(34, 118, 34, STAND_X, 82, -10, MAT.alu);
       // the beam, and the two mounts the arms bolt to
-      box(150, 14, 30, STAND_X, BEAM_Y + 14, -10, MAT.alu);
-      for (const x of [-62, 34]) {
+      box(2 * ARM_DX + 60, 14, 30, STAND_X, BEAM_Y + 14, -10, MAT.alu);
+      for (const x of [STAND_X - ARM_DX, STAND_X + ARM_DX]) {
         const M = place(mul(rotX(90 * DEG), scaleM(0.56 * u)), [x, BEAM_Y + 2, 0]);
         drawDrum(M, 20, -8, 8, MAT.steel, a);
       }
       // the camera bar: two posts, a crossbar, a camera looking down
-      box(6, 96, 6, STAND_X - 68, BEAM_Y - 34, -10, MAT.steel);
-      box(6, 96, 6, STAND_X + 68, BEAM_Y - 34, -10, MAT.steel);
-      box(148, 6, 6, STAND_X, BEAM_Y - 80, -10, MAT.steel);
-      const C = place(scaleM(u), [STAND_X, BEAM_Y - 68, -4]);
+      box(6, 110, 6, STAND_X - ARM_DX - 26, BEAM_Y - 40, -10, MAT.steel);
+      box(6, 110, 6, STAND_X + ARM_DX + 26, BEAM_Y - 40, -10, MAT.steel);
+      box(2 * ARM_DX + 58, 6, 6, STAND_X, BEAM_Y - 94, -10, MAT.steel);
+      const C = place(scaleM(u), [STAND_X, BEAM_Y - 82, -4]);
       submit(boxFaces(30, 16, 22, 0, 0, 0), C, MAT.poly, a);
       submitLines(boxWire(30, 16, 22, 0, 0, 0), C, matLine[MAT.poly], LOOK.line * a, LOOK.width);
       submitLines([ringAt(5, 0, 8.2, 0, 14), ringAt(7, 0, 8.6, 0, 14)], chain(C, place(rotX(90 * DEG), [0, 0, 0])), ink, LOOK.line * a, LOOK.width);
       // the work surface in front, where the grippers go
-      box(160, 8, 70, STAND_X, 122, 44, MAT.neutral);
+      box(2 * ARM_DX + 70, 8, 70, STAND_X, 122, 44, MAT.neutral);
     }
 
     // ── the targets the waves fly to ────────────────────────────────────
@@ -1827,6 +1937,167 @@ export default function Flourish3D({ side = 'right' }) {
       }
     }
 
+    // ── the machines, from their real models ────────────────────────────
+    // Once the baked meshes have loaded (ROBOTS), every state on the right
+    // is one of three real robots posed by forward kinematics, and the left's
+    // camera is the RealSense D435i. Until then the procedural drawings above
+    // stand in. Poses are joint angles in radians, in each MJCF's joint order.
+    const RB = {
+      so: { k: 0.85, root: [44, 246], yaw: 30,
+            rest: [-0.2, -2.4, 2.2, 0.2, 0.4, 0.8],          // Rotation, Pitch, Elbow, Wrist_Pitch, Wrist_Roll, Jaw
+            folded: [0, -0.3, 0.2, 0.0, 0, 0.2] },
+      fr: { k: 0.33, root: [14, 262], yaw: 145,
+            rest: [0, -0.6, 0, -1.9, 0, 1.3, 0.785],
+            folded: [0, 0, 0, -0.3, 0, 0.6, 0.785] },
+      // the pair stands ON THE BEAM (BEAM_Y), reaching forward and down to the
+      // work surface, turned a little toward each other
+      ur: { k: 0.22, rootR: [STAND_X + ARM_DX, BEAM_Y - 8], rootL: [STAND_X - ARM_DX, BEAM_Y - 8], yawR: 30, yawL: 30,
+            // the left arm is turned about its base to face its partner, so
+            // both reach in over the work surface rather than one swinging
+            // out of the stage
+            // shoulders low, elbows high, forearms down to the work: the
+            // classic bimanual reach-in over a table
+            // In this model ZERO is the arm lying flat and a negative lift
+            // raises it (checked numerically: lift -pi/2 puts the elbow 425mm
+            // straight up). Pan -pi/2 points the arm at the viewer, so both
+            // reach FORWARD over the work surface and down to it, converging
+            // in front of the stand — picked from six rendered variants.
+            restR: [-1.57, 0.9, 1.9, -1.0, -1.57, 0], restL: [Math.PI + 1.57, 0.9, 1.9, -1.0, -1.57, 0],
+            folded: [0, 0, 0, 0, 0, 0] },
+      cam: { k: 3.5, root: [-2, -12], yaw: -28, pitch: 10 },
+    };
+    const lerpQ = (A, B, u) => A.map((a, i) => a + (B[i] - a) * u);
+    // the SO-ARM's bodies, in tree order, for growing it base first
+    const SO_ORDER = ['Base', 'Rotation_Pitch', 'Upper_Arm', 'Lower_Arm', 'Wrist_Pitch_Roll', 'Fixed_Jaw', 'Moving_Jaw'];
+    const growOrder = (order, t, lead, span) => {
+      const out = {};
+      order.forEach((name, i) => { out[name] = smooth(win(t, lead + (i / order.length) * span, span * 0.7)); });
+      return out;
+    };
+    // idle: a slow sweep on a couple of joints, so a settled robot WORKS
+    const swayQ = (q, idx, amps, ph = 0) => {
+      if (!idleOn) return q;
+      const out = q.slice();
+      idx.forEach((j, i) => { out[j] += amps[i] * Math.sin(idleT * 0.85 + ph + i * 1.1); });
+      return out;
+    };
+
+    // ── act 1 (right): the motor becomes the SO-ARM101 ──────────────────
+    function drawSoArmAct(t) {
+      const a = smooth(win(t, 0.0, 0.36));
+      setCam(16 * DEG, (14 - 4 * a) * DEG, 30 * (1 - a));
+      // the motor swings round and shrinks down to where the SO-ARM's base
+      // servo sits — a servo IS a small motor — then hands over
+      const shrink = smooth(win(t, 0.30, 0.34));
+      if (shrink < 1) {
+        const k = MOTOR_K_MAX * (1 - a) + 0.40 * a * (1 - 0.72 * shrink);
+        const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
+        const goal = [RB.so.root[0], RB.so.root[1] - 26, 0];
+        const pos = [goal[0] * a, 10 + (goal[1] - 10) * a, 0];
+        const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
+        const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
+        const propA = 1 - win(t, 0.03, 0.18);
+        const ma = 1 - shrink;
+        for (let i = 0; i < MOTOR.length; i++) {
+          const part = MOTOR[i];
+          const pa = (part.id === 'prop' ? propA : 1) * ma;
+          if (pa <= 0.01) continue;
+          const T = chain(roll, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
+          const mat = part.mat || MAT.neutral;
+          submit(part.solids, T, mat, pa);
+          submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
+        }
+        const C = chain(roll, place(rotZ(SPIN), [0, 0, 0]));
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), C, MAT.copper, ma);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), C, MAT.copper, ma);
+      }
+      // the arm grows out of the servo, base first, unfolding to its pose
+      const g = growOrder(SO_ORDER, t, 0.34, 0.5);
+      const u = smooth(win(t, 0.5, 0.5));
+      let q = lerpQ(RB.so.folded, RB.so.rest, u);
+      if (t >= 1) q = swayQ(RB.so.rest, [1, 2, 3, 5], [0.12, 0.16, 0.14, 0.25]);
+      drawRobot(ROBOTS.soarm, standing(RB.so.root, RB.so.k, RB.so.yaw), q, 1, t >= 1 ? null : g);
+      flush();
+    }
+
+    // ── act 2 (right): the SO-ARM101 becomes a Franka Research 3 ───────
+    function drawFrankaAct(t) {
+      const u = smooth(t);
+      setCam((16 + 4 * u) * DEG, (10 + 2 * u) * DEG, 0);
+      // the small arm shrinks away into its base as the big one grows out of
+      // the same spot, unfolding from its packed pose
+      const out = smooth(win(t, 0.12, 0.42));
+      if (out < 1) {
+        drawRobot(ROBOTS.soarm, standing(RB.so.root, RB.so.k * (1 - 0.6 * out), RB.so.yaw), RB.so.folded.map((f, i) => f + (RB.so.rest[i] - f) * (1 - out)), 1 - out);
+      }
+      const inn = smooth(win(t, 0.3, 0.5));
+      if (inn > 0.01) {
+        const settle = smooth(win(t, 0.45, 0.5));
+        let q = lerpQ(RB.fr.folded, RB.fr.rest, settle);
+        if (t >= 1) q = swayQ(RB.fr.rest, [0, 1, 3, 5], [0.18, 0.1, 0.16, 0.14]);
+        drawRobot(ROBOTS.fr3, standing(RB.fr.root, RB.fr.k * (0.35 + 0.65 * inn), RB.fr.yaw), q, inn);
+      }
+      flush();
+    }
+
+    // ── act 3 (right): the Franka becomes two UR5e on a stand ───────────
+    function drawURPairAct(t) {
+      const u = smooth(t);
+      setCam((20 - 2 * u) * DEG, (12 + 2 * u) * DEG, 0);
+      const out = smooth(win(t, 0.08, 0.4));
+      if (out < 1) {
+        drawRobot(ROBOTS.fr3, standing(RB.fr.root, RB.fr.k * (1 - 0.5 * out), RB.fr.yaw), RB.fr.rest, 1 - out);
+      }
+      const stand = smooth(win(t, 0.16, 0.36));
+      drawStand(stand, 1);
+      const gR = smooth(win(t, 0.36, 0.42)), gL = smooth(win(t, 0.5, 0.42));
+      if (gR > 0.01) {
+        let q = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(t, 0.5, 0.45)));
+        if (t >= 1) q = swayQ(RB.ur.restR, [0, 1, 2, 3], [0.14, 0.12, 0.16, 0.12]);
+        drawRobot(ROBOTS.ur5e, standing(RB.ur.rootR, RB.ur.k * (0.4 + 0.6 * gR), RB.ur.yawR), q, gR);
+      }
+      if (gL > 0.01) {
+        let q = lerpQ([Math.PI, 0, 0, 0, 0, 0], RB.ur.restL, smooth(win(t, 0.62, 0.38)));
+        if (t >= 1) q = swayQ(RB.ur.restL, [0, 1, 2, 3], [0.14, 0.12, 0.16, 0.12], 2.2);
+        drawRobot(ROBOTS.ur5e, standing(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), q, gL);
+      }
+      flush();
+    }
+
+    // ── the camera, and how it comes apart ──────────────────────────────
+    // The D435i's nine parts each leave along the optical axis: the front
+    // glass and rims forward, the sensor module a little, the casing back —
+    // the order a teardown takes it apart in.
+    const CAM_PARTS_OUT = { d435i_8: -1.0, d435i_5: 0.55, d435i_6: 0.5, d435i_4: 0.2, d435i_2: 0.7, d435i_0: 0.9, d435i_3: 0.9, d435i_1: 0.85, d435i_7: 0.95 };
+    function drawCameraMesh(alpha, t) {
+      const cam0 = facing(RB.cam.root, RB.cam.k, RB.cam.yaw, RB.cam.pitch);
+      const robot = ROBOTS.d435i;
+      const T0 = bodyPlacements(robot, cam0, [])[0];
+      for (let i = 0; i < robot.parts.length; i++) {
+        const part = robot.parts[i];
+        const key = `d435i_${i}`;
+        const out = t > 0 ? (CAM_PARTS_OUT[key] ?? 0.5) : 0;
+        const mv = t > 0 ? smooth(win(t, 0.02 + i * 0.02, 0.30)) : 0;
+        const a = alpha * (t > 0 ? 1 - win(t, 0.10 + i * 0.02, 0.14) : 1);
+        if (a <= 0.01) continue;
+        // the part's own frame slid along the camera's Z (toward the viewer)
+        const T = chain(T0, place(IDENT, [0, 0, out * 120 * mv / RB.cam.k]));
+        const mat = MESH_MAT[part.mat] ?? MAT.neutral;
+        submitMesh(part, T, mat, a, matLine[mat]);
+      }
+      flush();
+      // TAKING PICTURES: the shutter, on the RGB lens
+      if (!idleOn || cap || t > 0) return;
+      const u = idleT % SHUTTER;
+      if (u > 0.42) return;
+      const kf = u / 0.42, shut = Math.sin(Math.PI * kf);
+      const c = robot.centroids[7];                         // the RGB pupil
+      const L = chain(T0, place(IDENT, [c[0], c[1], c[2] + 2]));
+      fill([ring(8 - 6.5 * shut, 0, 6)], L, LINE, 0.6 * Math.pow(shut, 0.45));
+      stroke([ring(9.5, -0.2, 24)], L, ink, 0.95 * shut, 1.6);
+      stroke([ring(11.5, -0.4, 24)], L, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
+    }
+
     // ── act 1: the motor becomes a 2R arm ───────────────────────────────
     function drawMotorAct(t) {
       const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
@@ -1944,10 +2215,13 @@ export default function Flourish3D({ side = 'right' }) {
           else if (i === 1) drawInferAct(t);
           else if (i === 2) drawDetectAct(t);
           else drawWorldAct(t);
+        } else if (ROBOTS) {
+          if (i === 0) drawSoArmAct(t);
+          else if (i === 1) drawFrankaAct(t);
+          else drawURPairAct(i === 2 ? t : 1);   // the pair holds through the last act
         } else if (i === 0) drawMotorAct(t);
         else if (i === 1) drawArm6Act(t);
-        else if (i === 2) drawBimanualAct(t);
-        else drawBimanualAct(1);        // the arms hold through the last act
+        else drawBimanualAct(i === 2 ? t : 1);
       }
       ctx.globalAlpha = 1;
       // A debug read-out, and a DOM write: skipped while the settled loop is

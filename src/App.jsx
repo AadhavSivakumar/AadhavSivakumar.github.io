@@ -41,7 +41,9 @@ function App() {
 
   // Settle onto a page when the scroll has been still for two seconds, and
   // tell the side pieces when it has (see src/scrollSnap.js).
-  useEffect(() => startScrollSnap(), []);
+  // `?nosnap` turns the settle off, for screenshot harnesses that need the
+  // page to stay exactly where they put it.
+  useEffect(() => (new URLSearchParams(window.location.search).has('nosnap') ? undefined : startScrollSnap()), []);
 
 
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
