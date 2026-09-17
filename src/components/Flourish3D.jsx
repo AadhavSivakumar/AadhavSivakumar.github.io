@@ -1355,25 +1355,48 @@ export default function Flourish3D({ side = 'right' }) {
       }
     }
     const SKIN = { soarm: skinSoarm, fr3: skinFR3, ur: skinUR };
+    // The base under each: the SO-ARM101 bolts to a flat plate through its
+    // base servo; the Franka stands on a round pedestal; a UR in the bimanual
+    // pair is mounted on the stand (drawStand), so its own base is empty.
+    function drawBase(style, P, a) {
+      if (a <= 0.01) return;
+      const k = P.k;
+      const rMot = 86 * ARM.K * k;
+      const groundY = P.root[1] + rMot + 56 * k;
+      if (style === 'soarm') {
+        const Pl = place(scaleM(k), [P.root[0], groundY, 0]);
+        submit(boxFaces(84, 6, 70, 0, 0, 0), Pl, MAT.neutral, a);
+        submitLines(boxWire(84, 6, 70, 0, 0, 0), Pl, matLine[MAT.neutral], LOOK.line * a, LOOK.width);
+        // the base servo, standing on the plate, turning the arm
+        const Sv = place(mul(rotX(90 * DEG), scaleM(k * 1.1)), [P.root[0], groundY - 17 * k, 0]);
+        drawServo(Sv, a);
+        // a printed riser from the servo up to the shoulder
+        const h = groundY - 30 * k - P.root[1];
+        const R = place(scaleM(k), [P.root[0], P.root[1] + h / 2, 0]);
+        submit(boxFaces(22, h / k, 18, 0, 0, 0), R, MAT.neutral, a);
+        submitLines(boxWire(22, h / k, 18, 0, 0, 0), R, matLine[MAT.neutral], LOOK.line * a, LOOK.width);
+      } else if (style === 'fr3') {
+        // round pedestal, the Franka's own shape, with a foot ring
+        const h = (groundY - P.root[1]) / k;
+        const Pd = place(mul(rotX(90 * DEG), scaleM(k)), [P.root[0], P.root[1] + h / 2 * k, 0]);
+        drawDrum(Pd, 24, -h / 2, h / 2, MAT.neutral, a);
+        submitLines([ring(24.4, -h / 2 + 8, 24), ring(24.4, h / 2 - 8, 24)], Pd, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+        const Ft = place(mul(rotX(90 * DEG), scaleM(k)), [P.root[0], groundY - 3 * k, 0]);
+        drawDrum(Ft, 34, -3, 3, MAT.steel, a);
+      }
+    }
 
     const ARM_T = { l1: 9, l2: 7 };          // link half-thicknesses
     function armChain(P) {
       const k = P.k;
       const M = mul(rotY(P.yaw * DEG), scaleM(k));
       const B = place(M, [P.root[0], P.root[1], 0]);          // base frame, yawed
-      // the pedestal: plinth on the ground, column up to the shoulder. It does
-      // not yaw with the arm.
+      // Each robot stands on its own kind of base, which does not yaw with
+      // the arm, and crossfades with the skin.
+      const blendB = P.blend || 0;
       if (P.base > 0.01) {
-        const b = P.base;
-        const rMot = 86 * ARM.K * k;
-        const top = P.root[1] + rMot, plinthY = P.root[1] + rMot + 46 * k;
-        const colH = (plinthY - top) * b;
-        const F = place(IDENT, [0, 0, 0]);
-        submit(boxFaces(44 * k, colH, 56 * k, P.root[0], top + colH / 2, 0), F, MAT.alu, b * P.alpha);
-        submitLines(boxWire(44 * k, colH, 56 * k, P.root[0], top + colH / 2, 0), F, matLine[MAT.alu], LOOK.line * b * P.alpha, LOOK.width);
-        const Pl = place(scaleM(k), [P.root[0], plinthY + (10 + 30 * (1 - b)) * k, 0]);
-        submit(BASE_PLINTH.solid, Pl, MAT.iron, b * P.alpha);
-        submitLines(BASE_PLINTH.wire, Pl, matLine[MAT.iron], LOOK.line * b * P.alpha, LOOK.width);
+        drawBase(P.style, P, P.base * P.alpha * (1 - blendB));
+        if (P.style2 && blendB > 0.001) drawBase(P.style2, P, P.base * P.alpha * blendB);
       }
       // the base joint: a drum on the vertical axis, which appears with the
       // sixth degree of freedom
@@ -1409,17 +1432,19 @@ export default function Flourish3D({ side = 'right' }) {
       const F = { B, J1, J2, L2p, W0, J3, flange };
       // the skin, or two of them crossfading while one robot becomes another
       const blend = P.blend || 0;
-      SKIN[P.style](F, P, P.alpha * (1 - blend));
+      const skinA = P.skinA == null ? 1 : P.skinA;
+      SKIN[P.style](F, P, P.alpha * (1 - blend) * skinA);
       if (P.style2 && blend > 0.001) SKIN[P.style2](F, P, P.alpha * blend);
       // the wrist flange and a two-finger gripper close the chain
       if (P.grip > 0.01) {
         const Wr = chain(F.flange, place(scaleM(P.grip), [0, 0, 0]));
         submit(WRIST.solid, Wr, MAT.steel, P.alpha);
         submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
+        const long = P.style2 === 'fr3' ? (P.blend || 0) : P.style === 'fr3' ? 1 - (P.blend || 0) : 0;
+        const fl = 26 + 16 * long, ft = 6 - 2.5 * long;            // Franka fingers: longer, thinner
         for (const y of [-P.open, P.open]) {
-          const f = finger(y);
-          submit(f.solid, Wr, MAT.neutral, P.alpha);
-          submitLines(f.wire, Wr, matLine[MAT.neutral], LOOK.line * P.alpha, LOOK.width);
+          submit(boxFaces(fl, ft, 12, fl / 2, y, 4), Wr, MAT.neutral, P.alpha);
+          submitLines(boxWire(fl, ft, 12, fl / 2, y, 4), Wr, matLine[MAT.neutral], LOOK.line * P.alpha, LOOK.width);
         }
       }
     }
@@ -1429,16 +1454,18 @@ export default function Flourish3D({ side = 'right' }) {
     // torso and the other arm). Fitted to the 340x660 stage by ink box.
     const P_2R = { style: 'soarm', root: ARM.SH, k: 1, yaw: 0, q: [ARM.TH1, ARM.TH2, 0], roll: 0,
                    L: [ARM.L1, ARM.L2, 0], grow: [1, 1, 0], elbow: 1, wrist: 0, yawJoint: 0,
-                   motor: 1, motorK: 1, base: 1, grip: 1, open: 10, alpha: 1 };
+                   motor: 0, motorK: 0.3, base: 1, grip: 1, open: 10, alpha: 1, skinA: 1 };
     const P_6D = { style: 'fr3', root: [-66, 34], k: 0.92, yaw: 34, q: [-64, 62, 34], roll: 22,
                    L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
                    motor: 0, motorK: 0.82, base: 1, grip: 1, open: 9, alpha: 1 };
-    const P_BI_R = { style: 'ur', root: [26, 12], k: 0.56, yaw: 28, q: [-46, 64, 28], roll: 16,
+    // The pair, Generalist-style: two UR arms side by side on a stand, both
+    // turned toward the viewer and reaching down to the work in front.
+    const P_BI_R = { style: 'ur', root: [34, -8], k: 0.56, yaw: 24, q: [-62, 112, 34], roll: 18,
                      L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
-                     motor: 0, motorK: 0.8, base: 0, grip: 1, open: 9, alpha: 1 };
-    const P_BI_L = { style: 'ur', root: [-54, 12], k: 0.56, yaw: -40, q: [-118, 52, 22], roll: -14,
+                     motor: 0, motorK: 0.8, base: 0, grip: 1, open: 8, alpha: 1 };
+    const P_BI_L = { style: 'ur', root: [-62, -8], k: 0.56, yaw: -24, q: [-118, 112, 34], roll: -18,
                      L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
-                     motor: 0, motorK: 0.8, base: 0, grip: 1, open: 6, alpha: 1 };
+                     motor: 0, motorK: 0.8, base: 0, grip: 1, open: 8, alpha: 1 };
     const lerpP = (A, B, u) => ({
       style: A.style, style2: B.style, blend: 0,
       root: [A.root[0] + (B.root[0] - A.root[0]) * u, A.root[1] + (B.root[1] - A.root[1]) * u],
@@ -1453,6 +1480,7 @@ export default function Flourish3D({ side = 'right' }) {
       yawJoint: A.yawJoint + (B.yawJoint - A.yawJoint) * u,
       motor: A.motor + (B.motor - A.motor) * u,
       motorK: A.motorK + (B.motorK - A.motorK) * u,
+      skinA: 1,
       base: A.base + (B.base - A.base) * u,
       grip: A.grip + (B.grip - A.grip) * u,
       open: A.open + (B.open - A.open) * u,
@@ -1468,41 +1496,38 @@ export default function Flourish3D({ side = 'right' }) {
 
     // The torso the bimanual pair stands on, with a sensor head — the camera
     // side of the page, in miniature, which is what is looking at the work.
-    const TORSO_AT = [-14, 72];
-    function drawTorso(u, alpha) {
+    // The stand the pair is mounted on, Generalist-style: a column up to a
+    // beam, a UR base at each end of the beam, a camera bar above looking down
+    // at a work surface in front. No torso, no head — a workcell, not a
+    // humanoid.
+    const STAND_X = -14, BEAM_Y = -8;
+    function drawStand(u, alpha) {
       if (u <= 0.01) return;
-      // A torso narrow enough to read as a body between two arms rather than
-      // a slab behind them, with a panel line down it, and a head on a neck
-      // carrying two lenses — the camera side of the page in miniature, which
-      // is what is looking at the work.
-      const sil = [[-42, -40], [-28, -52], [28, -52], [42, -40], [36, 52], [-36, 52]];
-      const T = place(scaleM(u), [TORSO_AT[0], TORSO_AT[1], -10]);
-      submit(extrude(sil, -22, 22), T, MAT.paint, alpha);
-      submitLines(silWire(sil, -22, 22, 2), T, matLine[MAT.paint], LOOK.line * alpha, LOOK.width);
-      submitLines([[[-30, -16, 22], [30, -16, 22]], [[0, -16, 22], [0, 40, 22]]], T, matLine[MAT.paint], LOOK.line * 0.8 * alpha, LOOK.width);
-      // neck and head
-      const N = chain(T, place(IDENT, [0, -62, 0]));
-      submit(boxFaces(20, 22, 20, 0, 0, 0), N, MAT.steel, alpha);
-      submitLines(boxWire(20, 22, 20, 0, 0, 0), N, matLine[MAT.steel], LOOK.line * alpha, LOOK.width);
-      const H = chain(T, place(IDENT, [0, -88, 2]));
-      submit(boxFaces(62, 32, 36, 0, 0, 0), H, MAT.poly, alpha);
-      submitLines(boxWire(62, 32, 36, 0, 0, 0), H, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
-      for (const x of [-15, 15]) {
-        submitLines([ringAt(8, x, 0, 19, 16), ringAt(11, x, 0, 18.4, 16)], H, ink, LOOK.line * alpha, LOOK.width);
+      const F = place(IDENT, [0, 0, 0]);
+      const a = alpha;
+      const box = (w, h, d, x, y, z, mat) => {
+        submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a);
+        submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width);
+      };
+      // plinth and column
+      box(120, 18, 96, STAND_X, 150, -10, MAT.iron);
+      box(34, 118, 34, STAND_X, 82, -10, MAT.alu);
+      // the beam, and the two mounts the arms bolt to
+      box(150, 14, 30, STAND_X, BEAM_Y + 14, -10, MAT.alu);
+      for (const x of [-62, 34]) {
+        const M = place(mul(rotX(90 * DEG), scaleM(0.56 * u)), [x, BEAM_Y + 2, 0]);
+        drawDrum(M, 20, -8, 8, MAT.steel, a);
       }
-      // shoulder mounts, where the two arms meet the body
-      for (const x of [-38, 38]) {
-        const S = chain(T, place(mul(rotY(90 * DEG), scaleM(0.7)), [x, -34, 0]));
-        submit(ELBOW.solid, S, MAT.steel, alpha);
-        submitLines(ELBOW.wire, S, matLine[MAT.steel], LOOK.line * alpha, LOOK.width);
-      }
-      // the pedestal it stands on
-      const Pl = place(scaleM(0.8), [TORSO_AT[0], TORSO_AT[1] + 96, 0]);
-      submit(BASE_PLINTH.solid, Pl, MAT.iron, alpha);
-      submitLines(BASE_PLINTH.wire, Pl, matLine[MAT.iron], LOOK.line * alpha, LOOK.width);
-      const colH = 44;
-      submit(boxFaces(42, colH, 52, TORSO_AT[0], TORSO_AT[1] + 74, 0), place(IDENT, [0, 0, 0]), MAT.alu, alpha);
-      submitLines(boxWire(42, colH, 52, TORSO_AT[0], TORSO_AT[1] + 74, 0), place(IDENT, [0, 0, 0]), matLine[MAT.alu], LOOK.line * alpha, LOOK.width);
+      // the camera bar: two posts, a crossbar, a camera looking down
+      box(6, 96, 6, STAND_X - 68, BEAM_Y - 34, -10, MAT.steel);
+      box(6, 96, 6, STAND_X + 68, BEAM_Y - 34, -10, MAT.steel);
+      box(148, 6, 6, STAND_X, BEAM_Y - 80, -10, MAT.steel);
+      const C = place(scaleM(u), [STAND_X, BEAM_Y - 68, -4]);
+      submit(boxFaces(30, 16, 22, 0, 0, 0), C, MAT.poly, a);
+      submitLines(boxWire(30, 16, 22, 0, 0, 0), C, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      submitLines([ringAt(5, 0, 8.2, 0, 14), ringAt(7, 0, 8.6, 0, 14)], chain(C, place(rotX(90 * DEG), [0, 0, 0])), ink, LOOK.line * a, LOOK.width);
+      // the work surface in front, where the grippers go
+      box(160, 8, 70, STAND_X, 122, 44, MAT.neutral);
     }
 
     // ── the targets the waves fly to ────────────────────────────────────
@@ -1805,9 +1830,14 @@ export default function Flourish3D({ side = 'right' }) {
       }
       // the arm grows out of it: base, link 1 swinging down from vertical,
       // the elbow, link 2, then the gripper
+      // the motor shrinks down into the shoulder servo, which is what an
+      // SO-ARM101's joints are — small motors — while the printed arm fades in
+      const shrink = smooth(win(t, 0.40, 0.36));
       const P = { ...P_2R,
         base: smooth(win(t, 0.24, 0.26)),
-        motor: a,
+        motor: a * (1 - shrink),
+        motorK: 1 - 0.7 * shrink,
+        skinA: smooth(win(t, 0.36, 0.3)),
         q: [-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45)), ARM.TH2 * smooth(win(t, 0.56, 0.40)), 0],
         grow: [smooth(win(t, 0.32, 0.26)), smooth(win(t, 0.56, 0.26)), 0],
         elbow: smooth(win(t, 0.52, 0.14)),
@@ -1842,8 +1872,8 @@ export default function Flourish3D({ side = 'right' }) {
     function drawBimanualAct(t) {
       const u = smooth(t);
       setCam((22 - 2 * u) * DEG, (14 - 2 * u) * DEG, 0);
-      const torso = smooth(win(t, 0.12, 0.36));
-      drawTorso(torso, 1);
+      const stand = smooth(win(t, 0.12, 0.36));
+      drawStand(stand, 1);
       const R = lerpP(P_6D, P_BI_R, u);
       R.blend = smooth(win(t, 0.25, 0.45));
       armChain(t >= 1 ? workP(P_BI_R) : R);

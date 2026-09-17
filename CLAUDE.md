@@ -455,14 +455,23 @@ settle point):
 | Projects → Additional Projects | it becomes **two UR arms** on a torso | the model returns **detections** |
 | Additional Projects → Resume | the pair holds, working | the detections become a **world model** |
 
-**The robots are named ones, at the owner's request**, drawn as SKINS over
-one kinematic chain (`SKIN`, `skinSoarm` / `skinFR3` / `skinUR`): the
-SO-ARM101 by its visible servos with horn discs and flat printed brackets,
-the FR3 by pale rounded tube links with a dark band at every joint, the URs
-by constant-diameter tubes and short cylindrical joints. An act interpolates
-the POSE and crossfades the skin (`blend`), so one machine becomes another
-without the chain jumping. The motor stays as the shoulder through the
-SO-ARM101 and fades as the Franka's own shoulder takes over.
+**The robots are named ones — motor → SO-ARM101 → Franka Research 3 →
+Generalist-style bimanual — and each has to be UNMISTAKABLE at its settle
+point.** They are drawn as SKINS over one kinematic chain (`SKIN`,
+`skinSoarm` / `skinFR3` / `skinUR`) with a BASE per robot (`drawBase`): the
+SO-ARM101 by dark servo blocks with horn discs, flat slotted printed brackets
+and a flat plate with its base servo on it; the FR3 by pale rounded tube
+links, a dark band at every joint, a round pedestal and long thin parallel
+fingers; the pair by two UR arms (constant-diameter tubes, short cylindrical
+joints) on a STAND (`drawStand`: column, beam, a mount at each end, a camera
+bar above, a work surface in front). An act interpolates the POSE and
+crossfades skin and base (`blend`), so one machine becomes another without
+the chain jumping. **The motor shrinks INTO the SO-ARM101's shoulder servo**
+(`motorK` 1 → 0.3 while `motor` fades and the skin fades in, `skinA`): a
+servo IS a small motor, and the SO-ARM101 with the full motor still on its
+shoulder read as "motor with an arm", not as the robot. The first bimanual
+was a humanoid torso with a head; the owner's reference is Generalist's
+workcell — two URs side by side on a stand — so it is that now.
 
 **The left side is the seeing half**: sensor → the picture cut into patches
 and fed through a stack of layers with an activation running through it →
