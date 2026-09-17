@@ -1127,7 +1127,7 @@ export default function Flourish3D({ side = 'right' }) {
         let end = i + 1;
         while (end < bucket.length) {
           const g = bucket[end];
-          if (g.line !== f.line || g.c !== f.c || g.a !== f.a) break;
+          if (g.line !== f.line || g.c !== f.c || g.a !== f.a || g.m !== f.m) break;
           if (f.line && g.w !== f.w) break;
           end++;
         }
@@ -1146,6 +1146,13 @@ export default function Flourish3D({ side = 'right' }) {
         } else {
           ctx.fillStyle = f.c;
           ctx.fill();
+          // Mesh fills are SEALED: the same path stroked thinly in its own
+          // colour. Adjacent triangles of different tones land in different
+          // fill calls, and where two anti-aliased edges meet the page shows
+          // through as a hairline — on the dark theme, a pale robot came out
+          // wearing its whole wireframe in dark lines. The stroke covers the
+          // seam; on a silhouette it adds a third of a pixel nobody can see.
+          if (f.m) { ctx.strokeStyle = f.c; ctx.lineWidth = 0.7; ctx.stroke(); }
         }
         i = end;
       }
@@ -1172,7 +1179,19 @@ export default function Flourish3D({ side = 'right' }) {
     let MESH_SCR = new Float64Array(1 << 12);       // projected vertices, x y z per vertex
     let MESH_FRONT = new Uint8Array(1 << 10);       // culling: by screen winding
     let MESH_FACE = new Float32Array(1 << 10);      // silhouette: by SMOOTH normal, toward the viewer
-    const MESH_FLIP = true;                         // the bake's winding is CCW in a right-handed frame; the stage is left-handed
+    // Which screen winding is a FRONT face. The bake orients every shell
+    // outward — the normal from (b-a)x(c-a) points away from the body — and
+    // the stage frame keeps that handedness (every placement is a proper
+    // rotation), so a face toward the viewer projects with POSITIVE signed
+    // area under the formula below. This was `true` for two releases, on the
+    // reasoning that a y-down stage is left-handed: it culled every front face
+    // and drew every back one. On closed tubes that is nearly invisible — you
+    // see the inside of the far wall through the same silhouette — which is
+    // why the arms looked "fine" while the SO-ARM's servos showed through its
+    // arm and the camera's front plate was missing. Checked by counting: 573
+    // of the plate's 900 faces had smooth normals toward the viewer; 41 of
+    // those passed the old test.
+    const MESH_FLIP = false;
     function submitMesh(part, T, mat, a, lineCol, lineA) {
       if (a <= 0.004) return;
       const m = T.m, t = T.t;
@@ -1223,7 +1242,7 @@ export default function Flourish3D({ side = 'right' }) {
         ptsN += 6;
         const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3;
         const col = meshTone(lit, mat);
-        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0) });
+        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: 1 });
         segs += 3;
       }
       // lines: the SILHOUETTE, and CREASES (real edges of the CAD, dihedral over
@@ -1241,7 +1260,7 @@ export default function Flourish3D({ side = 'right' }) {
         const fa = e[i * 4 + 2], fb = e[i * 4 + 3];
         const fra = MESH_FRONT[fa], frb = fb < 0 ? 0 : MESH_FRONT[fb];
         if (!fra && !frb) continue;                      // wholly on the far side
-        const silhouette = fb < 0 ? fra === 1 : (MESH_FACE[fa] > 0) !== (MESH_FACE[fb] > 0);
+        const silhouette = fb < 0 ? (fra === 1 && !part.patches) : (MESH_FACE[fa] > 0) !== (MESH_FACE[fb] > 0);
         if (!silhouette && !crease[i]) continue;
         const ia = e[i * 4], ib = e[i * 4 + 1];
         const dx = MESH_SCR[ia * 3] - MESH_SCR[ib * 3], dy = MESH_SCR[ia * 3 + 1] - MESH_SCR[ib * 3 + 1];
@@ -1354,7 +1373,23 @@ export default function Flourish3D({ side = 'right' }) {
       stroke([ring(27.5, 74.2, 24)], T, ink, 0.95 * shut, 1.6);
       stroke([ring(30.5, 73.8, 24)], T, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
     }
+    // Dev hook (kept — it has paid for itself three times): ?dev=<robot>:q1,q2,..;k;yaw;x;y
+    // shows one baked machine at that pose on the right, the camera on the left.
+    const DEV = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('dev') : null;
+    // ?part=0,5 draws only those camera parts (with ?dev), to see which is which
+    const DEV_PARTS = DEV && new URLSearchParams(location.search).get('part') ? new Set(new URLSearchParams(location.search).get('part').split(',').map(Number)) : null;
     const art = () => {
+      if (DEV && ROBOTS) {
+        const [spec, k = '0.6', yaw = '30', x = '0', y = '260'] = DEV.split(';');
+        const [id, qs = ''] = spec.split(':');
+        setCam(20 * DEG, 12 * DEG, 0);
+        // on the left, ?dev=d435i;k;yaw;pitch overrides the camera's framing
+        if (isLeft && id === 'd435i' && DEV.includes(';')) { RB.cam.k = +k; RB.cam.yaw = +yaw; RB.cam.pitch = +x; }
+        if (isLeft) drawCameraMesh(1, 0);
+        else if (ROBOTS[id]) drawRobot(ROBOTS[id], standing([+x, +y], +k, +yaw), qs.split(',').filter(Boolean).map(Number), 1);
+        flush();
+        return;
+      }
       if (isLeft) { if (ROBOTS) drawCameraMesh(1, 0); else drawCamera(); } else drawMotor();
     };
 
@@ -1988,12 +2023,27 @@ export default function Flourish3D({ side = 'right' }) {
     // camera is the RealSense D435i. Until then the procedural drawings above
     // stand in. Poses are joint angles in radians, in each MJCF's joint order.
     const RB = {
-      so: { k: 0.85, root: [44, 246], yaw: 30,
-            rest: [-0.2, -2.4, 2.2, 0.2, 0.4, 0.8],          // Rotation, Pitch, Elbow, Wrist_Pitch, Wrist_Roll, Jaw
-            folded: [0, -0.3, 0.2, 0.0, 0, 0.2] },
+      // SO-ARM101 joints: shoulder_pan, shoulder_lift, elbow_flex, wrist_flex,
+      // wrist_roll, gripper. Signs, from rendering each alone: +lift tilts the
+      // upper arm forward (its reach direction), +elbow bends the forearm
+      // DOWN, +wrist points the gripper down, +gripper opens the jaw. At yaw
+      // 195 it reaches into the page, its base servo toward the viewer.
+      so: { k: 0.66, root: [88, 232], yaw: 195,
+            rest: [0, 0.6, -0.2, 1.15, 0, 0.35],
+            folded: [0, 0.3, 1.2, 0.8, 0, 0],
+            // the job it does while settled: reach out and down, close, lift,
+            // swing round, open, come back — a pick and place, in joint space
+            cycle: [[0, 0.6, -0.2, 1.15, 0, 0.35], [0.3, 0.8, -0.3, 1.2, 0, 0.7], [0.3, 0.8, -0.3, 1.2, 0, 0.12],
+                    [0.3, 0.45, -0.05, 1.1, 0, 0.12], [-0.45, 0.45, -0.05, 1.1, 0.3, 0.12], [-0.45, 0.75, -0.25, 1.2, 0.3, 0.12],
+                    [-0.45, 0.75, -0.25, 1.2, 0.3, 0.7], [-0.2, 0.55, -0.15, 1.15, 0.1, 0.5]],
+            period: 11 },
       fr: { k: 0.33, root: [14, 262], yaw: 145,
             rest: [0, -0.6, 0, -1.9, 0, 1.3, 0.785],
-            folded: [0, 0, 0, -0.3, 0, 0.6, 0.785] },
+            folded: [0, 0, 0, -0.3, 0, 0.6, 0.785],
+            cycle: [[0, -0.6, 0, -1.9, 0, 1.3, 0.785], [0.35, -0.2, 0, -2.3, 0, 2.1, 0.785], [0.35, 0.1, 0, -2.2, 0, 2.3, 0.785],
+                    [0.35, -0.5, 0, -1.9, 0, 1.4, 0.785], [-0.5, -0.5, 0, -1.9, 0, 1.4, 0.785], [-0.5, 0.0, 0, -2.2, 0, 2.2, 0.785],
+                    [-0.5, -0.5, 0, -1.8, 0, 1.3, 0.785], [-0.1, -0.7, 0, -1.9, 0, 1.2, 0.785]],
+            period: 12 },
       // the pair stands ON THE BEAM (BEAM_Y), reaching forward and down to the
       // work surface, turned a little toward each other
       ur: { k: 0.22, rootR: [STAND_X + ARM_DX, BEAM_Y - 8], rootL: [STAND_X - ARM_DX, BEAM_Y - 8], yawR: 30, yawL: 30,
@@ -2008,24 +2058,105 @@ export default function Flourish3D({ side = 'right' }) {
             // reach FORWARD over the work surface and down to it, converging
             // in front of the stand — picked from six rendered variants.
             restR: [-1.57, 0.9, 1.9, -1.0, -1.57, 0], restL: [Math.PI + 1.57, 0.9, 1.9, -1.0, -1.57, 0],
-            folded: [0, 0, 0, 0, 0, 0] },
+            folded: [0, 0, 0, 0, 0, 0],
+            // the pair works the surface between them, out of phase: each
+            // reaches down, lifts, moves across, sets down, comes back
+            cycleR: [[-1.57, 0.9, 1.9, -1.0, -1.57, 0], [-1.35, 1.15, 1.75, -1.15, -1.57, 0.3], [-1.35, 0.95, 1.55, -0.75, -1.57, 0.3],
+                     [-1.8, 0.95, 1.55, -0.75, -1.57, -0.2], [-1.8, 1.15, 1.75, -1.15, -1.57, -0.2], [-1.65, 0.8, 1.9, -0.9, -1.57, 0]],
+            cycleL: [[Math.PI + 1.57, 0.9, 1.9, -1.0, -1.57, 0], [Math.PI + 1.8, 1.15, 1.75, -1.15, -1.57, -0.3], [Math.PI + 1.8, 0.95, 1.55, -0.75, -1.57, -0.3],
+                     [Math.PI + 1.35, 0.95, 1.55, -0.75, -1.57, 0.2], [Math.PI + 1.35, 1.15, 1.75, -1.15, -1.57, 0.2], [Math.PI + 1.5, 0.8, 1.9, -0.9, -1.57, 0]],
+            period: 9 },
       cam: { k: 3.5, root: [-2, -12], yaw: -28, pitch: 10 },
     };
     const lerpQ = (A, B, u) => A.map((a, i) => a + (B[i] - a) * u);
     // the SO-ARM's bodies, in tree order, for growing it base first
-    const SO_ORDER = ['Base', 'Rotation_Pitch', 'Upper_Arm', 'Lower_Arm', 'Wrist_Pitch_Roll', 'Fixed_Jaw', 'Moving_Jaw'];
+    const SO_ORDER = ['base', 'shoulder', 'upper_arm', 'lower_arm', 'wrist', 'gripper', 'moving_jaw'];
     const growOrder = (order, t, lead, span) => {
       const out = {};
       order.forEach((name, i) => { out[name] = smooth(win(t, lead + (i / order.length) * span, span * 0.7)); });
       return out;
     };
-    // idle: a slow sweep on a couple of joints, so a settled robot WORKS
-    const swayQ = (q, idx, amps, ph = 0) => {
-      if (!idleOn) return q;
-      const out = q.slice();
-      idx.forEach((j, i) => { out[j] += amps[i] * Math.sin(idleT * 0.85 + ph + i * 1.1); });
-      return out;
+    // a settled robot WORKS: its pose while idle comes from its cycle (below),
+    // and is its rest pose the instant the page moves — so the frame the next
+    // act starts from is the frame this one's morph ends on
+    const workQ = (spec, cycle, phase = 0) => (idleOn ? cycleQ(cycle, spec.period, idleT + phase) : cycle[0]);
+
+    // ── one machine becoming another ────────────────────────────────────
+    // The owner: "don't just have each one shrink away and then the next one
+    // reappear". So a transition is a MORPH between two chains: each body of
+    // the outgoing robot is paired with a body of the incoming one at the same
+    // fraction along the chain, and over the act the outgoing body TRAVELS
+    // from its own placement to its partner's (position and rotation
+    // interpolated, the rotation re-orthonormalised) while it fades, and the
+    // incoming body travels from the outgoing one's placement to its own while
+    // it fades in. Base first, tip last. Every part is on screen throughout,
+    // moving and turning into the part that replaces it.
+    const lerpM = (A, B, u) => {
+      // interpolate, then pull the columns back to orthonormal, keeping scale
+      const sA = Math.cbrt(Math.abs(A[0] * (A[4] * A[8] - A[5] * A[7]) - A[1] * (A[3] * A[8] - A[5] * A[6]) + A[2] * (A[3] * A[7] - A[4] * A[6]))) || 1;
+      const sB = Math.cbrt(Math.abs(B[0] * (B[4] * B[8] - B[5] * B[7]) - B[1] * (B[3] * B[8] - B[5] * B[6]) + B[2] * (B[3] * B[7] - B[4] * B[6]))) || 1;
+      const M = new Array(9);
+      for (let i = 0; i < 9; i++) M[i] = (A[i] / sA) * (1 - u) + (B[i] / sB) * u;
+      // Gram-Schmidt on the columns
+      let c0 = [M[0], M[3], M[6]], c1 = [M[1], M[4], M[7]];
+      const n0 = Math.hypot(...c0) || 1; c0 = c0.map(x => x / n0);
+      const d = c1[0] * c0[0] + c1[1] * c0[1] + c1[2] * c0[2];
+      c1 = [c1[0] - d * c0[0], c1[1] - d * c0[1], c1[2] - d * c0[2]];
+      const n1 = Math.hypot(...c1) || 1; c1 = c1.map(x => x / n1);
+      const c2 = [c0[1] * c1[2] - c0[2] * c1[1], c0[2] * c1[0] - c0[0] * c1[2], c0[0] * c1[1] - c0[1] * c1[0]];
+      const s = sA * (1 - u) + sB * u;
+      return [c0[0] * s, c1[0] * s, c2[0] * s, c0[1] * s, c1[1] * s, c2[1] * s, c0[2] * s, c1[2] * s, c2[2] * s];
     };
+    const lerpT = (A, B, u) => ({ m: lerpM(A.m, B.m, u), t: [A.t[0] + (B.t[0] - A.t[0]) * u, A.t[1] + (B.t[1] - A.t[1]) * u, A.t[2] + (B.t[2] - A.t[2]) * u] });
+    // pair bodies by fraction along the chain
+    const pairBodies = (from, to) => {
+      const nA = from.bodies.length, nB = to.bodies.length;
+      return from.bodies.map((b, i) => Math.round((i / Math.max(1, nA - 1)) * (nB - 1)));
+    };
+    // draw robot A turning into robot B. `u` 0..1 over the act; each body gets
+    // its own window, base first (BODY_STAGGER of the act), so the machine
+    // changes from the ground up.
+    const BODY_STAGGER = 0.45;
+    function drawMorph(A, baseA, qA, B, baseB, qB, u) {
+      const TA = bodyPlacements(A, baseA, qA), TB = bodyPlacements(B, baseB, qB);
+      const pairAB = pairBodies(A, B), pairBA = pairBodies(B, A);
+      const nA = A.bodies.length, nB = B.bodies.length;
+      // outgoing bodies: travel to their partner, fade out
+      for (const part of A.parts) {
+        const i = A.index.get(part.body);
+        const w = smooth(win(u, (i / Math.max(1, nA - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
+        const a = 1 - smooth(win(w, 0.45, 0.55));
+        if (a <= 0.01) continue;
+        const T = w > 0 ? lerpT(TA[i], TB[pairAB[i]], w) : TA[i];
+        const mat = MESH_MAT[part.mat] ?? MAT.neutral;
+        submitMesh(part, T, mat, a, matLine[mat]);
+      }
+      // incoming bodies: arrive from their partner, fade in
+      for (const part of B.parts) {
+        const j = B.index.get(part.body);
+        const w = smooth(win(u, (j / Math.max(1, nB - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
+        const a = smooth(win(w, 0.3, 0.55));
+        if (a <= 0.01) continue;
+        const T = w < 1 ? lerpT(TA[pairBA[j]], TB[j], w) : TB[j];
+        const mat = MESH_MAT[part.mat] ?? MAT.neutral;
+        submitMesh(part, T, mat, a, matLine[mat]);
+      }
+    }
+
+    // ── the robots WORK while the page is settled ───────────────────────
+    // Each has a cycle of waypoints in joint space — reach, close, carry,
+    // open, return — eased between, so the arm reads as doing a job rather
+    // than swaying. `cycleQ` returns the pose at time t along a cycle of
+    // `period` seconds; the gripper joint is driven separately where the
+    // robot has one.
+    const easeIO = t => t * t * (3 - 2 * t);
+    function cycleQ(waypoints, period, t) {
+      const n = waypoints.length;
+      const phase = ((t % period) + period) % period / period * n;
+      const i = Math.floor(phase), k = easeIO(phase - i);
+      const a = waypoints[i], b = waypoints[(i + 1) % n];
+      return a.map((x, j) => x + (b[j] - x) * k);
+    }
 
     // ── act 1 (right): the motor becomes the SO-ARM101 ──────────────────
     function drawSoArmAct(t) {
@@ -2037,7 +2168,7 @@ export default function Flourish3D({ side = 'right' }) {
       if (shrink < 1) {
         const k = MOTOR_K_MAX * (1 - a) + 0.40 * a * (1 - 0.72 * shrink);
         const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
-        const goal = [RB.so.root[0], RB.so.root[1] - 26, 0];
+        const goal = soServo();
         const pos = [goal[0] * a, 10 + (goal[1] - 10) * a, 0];
         const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
         const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
@@ -2060,27 +2191,35 @@ export default function Flourish3D({ side = 'right' }) {
       const g = growOrder(SO_ORDER, t, 0.34, 0.5);
       const u = smooth(win(t, 0.5, 0.5));
       let q = lerpQ(RB.so.folded, RB.so.rest, u);
-      if (t >= 1) q = swayQ(RB.so.rest, [1, 2, 3, 5], [0.12, 0.16, 0.14, 0.25]);
+      if (t >= 1) q = workQ(RB.so, RB.so.cycle);
       drawRobot(ROBOTS.soarm, standing(RB.so.root, RB.so.k, RB.so.yaw), q, 1, t >= 1 ? null : g);
       flush();
+    }
+    // where the SO-ARM's base servo sits on the stage — the motor lands there
+    function soServo() {
+      const robot = ROBOTS.soarm;
+      const i = robot.parts.findIndex(p => p.body === 'base' && p.mat === 'black' && /^sts/.test(p.name || ''));
+      const T = standing(RB.so.root, RB.so.k, RB.so.yaw);
+      const c = robot.centroids[i < 0 ? 0 : i];
+      return [T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2]];
     }
 
     // ── act 2 (right): the SO-ARM101 becomes a Franka Research 3 ───────
     function drawFrankaAct(t) {
       const u = smooth(t);
       setCam((16 + 4 * u) * DEG, (10 + 2 * u) * DEG, 0);
-      // the small arm shrinks away into its base as the big one grows out of
-      // the same spot, unfolding from its packed pose
-      const out = smooth(win(t, 0.12, 0.42));
-      if (out < 1) {
-        drawRobot(ROBOTS.soarm, standing(RB.so.root, RB.so.k * (1 - 0.6 * out), RB.so.yaw), RB.so.folded.map((f, i) => f + (RB.so.rest[i] - f) * (1 - out)), 1 - out);
-      }
-      const inn = smooth(win(t, 0.3, 0.5));
-      if (inn > 0.01) {
-        const settle = smooth(win(t, 0.45, 0.5));
-        let q = lerpQ(RB.fr.folded, RB.fr.rest, settle);
-        if (t >= 1) q = swayQ(RB.fr.rest, [0, 1, 3, 5], [0.18, 0.1, 0.16, 0.14]);
-        drawRobot(ROBOTS.fr3, standing(RB.fr.root, RB.fr.k * (0.35 + 0.65 * inn), RB.fr.yaw), q, inn);
+      // the small arm TURNS INTO the big one: body by body from the base, each
+      // SO-ARM part travels to where its Franka counterpart stands and becomes
+      // it (drawMorph), while the Franka unfolds from its packed pose into its
+      // working one. Nothing leaves and nothing appears from nowhere.
+      const soBase = standing(RB.so.root, RB.so.k, RB.so.yaw);
+      const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
+      if (t >= 1) {
+        drawRobot(ROBOTS.fr3, frBase, workQ(RB.fr, RB.fr.cycle), 1);
+      } else {
+        const m = smooth(win(t, 0.04, 0.9));
+        const qf = lerpQ(RB.fr.folded, RB.fr.rest, smooth(win(t, 0.3, 0.6)));
+        drawMorph(ROBOTS.soarm, soBase, RB.so.rest, ROBOTS.fr3, frBase, qf, m);
       }
       flush();
     }
@@ -2089,22 +2228,26 @@ export default function Flourish3D({ side = 'right' }) {
     function drawURPairAct(t) {
       const u = smooth(t);
       setCam((20 - 2 * u) * DEG, (12 + 2 * u) * DEG, 0);
-      const out = smooth(win(t, 0.08, 0.4));
-      if (out < 1) {
-        drawRobot(ROBOTS.fr3, standing(RB.fr.root, RB.fr.k * (1 - 0.5 * out), RB.fr.yaw), RB.fr.rest, 1 - out);
-      }
-      const stand = smooth(win(t, 0.16, 0.36));
+      // the Franka BECOMES the right UR arm (drawMorph, base first) while the
+      // stand rises under it; the left arm then unfolds from its mount to
+      // make the pair. Both work, out of phase, once the page has settled.
+      const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
+      const rBase = standing(RB.ur.rootR, RB.ur.k, RB.ur.yawR);
+      const lBase = standing(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
+      const stand = smooth(win(t, 0.1, 0.4));
       drawStand(stand, 1);
-      const gR = smooth(win(t, 0.36, 0.42)), gL = smooth(win(t, 0.5, 0.42));
-      if (gR > 0.01) {
-        let q = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(t, 0.5, 0.45)));
-        if (t >= 1) q = swayQ(RB.ur.restR, [0, 1, 2, 3], [0.14, 0.12, 0.16, 0.12]);
-        drawRobot(ROBOTS.ur5e, standing(RB.ur.rootR, RB.ur.k * (0.4 + 0.6 * gR), RB.ur.yawR), q, gR);
-      }
-      if (gL > 0.01) {
-        let q = lerpQ([Math.PI, 0, 0, 0, 0, 0], RB.ur.restL, smooth(win(t, 0.62, 0.38)));
-        if (t >= 1) q = swayQ(RB.ur.restL, [0, 1, 2, 3], [0.14, 0.12, 0.16, 0.12], 2.2);
-        drawRobot(ROBOTS.ur5e, standing(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), q, gL);
+      if (t >= 1) {
+        drawRobot(ROBOTS.ur5e, rBase, workQ(RB.ur, RB.ur.cycleR), 1);
+        drawRobot(ROBOTS.ur5e, lBase, workQ(RB.ur, RB.ur.cycleL, RB.ur.period * 0.5), 1);
+      } else {
+        const m = smooth(win(t, 0.04, 0.72));
+        const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(t, 0.3, 0.5)));
+        drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, qr, m);
+        const gL = smooth(win(t, 0.5, 0.4));
+        if (gL > 0.01) {
+          const q = lerpQ([Math.PI, 0, 0, 0, 0, 0], RB.ur.restL, smooth(win(t, 0.6, 0.4)));
+          drawRobot(ROBOTS.ur5e, standing(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), q, gL);
+        }
       }
       flush();
     }
@@ -2113,6 +2256,8 @@ export default function Flourish3D({ side = 'right' }) {
     // The D435i's nine parts each leave along the optical axis: the front
     // glass and rims forward, the sensor module a little, the casing back —
     // the order a teardown takes it apart in.
+    // a camera part by name, the first of these that the bake kept
+    const camPart = (robot, names) => { for (const n of names) { const i = robot.parts.findIndex(p => p.name === n); if (i >= 0) return i; } return 0; };
     const CAM_PARTS_OUT = { d435i_8: -1.0, d435i_5: 0.55, d435i_6: 0.5, d435i_4: 0.2, d435i_2: 0.7, d435i_0: 0.9, d435i_3: 0.9, d435i_1: 0.85, d435i_7: 0.95 };
     function drawCameraMesh(alpha, t) {
       const cam0 = facing(RB.cam.root, RB.cam.k, RB.cam.yaw, RB.cam.pitch);
@@ -2120,7 +2265,8 @@ export default function Flourish3D({ side = 'right' }) {
       const T0 = bodyPlacements(robot, cam0, [])[0];
       for (let i = 0; i < robot.parts.length; i++) {
         const part = robot.parts[i];
-        const key = `d435i_${i}`;
+        if (DEV_PARTS && !DEV_PARTS.has(i)) continue;
+        const key = part.name || `d435i_${i}`;
         const out = t > 0 ? (CAM_PARTS_OUT[key] ?? 0.5) : 0;
         const mv = t > 0 ? smooth(win(t, 0.02 + i * 0.02, 0.30)) : 0;
         const a = alpha * (t > 0 ? 1 - win(t, 0.10 + i * 0.02, 0.14) : 1);
@@ -2136,7 +2282,7 @@ export default function Flourish3D({ side = 'right' }) {
       const u = idleT % SHUTTER;
       if (u > 0.42) return;
       const kf = u / 0.42, shut = Math.sin(Math.PI * kf);
-      const c = robot.centroids[7];                         // the RGB pupil
+      const c = robot.centroids[camPart(robot, ['d435i_7', 'd435i_6', 'd435i_4'])];   // the RGB pupil
       const L = chain(T0, place(IDENT, [c[0], c[1], c[2] + 2]));
       fill([ring(8 - 6.5 * shut, 0, 6)], L, LINE, 0.6 * Math.pow(shut, 0.45));
       stroke([ring(9.5, -0.2, 24)], L, ink, 0.95 * shut, 1.6);

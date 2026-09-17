@@ -85,7 +85,10 @@ function prepare(robot) {
       }
       i++;
     }
-    return { body: p.body, mat: p.mat, v, f, n, vn, e, crease, nv, nf };
+    // a robot made of open CAD patches (the camera) does not draw its
+    // patch borders: they are tessellation seams, not edges of the object
+    if (robot.patches) for (let k = 0; k < map.size; k++) if (e[k * 4 + 3] < 0) crease[k] = 0;
+    return { body: p.body, name: p.name, mat: p.mat, v, f, n, vn, e, crease, nv, nf, patches: !!robot.patches };
   });
   const bodies = robot.bodies.map(b => ({
     ...b,

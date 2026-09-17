@@ -29,9 +29,13 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { decimate } from './qem.mjs';
 
-const [,, ROOT, BUDGET_ARG] = process.argv;
-if (!ROOT) { console.error('usage: node scripts/bake-robots.mjs <menagerie dir> [budget]'); process.exit(1); }
+const ARGS = process.argv.slice(2);
+const ROOT = ARGS.find(a => !a.startsWith('--') && !/^[\d.]+$/.test(a));
+const BUDGET_ARG = ARGS.find(a => /^[\d.]+$/.test(a));
+const ONLY = (ARGS.find(a => a.startsWith('--only=')) || '').slice(7);   // one robot, for running four in parallel
+if (!ROOT) { console.error('usage: node scripts/bake-robots.mjs <menagerie dir> [budget] [--only=id]'); process.exit(1); }
 const OUT = path.resolve('src/robots');
 fs.mkdirSync(OUT, { recursive: true });
 
@@ -84,15 +88,16 @@ function readOBJ(file) {
       for (let k = 1; k + 1 < a.length; k++) cur.f.push(a[0], a[k], a[k + 1]);   // fan, for quads
     }
   }
-  // each group gets its own compact vertex list
+  // each group gets its own compact vertex list, WELDED BY POSITION: the
+  // menagerie OBJs carry a vertex per face corner (88k vertices for 63k
+  // faces on the Franka's base), so by index almost no two faces share an
+  // edge. Clustering never noticed — it merged by cell anyway. Quadric
+  // decimation treats every unshared edge as a boundary to preserve, and
+  // the result was a soup of rims hatched across every surface.
   return groups.filter(g => g.f.length).map(g => {
-    const map = new Map(), v = [], f = [];
-    for (const i of g.f) {
-      let id = map.get(i);
-      if (id === undefined) { id = v.length / 3; map.set(i, id); v.push(verts[i * 3], verts[i * 3 + 1], verts[i * 3 + 2]); }
-      f.push(id);
-    }
-    return { mtl: g.mtl, v, f };
+    const tris = new Array(g.f.length * 3);
+    g.f.forEach((i, k) => { tris[k * 3] = verts[i * 3]; tris[k * 3 + 1] = verts[i * 3 + 1]; tris[k * 3 + 2] = verts[i * 3 + 2]; });
+    return { mtl: g.mtl, ...weld(tris) };
   });
 }
 
@@ -128,6 +133,13 @@ function cluster(mesh, cell) {
 
 function decimateTo(mesh, budget) {
   if (mesh.f.length / 3 <= budget) return mesh;
+  // Quadric edge collapse (scripts/qem.mjs). Vertex clustering, below, is
+  // kept for reference: it produced slivers and torn patches at 5-7k
+  // triangles, which the owner saw as "triangles" and "broken".
+  return decimate(mesh, budget);
+}
+function decimateByClustering(mesh, budget) {
+  if (mesh.f.length / 3 <= budget) return mesh;
   // bounding size sets the search range
   let lo = 0.2, hi = 200;                     // mm
   let best = mesh;
@@ -149,7 +161,7 @@ function decimateTo(mesh, budget) {
 // directions); then the whole part is turned outward by the sign of its
 // volume, which is right for any closed shell and does not care about shape
 // the way a centroid test does.
-function windConsistently(mesh) {
+function windConsistently(mesh, flip = true) {
   const { f } = mesh;
   const nf = f.length / 3;
   const edgeFaces = new Map();
@@ -176,7 +188,7 @@ function windConsistently(mesh) {
         for (const j of edgeFaces.get(key(a, b))) {
           if (j === i || done[j]) continue;
           // consistent means j traverses the edge the other way
-          if (dirOf(j, a, b) === 1) { const t = f[j * 3 + 1]; f[j * 3 + 1] = f[j * 3 + 2]; f[j * 3 + 2] = t; }
+          if (flip && dirOf(j, a, b) === 1) { const t = f[j * 3 + 1]; f[j * 3 + 1] = f[j * 3 + 2]; f[j * 3 + 2] = t; }
           done[j] = 1; stack.push(j); comp.push(j);
         }
       }
@@ -189,17 +201,52 @@ function windConsistently(mesh) {
 // cable), and each has to be turned outward ON ITS OWN: one decision for the
 // whole part left the smaller shells inside-out, culled, and the part
 // see-through.
+// An OPEN component — a B-rep patch of the camera's CAD export, or a shell
+// with a hole — has no meaningful volume, so it is turned by the CENTRE
+// test instead: does it face away from the part's centre? Patch by patch
+// where the patch agrees with itself (so its smooth normals stay smooth),
+// face by face where it does not (a ring round a lens faces both ways).
+// The inner skin of a hollow casing fails the test and is turned to face
+// the wall it sits in, which culls it from every viewpoint — and that is
+// exactly right for line art: the outer skin is all there is to draw.
 function orientOutward(mesh) {
   const comps = windConsistently(mesh);
   const { v, f } = mesh;
+  const nv = v.length / 3;
+  let cx = 0, cy = 0, cz = 0;
+  for (let i = 0; i < v.length; i += 3) { cx += v[i]; cy += v[i + 1]; cz += v[i + 2]; }
+  cx /= nv; cy /= nv; cz /= nv;
+  const edgeCount = new Map();
+  const key = (a, b) => (a < b ? a * 1e7 + b : b * 1e7 + a);
+  for (let i = 0; i < f.length; i += 3) for (let k = 0; k < 3; k++) { const kk = key(f[i + k], f[i + (k + 1) % 3]); edgeCount.set(kk, (edgeCount.get(kk) || 0) + 1); }
+  const flipFace = i => { const t = f[i * 3 + 1]; f[i * 3 + 1] = f[i * 3 + 2]; f[i * 3 + 2] = t; };
+  const faceOut = i => {                     // area-weighted "faces away from the centre"
+    const a = f[i * 3] * 3, b = f[i * 3 + 1] * 3, c = f[i * 3 + 2] * 3;
+    const ux = v[b] - v[a], uy = v[b + 1] - v[a + 1], uz = v[b + 2] - v[a + 2];
+    const wx = v[c] - v[a], wy = v[c + 1] - v[a + 1], wz = v[c + 2] - v[a + 2];
+    const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+    const fx = (v[a] + v[b] + v[c]) / 3 - cx, fy = (v[a + 1] + v[b + 1] + v[c + 1]) / 3 - cy, fz = (v[a + 2] + v[b + 2] + v[c + 2]) / 3 - cz;
+    const L = Math.hypot(fx, fy, fz) || 1;
+    return (nx * fx + ny * fy + nz * fz) / L;
+  };
   let flipped = 0;
   for (const comp of comps) {
-    let vol = 0;
-    for (const i of comp) {
-      const a = f[i * 3] * 3, b = f[i * 3 + 1] * 3, c = f[i * 3 + 2] * 3;
-      vol += v[a] * (v[b + 1] * v[c + 2] - v[b + 2] * v[c + 1]) - v[a + 1] * (v[b] * v[c + 2] - v[b + 2] * v[c]) + v[a + 2] * (v[b] * v[c + 1] - v[b + 1] * v[c]);
+    let open = 0;
+    for (const i of comp) for (let k = 0; k < 3; k++) if (edgeCount.get(key(f[i * 3 + k], f[i * 3 + (k + 1) % 3])) === 1) open++;
+    if (open <= comp.length * 0.03) {          // closed, or as good as: by volume
+      let vol = 0;
+      for (const i of comp) {
+        const a = f[i * 3] * 3, b = f[i * 3 + 1] * 3, c = f[i * 3 + 2] * 3;
+        vol += v[a] * (v[b + 1] * v[c + 2] - v[b + 2] * v[c + 1]) - v[a + 1] * (v[b] * v[c + 2] - v[b + 2] * v[c]) + v[a + 2] * (v[b] * v[c + 1] - v[b + 1] * v[c]);
+      }
+      if (vol < 0) { for (const i of comp) flipFace(i); flipped++; }
+      continue;
     }
-    if (vol < 0) { for (const i of comp) { const t = f[i * 3 + 1]; f[i * 3 + 1] = f[i * 3 + 2]; f[i * 3 + 2] = t; } flipped++; }
+    let sum = 0, mag = 0;
+    for (const i of comp) { const d = faceOut(i); sum += d; mag += Math.abs(d); }
+    if (mag === 0) continue;
+    if (sum < -0.3 * mag) { for (const i of comp) flipFace(i); flipped++; }
+    else if (sum < 0.3 * mag) { for (const i of comp) if (faceOut(i) < 0) flipFace(i); flipped++; }
   }
   return flipped > 0;
 }
@@ -286,6 +333,25 @@ function edges(f, n, angleDeg) {
 // Body trees copied from the MJCF. pos in metres, quat (w x y z) or euler
 // (radians, intrinsic xyz), joint axis in the body frame. Materials map the
 // menagerie's onto the renderer's MAT slots by name; the runtime resolves.
+// A geom is [file, material] or [file, material, pos, quat]: the SO-ARM101's
+// MJCF places every mesh with its own offset inside its body, and that
+// transform is baked into the vertices here.
+const quatM = q => {
+  let [w, x, y, z] = q; const L = Math.hypot(w, x, y, z) || 1; w /= L; x /= L; y /= L; z /= L;
+  return [1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y), 2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x), 2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)];
+};
+function transformInPlace(mesh, pos, quat) {
+  if (!pos && !quat) return;
+  const m = quat ? quatM(quat) : [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  const t = pos ? pos.map(x => x * 1000) : [0, 0, 0];
+  const v = mesh.v;
+  for (let i = 0; i < v.length; i += 3) {
+    const x = v[i], y = v[i + 1], z = v[i + 2];
+    v[i] = m[0] * x + m[1] * y + m[2] * z + t[0];
+    v[i + 1] = m[3] * x + m[4] * y + m[5] * z + t[1];
+    v[i + 2] = m[6] * x + m[7] * y + m[8] * z + t[2];
+  }
+}
 
 const mm = p => p.map(x => x * 1000);
 
@@ -295,6 +361,15 @@ const ROBOTS = {
   // piece, so every piece has to hold up on its own.
   d435i: {
     dir: 'realsense_d435i', kind: 'obj', budget: 500,
+    // Intel's CAD export is OPEN B-rep patches with T-junctions, not shells
+    // (75k boundary edges in the body; welding cannot stitch a T-junction),
+    // so its patches are oriented by the centre test in orientOutward, and
+    // the renderer does not draw its patch borders (`patches` below).
+    // Rebuilding it as a closed shell from its volume was tried — voxelise
+    // the assembly, flood the air, blur, surface nets, decimate — and
+    // pinched at every lens aperture (hundreds of non-manifold edges the
+    // decimator could not pass), leaving torn surfaces. Not worth more.
+    patches: true,
     bodies: [
       { name: 'd435i', parent: null, pos: [0, 0, 0], geoms: [
         ['d435i_0.obj', 'black'], ['d435i_1.obj', 'green'], ['d435i_2.obj', 'gray'], ['d435i_3.obj', 'black'],
@@ -303,8 +378,46 @@ const ROBOTS = {
       ] },
     ],
   },
+  // TheRobotStudio's SO-ARM101, from their own MJCF (Simulation/SO101/
+  // so101_new_calib.xml). Printed parts are white, the STS3215 servos black.
   soarm: {
-    dir: 'trs_so_arm100', kind: 'stl', budget: 520,
+    dir: 'so101', kind: 'stl', budget: 500,
+    bodies: [
+      { name: 'base', parent: null, pos: [0, 0, 0], geoms: [
+        ['base_motor_holder_so101_v1.stl', 'white', [-0.00636471, -9.94414e-05, -0.0024], [0.5, 0.5, 0.5, 0.5]],
+        ['base_so101_v2.stl', 'white', [-0.00636471, -8.97657e-09, -0.0024], [0.5, 0.5, 0.5, 0.5]],
+        ['sts3215_03a_v1.stl', 'black', [0.0263353, -8.97657e-09, 0.0437], [1, 0, 0, 0]],
+        ['waveshare_mounting_plate_so101_v2.stl', 'black', [-0.0309827, -0.000199441, 0.0474], [0.5, 0.5, 0.5, 0.5]],
+      ] },
+      { name: 'shoulder', parent: 'base', pos: [0.0388353, -8.97657e-09, 0.0624], quat: [0, 0, -1, 0], axis: [0, 0, 1], geoms: [
+        ['sts3215_03a_v1.stl', 'black', [-0.0303992, 0.000422241, -0.0417], [0.5, 0.5, 0.5, -0.5]],
+        ['motor_holder_so101_base_v1.stl', 'white', [-0.0675992, -0.000177759, 0.0158499], [0.5, 0.5, -0.5, 0.5]],
+        ['rotation_pitch_so101_v1.stl', 'white', [0.0122008, 2.22413e-05, 0.0464], [0.707107, -0.707107, 0, 0]],
+      ] },
+      { name: 'upper_arm', parent: 'shoulder', pos: [-0.0303992, -0.0182778, -0.0542], quat: [0.5, -0.5, -0.5, -0.5], axis: [0, 0, 1], geoms: [
+        ['sts3215_03a_v1.stl', 'black', [-0.11257, -0.0155, 0.0187], [0, -0.707107, 0.707107, 0]],
+        ['upper_arm_so101_v1.stl', 'white', [-0.065085, 0.012, 0.0182], [0, 1, 0, 0]],
+      ] },
+      { name: 'lower_arm', parent: 'upper_arm', pos: [-0.11257, -0.028, 0], quat: [0.707107, 0, 0, 0.707107], axis: [0, 0, 1], geoms: [
+        ['under_arm_so101_v1.stl', 'white', [-0.0648499, -0.032, 0.0182], [0, 1, 0, 0]],
+        ['motor_holder_so101_wrist_v1.stl', 'white', [-0.0648499, -0.032, 0.018], [0, -1, 0, 0]],
+        ['sts3215_03a_v1.stl', 'black', [-0.1224, 0.0052, 0.0187], [0, 0, 1, 0]],
+      ] },
+      { name: 'wrist', parent: 'lower_arm', pos: [-0.1349, 0.0052, 0], quat: [0.707107, 0, 0, -0.707107], axis: [0, 0, 1], geoms: [
+        ['sts3215_03a_no_horn_v1.stl', 'black', [0, -0.0424, 0.0306], [0.5, 0.5, 0.5, -0.5]],
+        ['wrist_roll_pitch_so101_v2.stl', 'white', [0, -0.028, 0.0181], [0.5, -0.5, -0.5, -0.5]],
+      ] },
+      { name: 'gripper', parent: 'wrist', pos: [0, -0.0611, 0.0181], quat: [0.0172091, -0.0172091, 0.706897, 0.706897], axis: [0, 0, 1], geoms: [
+        ['sts3215_03a_v1.stl', 'black', [0.0077, 0.0001, -0.0234], [0.707107, -0.707107, 0, 0]],
+        ['wrist_roll_follower_so101_v1.stl', 'white', [0, -0.000218214, 0.000949706], [0, 1, 0, 0]],
+      ] },
+      { name: 'moving_jaw', parent: 'gripper', pos: [0.0202, 0.0188, -0.0234], quat: [0.707107, 0.707107, 0, 0], axis: [0, 0, 1], geoms: [
+        ['moving_jaw_so101_v1.stl', 'white', [0, 0, 0.0189], [1, 0, 0, 0]],
+      ] },
+    ],
+  },
+  soarm100: {
+    dir: 'trs_so_arm100', kind: 'stl', budget: 520, skip: true,
     bodies: [
       { name: 'Base', parent: null, pos: [0, 0, 0], geoms: [['Base.stl', 'white'], ['Base_Motor.stl', 'black']] },
       { name: 'Rotation_Pitch', parent: 'Base', pos: [0, -0.0452, 0.0165], quat: [0.707105, 0.707108, 0, 0], axis: [0, 1, 0],
@@ -322,7 +435,7 @@ const ROBOTS = {
     ],
   },
   fr3: {
-    dir: 'franka_fr3', kind: 'obj', budget: 880,
+    dir: 'franka_fr3', kind: 'obj', budget: 800,
     bodies: [
       { name: 'link0', parent: null, pos: [0, 0, 0], geoms: [['link0.obj']] },
       { name: 'link1', parent: 'link0', pos: [0, 0, 0.333], axis: [0, 0, 1], geoms: [['link1.obj']] },
@@ -335,7 +448,7 @@ const ROBOTS = {
     ],
   },
   ur5e: {
-    dir: 'universal_robots_ur5e', kind: 'obj', budget: 380,
+    dir: 'universal_robots_ur5e', kind: 'obj', budget: 340,
     bodies: [
       { name: 'base', parent: null, pos: [0, 0, 0], quat: [0, 0, 0, -1], geoms: [['base_0.obj', 'black'], ['base_1.obj', 'jointgray']] },
       { name: 'shoulder', parent: 'base', pos: [0, 0, 0.163], axis: [0, 0, 1],
@@ -366,20 +479,30 @@ const fr3Material = mtl => {
 const round = (x, d = 1) => +x.toFixed(d);
 
 for (const [id, R] of Object.entries(ROBOTS)) {
+  if (R.skip || (ONLY && id !== ONLY)) continue;
   const budget = BUDGET_ARG ? Math.round(R.budget * (+BUDGET_ARG)) : R.budget;
-  const out = { id, bodies: [], parts: [] };
+  const out = { id, patches: !!R.patches, bodies: [], parts: [] };
   let tris = 0, bytes = 0, flipped = 0, peels = 0;
   for (const B of R.bodies) {
     out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, axis: B.axis || null });
-    for (const [file, matName] of B.geoms) {
+    for (const [file, matName, gpos, gquat] of B.geoms) {
       const p = path.join(ROOT, R.dir, 'assets', file);
       const groups = R.kind === 'stl' ? readSTL(p) : readOBJ(p);
+      for (const g of groups) transformInPlace(g, gpos, gquat);
       // budget shared across a file's groups, by face count
       const total = groups.reduce((s, g) => s + g.f.length / 3, 0);
-      // per-file budgets for the camera: the casing is most of what you see
-      const fileBudget = id === 'd435i' ? (file === 'd435i_8.obj' ? 3600 : file === 'd435i_4.obj' ? 900 : 110) : budget;
+      // per-file budgets for the camera: the casing is most of what you see,
+      // then the black front plate — at 110 faces its patches came out as a
+      // torn handful of triangles and the casing's open front showed its
+      // ribs through the gap — then the sensor module behind it
+      const CAM_BUDGET = { 'd435i_8.obj': 3600, 'd435i_5.obj': 900, 'd435i_4.obj': 900 };
+      const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : budget;
       for (const g of groups) {
         const share = Math.max(24, Math.round(fileBudget * (g.f.length / 3) / total));
+        // wind the INPUT consistently first (the SO-ARM's STLs are random per
+        // triangle), so the decimator works on an oriented surface; then
+        // again after, per shell, outward
+        orientOutward(g);
         const m = decimateTo(g, share);
         if (m.f.length < 3) continue;
         if (orientOutward(m)) flipped++;
@@ -390,7 +513,7 @@ for (const [id, R] of Object.entries(ROBOTS)) {
         // per-shell orientation above fixes that; inner surfaces face away
         // from the viewer and cull themselves.
         const mat = matName || (id === 'fr3' ? fr3Material(g.mtl) : 'white');
-        out.parts.push({ body: B.name, mat, v: m.v.map(x => round(x, 1)), f: m.f });
+        out.parts.push({ body: B.name, name: file.replace(/\.(obj|stl)$/, ''), mat, v: m.v.map(x => round(x, 1)), f: m.f });
         tris += m.f.length / 3;
       }
     }

@@ -103,7 +103,8 @@ src/
     soarm.json fr3.json ur5e.json d435i.json   # baked meshes: mm, Z-up, decimated
 scripts/
   copy-static.mjs         # post-build asset copy + referenced-asset existence check
-  bake-robots.mjs         # Menagerie meshes -> src/robots/*.json (raw meshes not committed)
+  bake-robots.mjs         # robot meshes -> src/robots/*.json (raw meshes not committed)
+  qem.mjs                 # quadric edge-collapse decimation, used by the bake
 ```
 
 `legacy/` holds pre-React versions of the site — archive only, never edit to change the current site, and **not deployed**. `misc/` is unreferenced data and is likewise not deployed. `Media/` holds local images:
@@ -454,10 +455,31 @@ settle point):
 
 | | right: a robot | left: seeing |
 |---|---|---|
-| Experience → Research | the motor becomes an **SO-ARM101** | the camera explodes to its **sensor** |
-| Research → Major Projects | it becomes a **Franka Research 3** | the **model runs** on the pixels |
-| Projects → Additional Projects | it becomes **two UR arms** on a torso | the model returns **detections** |
+| Experience → Research | the motor lands on the **SO-ARM101**'s base servo and the arm grows out of it | the camera explodes to its **sensor** |
+| Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | the **model runs** on the pixels |
+| Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** on a stand; the left unfolds beside it | the model returns **detections** |
 | Additional Projects → Resume | the pair holds, working | the detections become a **world model** |
+
+**A transition is a MORPH, not a swap** (`drawMorph`). The owner: "don't just
+have each one shrink away and then the next one reappear". Each body of the
+outgoing robot is paired with the body at the same fraction along the
+incoming chain (`pairBodies`); over the act the outgoing body TRAVELS from
+its own placement to its partner's — position lerped, rotation lerped and
+re-orthonormalised with the scale carried separately (`lerpM`), so an
+SO-ARM part at 0.66 px/mm can become a Franka part at 0.33 — while it fades
+out, and the incoming body makes the same journey in reverse while it fades
+in; base first, tip last (`BODY_STAGGER`). At u=0 the frame IS the outgoing
+robot at rest and at u=1 IS the incoming one, which is what keeps the act
+seams at antialiasing level. The incoming robot also unfolds from a packed
+pose (`folded` → `rest`) during the morph, so it arrives moving.
+
+**The robots WORK while the page is settled** (`workQ` / `cycleQ`): each has
+a cycle of joint-space waypoints — reach, close, lift, swing, set down, open,
+return — eased between over `period` seconds (`RB.*.cycle`), the UR pair out
+of phase by half a period. The cycle's first waypoint is the rest pose, and
+the instant the page moves the robot is drawn at rest, so the next act's
+morph starts from the frame this one ended on. Before this they swayed two
+joints on a sine (`swayQ`), which read as wobbling, not working.
 
 **The machines are the REAL ONES.** The owner rejected two rounds of hand-drawn
 approximations ("looks nothing like the SO-ARM101", "use actual 3D models
@@ -564,25 +586,45 @@ horizontally was tried first and reduced them to slivers.
 
 ### Baked meshes: the real machines
 
-**These meshes ARE the CAD.** The Menagerie's files are the manufacturers'
-own exports: Franka's from `franka_description`, UR's from `ur_description`,
-TheRobotStudio's SolidWorks export for the SO-ARM100 (it also publishes STEP,
-which would tessellate to triangles anyway), Intel's for the D435i — at
-60-130k triangles a part. When the owner said the result looked "mesh-like
-instead of sim-like", the fault was the pipeline, not the source: cutting to
-2,000 triangles and drawing a line along every facet edge. A sim render is
-many triangles, SMOOTH shading, and no facet lines.
+**These meshes ARE the CAD.** The files are the manufacturers' own exports:
+Franka's from `franka_description` and UR's from `ur_description` (via the
+MuJoCo Menagerie), **TheRobotStudio's own SO-ARM101** (`so101_new_calib.xml`
+and its 13 STLs from the SO-ARM100 repo's `Simulation/SO101` — the Menagerie
+only has the SO-ARM100, and the owner asked for the 101), Intel's for the
+D435i — at 20-135k triangles a part. When the owner said the result looked
+"mesh-like instead of sim-like", the fault was the pipeline, not the source:
+cutting to 2,000 triangles and drawing a line along every facet edge. A sim
+render is many triangles, SMOOTH shading, and no facet lines.
 
-`scripts/bake-robots.mjs <menagerie dir>` reads the meshes (~120 MB, fetched
-to a scratch dir, NOT committed) and per part: welds vertices, DECIMATES by
-vertex clustering to a face budget (a robot lands around 6-7k triangles, the
-camera ~5k — 60fps holds at that, p50 17.0 through all four acts), makes the
-winding CONSISTENT and OUTWARD (below), and writes ONLY vertices (0.1 mm) and
-faces, plus material and body, with the body tree (positions, quaternions,
-joint axes) copied from the MJCF by hand. The loader (`src/robots/index.js`)
-derives the rest once at load: face normals, SMOOTH vertex normals, edge
-adjacency, and which edges are CREASES. Shipping those tripled the JSON;
-deriving them keeps a robot at 100-150 KB.
+`scripts/bake-robots.mjs <models dir> [--only=id]` reads the meshes (~140 MB,
+fetched to a scratch dir, NOT committed) and per part: welds vertices BY
+POSITION (the Menagerie OBJs carry a vertex per face corner — 88k for 63k
+faces — so by index almost nothing shares an edge), bakes each geom's own
+pos/quat into its vertices (the SO-ARM101's MJCF places every mesh with an
+offset inside its body), winds consistently, DECIMATES by quadric edge
+collapse (`scripts/qem.mjs`) to a face budget — a robot lands at 6-9k
+triangles, the camera ~6k — winds again, and writes ONLY vertices (0.1 mm)
+and faces, plus material, body and file name, with the body tree (positions,
+quaternions, joint axes) copied from the MJCF by hand. The loader
+(`src/robots/index.js`) derives the rest once at load: face normals, SMOOTH
+vertex normals, edge adjacency, and which edges are CREASES. Shipping those
+tripled the JSON; deriving them keeps a robot at 120-300 KB.
+
+**Why quadrics and not clustering.** Vertex clustering (snap to a grid,
+merge) was the first decimator and at 5-7k triangles it left exactly what the
+owner saw — "I can still see the triangles… some of them seem a bit broken":
+slivers, irregular triangles across smooth surfaces, torn patches. It does
+not know what the surface is. Edge collapse removes the edge whose removal
+moves the surface least, so tubes stay round and flats stay flat. The
+implementation is 200 lines and two things made it usable: the faces-per-
+vertex lists are pruned as they are walked (unpruned, the camera casing ran
+a quarter of an hour without finishing), and a refused collapse is simply
+remembered rather than invalidating every other edge on its vertices (which
+starved the heap). It also enforces the LINK CONDITION — no collapse that
+would join two vertices twice — because a non-manifold fin breaks the winding
+propagation downstream. Boundary edges carry a stiff constraint plane, which
+is why welding by position had to come first: every false seam was being
+preserved, and the Franka came out hatched.
 
 `submitMesh` in `Flourish3D.jsx` draws a part as front faces — culled by
 screen winding, shaded by the MEAN OF THE THREE VERTEX NORMALS (`meshTone`: 56
@@ -596,15 +638,48 @@ the dark theme the lines are at half strength — pale on near-black, a dense
 set reads as a wireframe.
 
 Things learned by getting them wrong, in order:
+- **The cull was INVERTED for two releases, and closed shells hid it.**
+  `MESH_FLIP` was set on the reasoning that a y-down stage is left-handed. It
+  is not — every placement is a proper rotation — and the effect was that
+  every front face was culled and every back face drawn. On a closed tube
+  that is almost invisible: you see the inside of the far wall through the
+  same silhouette, shaded a little oddly. It is what made the SO-ARM's servos
+  show THROUGH its arm, the printed parts look transparent, and the camera's
+  front plate vanish (573 of its 900 faces had smooth normals toward the
+  viewer; 41 of those passed the test). Found by counting, not by looking:
+  the ink looked "a bit broken" for a month. If a mesh ever looks see-through
+  again, check which side is being drawn before touching the bake.
 - **Winding, twice.** STL exports wind triangle by triangle at random — a
   third of some SO-ARM parts the wrong way — and the renderer culls by
   winding, so those faces vanished and the part was a see-through wireframe.
   `windConsistently` propagates one orientation across shared edges; then
   `orientOutward` turns EACH CONNECTED SHELL outward by the sign of its own
   volume — a servo is a body plus a horn plus a cable, and one decision for
-  the whole part left the small shells inside-out. The stage's frame is
-  left-handed (x right, y DOWN, z toward the viewer), so the renderer flips
-  the screen-winding test (`MESH_FLIP`).
+  the whole part left the small shells inside-out. Both run before AND after
+  decimation.
+- **Intel's D435i is not shells, it is B-rep patches.** Both copies online
+  (the Menagerie's and `realsense-ros`'s `d435.dae`) are the same CAD export,
+  tessellated one B-rep face at a time: 75k boundary edges in the body,
+  vertices on one patch lying in the middle of edges on the next. Welding
+  cannot stitch a T-junction, and a patch has no volume to orient by. So an
+  OPEN component is turned by the CENTRE test instead — does it face away
+  from the part's centre? — patch by patch where the patch agrees with itself
+  and face by face where it does not (a ring round a lens faces both ways);
+  the inner skin of the hollow casing fails the test and is culled from every
+  view, which is right. Its patch borders are NOT drawn (`patches` in the
+  JSON): they are tessellation seams, not edges. The front plate needs a real
+  budget (900) — at 110 its patches came out as a torn handful of triangles
+  and the casing's open front showed its ribs. **Rebuilding it as a closed
+  shell from its volume was tried** — voxelise the assembly at 0.3 mm, flood
+  the air from outside, blur, naive surface nets, decimate — and pinched at
+  every lens aperture (hundreds of non-manifold edges the decimator could not
+  pass), leaving torn surfaces. Two hours; not worth more.
+- **Mesh fills are SEALED**: after each run of same-toned triangles is filled,
+  the same path is stroked 0.7px in its own colour (`m: 1` on the bucket
+  entry). Adjacent triangles of different tones land in different fill calls,
+  and where two anti-aliased edges meet the page shows through as a
+  hairline — on the dark theme a pale robot came out wearing its whole
+  wireframe.
 - **Do not peel interiors.** A `peelInterior` pass once dropped inward-facing
   faces from hollow shells to stop them showing through. It opened a boundary
   around every hole it made, every boundary edge is an outline, and the parts
@@ -621,7 +696,17 @@ Things learned by getting them wrong, in order:
 - **Signs.** In this UR5e model a positive elbow bends the forearm UP.
 - **Poses** (`RB`) are joint angles in each MJCF's joint order, checked by
   screenshot at the settle points and by the ink bounding box; the stage
-  overhangs the screen edge by 14-20 px, so keep ink inside ~x 20-320.
+  overhangs the screen edge by 14-20 px, so keep ink inside ~x 20-320. The
+  SO-ARM101's signs, from rendering each joint alone: +shoulder_lift tilts the
+  upper arm toward its reach, +elbow_flex bends the forearm DOWN, +wrist_flex
+  points the gripper down, +gripper opens the jaw. It stands at yaw 195 so
+  it reaches into the page with its base servo toward the viewer; at yaw 30
+  the forearm ran off the right edge.
+- **Dev hooks, kept**: `?dev=<robot>:q1,q2,…;k;yaw;x;y` draws one baked
+  machine at that pose on the right stage (and the camera on the left;
+  `?dev=d435i;k;yaw;pitch` reframes it), `&part=0,5` limits the camera to
+  those parts. Both need the page scrolled to just past the hero (`art()`
+  runs there). They have paid for themselves several times.
 - **Screenshot harness gotcha:** the settle snap moves the page two seconds
   after a scripted scroll and the eased glide takes a second, so mid-act
   captures were blank or of the wrong frame. `?nosnap` on the URL turns the
@@ -1017,9 +1102,10 @@ It must never fight the reader, so it does nothing at all when:
 **What runs while settled** (`onSettle` → the idle loop in `Flourish3D.jsx`):
 the motor **spins its fan** (and the rest of the shaft line), the camera
 **takes a picture** (the iris shuts and the rim flashes, every 2.6s), and
-after act two the arm **works** (both joints sweep, the gripper opens) and the
-sensor **reads out** (a band sweeps the grid and each sweep leaves a slightly
-different picture). This is the one thing on the page that animates without
+from Research down the robots **work** — a pick-and-place cycle in joint
+space per machine (`RB.*.cycle`, see "The acts"), the UR pair out of phase —
+and the sensor **reads out** (a band sweeps the grid and each sweep leaves a
+slightly different picture). This is the one thing on the page that animates without
 the scroll driving it, so it is fenced: settled only, held states only
 (`held()`), 20fps desktop / 10fps phone, rAF stops it when the tab is hidden,
 never under reduced motion, and the piece is redrawn at its resting frame the
