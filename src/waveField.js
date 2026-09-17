@@ -47,8 +47,12 @@ export const waveY = (i, d, phase, freq) => AMP * Math.sin((d + phase) * freq + 
 //          between where the rows first shrink into the side panels — the
 //          owner asked for the big waves to go straight to the pieces.
 //   after  the two pieces hold; nothing redraws
-export const S_MORPH = [0.04, 1.0];
-export const S_ART   = S_MORPH[0] + S_MORPH[1];     // 1.04
+// The span ends at exactly 1.0 hero heights — the top of Experience, and a
+// settle point (scrollSnap.js). The pieces are therefore complete at the
+// moment the page comes to rest there, which is the "keypoint" the owner
+// asked for.
+export const S_MORPH = [0.04, 0.96];
+export const S_ART   = S_MORPH[0] + S_MORPH[1];     // 1.0
 
 export const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const win = (p, lead, span) => clamp01((p - lead) / span);

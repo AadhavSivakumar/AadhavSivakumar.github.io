@@ -75,6 +75,7 @@ src/
   App.css                 # ALL styling: theme tokens, sections, cards, modal, hero, nav
   data/siteData.js        # ALL page content (see "Editing content")
   waveField.js            # constants + timeline shared by WaveField and Flourish3D
+  scrollSnap.js           # settle onto a page after 2s still; tells the art when it has
   hooks/useTheme.js       # light/dark via data-theme attr + localStorage
   hooks/useScrollReveal.js # anime.js scroll-into-view entrance used by every card
   components/
@@ -773,6 +774,10 @@ scroll past the hero, hold still, count DOM mutations for 3s
   before: ~105    after: 0
 ```
 
+**The one deliberate exception** is what runs while the page is SETTLED on a
+section (the fan, the shutter, the arm, the sensor readout) — see "Settling on
+a page". It is canvas painting only, so the mutation check above still reads 0.
+
 ## Pages: one screen each
 
 From Experience down, every section is a `.page` — at least the viewport tall,
@@ -835,6 +840,52 @@ lanyards are not loaded. On phones the nav is ~750px wide, so it swipes
 sideways (masked at the right edge) and the header keeps the active link in
 view by setting the nav's own `scrollLeft` — `scrollIntoView` would scroll the
 page as well.
+
+## Settling on a page, and what runs while it is settled
+
+**Stop with a section half in frame and, two seconds later, the page eases
+until it fills the screen** (`src/scrollSnap.js`). Every page is one screen
+tall, so a settled page shows exactly one — and that is also where the art is
+at a keypoint: `S_MORPH` ends at exactly 1.0 hero heights, the top of
+Experience, so the waves finish becoming the camera and the motor at the
+moment the page comes to rest there; act two finishes at the top of Research.
+
+It must never fight the reader, so it does nothing at all when:
+
+- a modal has locked the page (`body.style.overflow`), a badge is being
+  dragged (`body.style.cursor`), or a text field or iframe has focus. A
+  blocked attempt RETRIES in 600ms rather than giving up: closing a modal
+  fires no scroll event, and without that the page would sit misaligned until
+  the reader scrolled again (seen in test).
+- the nearest section does not FIT the screen (`FIT` 1.05) — on a phone, or a
+  short laptop in landscape, pulling someone to a section top would skip what
+  they are reading. In practice this turns snapping off below 992px.
+- the pull would be more than `MAX_PULL` (0.55) of a screen: they are
+  mid-section on purpose, not near a boundary.
+- the reader asked for reduced motion — then nothing moves on its own, and
+  the beats below do not run either.
+
+**What runs while settled** (`onSettle` → the idle loop in `Flourish3D.jsx`):
+the motor **spins its fan** (and the rest of the shaft line), the camera
+**takes a picture** (the iris shuts and the rim flashes, every 2.6s), and
+after act two the arm **works** (both joints sweep, the gripper opens) and the
+sensor **reads out** (a band sweeps the grid and each sweep leaves a slightly
+different picture). This is the one thing on the page that animates without
+the scroll driving it, so it is fenced: settled only, held states only
+(`held()`), 20fps desktop / 10fps phone, rAF stops it when the tab is hidden,
+never under reduced motion, and the piece is redrawn at its resting frame the
+moment the page moves — a shutter frozen half-shut looks broken.
+
+Two details worth keeping:
+
+- The iris STARTS at the lens rim at zero alpha and closes to a point. Drawn
+  at its mid-size it pops on as a dark disc over the glass.
+- `canvas.dataset.segs` is NOT written while the loop runs. It is a debug
+  read-out, and it is a DOM write: leaving it in made "hold still and count
+  mutations" measure this attribute instead of the page. With it skipped, a
+  settled page still measures 0 mutations in 3s.
+
+Measured: settled on Experience, p50 16.5ms / p90 17.2 in Firefox.
 
 ## `header` is a global element selector — do not use `<header>` inside a component
 

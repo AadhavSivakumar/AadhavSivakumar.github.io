@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
 import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actT } from '../waveField';
+import { onSettle } from '../scrollSnap';
 
 // Two line-art pieces fixed to the viewport, one per side: a CAMERA on the
 // left and an IEC-proportioned electric MOTOR on the right. Both are FORMED
@@ -600,10 +601,14 @@ const CAM_EXPLODE = {
 // off-centre), not graph paper.
 const PX_C = 8, PX_R = 6, PX = 13;
 const pxPos = i => [((i % PX_C) - (PX_C - 1) / 2) * PX, (Math.floor(i / PX_C) - (PX_R - 1) / 2) * PX];
-const pxVal = i => {
+const pxVal = (i, frame = 0) => {
   const [x, y] = pxPos(i);
   const d = Math.hypot((x - 13) / 38, (y + 7) / 29);
-  return clamp(1.15 - d, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7));
+  // the blob drifts a little from capture to capture, so consecutive frames
+  // read as consecutive PICTURES rather than one frozen one
+  const wob = frame ? 6 * Math.sin(frame * 1.7) : 0;
+  const d2 = Math.hypot((x - 13 - wob) / 38, (y + 7 + wob * 0.4) / 29);
+  return clamp(1.15 - (frame ? d2 : d), 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7 + frame * 5.9));
 };
 const SENSOR_SCALE = 1.75;
 // bond pads round the package edge: what makes a rectangle read as a chip
@@ -1113,6 +1118,19 @@ export default function Flourish3D({ side = 'right' }) {
     // its old page-long run, so the fit measured for it still holds: camera
     // yaw 16, pitch 14, dolly 30; module scale at MOTOR_K_MAX; the shaft's
     // rotation where the old run left it.
+    // ── what runs while the page is SETTLED on a page ───────────────────
+    // The one thing here that animates without the scroll driving it, so it
+    // is fenced: only while `scrollSnap` says the page is sitting still on a
+    // section, only in a held state (the finished pieces, or the finished act
+    // two), 20fps on a desktop and 10fps on a phone, never under reduced
+    // motion, and stopped dead when the tab is hidden.
+    //   motor  — spins its fan (and the rest of the shaft line)
+    //   camera — takes a picture: the iris shuts and the rim flashes
+    //   arm    — works: the joints sweep and the gripper opens and closes
+    //   sensor — reads out: a band sweeps the grid and the picture changes
+    let idleT = 0;                         // seconds of idle animation, kept across stops
+    let idleOn = false;
+    const SHUTTER = 2.6;                   // seconds between pictures
     const SPIN = 2600 * DEG;
     const ROLL = (90 + 250) * DEG;
     let partA = null;                      // per-part alpha while a part materialises
@@ -1125,7 +1143,7 @@ export default function Flourish3D({ side = 'right' }) {
         const pa = partA ? (partA[part.id] ?? 0) : 1;
         if (pa <= 0.004) continue;
         capId = part.id;
-        const T = chain(base, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
+        const T = chain(base, place(rotZ(part.spins ? SPIN + idleT * 150 * DEG : 0), [0, 0, 0]));
         const oc = cam(T.t[0], T.t[1], T.t[2]);
         const screenR = (part.r || 60) * runK * (PERSP / (PERSP - oc[2]));
         const mat = part.mat || MAT.neutral;
@@ -1139,7 +1157,7 @@ export default function Flourish3D({ side = 'right' }) {
       const pc = partA ? (partA.copper ?? 0) : 1;
       if (pc > 0.004) {
         capId = 'copper';
-        const T = chain(base, place(rotZ(SPIN), [0, 0, 0]));
+        const T = chain(base, place(rotZ(SPIN + idleT * 150 * DEG), [0, 0, 0]));
         for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, MAT.copper, pc);
         submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, pc);
         submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, pc);
@@ -1159,6 +1177,22 @@ export default function Flourish3D({ side = 'right' }) {
         if (piece.detail && !cap) submitLines(piece.detail, T, matLine[piece.mat], LOOK.line * 0.8 * pa, LOOK.width);
       }
       flush();
+      // TAKING PICTURES: the iris shuts and opens over ~0.34s, and the rim
+      // flashes with it. Drawn after the flush, on top of the glass, and only
+      // while the page is settled — a shutter frozen half-shut looks broken,
+      // so it rests fully open.
+      if (!idleOn || cap) return;
+      const u = idleT % SHUTTER;
+      if (u > 0.42) return;
+      const k = u / 0.42;
+      const shut = Math.sin(Math.PI * k);                  // 0 open -> 1 shut -> 0 open
+      // The iris STARTS at the rim and at zero alpha, or it pops on as a dark
+      // disc over the glass. It closes to a point and opens again.
+      const r = 27 - 23 * shut;
+      fill([ring(r, 74.6, 6)], T, LINE, 0.6 * Math.pow(shut, 0.45));   // six blades, near enough
+      // and the rim flashes as it fires
+      stroke([ring(27.5, 74.2, 24)], T, ink, 0.95 * shut, 1.6);
+      stroke([ring(30.5, 73.8, 24)], T, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
     }
     const art = () => { if (isLeft) drawCamera(); else drawMotor(); };
 
@@ -1198,19 +1232,34 @@ export default function Flourish3D({ side = 'right' }) {
       stroke(SENSOR_PADS, T, LINE, 0.5 * sens, 1);
       // 3 · pixels: each photosite lights to its own value, so the grid IS
       // an image. Bucketed by brightness so 48 cells cost 4 fills, not 48.
+      // Once it is finished, the sensor KEEPS TAKING PICTURES while the page
+      // is settled: a readout band sweeps the grid and each sweep leaves a
+      // slightly different picture behind.
+      const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
       const buckets = [[], [], [], []];
       for (let i = 0; i < PX_C * PX_R; i++) {
         const a = smooth(win(t, 0.46 + (i / (PX_C * PX_R)) * 0.30, 0.10));
         if (a <= 0.02) continue;
         const [x, y] = pxPos(i);
-        const v = pxVal(i) * a;
+        const v = pxVal(i, frame) * a;
         const sz = PX * 0.76 * (0.30 + 0.70 * a);
         buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), 1.5));
       }
       for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, 0.12 + 0.72 * ((b + 1) / 4));
+      if (frame) {
+        const u = (idleT % SHUTTER) / SHUTTER;
+        if (u < 0.55) {
+          const gh = PX_R * PX, y = -gh / 2 + (u / 0.55) * gh;
+          fill([rect(PX_C * PX + 8, 11, 0, y, 2.5)], T, ink, 0.22);
+        }
+      }
     }
 
     function drawMotorAct(t) {
+      // Once the arm is finished it WORKS while the page is settled: a slow
+      // sweep of both joints with the gripper opening at the far end of it.
+      const work = idleOn && t >= 1 ? Math.sin(idleT * 0.85) : 0;
+      const work2 = idleOn && t >= 1 ? Math.sin(idleT * 0.85 + 1.1) : 0;
       const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
       setCam(16 * DEG, (14 - 4 * a) * DEG, 30 * (1 - a));
       const k = MOTOR_K_MAX + (ARM.K - MOTOR_K_MAX) * a;
@@ -1251,7 +1300,7 @@ export default function Flourish3D({ side = 'right' }) {
       }
       // link 1 grows off the output shaft, swinging from straight up
       const g1 = smooth(win(t, 0.32, 0.26));
-      const th1 = (-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45))) * DEG;
+      const th1 = (-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45)) + work * 5) * DEG;
       const J1 = place(rotZ(th1), [sx, sy, ARM.Z1 * ARM.K / 0.4]);
       if (g1 > 0.01) {
         const sil = stadium(ARM.L1 * g1, ARM.R1);
@@ -1268,7 +1317,7 @@ export default function Flourish3D({ side = 'right' }) {
         submitLines(ELBOW.wire, E, matLine[MAT.steel], LOOK.line, LOOK.width);
       }
       const g2 = smooth(win(t, 0.56, 0.26));
-      const th2 = ARM.TH2 * smooth(win(t, 0.56, 0.40)) * DEG;
+      const th2 = (ARM.TH2 * smooth(win(t, 0.56, 0.40)) + work2 * 8) * DEG;
       const L2p = chain(J2, place(rotZ(th2), [0, 0, 26]));
       if (g2 > 0.01) {
         const sil = stadium(ARM.L2 * g2, ARM.R2);
@@ -1281,7 +1330,7 @@ export default function Flourish3D({ side = 'right' }) {
         const Wr = chain(L2p, place(scaleM(gr), [ARM.L2 * g2, 0, 0]));
         submit(WRIST.solid, Wr, MAT.steel, 1);
         submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line, LOOK.width);
-        const open = 5 + 5 * smooth(win(t, 0.88, 0.12));
+        const open = 5 + 5 * smooth(win(t, 0.88, 0.12)) + (idleOn && t >= 1 ? 3.5 * work2 : 0);
         for (const y of [-open, open]) {
           const f = finger(y);
           submit(f.solid, Wr, MAT.neutral, 1);
@@ -1307,7 +1356,9 @@ export default function Flourish3D({ side = 'right' }) {
     const toRGB = c => (c.startsWith('#') ? hexToRgb(c) : hexToRgb(rgbStrToHex(c)));
     function publish() {
       cap = [];
+      const spun = idleT; idleT = 0;        // capture the piece at rest
       art();
+      idleT = spun;
       const recs = [];
       for (const r of cap) {
         const n = r.pts.length / 2;
@@ -1364,7 +1415,10 @@ export default function Flourish3D({ side = 'right' }) {
         if (t <= 0) art(); else if (isLeft) drawCameraAct(t); else drawMotorAct(t);
       }
       ctx.globalAlpha = 1;
-      canvas.dataset.segs = String(segs);
+      // A debug read-out, and a DOM write: skipped while the settled loop is
+      // running so "hold still and count mutations" still measures the page
+      // rather than this attribute.
+      if (!idleOn) canvas.dataset.segs = String(segs);
     }
 
     // ── scroll driver ───────────────────────────────────────────────────
@@ -1403,8 +1457,47 @@ export default function Flourish3D({ side = 'right' }) {
       });
     }
 
+    // ── the settled loop ────────────────────────────────────────────────
+    // Runs only while the page is sitting still on a section AND this piece is
+    // in a held state; 20fps desktop, 10fps phone; rAF stops it dead when the
+    // tab is hidden, and it is never started under reduced motion.
+    const IDLE_MS = window.innerWidth < 992 ? 100 : 50;
+    let idleRAF = 0, idleTimer = 0, idlePrev = 0;
+    const idleStep = () => {
+      idleRAF = 0;
+      if (!idleOn) return;
+      const now = performance.now();
+      const dt = idlePrev ? Math.min(0.25, (now - idlePrev) / 1000) : 0;
+      idlePrev = now;
+      idleT += dt;
+      if (held(lastY)) draw(lastY);
+      idleSchedule();
+    };
+    const idleSchedule = () => {
+      idleTimer = setTimeout(() => { idleRAF = requestAnimationFrame(idleStep); }, IDLE_MS);
+    };
+    const stopIdle = () => {
+      idleOn = false; idlePrev = 0;
+      if (idleRAF) { cancelAnimationFrame(idleRAF); idleRAF = 0; }
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = 0; }
+    };
+    const stopSettle = reduce ? null : onSettle(on => {
+      if (on === idleOn) return;
+      if (on) {
+        if (!held(lastY)) return;           // mid-morph or mid-act: nothing to idle
+        idleOn = true; idlePrev = 0; idleSchedule();
+      } else {
+        stopIdle();
+        // back to the piece's resting frame, so a half-shut shutter or a
+        // mid-sweep readout does not freeze on screen
+        if (lastY >= 0) draw(lastY);
+      }
+    });
+
     return () => {
       stopScroll?.();
+      stopSettle?.();
+      stopIdle();
       if (trailing) cancelAnimationFrame(trailing);
       sizeRO?.disconnect();
       themeWatch.disconnect();

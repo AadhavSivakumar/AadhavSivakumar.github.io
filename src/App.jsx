@@ -13,6 +13,7 @@ import ScrollProgress from './components/ScrollProgress';
 import Flourish3D from './components/Flourish3D';
 import WaveField from './components/WaveField';
 import { useTheme } from './hooks/useTheme';
+import { startScrollSnap } from './scrollSnap';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -37,6 +38,10 @@ function App() {
     }
     window.scrollTo(0, 0);
   }, []);
+
+  // Settle onto a page when the scroll has been still for two seconds, and
+  // tell the side pieces when it has (see src/scrollSnap.js).
+  useEffect(() => startScrollSnap(), []);
 
 
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
