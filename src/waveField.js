@@ -76,9 +76,13 @@ export const strandFade = pt => 1 - smooth(win(pt, 0.78, 0.22));
 // After the waves have become the camera and the motor, the right-hand piece
 // keeps going, a step per boundary:
 //
-//   Experience -> Research               the motor becomes a 2R arm
-//   Research   -> Major Projects         the 2R arm becomes a 6-DOF arm
-//   Projects   -> Additional Projects    the 6-DOF arm becomes a bimanual robot
+//   Experience -> Research             right: the motor becomes an SO-ARM101
+//                                      left:  the camera explodes to its sensor
+//   Research   -> Major Projects       right: it becomes a Franka FR3
+//                                      left:  the model runs on the pixels
+//   Projects   -> Additional Projects  right: it becomes two UR arms
+//                                      left:  the model returns detections
+//   Additional -> Resume               left:  the detections become a world model
 //
 // Each act starts a fifth of the way down its first page and completes when
 // the second reaches the top of the screen — which is where the page settles
@@ -89,6 +93,7 @@ export const ACTS = [
   ['experience', 'research'],
   ['research', 'projects'],
   ['projects', 'additional-projects'],
+  ['additional-projects', 'resume'],
 ];
 let spans = null;
 function measureActs() {

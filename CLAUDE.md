@@ -448,17 +448,46 @@ motor's 221x259.
 top of the second, measured off the pages themselves, so every act ENDS at a
 settle point):
 
-| | right-hand piece | left |
+| | right: a robot | left: seeing |
 |---|---|---|
-| Experience → Research | the motor becomes a **2R arm** | the camera explodes to its **sensor** |
-| Research → Major Projects | the 2R arm becomes a **6-DOF arm** | holds |
-| Projects → Additional Projects | the 6-DOF arm becomes a **bimanual robot** | holds |
+| Experience → Research | the motor becomes an **SO-ARM101** | the camera explodes to its **sensor** |
+| Research → Major Projects | it becomes a **Franka Research 3** | the **model runs** on the pixels |
+| Projects → Additional Projects | it becomes **two UR arms** on a torso | the model returns **detections** |
+| Additional Projects → Resume | the pair holds, working | the detections become a **world model** |
+
+**The robots are named ones, at the owner's request**, drawn as SKINS over
+one kinematic chain (`SKIN`, `skinSoarm` / `skinFR3` / `skinUR`): the
+SO-ARM101 by its visible servos with horn discs and flat printed brackets,
+the FR3 by pale rounded tube links with a dark band at every joint, the URs
+by constant-diameter tubes and short cylindrical joints. An act interpolates
+the POSE and crossfades the skin (`blend`), so one machine becomes another
+without the chain jumping. The motor stays as the shoulder through the
+SO-ARM101 and fades as the Franka's own shoulder takes over.
+
+**The left side is the seeing half**: sensor → the picture cut into patches
+and fed through a stack of layers with an activation running through it →
+boxes with corner ticks, label tabs and confidence bars → the picture lies
+down into a ground plane and what was found in it stands up on that ground,
+with the camera's frustum behind and a dashed predicted path forward.
 
 **Every arm state is ONE parametric drawing** (`armChain`), with the acts
 interpolating its PARAMETERS (`P_2R`, `P_6D`, `P_BI_R`, `P_BI_L`, `lerpP`)
-rather than swapping drawings. That is what makes consecutive acts meet: at
-the seams, measured, 16 and 69 pixels of 214,500 differ — antialiasing, not a
-jump. If you add a state, add a params object, do not add a second drawing.
+rather than swapping drawings. If you add a state, add a params object, do
+not add a second drawing.
+
+**Check the seams by pixel diff after touching any act** — an act's first
+frame must equal the previous act's last one. Measured across all six
+boundaries: ≤272 pixels of 224,400 differ, which is antialiasing. Three real
+jumps were found this way and fixed, and they are the three things to get
+right when adding an act:
+- **the camera**: each act must START at the yaw/pitch/dolly the previous one
+  ENDED at. A 4° difference tilts the whole scene at the boundary.
+- **anything the previous act was drawing** has to be carried in and faded
+  out — the sensor's package and pads, the patch grid, the detection boxes.
+- **anything both acts draw must be drawn by the SAME code**: the layer stack
+  is `drawLayerStack`, called by the act that builds it and the act that
+  folds it away. When they each had their own version, one drew fills and
+  cells and the other only outlines: 9,000 pixels of jump.
 
 The 6-DOF arm is the 2R arm plus the three things that make it six-axis: a
 **base joint it yaws on** (which is also what turns it out of the plane), a

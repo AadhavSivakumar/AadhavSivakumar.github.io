@@ -81,20 +81,44 @@ export function startScrollSnap() {
   if (typeof window === 'undefined' || prefersReduced()) return () => {};
   let timer = 0;
   let watch = 0;
+  // True while OUR eased scroll is in flight. Without it, the scroll events
+  // that scroll emits cancel the arrival watch and reschedule everything, so
+  // nothing confirms the landing — and when the browser drops the animation
+  // (it does, on the first scroll after a load, with the 3MB lanyard chunk
+  // still parsing) the page just sits there misaligned. Seen: one section in
+  // eight failed to snap, run to run.
+  let self = false;
 
-  // After the eased scroll is issued, watch for the arrival rather than
-  // waiting out another two seconds — the art should come alive as soon as
-  // the page stops.
-  const watchArrival = target => {
-    let hits = 0;
+  // Watch for the arrival, re-issuing the scroll if it never comes.
+  const watchArrival = (target, tries) => {
+    let hits = 0, frames = 0;
     const step = () => {
       watch = 0;
-      if (Math.abs(window.scrollY - target) <= 2) hits += 1; else hits = 0;
-      if (hits >= 3) { setSettled(true); return; }
+      frames += 1;
+      const d = Math.abs(window.scrollY - target);
+      if (d <= 2) hits += 1; else hits = 0;
+      if (hits >= 3) { self = false; setSettled(true); return; }
+      if (frames > 110) {                        // ~1.8s and still not there
+        if (tries < 2 && !blocked()) {
+          window.scrollTo({ top: target, behavior: 'smooth' });
+          watchArrival(target, tries + 1);
+          return;
+        }
+        self = false; setSettled(true); return;  // give up quietly
+      }
       watch = requestAnimationFrame(step);
     };
     watch = requestAnimationFrame(step);
   };
+
+  // Any real input hands control straight back to the reader.
+  const yieldToUser = () => {
+    if (!self) return;
+    self = false;
+    if (watch) { cancelAnimationFrame(watch); watch = 0; }
+  };
+  const INPUTS = ['wheel', 'touchstart', 'keydown', 'mousedown'];
+  for (const ev of INPUTS) window.addEventListener(ev, yieldToUser, { passive: true });
 
   // One attempt, after the page has been still. If something is in the way —
   // a modal, a drag — it tries again shortly rather than giving up: closing a
@@ -108,11 +132,13 @@ export function startScrollSnap() {
     const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const target = Math.max(0, Math.min(max, Math.round(c.top)));
     if (Math.abs(target - y) <= ALIGN_TOL) { setSettled(true); return; }
+    self = true;
     window.scrollTo({ top: target, behavior: 'smooth' });
-    watchArrival(target);
+    watchArrival(target, 0);
   };
 
   const stop = onScroll(() => {
+    if (self) return;                  // our own animation; watchArrival owns it
     setSettled(false);
     if (watch) { cancelAnimationFrame(watch); watch = 0; }
     clearTimeout(timer);
@@ -123,6 +149,7 @@ export function startScrollSnap() {
     stop();
     clearTimeout(timer);
     if (watch) cancelAnimationFrame(watch);
+    for (const ev of INPUTS) window.removeEventListener(ev, yieldToUser);
     setSettled(false);
   };
 }

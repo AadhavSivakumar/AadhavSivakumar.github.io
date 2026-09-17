@@ -699,7 +699,9 @@ export default function Flourish3D({ side = 'right' }) {
     readHostA();
 
     // theme colours, read once and refreshed when the theme attribute changes
-    let ink = '#C5A35C', copper = '#A85A2A';
+    // gold is the optical path and the picture; slate is compute (the model's
+    // layers); rust is a result the model is less sure of
+    let ink = '#C5A35C', copper = '#A85A2A', slate = '#4E7C8C', err = '#A8503B';
     let paper = '#F7F5F2', dark = false, LINE = '#1a1a1a';
     const readTheme = () => {
       const cs = getComputedStyle(document.documentElement);
@@ -718,6 +720,8 @@ export default function Flourish3D({ side = 'right' }) {
       }
       ink = cs.getPropertyValue('--accent-color').trim() || ink;
       copper = cs.getPropertyValue('--f3d-copper').trim() || copper;
+      slate = cs.getPropertyValue('--ml-neg').trim() || slate;
+      err = cs.getPropertyValue('--ml-err').trim() || err;
     };
     readTheme();
     // ── LOOK ────────────────────────────────────────────────────────────
@@ -1270,6 +1274,88 @@ export default function Flourish3D({ side = 'right' }) {
     //   roll   wrist roll about the forearm axis
     //   L/grow link lengths and how much of each has grown
     //   motor  the motor still standing in as the shoulder housing
+    // ── three robots, one chain ─────────────────────────────────────────
+    // The kinematics are the same throughout — base yaw, shoulder, elbow,
+    // wrist pitch, wrist roll — and what changes between acts is the SKIN
+    // over it, crossfaded while the pose interpolates. That is what lets one
+    // machine become another without the chain jumping.
+    //
+    //   soarm  the SO-ARM101: a small printed arm, visible servos with horn
+    //          discs, flat printed brackets, a little two-finger gripper
+    //   fr3    a Franka Research 3: pale rounded tube links, a dark band at
+    //          every joint, a long parallel-finger hand
+    //   ur     a Universal Robots arm: constant-diameter tubes and short
+    //          cylindrical joint housings, the wrist a compact cluster
+    const tubeX = (L, r, segs = 14) => ({
+      solid: [...surface([[0, r], [L, r]], segs), ...disc(0, r, L, segs), ...disc(0, r, 0, segs)],
+      wire: [ring(r, 0, 16), ring(r, L, 16), [[r, 0, 0], [r, 0, L]], [[-r, 0, 0], [-r, 0, L]]],
+    });
+    const ALONG_X = rotY(90 * DEG);
+    function drawTube(F, L, r, mat, a, lineCol) {
+      if (L < 1) return;
+      const T = chain(F, place(ALONG_X, [0, 0, 0]));
+      const g = tubeX(L, r);
+      submit(g.solid, T, mat, a);
+      submitLines(g.wire, T, lineCol || matLine[mat], LOOK.line * a, LOOK.width);
+    }
+    function drawDrum(F, r, z0, z1, mat, a, ringCol) {
+      submit(drum(r, z0, z1), F, mat, a);
+      submitLines(drumWire(r, z0, z1), F, ringCol || matLine[mat], LOOK.line * a, LOOK.width);
+    }
+    // a servo: the SO-ARM101's signature part, a block with a horn disc
+    function drawServo(F, a, s = 1) {
+      const S = chain(F, place(scaleM(s), [0, 0, 0]));
+      submit(boxFaces(34, 22, 20, 4, 0, 0), S, MAT.poly, a);
+      submitLines(boxWire(34, 22, 20, 4, 0, 0), S, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      submitLines([ring(7, 10.5, 14), ring(3, 10.8, 10)], S, matLine[MAT.steel], LOOK.line * a, LOOK.width);
+    }
+    function skinSoarm(F, P, a) {
+      if (a <= 0.01) return;
+      drawServo(F.J1, a);
+      // printed brackets: flat plates with a lightening slot
+      for (const [frame, L, r, th] of [[F.J1, P.L[0] * P.grow[0], 10, 6], [F.L2p, P.L[1] * P.grow[1], 8.5, 5]]) {
+        if (L < 2) continue;
+        const sil = stadium(L, r);
+        submit(extrude(sil, -th, th), frame, MAT.neutral, a);
+        submitLines(silWire(sil, -th, th), frame, matLine[MAT.neutral], LOOK.line * a, LOOK.width);
+        submitLines([rect(L * 0.5, r * 0.7, L * 0.5, 0, th + 0.4)], frame, matLine[MAT.neutral], LOOK.line * 0.7 * a, LOOK.width);
+      }
+      if (P.elbow > 0.01) drawServo(F.J2, a, 0.86);
+      if (P.wrist > 0.01) drawServo(F.W0, a, 0.7);
+    }
+    function skinFR3(F, P, a) {
+      if (a <= 0.01) return;
+      // pale rounded links, a dark band at each joint
+      drawDrum(F.J1, 19, -15, 15, MAT.neutral, a);
+      submitLines([ring(19.4, 7, 20), ring(19.4, -7, 20)], F.J1, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      drawTube(F.J1, P.L[0] * P.grow[0], 15, MAT.neutral, a);
+      if (P.elbow > 0.01) {
+        drawDrum(F.J2, 17, -14, 14, MAT.neutral, a);
+        submitLines([ring(17.4, 6, 20), ring(17.4, -6, 20)], F.J2, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      }
+      drawTube(F.L2p, P.L[1] * P.grow[1], 12.5, MAT.neutral, a);
+      if (P.wrist > 0.01) {
+        drawDrum(F.W0, 13, -11, 11, MAT.neutral, a * P.wrist);
+        submitLines([ring(13.4, 5, 16)], F.W0, matLine[MAT.poly], LOOK.line * a * P.wrist, LOOK.width);
+        drawTube(F.J3, P.L[2] * P.grow[2], 10.5, MAT.neutral, a * P.wrist);
+      }
+    }
+    function skinUR(F, P, a) {
+      if (a <= 0.01) return;
+      // constant-diameter tubes, short cylindrical joints with caps
+      drawDrum(F.J1, 16, -16, 16, MAT.steel, a);
+      drawTube(F.J1, P.L[0] * P.grow[0], 12.5, MAT.alu, a);
+      if (P.elbow > 0.01) drawDrum(F.J2, 14, -14, 14, MAT.steel, a);
+      drawTube(F.L2p, P.L[1] * P.grow[1], 11, MAT.alu, a);
+      if (P.wrist > 0.01) {
+        drawDrum(F.W0, 11.5, -12, 12, MAT.steel, a * P.wrist);
+        drawTube(F.J3, P.L[2] * P.grow[2], 9.5, MAT.alu, a * P.wrist);
+        const R = chain(F.flange, place(ALONG_X, [0, 0, 0]));
+        drawDrum(R, 9.5, -8, 8, MAT.steel, a * P.wrist);
+      }
+    }
+    const SKIN = { soarm: skinSoarm, fr3: skinFR3, ur: skinUR };
+
     const ARM_T = { l1: 9, l2: 7 };          // link half-thicknesses
     function armChain(P) {
       const k = P.k;
@@ -1310,50 +1396,24 @@ export default function Flourish3D({ side = 'right' }) {
         submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), S, MAT.copper, P.motor * P.alpha);
         submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), S, MAT.copper, P.motor * P.alpha);
       }
-      // link 1 off the output shaft
+      // the chain: shoulder, elbow, wrist pitch, wrist roll
       const zOff = ARM.Z1 * ARM.K / 0.4;
       const J1 = chain(B, place(rotZ(P.q[0] * DEG), [0, 0, zOff]));
-      const g1 = P.grow[0];
-      if (g1 > 0.01) {
-        const sil = stadium(P.L[0] * g1, ARM.R1);
-        submit(extrude(sil, -ARM_T.l1, ARM_T.l1), J1, MAT.paint, P.alpha);
-        submitLines(silWire(sil, -ARM_T.l1, ARM_T.l1), J1, matLine[MAT.paint], LOOK.line * P.alpha, LOOK.width);
-        submitLines([ring(ARM.R1 * 0.55, ARM_T.l1, 16)], J1, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
-      }
-      // the elbow, then link 2
-      const J2 = chain(J1, place(IDENT, [P.L[0] * g1, 0, 0]));
-      if (P.elbow > 0.01) {
-        const E = chain(J2, place(scaleM(P.elbow), [0, 0, 6]));
-        submit(ELBOW.solid, E, MAT.steel, P.alpha);
-        submitLines(ELBOW.wire, E, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
-      }
-      const g2 = P.grow[1];
-      const L2p = chain(J2, place(rotZ(P.q[1] * DEG), [0, 0, 26]));
-      if (g2 > 0.01) {
-        const sil = stadium(P.L[1] * g2, ARM.R2);
-        submit(extrude(sil, -ARM_T.l2, ARM_T.l2), L2p, MAT.paint, P.alpha);
-        submitLines(silWire(sil, -ARM_T.l2, ARM_T.l2), L2p, matLine[MAT.paint], LOOK.line * P.alpha, LOOK.width);
-      }
-      // the wrist cluster: pitch joint, a short third link, then a roll joint.
-      // At `wrist` 0 this is the 2R arm's bare wrist; at 1 it is two more axes.
-      const W0 = chain(L2p, place(IDENT, [P.L[1] * g2, 0, 0]));
-      const g3 = P.grow[2] * P.wrist;
-      let flange = W0;
-      if (P.wrist > 0.01) {
-        const W = chain(W0, place(scaleM(0.8 * P.wrist), [0, 0, 6]));
-        submit(ELBOW.solid, W, MAT.steel, P.alpha);
-        submitLines(ELBOW.wire, W, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
-      }
-      if (g3 > 0.01 && P.L[2] > 0.5) {
-        const J3 = chain(W0, place(rotZ(P.q[2] * DEG), [0, 0, 18]));
-        const sil = stadium(P.L[2] * g3, ARM.R2 * 0.85);
-        submit(extrude(sil, -6, 6), J3, MAT.paint, P.alpha);
-        submitLines(silWire(sil, -6, 6), J3, matLine[MAT.paint], LOOK.line * P.alpha, LOOK.width);
-        flange = chain(J3, place(rotX(P.roll * DEG), [P.L[2] * g3, 0, 0]));
-      }
+      const J2 = chain(J1, place(IDENT, [P.L[0] * P.grow[0], 0, 0]));
+      const L2p = chain(J2, place(rotZ(P.q[1] * DEG), [0, 0, 26 * (P.style === 'soarm' ? 1 : 0.4)]));
+      const W0 = chain(L2p, place(IDENT, [P.L[1] * P.grow[1], 0, 0]));
+      const J3 = chain(W0, place(rotZ(P.q[2] * DEG), [0, 0, 18 * (P.style === 'soarm' ? 1 : 0.4)]));
+      const flange = P.wrist > 0.01 && P.L[2] > 0.5
+        ? chain(J3, place(rotX(P.roll * DEG), [P.L[2] * P.grow[2], 0, 0]))
+        : W0;
+      const F = { B, J1, J2, L2p, W0, J3, flange };
+      // the skin, or two of them crossfading while one robot becomes another
+      const blend = P.blend || 0;
+      SKIN[P.style](F, P, P.alpha * (1 - blend));
+      if (P.style2 && blend > 0.001) SKIN[P.style2](F, P, P.alpha * blend);
       // the wrist flange and a two-finger gripper close the chain
       if (P.grip > 0.01) {
-        const Wr = chain(flange, place(scaleM(P.grip), [0, 0, 0]));
+        const Wr = chain(F.flange, place(scaleM(P.grip), [0, 0, 0]));
         submit(WRIST.solid, Wr, MAT.steel, P.alpha);
         submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
         for (const y of [-P.open, P.open]) {
@@ -1367,19 +1427,20 @@ export default function Flourish3D({ side = 'right' }) {
     // The three states the arm passes through. Act 1 interpolates 2R -> 6-DOF,
     // act 2 interpolates 6-DOF -> one half of the bimanual pair (and grows the
     // torso and the other arm). Fitted to the 340x660 stage by ink box.
-    const P_2R = { root: ARM.SH, k: 1, yaw: 0, q: [ARM.TH1, ARM.TH2, 0], roll: 0,
+    const P_2R = { style: 'soarm', root: ARM.SH, k: 1, yaw: 0, q: [ARM.TH1, ARM.TH2, 0], roll: 0,
                    L: [ARM.L1, ARM.L2, 0], grow: [1, 1, 0], elbow: 1, wrist: 0, yawJoint: 0,
                    motor: 1, motorK: 1, base: 1, grip: 1, open: 10, alpha: 1 };
-    const P_6D = { root: [-66, 34], k: 0.92, yaw: 34, q: [-64, 62, 34], roll: 22,
+    const P_6D = { style: 'fr3', root: [-66, 34], k: 0.92, yaw: 34, q: [-64, 62, 34], roll: 22,
                    L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
-                   motor: 1, motorK: 0.82, base: 1, grip: 1, open: 9, alpha: 1 };
-    const P_BI_R = { root: [26, 12], k: 0.56, yaw: 28, q: [-46, 64, 28], roll: 16,
+                   motor: 0, motorK: 0.82, base: 1, grip: 1, open: 9, alpha: 1 };
+    const P_BI_R = { style: 'ur', root: [26, 12], k: 0.56, yaw: 28, q: [-46, 64, 28], roll: 16,
                      L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
-                     motor: 1, motorK: 0.8, base: 0, grip: 1, open: 9, alpha: 1 };
-    const P_BI_L = { root: [-54, 12], k: 0.56, yaw: -40, q: [-118, 52, 22], roll: -14,
+                     motor: 0, motorK: 0.8, base: 0, grip: 1, open: 9, alpha: 1 };
+    const P_BI_L = { style: 'ur', root: [-54, 12], k: 0.56, yaw: -40, q: [-118, 52, 22], roll: -14,
                      L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
-                     motor: 1, motorK: 0.8, base: 0, grip: 1, open: 6, alpha: 1 };
+                     motor: 0, motorK: 0.8, base: 0, grip: 1, open: 6, alpha: 1 };
     const lerpP = (A, B, u) => ({
+      style: A.style, style2: B.style, blend: 0,
       root: [A.root[0] + (B.root[0] - A.root[0]) * u, A.root[1] + (B.root[1] - A.root[1]) * u],
       k: A.k + (B.k - A.k) * u,
       yaw: A.yaw + (B.yaw - A.yaw) * u,
@@ -1498,6 +1559,222 @@ export default function Flourish3D({ side = 'right' }) {
       if (any) { partA = pa; art(); partA = null; }
     }
 
+// ── the left side after the sensor: inference, detections, a world model
+    // The sensor's own 8x6 grid is the thread through all three: it is the
+    // input the model runs on, the image the boxes sit on, and the ground the
+    // world is built on.
+    const GRID_W = PX_C * PX, GRID_H = PX_R * PX;
+    // where the sensor sits at the end of act one, and where it goes next
+    const SENSOR_HOME = { x: 0, y: 0, z: 16, s: SENSOR_SCALE, ry: 0, rx: 0 };
+    const SENSOR_INFER = { x: -74, y: -6, z: 10, s: 1.12, ry: -34, rx: 0 };
+    const SENSOR_DET = { x: -6, y: -10, z: 20, s: 1.5, ry: 0, rx: 0 };
+    const SENSOR_WORLD = { x: -4, y: 54, z: -10, s: 1.62, ry: -22, rx: 66 };
+    const lerpS = (A, B, u) => ({
+      x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u, z: A.z + (B.z - A.z) * u,
+      s: A.s + (B.s - A.s) * u, ry: A.ry + (B.ry - A.ry) * u, rx: A.rx + (B.rx - A.rx) * u,
+    });
+    const sensorPlace = S => place(mul(mul(rotY(S.ry * DEG), rotX(S.rx * DEG)), scaleM(S.s)), [S.x, S.y, S.z]);
+    // the photosite grid, drawn wherever the sensor currently is
+    function drawPixels(T, alpha, frame, band) {
+      const buckets = [[], [], [], []];
+      for (let i = 0; i < PX_C * PX_R; i++) {
+        const [x, y] = pxPos(i);
+        const v = pxVal(i, frame);
+        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(PX * 0.76, PX * 0.76, x, y, 1.5));
+      }
+      for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, (0.12 + 0.72 * ((b + 1) / 4)) * alpha);
+      if (band != null) fill([rect(GRID_W + 8, 11, 0, -GRID_H / 2 + band * GRID_H, 2.5)], T, ink, 0.22 * alpha);
+    }
+    // three things the model found in the picture: where, and how sure
+    const DETS = [
+      { x: -18, y: -14, w: 46, h: 34, conf: 0.94 },
+      { x: 24, y: 10, w: 34, h: 26, conf: 0.81 },
+      { x: -34, y: 18, w: 26, h: 18, conf: 0.66 },
+    ];
+    function drawDetections(T, alpha, jitter) {
+      for (let i = 0; i < DETS.length; i++) {
+        const d = DETS[i];
+        const j = jitter ? Math.sin(jitter * 1.7 + i * 2.1) * 0.9 : 0;
+        const x = d.x + j, y = d.y - j * 0.6;
+        const a = alpha * (0.55 + 0.45 * d.conf);
+        stroke([rect(d.w, d.h, x, y, 3)], T, i === 0 ? ink : err, a, 1.3);
+        // corner ticks, the way a detector's overlay draws them
+        const cx = d.w / 2, cy = d.h / 2, t = 5;
+        stroke([
+          [[x - cx, y - cy + t, 3], [x - cx, y - cy, 3], [x - cx + t, y - cy, 3]],
+          [[x + cx - t, y - cy, 3], [x + cx, y - cy, 3], [x + cx, y - cy + t, 3]],
+          [[x - cx, y + cy - t, 3], [x - cx, y + cy, 3], [x - cx + t, y + cy, 3]],
+          [[x + cx - t, y + cy, 3], [x + cx, y + cy, 3], [x + cx, y + cy - t, 3]],
+        ], T, i === 0 ? ink : err, a, 1.6);
+        // a label tab, and a confidence bar under it
+        fill([rect(d.w * 0.52, 5, x - cx + d.w * 0.26, y - cy - 5, 3)], T, i === 0 ? ink : err, a * 0.8);
+        stroke([[[x - cx, y - cy - 1.5, 3], [x - cx + d.w * d.conf, y - cy - 1.5, 3]]], T, i === 0 ? ink : err, a, 2.2);
+      }
+    }
+
+    // ── act 2 (left): the model runs on the pixels ──────────────────────
+    // The sensor turns away and the picture is fed into a stack of layers
+    // that recede from the viewer, with an activation running through them.
+    const LAYERS = 4;
+    // The stack the picture is fed into. ONE function, because the act that
+    // builds it and the act that folds it away both draw it — and if they
+    // draw it differently the boundary between them jumps (measured: 9,000
+    // pixels, when one drew fills and cells and the other only outlines).
+    //   growOf  how much of layer i exists
+    //   fold    1 out at the stack's full depth, 0 collapsed onto the picture
+    //   run     where the activation is, 0..1 through the stack
+    function drawLayerStack(growOf, fold, run, alpha) {
+      for (let i = 0; i < LAYERS; i++) {
+        const g = growOf(i) * fold;
+        if (g <= 0.01) continue;
+        const z = (26 - i * 30) * fold, w = (96 - i * 9) * g, h = (74 - i * 7) * g;
+        const L = place(IDENT, [(54 + i * 11) * fold, -4 * fold, z]);
+        const hot = clamp(1 - Math.abs(run * (LAYERS + 0.6) - i) * 1.6, 0, 1);
+        submit(plate(w, h, 0, 0, 0), L, MAT.neutral, 0.6 * g * alpha);
+        flush();
+        stroke([rect(w, h, 0, 0, 0)], L, slate, (0.6 + 0.4 * hot) * g * alpha, 1.1 + hot);
+        // a few cells, so a layer reads as a feature map rather than a card
+        const cells = [];
+        for (let cx = 0; cx < 3; cx++) for (let cy = 0; cy < 2; cy++) {
+          cells.push(rect(w / 4.4, h / 3.4, (cx - 1) * w / 3.2, (cy - 0.5) * h / 2.4, 1));
+        }
+        fill(cells, L, slate, (0.10 + 0.22 * hot) * g * alpha);
+        if (i > 0) {
+          const prev = place(IDENT, [(54 + (i - 1) * 11) * fold, -4 * fold, (26 - (i - 1) * 30) * fold]);
+          for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+            stroke([[[dx * (w + 24) / 2.2, dy * (h + 18) / 2.2, z], [dx * w / 2, dy * h / 2, z]]], prev, slate, 0.35 * g * alpha, 1);
+          }
+        }
+      }
+    }
+    function drawInferAct(t) {
+      const u = smooth(t);
+      setCam(-8 * u * DEG, 6 * u * DEG, 0);            // from (0,0,0), where the camera act ended
+      const S = lerpS(SENSOR_HOME, SENSOR_INFER, u);
+      const T = sensorPlace(S);
+      const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
+      drawPixels(T, 1, frame, null);
+      stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
+      // the chip it was a moment ago, fading: this act has to START exactly
+      // where the last one ended or the package pops off at the boundary
+      const pkg = 1 - smooth(win(t, 0, 0.3));
+      if (pkg > 0.01) {
+        stroke([rect(126, 100, 0, 0, -3)], T, ink, 0.55 * pkg, 1);
+        stroke(SENSOR_PADS, T, LINE, 0.5 * pkg, 1);
+      }
+      // the picture is cut into patches — the move that makes it a sequence
+      const patches = smooth(win(t, 0.12, 0.3));
+      if (patches > 0.01) {
+        const lines = [];
+        for (let c = 1; c < 4; c++) lines.push([[-GRID_W / 2 + (c * GRID_W) / 4, -GRID_H / 2, 3], [-GRID_W / 2 + (c * GRID_W) / 4, GRID_H / 2, 3]]);
+        for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
+        stroke(lines, T, LINE, 0.5 * patches, 1);
+      }
+      // the layers, receding
+      const run = idleOn && t >= 1 ? (idleT % 2.2) / 2.2 : win(t, 0.5, 0.5);
+      drawLayerStack(i => smooth(win(t, 0.28 + i * 0.1, 0.26)), 1, run, 1);
+      // and the picture feeding the first layer
+      const feed = smooth(win(t, 0.3, 0.3));
+      if (feed > 0.01) {
+        for (const dy of [-1, 0, 1]) {
+          stroke([[[GRID_W / 2, dy * GRID_H / 3, 3], [GRID_W / 2 + 40 * feed, dy * GRID_H / 4, 3]]], T, slate, 0.45 * feed, 1);
+        }
+      }
+    }
+
+    // ── act 3 (left): the model returns detections ──────────────────────
+    function drawDetectAct(t) {
+      const u = smooth(t);
+      setCam((-8 + 8 * u) * DEG, (6 - 4 * u) * DEG, 0);  // from (-8, 6, 0)
+      const S = lerpS(SENSOR_INFER, SENSOR_DET, u);
+      const T = sensorPlace(S);
+      const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
+      drawPixels(T, 1, frame, null);
+      stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
+      // the patch grid it arrived with, fading as the answer replaces it
+      const patch = 1 - smooth(win(t, 0, 0.35));
+      if (patch > 0.01) {
+        const lines = [];
+        for (let c = 1; c < 4; c++) lines.push([[-GRID_W / 2 + (c * GRID_W) / 4, -GRID_H / 2, 3], [-GRID_W / 2 + (c * GRID_W) / 4, GRID_H / 2, 3]]);
+        for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
+        stroke(lines, T, LINE, 0.5 * patch, 1);
+      }
+      // the layers fold back into the picture as the answer comes out
+      const fold = 1 - smooth(win(t, 0, 0.45));
+      if (fold > 0.01) drawLayerStack(() => 1, fold, 1, fold);
+      const det = smooth(win(t, 0.34, 0.5));
+      if (det > 0.01) drawDetections(T, det, idleOn && t >= 1 ? idleT : 0);
+    }
+
+    // ── act 4 (left): the detections become a world model ───────────────
+    // The image lies down into a ground plane and what was found in it stands
+    // up on that ground, with the camera's own frustum behind and a predicted
+    // path running forward — a model of the scene, not of the picture.
+    function drawWorldAct(t) {
+      const u = smooth(t);
+      setCam(10 * u * DEG, (2 + 12 * u) * DEG, 0);       // from (0, 2, 0)
+      const S = lerpS(SENSOR_DET, SENSOR_WORLD, u);
+      const T = sensorPlace(S);
+      const lay = smooth(win(t, 0.1, 0.5));
+      drawPixels(T, 1 - lay * 0.75, idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0, null);
+      // the boxes it arrived with, fading as their objects stand up instead
+      const flat = 1 - smooth(win(t, 0, 0.4));
+      if (flat > 0.01) {
+        stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55 * flat, 1);
+        drawDetections(T, flat, 0);
+      }
+      // the ground: the picture's own frame, extended into a floor
+      const g = smooth(win(t, 0.16, 0.4));
+      if (g > 0.01) {
+        const gw = GRID_W * (1 + 0.7 * g), gh = GRID_H * (1 + 1.5 * g);
+        const lines = [rect(gw, gh, 0, 0, 0)];
+        for (let i = 1; i < 6; i++) lines.push([[-gw / 2 + (i * gw) / 6, -gh / 2, 0], [-gw / 2 + (i * gw) / 6, gh / 2, 0]]);
+        for (let i = 1; i < 6; i++) lines.push([[-gw / 2, -gh / 2 + (i * gh) / 6, 0], [gw / 2, -gh / 2 + (i * gh) / 6, 0]]);
+        stroke(lines, T, LINE, 0.4 * g, 1);
+      }
+      // what was detected stands up on it
+      const rise = smooth(win(t, 0.3, 0.5));
+      if (rise > 0.01) {
+        for (let i = 0; i < DETS.length; i++) {
+          const d = DETS[i];
+          const hgt = (14 + d.conf * 20) * rise;
+          const B = chain(T, place(rotX(-90 * DEG), [d.x, d.y, 0]));
+          submit(boxFaces(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), B, i === 0 ? MAT.steel : MAT.paint, rise);
+          submitLines(boxWire(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), B, i === 0 ? ink : matLine[MAT.paint], LOOK.line * rise, LOOK.width);
+        }
+        flush();
+      }
+      // the camera that saw it, as a frustum over the scene
+      const fr = smooth(win(t, 0.45, 0.4));
+      if (fr > 0.01) {
+        const apex = [-GRID_W * 0.75, -78 * fr, GRID_H * 0.6];
+        const corners = [[-GRID_W / 2, 0, -GRID_H / 2], [GRID_W / 2, 0, -GRID_H / 2], [GRID_W / 2, 0, GRID_H / 2], [-GRID_W / 2, 0, GRID_H / 2]];
+        const F = chain(T, place(rotX(-90 * DEG), [0, 0, 0]));
+        stroke(corners.map(c => [apex, c]), F, ink, 0.35 * fr, 1);
+        stroke([[...corners, corners[0]]], F, ink, 0.3 * fr, 1);
+      }
+      // and what it thinks happens next: a path, and a ghost of where the
+      // first object is going
+      const pr = smooth(win(t, 0.6, 0.4));
+      if (pr > 0.01) {
+        const P0 = chain(T, place(rotX(-90 * DEG), [0, 0, 0]));
+        const path = [];
+        for (let i = 0; i <= 14; i++) {
+          const s2 = i / 14;
+          path.push([DETS[0].x + s2 * 58, 0, DETS[0].y - s2 * 30 + Math.sin(s2 * 3.1) * 8]);
+        }
+        const dashes = [];
+        for (let i = 0; i < 14; i += 2) dashes.push([path[i], path[i + 1]]);
+        stroke(dashes, P0, ink, 0.5 * pr, 1.4);
+        const adv = idleOn && t >= 1 ? (idleT % 3.4) / 3.4 : 0.55;
+        const at = path[Math.min(14, Math.floor(adv * 14))];
+        const G = chain(T, place(rotX(-90 * DEG), [at[0], 0, at[2]]));
+        const hgt = (14 + DETS[0].conf * 20);
+        submitLines(boxWire(DETS[0].w * 0.7, hgt, DETS[0].h * 0.7, 0, -hgt / 2, 0), G, ink, LOOK.line * 0.55 * pr, LOOK.width);
+        flush();
+      }
+    }
+
     // ── act 1: the motor becomes a 2R arm ───────────────────────────────
     function drawMotorAct(t) {
       const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
@@ -1537,7 +1814,7 @@ export default function Flourish3D({ side = 'right' }) {
         grip: smooth(win(t, 0.78, 0.16)),
         open: 5 + 5 * smooth(win(t, 0.88, 0.12)),
       };
-      armChain(t >= 1 ? workP(P_2R) : P);
+      armChain(t >= 1 ? workP(P_2R) : { ...P, style: 'soarm' });
       flush();
     }
 
@@ -1549,10 +1826,12 @@ export default function Flourish3D({ side = 'right' }) {
       const u = smooth(t);
       setCam((16 + 6 * u) * DEG, (10 + 4 * u) * DEG, 0);
       const P = lerpP(P_2R, P_6D, u);
-      // the third link and the wrist joints arrive over the second half
+      // the third link and the wrist joints arrive over the second half, and
+      // the printed servo arm is re-skinned as a Franka in the middle of it
       P.wrist = smooth(win(t, 0.34, 0.4));
       P.grow[2] = smooth(win(t, 0.46, 0.4));
       P.yawJoint = smooth(win(t, 0.2, 0.3));
+      P.blend = smooth(win(t, 0.22, 0.5));
       armChain(t >= 1 ? workP(P_6D) : P);
       flush();
     }
@@ -1566,6 +1845,7 @@ export default function Flourish3D({ side = 'right' }) {
       const torso = smooth(win(t, 0.12, 0.36));
       drawTorso(torso, 1);
       const R = lerpP(P_6D, P_BI_R, u);
+      R.blend = smooth(win(t, 0.25, 0.45));
       armChain(t >= 1 ? workP(P_BI_R) : R);
       const grow = smooth(win(t, 0.42, 0.45));
       if (grow > 0.01) {
@@ -1601,12 +1881,16 @@ export default function Flourish3D({ side = 'right' }) {
         const { i, t } = actAt(y);
         if (i < 0) art();
         else if (isLeft) {
-          // the camera has one act — it explodes down to its sensor, and the
-          // sensor holds, taking pictures, through the acts that follow
-          drawCameraAct(i === 0 ? t : 1);
+          // the camera: explode to the sensor, run the model on its pixels,
+          // return detections, then build a world model out of them
+          if (i === 0) drawCameraAct(t);
+          else if (i === 1) drawInferAct(t);
+          else if (i === 2) drawDetectAct(t);
+          else drawWorldAct(t);
         } else if (i === 0) drawMotorAct(t);
         else if (i === 1) drawArm6Act(t);
-        else drawBimanualAct(t);
+        else if (i === 2) drawBimanualAct(t);
+        else drawBimanualAct(1);        // the arms hold through the last act
       }
       ctx.globalAlpha = 1;
       // A debug read-out, and a DOM write: skipped while the settled loop is
