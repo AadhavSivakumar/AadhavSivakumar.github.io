@@ -459,8 +459,17 @@ settle point):
 Generalist-style bimanual — and each has to be UNMISTAKABLE at its settle
 point.** They are drawn as SKINS over one kinematic chain (`SKIN`,
 `skinSoarm` / `skinFR3` / `skinUR`) with a BASE per robot (`drawBase`): the
-SO-ARM101 by dark servo blocks with horn discs, flat slotted printed brackets
-and a flat plate with its base servo on it; the FR3 by pale rounded tube
+SO-ARM101 by dark servo blocks with horn discs, a two-plate printed upper arm
+sandwiching the elbow servo, a boxy printed forearm, boxy jaws, and a round
+base with the base servo in a housing — SHORT and CHUNKY (`P_2R.L` 98/84:
+links barely three servos long), in WHITE `MAT.pla`, the one material here
+that is a pale off-page body rather than a page-coloured one. The first
+version was two long slotted bars and one servo, in the same near-black as
+everything else on the dark theme, and the owner said it looked nothing like
+the robot: proportions and colour are what make it one. Keep the ink clear of
+the stage's right edge by ~40px — the stage overhangs the screen by 14-20px
+(`.f3d--right { right: clamp(-70px, -1vw, 0) }`), and the first version's
+wrist was cut off there; the FR3 by pale rounded tube
 links, a dark band at every joint, a round pedestal and long thin parallel
 fingers; the pair by two UR arms (constant-diameter tubes, short cylindrical
 joints) on a STAND (`drawStand`: column, beam, a mount at each end, a camera

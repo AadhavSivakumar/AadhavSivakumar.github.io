@@ -326,15 +326,20 @@ const PROP = (() => {
 //   1 copper    the winding, and nothing else (as before)
 const MAT = {
   neutral: 0, copper: 1, steel: 2, iron: 3, alu: 4, poly: 5, paint: 6,
+  // 3D-printed PLA: the SO-ARM101's shell. WHITE, unlike every other
+  // material here — a pale off-page body rather than a page-coloured one —
+  // because the arm did not read as the robot when its printed parts came out
+  // the same near-black as everything else on the dark theme.
+  pla: 7,
 };
 // hex per slot; `copper` and `paint` are filled in from theme tokens
-const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B'];
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2'];
 // Weight is inversely related to how much of the frame the part covers. A tint
 // worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
 // assembled machine into a coloured blob and throws away the line art. So the
 // big masses stay near the page colour and the small parts carry the colour —
 // and most of the separation is done by the LINEWORK, which costs no area.
-const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13];
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78];
 const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
 
 const MOTOR_SPEC = [
@@ -789,7 +794,7 @@ export default function Flourish3D({ side = 'right' }) {
       // The light theme needs a heavier dose: its bodies sit near white, and a
       // pale tint mixed into near-white barely moves. The dark theme's bodies
       // are already dark, so the same weight reads much more strongly there.
-      const tint = matRGB[mat], w = MAT_W[mat] * (dark ? 1 : 1.55);
+      const tint = matRGB[mat], w = Math.min(1, MAT_W[mat] * (dark ? 1 : 1.55));
       if (tint && w) {
         r = Math.round(r + (tint[0] - r) * w);
         g = Math.round(g + (tint[1] - g) * w);
@@ -1307,21 +1312,40 @@ export default function Flourish3D({ side = 'right' }) {
       const S = chain(F, place(scaleM(s), [0, 0, 0]));
       submit(boxFaces(34, 22, 20, 4, 0, 0), S, MAT.poly, a);
       submitLines(boxWire(34, 22, 20, 4, 0, 0), S, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-      submitLines([ring(7, 10.5, 14), ring(3, 10.8, 10)], S, matLine[MAT.steel], LOOK.line * a, LOOK.width);
+      submitLines([ring(7, 10.5, 14), ring(3, 10.8, 10)], S, matLine[MAT.alu], LOOK.line * a, LOOK.width);
     }
     function skinSoarm(F, P, a) {
       if (a <= 0.01) return;
-      drawServo(F.J1, a);
-      // printed brackets: flat plates with a lightening slot
-      for (const [frame, L, r, th] of [[F.J1, P.L[0] * P.grow[0], 10, 6], [F.L2p, P.L[1] * P.grow[1], 8.5, 5]]) {
-        if (L < 2) continue;
-        const sil = stadium(L, r);
-        submit(extrude(sil, -th, th), frame, MAT.neutral, a);
-        submitLines(silWire(sil, -th, th), frame, matLine[MAT.neutral], LOOK.line * a, LOOK.width);
-        submitLines([rect(L * 0.5, r * 0.7, L * 0.5, 0, th + 0.4)], frame, matLine[MAT.neutral], LOOK.line * 0.7 * a, LOOK.width);
+      // The SO-ARM101 is SHORT and CHUNKY: the servos dominate it. Its
+      // signature is the upper arm — two printed plates either side of the
+      // elbow servo — and a boxy printed forearm with the wrist servo in its
+      // end. Proportions from the real thing, roughly: links barely longer
+      // than three servos.
+      drawServo(F.J1, a, 1.3);                          // shoulder servo, horn to the viewer
+      const L1 = P.L[0] * P.grow[0];
+      if (L1 > 2) {
+        const sil = stadium(L1, 15);
+        for (const z of [-17, 17]) {
+          const Pz = chain(F.J1, place(IDENT, [0, 0, z]));
+          submit(extrude(sil, -3.5, 3.5), Pz, MAT.pla, a);
+          submitLines(silWire(sil, -3.5, 3.5, 6), Pz, matLine[MAT.pla], LOOK.line * a, LOOK.width);
+          submitLines([rect(L1 * 0.42, 7, L1 * 0.55, 0, z > 0 ? 3.9 : -3.9)], Pz, matLine[MAT.pla], LOOK.line * 0.7 * a, LOOK.width);
+        }
+        // the cross-tie that holds the two plates apart
+        submit(boxFaces(16, 24, 30, L1 * 0.5, 0, 0), F.J1, MAT.pla, a);
+        submitLines(boxWire(16, 24, 30, L1 * 0.5, 0, 0), F.J1, matLine[MAT.pla], LOOK.line * a, LOOK.width);
       }
-      if (P.elbow > 0.01) drawServo(F.J2, a, 0.86);
-      if (P.wrist > 0.01) drawServo(F.W0, a, 0.7);
+      if (P.elbow > 0.01) drawServo(F.J2, a, 1.15);      // elbow servo, between the plates
+      const L2 = P.L[1] * P.grow[1];
+      if (L2 > 2) {
+        // the forearm: one printed housing, boxy with rounded ends
+        const sil = stadium(L2, 13);
+        submit(extrude(sil, -11, 11), F.L2p, MAT.pla, a);
+        submitLines(silWire(sil, -11, 11, 5), F.L2p, matLine[MAT.pla], LOOK.line * a, LOOK.width);
+        submitLines([rect(L2 * 0.45, 9, L2 * 0.45, 0, 11.4)], F.L2p, matLine[MAT.pla], LOOK.line * 0.7 * a, LOOK.width);
+      }
+      // wrist servo in the forearm's end, driving the gripper
+      drawServo(F.W0, a, 1.0);
     }
     function skinFR3(F, P, a) {
       if (a <= 0.01) return;
@@ -1364,17 +1388,17 @@ export default function Flourish3D({ side = 'right' }) {
       const rMot = 86 * ARM.K * k;
       const groundY = P.root[1] + rMot + 56 * k;
       if (style === 'soarm') {
-        const Pl = place(scaleM(k), [P.root[0], groundY, 0]);
-        submit(boxFaces(84, 6, 70, 0, 0, 0), Pl, MAT.neutral, a);
-        submitLines(boxWire(84, 6, 70, 0, 0, 0), Pl, matLine[MAT.neutral], LOOK.line * a, LOOK.width);
-        // the base servo, standing on the plate, turning the arm
-        const Sv = place(mul(rotX(90 * DEG), scaleM(k * 1.1)), [P.root[0], groundY - 17 * k, 0]);
-        drawServo(Sv, a);
-        // a printed riser from the servo up to the shoulder
-        const h = groundY - 30 * k - P.root[1];
-        const R = place(scaleM(k), [P.root[0], P.root[1] + h / 2, 0]);
-        submit(boxFaces(22, h / k, 18, 0, 0, 0), R, MAT.neutral, a);
-        submitLines(boxWire(22, h / k, 18, 0, 0, 0), R, matLine[MAT.neutral], LOOK.line * a, LOOK.width);
+        // a round base plate, the base servo standing in a printed housing on
+        // it, and the shoulder close above — the whole base is about two
+        // servos tall
+        const gY = P.root[1] + 64 * k;
+        const Pl = place(mul(rotX(90 * DEG), scaleM(k)), [P.root[0], gY, 0]);
+        drawDrum(Pl, 44, -3, 3, MAT.pla, a);
+        const H = place(scaleM(k), [P.root[0], gY - 20 * k, 0]);
+        submit(boxFaces(40, 34, 40, 0, 0, 0), H, MAT.pla, a);
+        submitLines(boxWire(40, 34, 40, 0, 0, 0), H, matLine[MAT.pla], LOOK.line * a, LOOK.width);
+        const Sv = place(mul(rotX(90 * DEG), scaleM(k * 1.1)), [P.root[0], gY - 40 * k, 0]);
+        drawServo(Sv, a);                              // base servo, horn up
       } else if (style === 'fr3') {
         // round pedestal, the Franka's own shape, with a foot ring
         const h = (groundY - P.root[1]) / k;
@@ -1441,10 +1465,13 @@ export default function Flourish3D({ side = 'right' }) {
         submit(WRIST.solid, Wr, MAT.steel, P.alpha);
         submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
         const long = P.style2 === 'fr3' ? (P.blend || 0) : P.style === 'fr3' ? 1 - (P.blend || 0) : 0;
-        const fl = 26 + 16 * long, ft = 6 - 2.5 * long;            // Franka fingers: longer, thinner
+        const chunky = P.style === 'soarm' ? 1 - (P.blend || 0) : 0;
+        // Franka fingers are long and thin; the SO-ARM101's jaws are short and boxy
+        const fl = 26 + 16 * long - 4 * chunky, ft = 6 - 2.5 * long + 4 * chunky;
+        const jawMat = chunky > 0.5 ? MAT.pla : MAT.neutral;
         for (const y of [-P.open, P.open]) {
-          submit(boxFaces(fl, ft, 12, fl / 2, y, 4), Wr, MAT.neutral, P.alpha);
-          submitLines(boxWire(fl, ft, 12, fl / 2, y, 4), Wr, matLine[MAT.neutral], LOOK.line * P.alpha, LOOK.width);
+          submit(boxFaces(fl, ft, 12, fl / 2, y, 4), Wr, jawMat, P.alpha);
+          submitLines(boxWire(fl, ft, 12, fl / 2, y, 4), Wr, matLine[jawMat], LOOK.line * P.alpha, LOOK.width);
         }
       }
     }
@@ -1452,8 +1479,8 @@ export default function Flourish3D({ side = 'right' }) {
     // The three states the arm passes through. Act 1 interpolates 2R -> 6-DOF,
     // act 2 interpolates 6-DOF -> one half of the bimanual pair (and grows the
     // torso and the other arm). Fitted to the 340x660 stage by ink box.
-    const P_2R = { style: 'soarm', root: ARM.SH, k: 1, yaw: 0, q: [ARM.TH1, ARM.TH2, 0], roll: 0,
-                   L: [ARM.L1, ARM.L2, 0], grow: [1, 1, 0], elbow: 1, wrist: 0, yawJoint: 0,
+    const P_2R = { style: 'soarm', root: [-70, 30], k: 1, yaw: 0, q: [-56, 92, 0], roll: 0,
+                   L: [98, 84, 0], grow: [1, 1, 0], elbow: 1, wrist: 0, yawJoint: 0,
                    motor: 0, motorK: 0.3, base: 1, grip: 1, open: 10, alpha: 1, skinA: 1 };
     const P_6D = { style: 'fr3', root: [-66, 34], k: 0.92, yaw: 34, q: [-64, 62, 34], roll: 22,
                    L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
@@ -1811,7 +1838,7 @@ export default function Flourish3D({ side = 'right' }) {
       if (a < 1) {
         const k = MOTOR_K_MAX + (ARM.K - MOTOR_K_MAX) * a;
         const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
-        const pos = [ARM.SH[0] * a, 10 + (ARM.SH[1] - 10) * a, 0];
+        const pos = [P_2R.root[0] * a, 10 + (P_2R.root[1] - 10) * a, 0];
         const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
         const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
         const propA = 1 - win(t, 0.03, 0.18);        // the propeller goes; the shaft stays
@@ -1838,7 +1865,7 @@ export default function Flourish3D({ side = 'right' }) {
         motor: a * (1 - shrink),
         motorK: 1 - 0.7 * shrink,
         skinA: smooth(win(t, 0.36, 0.3)),
-        q: [-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45)), ARM.TH2 * smooth(win(t, 0.56, 0.40)), 0],
+        q: [-90 + (P_2R.q[0] + 90) * smooth(win(t, 0.32, 0.45)), P_2R.q[1] * smooth(win(t, 0.56, 0.40)), 0],
         grow: [smooth(win(t, 0.32, 0.26)), smooth(win(t, 0.56, 0.26)), 0],
         elbow: smooth(win(t, 0.52, 0.14)),
         grip: smooth(win(t, 0.78, 0.16)),
