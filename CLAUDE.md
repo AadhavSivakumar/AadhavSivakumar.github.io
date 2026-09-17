@@ -443,9 +443,33 @@ out of the page with its front 15px from the screen edge. `CAM_TURN`
 `CAM_X`/`CAM_Y` -22/-10: ink box 259x202 in the 340x660 stage, beside the
 motor's 221x259.
 
-**Act two: between Experience and Research** (`actT` in `waveField.js`: from
-a fifth of the way down Experience to the top of Research, measured off the
-pages themselves). The **camera explodes** along its own optical axis
+**The acts: one transition per page boundary** (`ACTS` / `actAt` in
+`waveField.js` — each runs from a fifth of the way down its first page to the
+top of the second, measured off the pages themselves, so every act ENDS at a
+settle point):
+
+| | right-hand piece | left |
+|---|---|---|
+| Experience → Research | the motor becomes a **2R arm** | the camera explodes to its **sensor** |
+| Research → Major Projects | the 2R arm becomes a **6-DOF arm** | holds |
+| Projects → Additional Projects | the 6-DOF arm becomes a **bimanual robot** | holds |
+
+**Every arm state is ONE parametric drawing** (`armChain`), with the acts
+interpolating its PARAMETERS (`P_2R`, `P_6D`, `P_BI_R`, `P_BI_L`, `lerpP`)
+rather than swapping drawings. That is what makes consecutive acts meet: at
+the seams, measured, 16 and 69 pixels of 214,500 differ — antialiasing, not a
+jump. If you add a state, add a params object, do not add a second drawing.
+
+The 6-DOF arm is the 2R arm plus the three things that make it six-axis: a
+**base joint it yaws on** (which is also what turns it out of the plane), a
+short third link, and a **wrist cluster** (pitch then roll). The motor stays
+as the shoulder housing throughout — that thread from the hero's waves is
+worth keeping. The bimanual pair is two of those arms at 0.56 scale on a
+torso with a sensor head (two lenses: the camera side of the page in
+miniature), posed differently and working out of phase (`workP(P, ph)`).
+Fitted by ink box; the first cut ran the right gripper off the stage edge.
+
+**Act one: the camera explodes** along its own optical axis
 (`CAM_EXPLODE`: glass forward, shells back, the top plate up), each piece
 fading as it leaves — the shells fast enough to be gone before the sensor
 needs the room — while the view squares up. **The sensor is what is left**: it
@@ -458,11 +482,12 @@ the shoulder actuator and drops its propeller; a column and plinth rise under
 it; link 1 grows off the output shaft swinging down from vertical; the elbow
 drum appears; link 2 grows and bends; a wrist and two-finger gripper close the
 chain. Links are extruded stadiums (`stadium`, wound like `CAM_SIL` so
-`extrude()` culls them the same way). Both then HOLD for the rest of the page;
-`held()` skips redraws in the two held states. Fitted by ink box: the arm
-16-318 of 340 wide (the first cut ran the gripper off the right edge and the
-plinth into the left one), the sensor 45-294. Measured in Firefox: p50 16.5ms
-scrolling through it.
+`extrude()` culls them the same way). `held()` skips redraws in every held
+state — before the first act, and at each act's end. Fitted by ink box: the
+2R arm 16-325 of 340 wide (the first cut ran the gripper off the right edge
+and the plinth into the left one), the 6-DOF arm 45-303, the bimanual pair
+39-325, the sensor 45-294. Measured in Firefox: p50 17.1 / p90 17.2 over a
+pass down the whole page.
 
 **They are NOT gated on width.** They used to be hidden below 992px, which
 meant every phone saw none of them. The stage now sizes itself from CSS

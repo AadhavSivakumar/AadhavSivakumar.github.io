@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
-import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actT } from '../waveField';
+import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actAt } from '../waveField';
 import { onSettle } from '../scrollSnap';
 
 // Two line-art pieces fixed to the viewport, one per side: a CAMERA on the
@@ -1255,89 +1255,193 @@ export default function Flourish3D({ side = 'right' }) {
       }
     }
 
-    function drawMotorAct(t) {
-      // Once the arm is finished it WORKS while the page is settled: a slow
-      // sweep of both joints with the gripper opening at the far end of it.
-      const work = idleOn && t >= 1 ? Math.sin(idleT * 0.85) : 0;
-      const work2 = idleOn && t >= 1 ? Math.sin(idleT * 0.85 + 1.1) : 0;
-      const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
-      setCam(16 * DEG, (14 - 4 * a) * DEG, 30 * (1 - a));
-      const k = MOTOR_K_MAX + (ARM.K - MOTOR_K_MAX) * a;
-      // its axis swings round to point at the viewer: the joint axis of a
-      // planar arm
-      const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
-      const pos = [ARM.SH[0] * a, 10 + (ARM.SH[1] - 10) * a, 0];
-      const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
-      const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
-      const propA = 1 - win(t, 0.03, 0.18);          // the propeller goes; the shaft stays
-      for (let i = 0; i < MOTOR.length; i++) {
-        const part = MOTOR[i];
-        const pa = part.id === 'prop' ? propA : 1;
-        if (pa <= 0.01) continue;
-        const T = chain(roll, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
-        const mat = part.mat || MAT.neutral;
-        submit(part.solids, T, mat, pa);
-        submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
-      }
-      {
-        const T = chain(roll, place(rotZ(SPIN), [0, 0, 0]));
-        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, 1);
-        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, 1);
-      }
-      // the base rises in under the shoulder
-      const b = smooth(win(t, 0.24, 0.26));
-      const [sx, sy] = ARM.SH;
-      const rMot = 86 * ARM.K;                         // frame radius at shoulder scale
-      if (b > 0.01) {
-        const top = sy + rMot, plinthY = sy + rMot + 46;
+    // ── the arm, one parametric drawing ─────────────────────────────────
+    // Every state of the right-hand piece after the motor is this function
+    // with different numbers: the 2R planar arm (no yaw, no wrist cluster),
+    // the 6-DOF arm (a base that yaws, a third link and two wrist joints),
+    // and each half of the bimanual pair. Acts interpolate the PARAMETERS
+    // rather than swapping drawings, so consecutive acts meet exactly.
+    //
+    //   root   where the shoulder sits, in stage units
+    //   k      overall scale
+    //   yaw    the base joint (about the vertical), which is what makes the
+    //          6-DOF arm read as three-dimensional rather than planar
+    //   q      shoulder, elbow and wrist pitches, in degrees
+    //   roll   wrist roll about the forearm axis
+    //   L/grow link lengths and how much of each has grown
+    //   motor  the motor still standing in as the shoulder housing
+    const ARM_T = { l1: 9, l2: 7 };          // link half-thicknesses
+    function armChain(P) {
+      const k = P.k;
+      const M = mul(rotY(P.yaw * DEG), scaleM(k));
+      const B = place(M, [P.root[0], P.root[1], 0]);          // base frame, yawed
+      // the pedestal: plinth on the ground, column up to the shoulder. It does
+      // not yaw with the arm.
+      if (P.base > 0.01) {
+        const b = P.base;
+        const rMot = 86 * ARM.K * k;
+        const top = P.root[1] + rMot, plinthY = P.root[1] + rMot + 46 * k;
         const colH = (plinthY - top) * b;
-        const col = { solid: boxFaces(44, colH, 56, sx, top + colH / 2, 0), wire: boxWire(44, colH, 56, sx, top + colH / 2, 0) };
-        submit(col.solid, place(IDENT, [0, 0, 0]), MAT.alu, b);
-        submitLines(col.wire, place(IDENT, [0, 0, 0]), matLine[MAT.alu], LOOK.line * b, LOOK.width);
-        const P = place(IDENT, [sx, plinthY + 10 + 30 * (1 - b), 0]);
-        submit(BASE_PLINTH.solid, P, MAT.iron, b);
-        submitLines(BASE_PLINTH.wire, P, matLine[MAT.iron], LOOK.line * b, LOOK.width);
+        const F = place(IDENT, [0, 0, 0]);
+        submit(boxFaces(44 * k, colH, 56 * k, P.root[0], top + colH / 2, 0), F, MAT.alu, b * P.alpha);
+        submitLines(boxWire(44 * k, colH, 56 * k, P.root[0], top + colH / 2, 0), F, matLine[MAT.alu], LOOK.line * b * P.alpha, LOOK.width);
+        const Pl = place(scaleM(k), [P.root[0], plinthY + (10 + 30 * (1 - b)) * k, 0]);
+        submit(BASE_PLINTH.solid, Pl, MAT.iron, b * P.alpha);
+        submitLines(BASE_PLINTH.wire, Pl, matLine[MAT.iron], LOOK.line * b * P.alpha, LOOK.width);
       }
-      // link 1 grows off the output shaft, swinging from straight up
-      const g1 = smooth(win(t, 0.32, 0.26));
-      const th1 = (-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45)) + work * 5) * DEG;
-      const J1 = place(rotZ(th1), [sx, sy, ARM.Z1 * ARM.K / 0.4]);
+      // the base joint: a drum on the vertical axis, which appears with the
+      // sixth degree of freedom
+      if (P.yawJoint > 0.01) {
+        const Y = chain(B, place(mul(rotX(90 * DEG), scaleM(P.yawJoint)), [0, 46, 0]));
+        submit(ELBOW.solid, Y, MAT.steel, P.alpha);
+        submitLines(ELBOW.wire, Y, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
+      }
+      // the shoulder housing: the motor itself, shrinking as the arm takes over
+      if (P.motor > 0.01) {
+        const mk = ARM.K * k * P.motorK;
+        const S = chain(B, place(mul(rotZ(ROLL), scaleM(mk / k)), [0, 0, 0]));
+        for (let i = 0; i < MOTOR.length; i++) {
+          const part = MOTOR[i];
+          if (part.id === 'prop') continue;
+          const mat = part.mat || MAT.neutral;
+          submit(part.solids, S, mat, P.motor * P.alpha);
+          submitLines(part.polys, S, matLine[mat], LOOK.line * P.motor * P.alpha, LOOK.width);
+        }
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), S, MAT.copper, P.motor * P.alpha);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), S, MAT.copper, P.motor * P.alpha);
+      }
+      // link 1 off the output shaft
+      const zOff = ARM.Z1 * ARM.K / 0.4;
+      const J1 = chain(B, place(rotZ(P.q[0] * DEG), [0, 0, zOff]));
+      const g1 = P.grow[0];
       if (g1 > 0.01) {
-        const sil = stadium(ARM.L1 * g1, ARM.R1);
-        submit(extrude(sil, -9, 9), J1, MAT.paint, 1);
-        submitLines(silWire(sil, -9, 9), J1, matLine[MAT.paint], LOOK.line, LOOK.width);
-        submitLines([ring(ARM.R1 * 0.55, 9, 16)], J1, matLine[MAT.steel], LOOK.line, LOOK.width);   // shaft collar
+        const sil = stadium(P.L[0] * g1, ARM.R1);
+        submit(extrude(sil, -ARM_T.l1, ARM_T.l1), J1, MAT.paint, P.alpha);
+        submitLines(silWire(sil, -ARM_T.l1, ARM_T.l1), J1, matLine[MAT.paint], LOOK.line * P.alpha, LOOK.width);
+        submitLines([ring(ARM.R1 * 0.55, ARM_T.l1, 16)], J1, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
       }
-      // the elbow, then link 2 from it
-      const e = smooth(win(t, 0.52, 0.14));
-      const J2 = chain(J1, place(IDENT, [ARM.L1 * g1, 0, 0]));
-      if (e > 0.01) {
-        const E = chain(J2, place(scaleM(e), [0, 0, 6]));
-        submit(ELBOW.solid, E, MAT.steel, 1);
-        submitLines(ELBOW.wire, E, matLine[MAT.steel], LOOK.line, LOOK.width);
+      // the elbow, then link 2
+      const J2 = chain(J1, place(IDENT, [P.L[0] * g1, 0, 0]));
+      if (P.elbow > 0.01) {
+        const E = chain(J2, place(scaleM(P.elbow), [0, 0, 6]));
+        submit(ELBOW.solid, E, MAT.steel, P.alpha);
+        submitLines(ELBOW.wire, E, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
       }
-      const g2 = smooth(win(t, 0.56, 0.26));
-      const th2 = (ARM.TH2 * smooth(win(t, 0.56, 0.40)) + work2 * 8) * DEG;
-      const L2p = chain(J2, place(rotZ(th2), [0, 0, 26]));
+      const g2 = P.grow[1];
+      const L2p = chain(J2, place(rotZ(P.q[1] * DEG), [0, 0, 26]));
       if (g2 > 0.01) {
-        const sil = stadium(ARM.L2 * g2, ARM.R2);
-        submit(extrude(sil, -7, 7), L2p, MAT.paint, 1);
-        submitLines(silWire(sil, -7, 7), L2p, matLine[MAT.paint], LOOK.line, LOOK.width);
+        const sil = stadium(P.L[1] * g2, ARM.R2);
+        submit(extrude(sil, -ARM_T.l2, ARM_T.l2), L2p, MAT.paint, P.alpha);
+        submitLines(silWire(sil, -ARM_T.l2, ARM_T.l2), L2p, matLine[MAT.paint], LOOK.line * P.alpha, LOOK.width);
       }
-      // the wrist and a two-finger gripper close the chain
-      const gr = smooth(win(t, 0.78, 0.16));
-      if (gr > 0.01) {
-        const Wr = chain(L2p, place(scaleM(gr), [ARM.L2 * g2, 0, 0]));
-        submit(WRIST.solid, Wr, MAT.steel, 1);
-        submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line, LOOK.width);
-        const open = 5 + 5 * smooth(win(t, 0.88, 0.12)) + (idleOn && t >= 1 ? 3.5 * work2 : 0);
-        for (const y of [-open, open]) {
+      // the wrist cluster: pitch joint, a short third link, then a roll joint.
+      // At `wrist` 0 this is the 2R arm's bare wrist; at 1 it is two more axes.
+      const W0 = chain(L2p, place(IDENT, [P.L[1] * g2, 0, 0]));
+      const g3 = P.grow[2] * P.wrist;
+      let flange = W0;
+      if (P.wrist > 0.01) {
+        const W = chain(W0, place(scaleM(0.8 * P.wrist), [0, 0, 6]));
+        submit(ELBOW.solid, W, MAT.steel, P.alpha);
+        submitLines(ELBOW.wire, W, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
+      }
+      if (g3 > 0.01 && P.L[2] > 0.5) {
+        const J3 = chain(W0, place(rotZ(P.q[2] * DEG), [0, 0, 18]));
+        const sil = stadium(P.L[2] * g3, ARM.R2 * 0.85);
+        submit(extrude(sil, -6, 6), J3, MAT.paint, P.alpha);
+        submitLines(silWire(sil, -6, 6), J3, matLine[MAT.paint], LOOK.line * P.alpha, LOOK.width);
+        flange = chain(J3, place(rotX(P.roll * DEG), [P.L[2] * g3, 0, 0]));
+      }
+      // the wrist flange and a two-finger gripper close the chain
+      if (P.grip > 0.01) {
+        const Wr = chain(flange, place(scaleM(P.grip), [0, 0, 0]));
+        submit(WRIST.solid, Wr, MAT.steel, P.alpha);
+        submitLines(WRIST.wire, Wr, matLine[MAT.steel], LOOK.line * P.alpha, LOOK.width);
+        for (const y of [-P.open, P.open]) {
           const f = finger(y);
-          submit(f.solid, Wr, MAT.neutral, 1);
-          submitLines(f.wire, Wr, matLine[MAT.neutral], LOOK.line, LOOK.width);
+          submit(f.solid, Wr, MAT.neutral, P.alpha);
+          submitLines(f.wire, Wr, matLine[MAT.neutral], LOOK.line * P.alpha, LOOK.width);
         }
       }
-      flush();
+    }
+
+    // The three states the arm passes through. Act 1 interpolates 2R -> 6-DOF,
+    // act 2 interpolates 6-DOF -> one half of the bimanual pair (and grows the
+    // torso and the other arm). Fitted to the 340x660 stage by ink box.
+    const P_2R = { root: ARM.SH, k: 1, yaw: 0, q: [ARM.TH1, ARM.TH2, 0], roll: 0,
+                   L: [ARM.L1, ARM.L2, 0], grow: [1, 1, 0], elbow: 1, wrist: 0, yawJoint: 0,
+                   motor: 1, motorK: 1, base: 1, grip: 1, open: 10, alpha: 1 };
+    const P_6D = { root: [-66, 34], k: 0.92, yaw: 34, q: [-64, 62, 34], roll: 22,
+                   L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
+                   motor: 1, motorK: 0.82, base: 1, grip: 1, open: 9, alpha: 1 };
+    const P_BI_R = { root: [26, 12], k: 0.56, yaw: 28, q: [-46, 64, 28], roll: 16,
+                     L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
+                     motor: 1, motorK: 0.8, base: 0, grip: 1, open: 9, alpha: 1 };
+    const P_BI_L = { root: [-54, 12], k: 0.56, yaw: -40, q: [-118, 52, 22], roll: -14,
+                     L: [ARM.L1, ARM.L2 * 0.92, 44], grow: [1, 1, 1], elbow: 1, wrist: 1, yawJoint: 1,
+                     motor: 1, motorK: 0.8, base: 0, grip: 1, open: 6, alpha: 1 };
+    const lerpP = (A, B, u) => ({
+      root: [A.root[0] + (B.root[0] - A.root[0]) * u, A.root[1] + (B.root[1] - A.root[1]) * u],
+      k: A.k + (B.k - A.k) * u,
+      yaw: A.yaw + (B.yaw - A.yaw) * u,
+      q: [0, 1, 2].map(i => A.q[i] + (B.q[i] - A.q[i]) * u),
+      roll: A.roll + (B.roll - A.roll) * u,
+      L: [0, 1, 2].map(i => A.L[i] + (B.L[i] - A.L[i]) * u),
+      grow: [0, 1, 2].map(i => A.grow[i] + (B.grow[i] - A.grow[i]) * u),
+      elbow: A.elbow + (B.elbow - A.elbow) * u,
+      wrist: A.wrist + (B.wrist - A.wrist) * u,
+      yawJoint: A.yawJoint + (B.yawJoint - A.yawJoint) * u,
+      motor: A.motor + (B.motor - A.motor) * u,
+      motorK: A.motorK + (B.motorK - A.motorK) * u,
+      base: A.base + (B.base - A.base) * u,
+      grip: A.grip + (B.grip - A.grip) * u,
+      open: A.open + (B.open - A.open) * u,
+      alpha: A.alpha + (B.alpha - A.alpha) * u,
+    });
+    // While the page is settled the arm WORKS: the joints sweep and the
+    // gripper opens. `ph` offsets the second arm so the pair is not in lockstep.
+    const workP = (P, ph = 0) => {
+      if (!idleOn) return P;
+      const w = Math.sin(idleT * 0.85 + ph), w2 = Math.sin(idleT * 0.85 + ph + 1.1);
+      return { ...P, q: [P.q[0] + w * 5, P.q[1] + w2 * 8, P.q[2] + w * 6], open: P.open + 3.5 * w2 };
+    };
+
+    // The torso the bimanual pair stands on, with a sensor head — the camera
+    // side of the page, in miniature, which is what is looking at the work.
+    const TORSO_AT = [-14, 72];
+    function drawTorso(u, alpha) {
+      if (u <= 0.01) return;
+      // A torso narrow enough to read as a body between two arms rather than
+      // a slab behind them, with a panel line down it, and a head on a neck
+      // carrying two lenses — the camera side of the page in miniature, which
+      // is what is looking at the work.
+      const sil = [[-42, -40], [-28, -52], [28, -52], [42, -40], [36, 52], [-36, 52]];
+      const T = place(scaleM(u), [TORSO_AT[0], TORSO_AT[1], -10]);
+      submit(extrude(sil, -22, 22), T, MAT.paint, alpha);
+      submitLines(silWire(sil, -22, 22, 2), T, matLine[MAT.paint], LOOK.line * alpha, LOOK.width);
+      submitLines([[[-30, -16, 22], [30, -16, 22]], [[0, -16, 22], [0, 40, 22]]], T, matLine[MAT.paint], LOOK.line * 0.8 * alpha, LOOK.width);
+      // neck and head
+      const N = chain(T, place(IDENT, [0, -62, 0]));
+      submit(boxFaces(20, 22, 20, 0, 0, 0), N, MAT.steel, alpha);
+      submitLines(boxWire(20, 22, 20, 0, 0, 0), N, matLine[MAT.steel], LOOK.line * alpha, LOOK.width);
+      const H = chain(T, place(IDENT, [0, -88, 2]));
+      submit(boxFaces(62, 32, 36, 0, 0, 0), H, MAT.poly, alpha);
+      submitLines(boxWire(62, 32, 36, 0, 0, 0), H, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
+      for (const x of [-15, 15]) {
+        submitLines([ringAt(8, x, 0, 19, 16), ringAt(11, x, 0, 18.4, 16)], H, ink, LOOK.line * alpha, LOOK.width);
+      }
+      // shoulder mounts, where the two arms meet the body
+      for (const x of [-38, 38]) {
+        const S = chain(T, place(mul(rotY(90 * DEG), scaleM(0.7)), [x, -34, 0]));
+        submit(ELBOW.solid, S, MAT.steel, alpha);
+        submitLines(ELBOW.wire, S, matLine[MAT.steel], LOOK.line * alpha, LOOK.width);
+      }
+      // the pedestal it stands on
+      const Pl = place(scaleM(0.8), [TORSO_AT[0], TORSO_AT[1] + 96, 0]);
+      submit(BASE_PLINTH.solid, Pl, MAT.iron, alpha);
+      submitLines(BASE_PLINTH.wire, Pl, matLine[MAT.iron], LOOK.line * alpha, LOOK.width);
+      const colH = 44;
+      submit(boxFaces(42, colH, 52, TORSO_AT[0], TORSO_AT[1] + 74, 0), place(IDENT, [0, 0, 0]), MAT.alu, alpha);
+      submitLines(boxWire(42, colH, 52, TORSO_AT[0], TORSO_AT[1] + 74, 0), place(IDENT, [0, 0, 0]), matLine[MAT.alu], LOOK.line * alpha, LOOK.width);
     }
 
     // ── the targets the waves fly to ────────────────────────────────────
@@ -1394,12 +1498,94 @@ export default function Flourish3D({ side = 'right' }) {
       if (any) { partA = pa; art(); partA = null; }
     }
 
-    // Two HELD states, where scrolling redraws nothing: the finished pieces
-    // (after the morph, before act two) and act two's end.
+    // ── act 1: the motor becomes a 2R arm ───────────────────────────────
+    function drawMotorAct(t) {
+      const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
+      setCam(16 * DEG, (14 - 4 * a) * DEG, 30 * (1 - a));
+      // Up to `a` the motor is still a motor, swinging its axis round to point
+      // at the viewer — the joint axis of a planar arm — and shrinking into
+      // the shoulder. After that the parametric arm takes over, which is what
+      // makes this act meet the next one exactly.
+      if (a < 1) {
+        const k = MOTOR_K_MAX + (ARM.K - MOTOR_K_MAX) * a;
+        const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
+        const pos = [ARM.SH[0] * a, 10 + (ARM.SH[1] - 10) * a, 0];
+        const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
+        const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
+        const propA = 1 - win(t, 0.03, 0.18);        // the propeller goes; the shaft stays
+        for (let i = 0; i < MOTOR.length; i++) {
+          const part = MOTOR[i];
+          const pa = part.id === 'prop' ? propA : 1;
+          if (pa <= 0.01) continue;
+          const T = chain(roll, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
+          const mat = part.mat || MAT.neutral;
+          submit(part.solids, T, mat, pa);
+          submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
+        }
+        const C = chain(roll, place(rotZ(SPIN), [0, 0, 0]));
+        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), C, MAT.copper, 1);
+        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), C, MAT.copper, 1);
+      }
+      // the arm grows out of it: base, link 1 swinging down from vertical,
+      // the elbow, link 2, then the gripper
+      const P = { ...P_2R,
+        base: smooth(win(t, 0.24, 0.26)),
+        motor: a,
+        q: [-90 + (ARM.TH1 + 90) * smooth(win(t, 0.32, 0.45)), ARM.TH2 * smooth(win(t, 0.56, 0.40)), 0],
+        grow: [smooth(win(t, 0.32, 0.26)), smooth(win(t, 0.56, 0.26)), 0],
+        elbow: smooth(win(t, 0.52, 0.14)),
+        grip: smooth(win(t, 0.78, 0.16)),
+        open: 5 + 5 * smooth(win(t, 0.88, 0.12)),
+      };
+      armChain(t >= 1 ? workP(P_2R) : P);
+      flush();
+    }
+
+    // ── act 2: the 2R arm becomes a 6-DOF arm ───────────────────────────
+    // The base gains a joint it can yaw on, the wrist gains two more, and the
+    // whole thing turns out of the plane — which is the difference between a
+    // 2R drawing and a six-axis one.
+    function drawArm6Act(t) {
+      const u = smooth(t);
+      setCam((16 + 6 * u) * DEG, (10 + 4 * u) * DEG, 0);
+      const P = lerpP(P_2R, P_6D, u);
+      // the third link and the wrist joints arrive over the second half
+      P.wrist = smooth(win(t, 0.34, 0.4));
+      P.grow[2] = smooth(win(t, 0.46, 0.4));
+      P.yawJoint = smooth(win(t, 0.2, 0.3));
+      armChain(t >= 1 ? workP(P_6D) : P);
+      flush();
+    }
+
+    // ── act 3: the 6-DOF arm becomes a bimanual robot ───────────────────
+    // A torso rises under it with a sensor head, the arm moves onto the right
+    // shoulder, and a second arm grows on the left. They work out of phase.
+    function drawBimanualAct(t) {
+      const u = smooth(t);
+      setCam((22 - 2 * u) * DEG, (14 - 2 * u) * DEG, 0);
+      const torso = smooth(win(t, 0.12, 0.36));
+      drawTorso(torso, 1);
+      const R = lerpP(P_6D, P_BI_R, u);
+      armChain(t >= 1 ? workP(P_BI_R) : R);
+      const grow = smooth(win(t, 0.42, 0.45));
+      if (grow > 0.01) {
+        const L = { ...(t >= 1 ? workP(P_BI_L, 2.2) : P_BI_L) };
+        L.k = P_BI_L.k * grow;
+        L.alpha = grow;
+        L.grow = [grow, grow, grow];
+        L.grip = grow;
+        armChain(L);
+      }
+      flush();
+    }
+
+    // The HELD states, where scrolling redraws nothing: the finished pieces
+    // (after the morph, before the first act) and the end of each act. Mid-act
+    // is not held — that is the animation.
     const held = y => {
       if (reduce || heroPhase(y) < S_ART) return null;
-      const t = actT(y);
-      return t <= 0 ? 'pieces' : t >= 1 ? 'act2' : null;
+      const { i, t } = actAt(y);
+      return i < 0 ? 'pieces' : t >= 1 ? `act${i}` : null;
     };
     function draw(y = window.scrollY) {
       ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
@@ -1410,9 +1596,17 @@ export default function Flourish3D({ side = 'right' }) {
       segs = 0;
       const s = reduce ? Infinity : heroPhase(y);
       if (s < S_ART) prelude(s);
+      else if (reduce) art();
       else {
-        const t = reduce ? 0 : actT(y);
-        if (t <= 0) art(); else if (isLeft) drawCameraAct(t); else drawMotorAct(t);
+        const { i, t } = actAt(y);
+        if (i < 0) art();
+        else if (isLeft) {
+          // the camera has one act — it explodes down to its sensor, and the
+          // sensor holds, taking pictures, through the acts that follow
+          drawCameraAct(i === 0 ? t : 1);
+        } else if (i === 0) drawMotorAct(t);
+        else if (i === 1) drawArm6Act(t);
+        else drawBimanualAct(t);
       }
       ctx.globalAlpha = 1;
       // A debug read-out, and a DOM write: skipped while the settled loop is

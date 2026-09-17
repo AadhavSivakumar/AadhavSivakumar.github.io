@@ -72,30 +72,56 @@ export const partArtA = pt => smooth(win(pt, 0.62, 0.38));
 // how visible its strands still are
 export const strandFade = pt => 1 - smooth(win(pt, 0.78, 0.22));
 
-// ── the second act: Experience -> Research ──────────────────────────────
-// While the page scrolls from Experience to Research, the camera explodes
-// down to its sensor and the sensor resolves into pixels, and the motor
-// becomes the shoulder of a 2R robot arm. Its progress comes from where
-// those two pages actually ARE: it starts a fifth of the way from the top of
-// Experience to the top of Research and completes when Research reaches the
-// top of the screen. Measured lazily, re-measured on resize and whenever the
-// body changes size.
-let act = null;
-export function actT(y) {
-  if (!act) {
-    if (typeof document === 'undefined') return 0;
-    const a = document.getElementById('experience'), b = document.getElementById('research');
-    if (!a || !b) return 0;
-    const ta = a.getBoundingClientRect().top + window.scrollY;
-    const tb = b.getBoundingClientRect().top + window.scrollY;
-    act = { t0: ta + 0.2 * (tb - ta), t1: tb };
+// ── the acts: one transition per page boundary ──────────────────────────
+// After the waves have become the camera and the motor, the right-hand piece
+// keeps going, a step per boundary:
+//
+//   Experience -> Research               the motor becomes a 2R arm
+//   Research   -> Major Projects         the 2R arm becomes a 6-DOF arm
+//   Projects   -> Additional Projects    the 6-DOF arm becomes a bimanual robot
+//
+// Each act starts a fifth of the way down its first page and completes when
+// the second reaches the top of the screen — which is where the page settles
+// (scrollSnap.js), so every settle point is the end of an act. Measured off
+// the pages themselves, and re-measured on resize or when the body changes
+// size.
+export const ACTS = [
+  ['experience', 'research'],
+  ['research', 'projects'],
+  ['projects', 'additional-projects'],
+];
+let spans = null;
+function measureActs() {
+  if (typeof document === 'undefined') return null;
+  const out = [];
+  for (const [a, b] of ACTS) {
+    const ea = document.getElementById(a), eb = document.getElementById(b);
+    if (!ea || !eb) return null;
+    const ta = ea.getBoundingClientRect().top + window.scrollY;
+    const tb = eb.getBoundingClientRect().top + window.scrollY;
+    out.push([ta + 0.2 * (tb - ta), tb]);
   }
-  return clamp01((y - act.t0) / Math.max(1, act.t1 - act.t0));
+  return out;
+}
+// Which act the page is in, and how far through it: `i` is the act index and
+// `t` its progress. Before the first act, i = -1. Between acts (and after the
+// last), the previous act is reported complete.
+export function actAt(y) {
+  if (!spans) spans = measureActs();
+  if (!spans) return { i: -1, t: 0 };
+  let i = -1, t = 0;
+  for (let k = 0; k < spans.length; k++) {
+    const [t0, t1] = spans[k];
+    if (y >= t1) { i = k; t = 1; continue; }
+    if (y > t0) { i = k; t = clamp01((y - t0) / Math.max(1, t1 - t0)); break; }
+    break;
+  }
+  return { i, t };
 }
 if (typeof window !== 'undefined') {
-  window.addEventListener('resize', () => { act = null; }, { passive: true });
+  window.addEventListener('resize', () => { spans = null; }, { passive: true });
   if (typeof ResizeObserver !== 'undefined') {
-    const ro = new ResizeObserver(() => { act = null; });
+    const ro = new ResizeObserver(() => { spans = null; });
     const start = () => document.body && ro.observe(document.body);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   }
