@@ -14,12 +14,14 @@
 //   1. reads the STL (SO-ARM) or OBJ (FR3, UR5e) and welds shared vertices;
 //   2. DECIMATES by vertex clustering — snaps vertices to a grid and merges —
 //      searching the cell size that lands each part on its face budget. A
-//      robot ends up around 2,000 triangles, which is what the renderer can
-//      draw at 60fps alongside everything else;
-//   3. keeps the FEATURE EDGES (dihedral angle over 55°, and boundaries) as
-//      the line art, and every manifold edge with its two faces so the
-//      renderer can find the SILHOUETTE per frame (an edge whose two faces
-//      face opposite ways);
+//      robot ends up around 7,000 triangles. It was 2,000, and at 2,000 with
+//      lines drawn along the facets the owner said it looked "mesh-like
+//      instead of sim-like". Smoothness is triangles plus smooth shading plus
+//      NO facet lines — a STEP file would tessellate to triangles too;
+//   3. writes ONLY vertices and faces (plus material and body). Normals,
+//      edge adjacency, crease flags and vertex normals are derived at load in
+//      src/robots/index.js — they are a function of the geometry, and shipping
+//      them tripled the JSON;
 //   4. writes the body tree — positions, orientations, joint axes — copied
 //      from the MJCF by hand, because the trees are ten lines each and a
 //      defaults-aware MJCF parser is not.
@@ -139,12 +141,69 @@ function decimateTo(mesh, budget) {
 
 /* ── edges, normals ──────────────────────────────────────────────────── */
 
-// Make every part's faces wind OUTWARD. The STLs (SolidWorks exports) and
-// the OBJs disagree, and the renderer culls by winding — with the wrong one a
-// part shows its back faces and every internal line: see-through. Decided per
-// part by which way most face normals point relative to the part's centroid,
-// which is right for anything roughly convex, and these all are.
+// Make a part's winding CONSISTENT, then OUTWARD. The SO-ARM's STL exports
+// wind triangle by triangle at random — a third of the faces of some parts
+// the wrong way — and the renderer culls by winding, so those faces vanished
+// and the part read as a see-through wireframe. Consistency is propagated
+// across shared edges (two faces sharing an edge must traverse it in opposite
+// directions); then the whole part is turned outward by the sign of its
+// volume, which is right for any closed shell and does not care about shape
+// the way a centroid test does.
+function windConsistently(mesh) {
+  const { f } = mesh;
+  const nf = f.length / 3;
+  const edgeFaces = new Map();
+  const key = (a, b) => (a < b ? a * 1e7 + b : b * 1e7 + a);
+  for (let i = 0; i < nf; i++) for (let k = 0; k < 3; k++) {
+    const kk = key(f[i * 3 + k], f[i * 3 + (k + 1) % 3]);
+    const arr = edgeFaces.get(kk); if (arr) arr.push(i); else edgeFaces.set(kk, [i]);
+  }
+  const done = new Uint8Array(nf);
+  const dirOf = (i, a, b) => {            // +1 if face i goes a->b, -1 if b->a, 0 if not an edge of i
+    for (let k = 0; k < 3; k++) { const p = f[i * 3 + k], q = f[i * 3 + (k + 1) % 3]; if (p === a && q === b) return 1; if (p === b && q === a) return -1; }
+    return 0;
+  };
+  const components = [];                 // face lists, one per connected shell
+  for (let seed = 0; seed < nf; seed++) {
+    if (done[seed]) continue;
+    done[seed] = 1;
+    const comp = [seed];
+    const stack = [seed];
+    while (stack.length) {
+      const i = stack.pop();
+      for (let k = 0; k < 3; k++) {
+        const a = f[i * 3 + k], b = f[i * 3 + (k + 1) % 3];
+        for (const j of edgeFaces.get(key(a, b))) {
+          if (j === i || done[j]) continue;
+          // consistent means j traverses the edge the other way
+          if (dirOf(j, a, b) === 1) { const t = f[j * 3 + 1]; f[j * 3 + 1] = f[j * 3 + 2]; f[j * 3 + 2] = t; }
+          done[j] = 1; stack.push(j); comp.push(j);
+        }
+      }
+    }
+    components.push(comp);
+  }
+  return components;
+}
+// A part is often several shells (a servo is a body plus a horn plus a
+// cable), and each has to be turned outward ON ITS OWN: one decision for the
+// whole part left the smaller shells inside-out, culled, and the part
+// see-through.
 function orientOutward(mesh) {
+  const comps = windConsistently(mesh);
+  const { v, f } = mesh;
+  let flipped = 0;
+  for (const comp of comps) {
+    let vol = 0;
+    for (const i of comp) {
+      const a = f[i * 3] * 3, b = f[i * 3 + 1] * 3, c = f[i * 3 + 2] * 3;
+      vol += v[a] * (v[b + 1] * v[c + 2] - v[b + 2] * v[c + 1]) - v[a + 1] * (v[b] * v[c + 2] - v[b + 2] * v[c]) + v[a + 2] * (v[b] * v[c + 1] - v[b + 1] * v[c]);
+    }
+    if (vol < 0) { for (const i of comp) { const t = f[i * 3 + 1]; f[i * 3 + 1] = f[i * 3 + 2]; f[i * 3 + 2] = t; } flipped++; }
+  }
+  return flipped > 0;
+}
+function orientOutwardOld(mesh) {
   const { v, f } = mesh;
   let cx = 0, cy = 0, cz = 0;
   for (let i = 0; i < v.length; i += 3) { cx += v[i]; cy += v[i + 1]; cz += v[i + 2]; }
@@ -235,7 +294,7 @@ const ROBOTS = {
   // the whole of the left side, drawn large, and it comes apart piece by
   // piece, so every piece has to hold up on its own.
   d435i: {
-    dir: 'realsense_d435i', kind: 'obj', budget: 160,
+    dir: 'realsense_d435i', kind: 'obj', budget: 500,
     bodies: [
       { name: 'd435i', parent: null, pos: [0, 0, 0], geoms: [
         ['d435i_0.obj', 'black'], ['d435i_1.obj', 'green'], ['d435i_2.obj', 'gray'], ['d435i_3.obj', 'black'],
@@ -245,7 +304,7 @@ const ROBOTS = {
     ],
   },
   soarm: {
-    dir: 'trs_so_arm100', kind: 'stl', budget: 150,
+    dir: 'trs_so_arm100', kind: 'stl', budget: 520,
     bodies: [
       { name: 'Base', parent: null, pos: [0, 0, 0], geoms: [['Base.stl', 'white'], ['Base_Motor.stl', 'black']] },
       { name: 'Rotation_Pitch', parent: 'Base', pos: [0, -0.0452, 0.0165], quat: [0.707105, 0.707108, 0, 0], axis: [0, 1, 0],
@@ -263,7 +322,7 @@ const ROBOTS = {
     ],
   },
   fr3: {
-    dir: 'franka_fr3', kind: 'obj', budget: 240,
+    dir: 'franka_fr3', kind: 'obj', budget: 880,
     bodies: [
       { name: 'link0', parent: null, pos: [0, 0, 0], geoms: [['link0.obj']] },
       { name: 'link1', parent: 'link0', pos: [0, 0, 0.333], axis: [0, 0, 1], geoms: [['link1.obj']] },
@@ -276,7 +335,7 @@ const ROBOTS = {
     ],
   },
   ur5e: {
-    dir: 'universal_robots_ur5e', kind: 'obj', budget: 130,
+    dir: 'universal_robots_ur5e', kind: 'obj', budget: 380,
     bodies: [
       { name: 'base', parent: null, pos: [0, 0, 0], quat: [0, 0, 0, -1], geoms: [['base_0.obj', 'black'], ['base_1.obj', 'jointgray']] },
       { name: 'shoulder', parent: 'base', pos: [0, 0, 0.163], axis: [0, 0, 1],
@@ -309,7 +368,7 @@ const round = (x, d = 1) => +x.toFixed(d);
 for (const [id, R] of Object.entries(ROBOTS)) {
   const budget = BUDGET_ARG ? Math.round(R.budget * (+BUDGET_ARG)) : R.budget;
   const out = { id, bodies: [], parts: [] };
-  let tris = 0, feat = 0, bytes = 0, flipped = 0, peels = 0;
+  let tris = 0, bytes = 0, flipped = 0, peels = 0;
   for (const B of R.bodies) {
     out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, axis: B.axis || null });
     for (const [file, matName] of B.geoms) {
@@ -318,31 +377,26 @@ for (const [id, R] of Object.entries(ROBOTS)) {
       // budget shared across a file's groups, by face count
       const total = groups.reduce((s, g) => s + g.f.length / 3, 0);
       // per-file budgets for the camera: the casing is most of what you see
-      const fileBudget = id === 'd435i' ? (file === 'd435i_8.obj' ? 520 : file === 'd435i_4.obj' ? 160 : 40) : budget;
+      const fileBudget = id === 'd435i' ? (file === 'd435i_8.obj' ? 3600 : file === 'd435i_4.obj' ? 900 : 110) : budget;
       for (const g of groups) {
         const share = Math.max(24, Math.round(fileBudget * (g.f.length / 3) / total));
         const m = decimateTo(g, share);
         if (m.f.length < 3) continue;
         if (orientOutward(m)) flipped++;
-        const peeled = peelInterior(m);
-        if (peeled !== m) { peeled.f.length !== m.f.length && (peels++); m.f = peeled.f; }
-        const n = faceNormals(m.v, m.f);
-        const E = edges(m.f, n, 55);
+        // NO interior peeling. It was tried: removing inward-facing faces from
+        // hollow shells opened a boundary around every hole, and every
+        // boundary edge is an outline, so the parts came out covered in lines.
+        // Inside-out shells were the actual cause of see-through parts, and
+        // per-shell orientation above fixes that; inner surfaces face away
+        // from the viewer and cull themselves.
         const mat = matName || (id === 'fr3' ? fr3Material(g.mtl) : 'white');
-        out.parts.push({
-          body: B.name, mat,
-          v: m.v.map(x => round(x, 1)),
-          f: m.f,
-          n: n.map(x => round(x, 3)),
-          e: E.all,
-          fe: E.feature,
-        });
-        tris += m.f.length / 3; feat += E.feature.length / 2;
+        out.parts.push({ body: B.name, mat, v: m.v.map(x => round(x, 1)), f: m.f });
+        tris += m.f.length / 3;
       }
     }
   }
   const json = JSON.stringify(out);
   bytes = Buffer.byteLength(json);
   fs.writeFileSync(path.join(OUT, `${id}.json`), json);
-  console.log(`${id.padEnd(6)} ${out.parts.length} parts, ${tris} triangles, ${feat} feature edges, ${flipped} parts re-wound, ${peels} shells peeled, ${(bytes / 1024).toFixed(0)} KB`);
+  console.log(`${id.padEnd(6)} ${out.parts.length} parts, ${tris} triangles, ${flipped} parts re-wound, ${peels} shells peeled, ${(bytes / 1024).toFixed(0)} KB`);
 }

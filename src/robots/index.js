@@ -30,27 +30,62 @@ export function loadRobots() {
   return loading;
 }
 
-// Typed arrays, per-part normals, and the feature flag on every edge, so the
-// draw loop does no lookups.
+// Everything the renderer needs beyond vertices and faces is derived here,
+// once, at load: face normals; SMOOTH vertex normals (the area-weighted
+// average of the faces around a vertex — shading a face by the mean of its
+// three vertex normals is what turns a faceted decimation into a smooth
+// surface); every manifold edge with its two faces, for the silhouette; and
+// which edges are CREASES (dihedral over CREASE_DEG), the only interior lines
+// a sim-style render draws. Facets are not creases.
+// Per robot: the SO-ARM is boxy printed parts whose 90° edges ARE its
+// drawing; the Franka, the URs and the camera are organic shells, and on
+// those a lower threshold catches decimation facets at the rounded ends and
+// draws a lattice across them.
+const CREASE_DEG = { soarm: 62, fr3: 76, ur5e: 76, d435i: 78 };
 function prepare(robot) {
+  const creaseDeg = CREASE_DEG[robot.id] ?? 70;
   const parts = robot.parts.map(p => {
-    const e = new Int32Array(p.e);
-    const feature = new Uint8Array(e.length / 4);
-    const featKeys = new Set();
-    for (let i = 0; i < p.fe.length; i += 2) {
-      const a = p.fe[i], b = p.fe[i + 1];
-      featKeys.add(a < b ? a * 1e6 + b : b * 1e6 + a);
+    const v = new Float32Array(p.v), f = new Int32Array(p.f);
+    const nv = v.length / 3, nf = f.length / 3;
+    const n = new Float32Array(nf * 3);          // face normals (unit)
+    const vn = new Float32Array(nv * 3);         // vertex normals (unit)
+    for (let i = 0; i < nf; i++) {
+      const a = f[i * 3] * 3, b = f[i * 3 + 1] * 3, c = f[i * 3 + 2] * 3;
+      const ux = v[b] - v[a], uy = v[b + 1] - v[a + 1], uz = v[b + 2] - v[a + 2];
+      const wx = v[c] - v[a], wy = v[c + 1] - v[a + 1], wz = v[c + 2] - v[a + 2];
+      const nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;   // length = 2·area
+      for (const k of [a, b, c]) { vn[k] += nx; vn[k + 1] += ny; vn[k + 2] += nz; }
+      const L = Math.hypot(nx, ny, nz) || 1;
+      n[i * 3] = nx / L; n[i * 3 + 1] = ny / L; n[i * 3 + 2] = nz / L;
     }
-    for (let i = 0; i < e.length; i += 4) {
-      const a = e[i], b = e[i + 1];
-      if (featKeys.has(a < b ? a * 1e6 + b : b * 1e6 + a)) feature[i / 4] = 1;
+    for (let i = 0; i < nv; i++) {
+      const L = Math.hypot(vn[i * 3], vn[i * 3 + 1], vn[i * 3 + 2]) || 1;
+      vn[i * 3] /= L; vn[i * 3 + 1] /= L; vn[i * 3 + 2] /= L;
     }
-    return {
-      body: p.body, mat: p.mat,
-      v: new Float32Array(p.v), f: new Int32Array(p.f), n: new Float32Array(p.n),
-      e, feature,
-      nv: p.v.length / 3, nf: p.f.length / 3,
-    };
+    // edges: a, b, faceA, faceB (-1 on a boundary)
+    const map = new Map();
+    for (let i = 0; i < nf; i++) {
+      for (let k = 0; k < 3; k++) {
+        const a = f[i * 3 + k], b = f[i * 3 + (k + 1) % 3];
+        const key = a < b ? a * 1e6 + b : b * 1e6 + a;
+        const e = map.get(key);
+        if (e) e[3] = i; else map.set(key, [a, b, i, -1]);
+      }
+    }
+    const e = new Int32Array(map.size * 4);
+    const crease = new Uint8Array(map.size);
+    const cos = Math.cos(creaseDeg * Math.PI / 180);
+    let i = 0;
+    for (const [a, b, fa, fb] of map.values()) {
+      e[i * 4] = a; e[i * 4 + 1] = b; e[i * 4 + 2] = fa; e[i * 4 + 3] = fb;
+      if (fb < 0) crease[i] = 1;
+      else {
+        const d = n[fa * 3] * n[fb * 3] + n[fa * 3 + 1] * n[fb * 3 + 1] + n[fa * 3 + 2] * n[fb * 3 + 2];
+        if (d < cos) crease[i] = 1;
+      }
+      i++;
+    }
+    return { body: p.body, mat: p.mat, v, f, n, vn, e, crease, nv, nf };
   });
   const bodies = robot.bodies.map(b => ({
     ...b,

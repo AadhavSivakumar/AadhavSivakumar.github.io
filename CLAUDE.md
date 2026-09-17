@@ -564,33 +564,56 @@ horizontally was tried first and reduced them to slivers.
 
 ### Baked meshes: the real machines
 
-`scripts/bake-robots.mjs <menagerie dir>` reads the Menagerie's STL/OBJ meshes
-for `trs_so_arm100`, `franka_fr3`, `universal_robots_ur5e` and
-`realsense_d435i` (~120 MB, fetched to a scratch dir, NOT committed), and per
-part: welds vertices, DECIMATES by vertex clustering to a face budget (a robot
-lands around 2,000 triangles, the camera ~800 — what the renderer draws at
-60fps next to everything else), keeps FEATURE EDGES (dihedral > 55°) and
-every manifold edge with its two faces, and writes millimetres, Z-up, with the
-body tree (positions, quaternions, joint axes) copied from the MJCF by hand.
-The runtime (`src/robots/index.js`) does the forward kinematics and
-`submitMesh` in `Flourish3D.jsx` draws a part as front faces (page-coloured
-occluders, lit by the three-term shading) plus lines: the feature edges at
-0.45 strength and the SILHOUETTE at full — an edge whose two faces face
-opposite ways, found per frame from the same winding test that culls. That
-silhouette is what makes a smooth tube read as a drawn outline.
+**These meshes ARE the CAD.** The Menagerie's files are the manufacturers'
+own exports: Franka's from `franka_description`, UR's from `ur_description`,
+TheRobotStudio's SolidWorks export for the SO-ARM100 (it also publishes STEP,
+which would tessellate to triangles anyway), Intel's for the D435i — at
+60-130k triangles a part. When the owner said the result looked "mesh-like
+instead of sim-like", the fault was the pipeline, not the source: cutting to
+2,000 triangles and drawing a line along every facet edge. A sim render is
+many triangles, SMOOTH shading, and no facet lines.
+
+`scripts/bake-robots.mjs <menagerie dir>` reads the meshes (~120 MB, fetched
+to a scratch dir, NOT committed) and per part: welds vertices, DECIMATES by
+vertex clustering to a face budget (a robot lands around 6-7k triangles, the
+camera ~5k — 60fps holds at that, p50 17.0 through all four acts), makes the
+winding CONSISTENT and OUTWARD (below), and writes ONLY vertices (0.1 mm) and
+faces, plus material and body, with the body tree (positions, quaternions,
+joint axes) copied from the MJCF by hand. The loader (`src/robots/index.js`)
+derives the rest once at load: face normals, SMOOTH vertex normals, edge
+adjacency, and which edges are CREASES. Shipping those tripled the JSON;
+deriving them keeps a robot at 100-150 KB.
+
+`submitMesh` in `Flourish3D.jsx` draws a part as front faces — culled by
+screen winding, shaded by the MEAN OF THE THREE VERTEX NORMALS (`meshTone`: 56
+steps, ±0.42 range, tint first then shade, so a white robot goes white to
+grey in shadow) — plus lines: the SILHOUETTE, found from the smooth normal's
+sign change (not the winding: on a decimated curve the winding flips at every
+wobble and drew a hundred outline fragments), and CREASES (per robot: 62° for
+the boxy printed SO-ARM whose right angles ARE its drawing, 76-78° for the
+organic shells) at 0.3 strength. Edges under 3px on screen are skipped. On
+the dark theme the lines are at half strength — pale on near-black, a dense
+set reads as a wireframe.
 
 Things learned by getting them wrong, in order:
-- **Winding.** STL exports and OBJs disagree, and the stage's frame is
-  left-handed (x right, y DOWN, z toward the viewer), so every part is
-  re-wound OUTWARD at bake (`orientOutward`, by where most face normals point
-  relative to the centroid) and the renderer flips the screen-winding test
-  (`MESH_FLIP`). Wrong, a part shows its back faces and every internal line.
-- **Hollow shells.** The camera casing has an inner surface; its inward faces
-  showed through every gap and the camera looked transparent. `peelInterior`
-  drops inward-facing faces from any part that is more than a quarter inward.
-- **Facets are not features.** At 28° the decimation's own facets qualified as
-  feature edges and the robots read as wireframes on the dark theme; 55° and
-  half-strength feature lines fixed it.
+- **Winding, twice.** STL exports wind triangle by triangle at random — a
+  third of some SO-ARM parts the wrong way — and the renderer culls by
+  winding, so those faces vanished and the part was a see-through wireframe.
+  `windConsistently` propagates one orientation across shared edges; then
+  `orientOutward` turns EACH CONNECTED SHELL outward by the sign of its own
+  volume — a servo is a body plus a horn plus a cable, and one decision for
+  the whole part left the small shells inside-out. The stage's frame is
+  left-handed (x right, y DOWN, z toward the viewer), so the renderer flips
+  the screen-winding test (`MESH_FLIP`).
+- **Do not peel interiors.** A `peelInterior` pass once dropped inward-facing
+  faces from hollow shells to stop them showing through. It opened a boundary
+  around every hole it made, every boundary edge is an outline, and the parts
+  came out covered in lines. Inside-out shells were the real cause of the
+  see-through, and per-shell orientation fixes that; inner surfaces face away
+  from the viewer and cull themselves.
+- **Facets are not features.** At 28°, then 55°, the decimation's own facets
+  qualified as feature edges and the robots read as wireframes; the crease
+  angle is per robot now, and nothing is drawn along a non-crease edge.
 - **Frames.** MuJoCo is Z-up; `standing()` turns Z to screen-up and scales mm
   to stage px; the camera uses `facing()` (its sensors are on +Z, so Z stays
   toward the viewer and Y is flipped with a half turn). MuJoCo quaternions are

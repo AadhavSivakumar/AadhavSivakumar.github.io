@@ -806,6 +806,34 @@ export default function Flourish3D({ side = 'right' }) {
       toneCache.set(key, c);
       return c;
     };
+    // The same ramp at four times the resolution and TWICE the range, for the
+    // smooth-shaded meshes: 14 steps band visibly across a curved surface; 56
+    // do not. And a sim render carries its form in the SHADING, not in lines
+    // — at the line art's ±0.20 the bodies were flat and the outline had to
+    // do everything, ragged where it hugged the facets. At ±0.42 the turn of
+    // a tube reads on its own and the lines can fade back.
+    const MESH_STEPS = 56;
+    const MESH_RANGE = 0.42;
+    const meshToneCache = new Map();
+    const meshTone = (lit, mat) => {
+      const q = Math.max(0, Math.min(MESH_STEPS, Math.round(lit * MESH_STEPS)));
+      const key = q * 16 + mat;
+      let c = meshToneCache.get(key);
+      if (c) return c;
+      const lift = dark ? 0.19 : -0.08;
+      // tint FIRST, then shade the tinted body — a white robot goes from
+      // white to grey in the shadow, not from page colour toward white
+      const tint = matRGB[mat], w = Math.min(1, MAT_W[mat] * (dark ? 1 : 1.55));
+      let r = paperRGB[0], g = paperRGB[1], b2 = paperRGB[2];
+      if (tint && w) { r = r + (tint[0] - r) * w; g = g + (tint[1] - g) * w; b2 = b2 + (tint[2] - b2) * w; }
+      const k = (q / MESH_STEPS - 0.5) * 2 * MESH_RANGE + lift * 0.5;
+      const rr = Math.max(0, Math.min(255, Math.round(r + ((k >= 0 ? WARM_HI : WARM_LO)[0] - r) * Math.abs(k))));
+      const gg = Math.max(0, Math.min(255, Math.round(g + ((k >= 0 ? WARM_HI : WARM_LO)[1] - g) * Math.abs(k))));
+      const bb = Math.max(0, Math.min(255, Math.round(b2 + ((k >= 0 ? WARM_HI : WARM_LO)[2] - b2) * Math.abs(k))));
+      c = `rgb(${rr},${gg},${bb})`;
+      meshToneCache.set(key, c);
+      return c;
+    };
     let METAL = [0, 0, 0, 1], CU = [0, 0, 0, 2];
     const mkMaterial = (hex, id, mixGrey) => {
       const v = hex.replace('#', '');
@@ -832,6 +860,7 @@ export default function Flourish3D({ side = 'right' }) {
         ? `rgb(${Math.round(L[0] + (t[0] - L[0]) * MAT_LINE_W)},${Math.round(L[1] + (t[1] - L[1]) * MAT_LINE_W)},${Math.round(L[2] + (t[2] - L[2]) * MAT_LINE_W)})`
         : LINE));
       toneCache.clear();
+      meshToneCache.clear();
     };
     readMaterials();
     // Repaint at the CURRENT progress. This used to call the piece's own
@@ -1141,14 +1170,15 @@ export default function Flourish3D({ side = 'right' }) {
     //   T     its placement (from bodyPlacements)
     //   mat   MAT slot;  a  alpha;  lineCol  line colour
     let MESH_SCR = new Float64Array(1 << 12);       // projected vertices, x y z per vertex
-    let MESH_FRONT = new Uint8Array(1 << 10);
+    let MESH_FRONT = new Uint8Array(1 << 10);       // culling: by screen winding
+    let MESH_FACE = new Float32Array(1 << 10);      // silhouette: by SMOOTH normal, toward the viewer
     const MESH_FLIP = true;                         // the bake's winding is CCW in a right-handed frame; the stage is left-handed
     function submitMesh(part, T, mat, a, lineCol, lineA) {
       if (a <= 0.004) return;
       const m = T.m, t = T.t;
-      const nv = part.nv, nf = part.nf, v = part.v, f = part.f, n = part.n;
+      const nv = part.nv, nf = part.nf, v = part.v, f = part.f, vn = part.vn;
       if (MESH_SCR.length < nv * 3) MESH_SCR = new Float64Array(nv * 3 * 2);
-      if (MESH_FRONT.length < nf) MESH_FRONT = new Uint8Array(nf * 2);
+      if (MESH_FRONT.length < nf) { MESH_FRONT = new Uint8Array(nf * 2); MESH_FACE = new Float32Array(nf * 2); }
       // project every vertex once
       let cxs = 0, cys = 0, rmax = 0;
       for (let i = 0; i < nv; i++) {
@@ -1170,9 +1200,17 @@ export default function Flourish3D({ side = 'right' }) {
         if (MESH_FLIP) area = -area;
         const front = area > 0;
         MESH_FRONT[i] = front ? 1 : 0;
-        if (!front || cap) continue;
-        const nx0 = n[i * 3], ny0 = n[i * 3 + 1], nz0 = n[i * 3 + 2];
+        // SMOOTH shading: the mean of the three vertex normals, not the face's
+        // own — adjacent facets then shade continuously and the surface reads
+        // as curved. (Per-face normals are what made it look like a mesh.)
+        const nx0 = (vn[ia * 3] + vn[ib * 3] + vn[ic * 3]) / 3, ny0 = (vn[ia * 3 + 1] + vn[ib * 3 + 1] + vn[ic * 3 + 1]) / 3, nz0 = (vn[ia * 3 + 2] + vn[ib * 3 + 2] + vn[ic * 3 + 2]) / 3;
         const nx = m[0] * nx0 + m[1] * ny0 + m[2] * nz0, ny = m[3] * nx0 + m[4] * ny0 + m[5] * nz0, nz = m[6] * nx0 + m[7] * ny0 + m[8] * nz0;
+        // The silhouette is found from this SMOOTH normal's z, not from the
+        // winding: on a decimated curve the winding flips at every wobble and
+        // draws a hundred false outline fragments; the smooth normal's sign
+        // field changes once, at the real edge of the body.
+        MESH_FACE[i] = nz;
+        if (!front || cap) continue;
         const nl = Math.hypot(nx, ny, nz) || 1;
         const inx = nx / nl, iny = ny / nl, inz = nz / nl;
         const key = inx * KEY[0] + iny * KEY[1] + inz * KEY[2];
@@ -1184,23 +1222,30 @@ export default function Flourish3D({ side = 'right' }) {
         PTS[o] = ax; PTS[o + 1] = ay; PTS[o + 2] = bx; PTS[o + 3] = by; PTS[o + 4] = cx; PTS[o + 5] = cy;
         ptsN += 6;
         const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3;
-        const col = paperTone(lit, mat);
+        const col = meshTone(lit, mat);
         bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0) });
         segs += 3;
       }
-      // lines: the silhouette at full strength, feature edges with a front
-      // face fainter — a decimated mesh has facets, and drawn at full strength
-      // they read as a wireframe rather than as a drawn machine
-      const e = part.e, feat = part.feature, ne = e.length / 4;
-      const la = (lineA == null ? LOOK.line : lineA) * a;
+      // lines: the SILHOUETTE, and CREASES (real edges of the CAD, dihedral over
+      // 62°) faintly. Nothing along facets: that is what a sim render does —
+      // smooth surfaces, an outline, the odd hard edge — and drawing every
+      // decimation edge is what made these look like meshes.
+      const e = part.e, crease = part.crease, ne = e.length / 4;
+      // On the dark theme the line is pale on near-black and a dense set of
+      // them reads as a wireframe; the meshes take a lighter hand there.
+      const la = (lineA == null ? LOOK.line : lineA) * a * (dark ? 0.5 : 0.7);
       if (la <= 0.004) return;
-      const laF = la * 0.45;
+      const laF = la * 0.3;
+      const MIN_PX2 = 9;                                 // edges under 3px on screen are noise
       for (let i = 0; i < ne; i++) {
         const fa = e[i * 4 + 2], fb = e[i * 4 + 3];
         const fra = MESH_FRONT[fa], frb = fb < 0 ? 0 : MESH_FRONT[fb];
-        const silhouette = fb < 0 ? fra === 1 : fra !== frb;
-        if (!silhouette && !(feat[i] && (fra || frb))) continue;
+        if (!fra && !frb) continue;                      // wholly on the far side
+        const silhouette = fb < 0 ? fra === 1 : (MESH_FACE[fa] > 0) !== (MESH_FACE[fb] > 0);
+        if (!silhouette && !crease[i]) continue;
         const ia = e[i * 4], ib = e[i * 4 + 1];
+        const dx = MESH_SCR[ia * 3] - MESH_SCR[ib * 3], dy = MESH_SCR[ia * 3 + 1] - MESH_SCR[ib * 3 + 1];
+        if (dx * dx + dy * dy < MIN_PX2) continue;
         const alpha = silhouette ? la : laF;
         if (cap) {                            // the morph's targets: mesh lines too
           cap.push({ pts: new Float64Array([MESH_SCR[ia * 3], MESH_SCR[ia * 3 + 1], MESH_SCR[ib * 3], MESH_SCR[ib * 3 + 1]]), c: lineCol, a: alpha, w: LOOK.width, id: capId });
