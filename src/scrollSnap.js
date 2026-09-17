@@ -22,7 +22,8 @@ import { onScroll } from './scrollDriver';
 //     on purpose, not near a boundary
 //   - the reader asked for reduced motion, in which case nothing moves on its
 //     own at all
-const IDLE_MS = 2000;      // stillness before it acts
+const IDLE_MS = 700;       // stillness before it pulls a misaligned page into frame
+const REST_MS = 120;       // stillness before an ALIGNED page counts as settled
 const ALIGN_TOL = 8;       // px: close enough, leave it alone
 const MAX_PULL = 0.55;     // of a viewport
 const RETRY_MS = 600;      // while something is in the way
@@ -137,12 +138,21 @@ export function startScrollSnap() {
     watchArrival(target, 0);
   };
 
+  // A page that is ALREADY in frame is settled as soon as the scroll stops
+  // (REST_MS), so what runs while settled — the robots working, the shutter —
+  // starts the moment the reader arrives. Only a misaligned page waits the
+  // longer IDLE_MS before being pulled into frame; the owner found the
+  // original two seconds "taking too long".
+  const aligned = () => {
+    const c = candidate(window.scrollY);
+    return !c || Math.abs(c.top - window.scrollY) <= ALIGN_TOL;
+  };
   const stop = onScroll(() => {
     if (self) return;                  // our own animation; watchArrival owns it
     setSettled(false);
     if (watch) { cancelAnimationFrame(watch); watch = 0; }
     clearTimeout(timer);
-    timer = setTimeout(attempt, IDLE_MS);
+    timer = setTimeout(() => { if (aligned()) attempt(); else timer = setTimeout(attempt, IDLE_MS - REST_MS); }, REST_MS);
   });
 
   return () => {

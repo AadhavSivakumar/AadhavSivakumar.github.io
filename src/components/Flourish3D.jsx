@@ -1152,7 +1152,10 @@ export default function Flourish3D({ side = 'right' }) {
           // through as a hairline — on the dark theme, a pale robot came out
           // wearing its whole wireframe in dark lines. The stroke covers the
           // seam; on a silhouette it adds a third of a pixel nobody can see.
-          if (f.m) { ctx.strokeStyle = f.c; ctx.lineWidth = 0.7; ctx.stroke(); }
+          // (only on the dark theme: the seam is the page showing through,
+          // and near-white through near-white is invisible; the stroke is
+          // the dearer half of the fill call)
+          if (f.m && dark) { ctx.strokeStyle = f.c; ctx.lineWidth = 0.7; ctx.stroke(); }
         }
         i = end;
       }
@@ -1192,6 +1195,7 @@ export default function Flourish3D({ side = 'right' }) {
     // of the plate's 900 faces had smooth normals toward the viewer; 41 of
     // those passed the old test.
     const MESH_FLIP = false;
+    const MESH_MIN_AREA = typeof location !== 'undefined' && new URLSearchParams(location.search).has('noskip') ? 0 : 1.3;
     function submitMesh(part, T, mat, a, lineCol, lineA) {
       if (a <= 0.004) return;
       const m = T.m, t = T.t;
@@ -1219,6 +1223,12 @@ export default function Flourish3D({ side = 'right' }) {
         if (MESH_FLIP) area = -area;
         const front = area > 0;
         MESH_FRONT[i] = front ? 1 : 0;
+        // a triangle under two thirds of a pixel is not drawn: at 0.2-0.33
+        // px/mm a third of a decimated arm's faces are that small, each one a
+        // bucket entry, a sort key and a path segment for nothing visible
+        // (its neighbours' seals cover the hole). The silhouette test above
+        // still uses it.
+        if (front && area < MESH_MIN_AREA) { MESH_FRONT[i] = 0; continue; }
         // SMOOTH shading: the mean of the three vertex normals, not the face's
         // own — adjacent facets then shade continuously and the surface reads
         // as curved. (Per-face normals are what made it look like a mesh.)
@@ -1240,7 +1250,11 @@ export default function Flourish3D({ side = 'right' }) {
         const o = ptsN;
         PTS[o] = ax; PTS[o + 1] = ay; PTS[o + 2] = bx; PTS[o + 3] = by; PTS[o + 4] = cx; PTS[o + 5] = cy;
         ptsN += 6;
-        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3;
+        // Black trim (a band, a ring, a cap) sits ON a white body, flush with
+        // it, and within one depth slab the two sort by style — so the white
+        // shell won half the band's triangles and the band came out as a row
+        // of teeth. The trim gets a small bias toward the viewer.
+        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly ? 1.4 : 0);
         const col = meshTone(lit, mat);
         bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: 1 });
         segs += 3;
@@ -1380,13 +1394,13 @@ export default function Flourish3D({ side = 'right' }) {
     const DEV_PARTS = DEV && new URLSearchParams(location.search).get('part') ? new Set(new URLSearchParams(location.search).get('part').split(',').map(Number)) : null;
     const art = () => {
       if (DEV && ROBOTS) {
-        const [spec, k = '0.6', yaw = '30', x = '0', y = '260'] = DEV.split(';');
+        const [spec, k = '0.6', yaw = '30', x = '0', y = '260', tilt = '0'] = DEV.split(';');
         const [id, qs = ''] = spec.split(':');
         setCam(20 * DEG, 12 * DEG, 0);
         // on the left, ?dev=d435i;k;yaw;pitch overrides the camera's framing
         if (isLeft && id === 'd435i' && DEV.includes(';')) { RB.cam.k = +k; RB.cam.yaw = +yaw; RB.cam.pitch = +x; }
         if (isLeft) drawCameraMesh(1, 0);
-        else if (ROBOTS[id]) drawRobot(ROBOTS[id], standing([+x, +y], +k, +yaw), qs.split(',').filter(Boolean).map(Number), 1);
+        else if (ROBOTS[id]) { drawStand(1, 0.5, 1); drawRobot(ROBOTS[id], shouldered([+x, +y], +k, +yaw, +tilt), qs.split(',').filter(Boolean).map(Number), 1); }
         flush();
         return;
       }
@@ -1718,33 +1732,58 @@ export default function Flourish3D({ side = 'right' }) {
     // at a work surface in front. No torso, no head — a workcell, not a
     // humanoid.
     const STAND_X = 12, BEAM_Y = -8, ARM_DX = 78;   // the pair's bases sit ARM_DX either side of the stand
-    function drawStand(u, alpha) {
+    // ...and the Ultra OP1's shoulders sit OP_DX either side of its torso
+    const OP_DX = 46, OP_SHOULDER_Y = BEAM_Y - 6;
+    // The stand, and with `m` > 0 the stand BECOMING the Ultra OP1's body
+    // (drawn from Ultra's published description — 180cm, white and black, a
+    // fixed 5x5ft base on locking casters, two arms, RGB cameras — there is
+    // no public CAD): the plinth becomes a caster base, the column a torso,
+    // the beam a shoulder yoke with the mounts drawn in, the camera bar
+    // shrinks into a head with two camera eyes, and the work surface goes.
+    // Every dimension is interpolated, so it is one thing changing shape.
+    function drawStand(u, alpha, m = 0) {
       if (u <= 0.01) return;
       const F = place(IDENT, [0, 0, 0]);
       const a = alpha;
-      const box = (w, h, d, x, y, z, mat) => {
-        submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a);
-        submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width);
+      const L = (p, q) => p + (q - p) * m;
+      const box = (w, h, d, x, y, z, mat, aa = a, s = u) => {
+        if (aa <= 0.01 || w <= 0.01 || h <= 0.01) return;
+        submit(boxFaces(w * s, h * s, d * s, x, y, z), F, mat, aa);
+        submitLines(boxWire(w * s, h * s, d * s, x, y, z), F, matLine[mat], LOOK.line * aa, LOOK.width);
       };
-      // plinth and column
-      box(120, 18, 96, STAND_X, 150, -10, MAT.iron);
-      box(34, 118, 34, STAND_X, 82, -10, MAT.alu);
-      // the beam, and the two mounts the arms bolt to
-      box(2 * ARM_DX + 60, 14, 30, STAND_X, BEAM_Y + 14, -10, MAT.alu);
-      for (const x of [STAND_X - ARM_DX, STAND_X + ARM_DX]) {
-        const M = place(mul(rotX(90 * DEG), scaleM(0.56 * u)), [x, BEAM_Y + 2, 0]);
-        drawDrum(M, 20, -8, 8, MAT.steel, a);
+      // plinth -> caster base
+      box(L(120, 124), L(18, 12), L(96, 104), STAND_X, L(150, 154), L(-10, -4), MAT.iron);
+      if (m > 0.01) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const C = place(mul(rotY(90 * DEG), scaleM(u * m)), [STAND_X + sx * 52, 163, -4 + sz * 42]);
+        drawDrum(C, 7, -4, 4, MAT.poly, a * m);
       }
-      // the camera bar: two posts, a crossbar, a camera looking down
-      box(6, 110, 6, STAND_X - ARM_DX - 26, BEAM_Y - 40, -10, MAT.steel);
-      box(6, 110, 6, STAND_X + ARM_DX + 26, BEAM_Y - 40, -10, MAT.steel);
-      box(2 * ARM_DX + 58, 6, 6, STAND_X, BEAM_Y - 94, -10, MAT.steel);
-      const C = place(scaleM(u), [STAND_X, BEAM_Y - 82, -4]);
-      submit(boxFaces(30, 16, 22, 0, 0, 0), C, MAT.poly, a);
-      submitLines(boxWire(30, 16, 22, 0, 0, 0), C, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-      submitLines([ringAt(5, 0, 8.2, 0, 14), ringAt(7, 0, 8.6, 0, 14)], chain(C, place(rotX(90 * DEG), [0, 0, 0])), ink, LOOK.line * a, LOOK.width);
+      // column -> torso (the aluminium column fades as the white torso comes)
+      box(34, 118, 34, STAND_X, 82, -10, MAT.alu, a * (1 - m));
+      box(L(34, 54), L(118, 136), L(34, 46), STAND_X, L(82, 78), L(-10, -6), MAT.pla, a * m);
+      box(L(34, 58), L(4, 16), L(34, 50), STAND_X, L(30, 34), L(-10, -6), MAT.poly, a * m);       // chest band
+      // beam -> shoulder yoke, mounts drawn in to the shoulders
+      box(L(2 * ARM_DX + 60, 2 * OP_DX + 40), L(14, 20), L(30, 40), STAND_X, L(BEAM_Y + 14, BEAM_Y + 8), L(-10, -6), m < 0.5 ? MAT.alu : MAT.pla);
+      for (const sgn of [-1, 1]) {
+        const x = STAND_X + sgn * L(ARM_DX, OP_DX);
+        const M = place(mul(rotX(90 * DEG), scaleM(0.56 * u)), [x, L(BEAM_Y + 2, OP_SHOULDER_Y + 2), 0]);
+        drawDrum(M, L(20, 24), -8, 8, m < 0.5 ? MAT.steel : MAT.poly, a);
+      }
+      // camera bar -> head: posts and crossbar shrink away, the camera box
+      // comes down onto the neck and grows two eyes
+      const barH = 110 * (1 - m), barA = a * (1 - m);
+      box(6, barH, 6, STAND_X - ARM_DX - 26, BEAM_Y - 40 + 55 * m, -10, MAT.steel, barA);
+      box(6, barH, 6, STAND_X + ARM_DX + 26, BEAM_Y - 40 + 55 * m, -10, MAT.steel, barA);
+      box((2 * ARM_DX + 58) * (1 - m), 6, 6, STAND_X, BEAM_Y - 94 + 60 * m, -10, MAT.steel, barA);
+      box(L(0, 14), L(0, 12), L(0, 14), STAND_X, OP_SHOULDER_Y - 10, -6, MAT.poly, a * m);       // neck
+      const C = place(scaleM(u), [STAND_X, L(BEAM_Y - 82, OP_SHOULDER_Y - 30), L(-4, -2)]);
+      const hw = L(30, 44), hh = L(16, 26), hd = L(22, 30);
+      submit(boxFaces(hw, hh, hd, 0, 0, 0), C, MAT.poly, a);
+      submitLines(boxWire(hw, hh, hd, 0, 0, 0), C, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      // the camera looking down becomes two eyes looking out
+      submitLines([ringAt(5, 0, 8.2, 0, 14), ringAt(7, 0, 8.6, 0, 14)], chain(C, place(rotX(90 * DEG), [0, 0, 0])), ink, LOOK.line * a * (1 - m), LOOK.width);
+      if (m > 0.01) submitLines([ringAt(4.5, -11, 0, hd / 2 + 0.3, 14), ringAt(4.5, 11, 0, hd / 2 + 0.3, 14), ringAt(2.2, -11, 0, hd / 2 + 0.5, 10), ringAt(2.2, 11, 0, hd / 2 + 0.5, 10)], C, ink, LOOK.line * a * m, LOOK.width);
       // the work surface in front, where the grippers go
-      box(2 * ARM_DX + 70, 8, 70, STAND_X, 122, 44, MAT.neutral);
+      box(2 * ARM_DX + 70, 8, 70, STAND_X, 122, 44, MAT.neutral, a * (1 - m));
     }
 
     // ── the targets the waves fly to ────────────────────────────────────
@@ -2037,12 +2076,14 @@ export default function Flourish3D({ side = 'right' }) {
                     [0.3, 0.45, -0.05, 1.1, 0, 0.12], [-0.45, 0.45, -0.05, 1.1, 0.3, 0.12], [-0.45, 0.75, -0.25, 1.2, 0.3, 0.12],
                     [-0.45, 0.75, -0.25, 1.2, 0.3, 0.7], [-0.2, 0.55, -0.15, 1.15, 0.1, 0.5]],
             period: 11 },
+      // Franka: seven hinges, then the hand's two finger slides (metres, 0
+      // closed to 0.04 open)
       fr: { k: 0.33, root: [14, 262], yaw: 145,
-            rest: [0, -0.6, 0, -1.9, 0, 1.3, 0.785],
-            folded: [0, 0, 0, -0.3, 0, 0.6, 0.785],
-            cycle: [[0, -0.6, 0, -1.9, 0, 1.3, 0.785], [0.35, -0.2, 0, -2.3, 0, 2.1, 0.785], [0.35, 0.1, 0, -2.2, 0, 2.3, 0.785],
-                    [0.35, -0.5, 0, -1.9, 0, 1.4, 0.785], [-0.5, -0.5, 0, -1.9, 0, 1.4, 0.785], [-0.5, 0.0, 0, -2.2, 0, 2.2, 0.785],
-                    [-0.5, -0.5, 0, -1.8, 0, 1.3, 0.785], [-0.1, -0.7, 0, -1.9, 0, 1.2, 0.785]],
+            rest: [0, -0.6, 0, -1.9, 0, 1.3, 0.785, 0.03, 0.03],
+            folded: [0, 0, 0, -0.3, 0, 0.6, 0.785, 0.01, 0.01],
+            cycle: [[0, -0.6, 0, -1.9, 0, 1.3, 0.785, 0.03, 0.03], [0.35, -0.2, 0, -2.3, 0, 2.1, 0.785, 0.04, 0.04], [0.35, 0.1, 0, -2.2, 0, 2.3, 0.785, 0.006, 0.006],
+                    [0.35, -0.5, 0, -1.9, 0, 1.4, 0.785, 0.006, 0.006], [-0.5, -0.5, 0, -1.9, 0, 1.4, 0.785, 0.006, 0.006], [-0.5, 0.0, 0, -2.2, 0, 2.2, 0.785, 0.006, 0.006],
+                    [-0.5, -0.5, 0, -1.8, 0, 1.3, 0.785, 0.04, 0.04], [-0.1, -0.7, 0, -1.9, 0, 1.2, 0.785, 0.035, 0.035]],
             period: 12 },
       // the pair stands ON THE BEAM (BEAM_Y), reaching forward and down to the
       // work surface, turned a little toward each other
@@ -2067,7 +2108,29 @@ export default function Flourish3D({ side = 'right' }) {
                      [Math.PI + 1.35, 0.95, 1.55, -0.75, -1.57, 0.2], [Math.PI + 1.35, 1.15, 1.75, -1.15, -1.57, 0.2], [Math.PI + 1.5, 0.8, 1.9, -0.9, -1.57, 0]],
             period: 9 },
       cam: { k: 3.5, root: [-2, -12], yaw: -28, pitch: 10 },
+      // The Ultra OP1: two 7-DOF white-and-black arms with two-finger grippers
+      // on a torso over a fixed caster base (its published description; no
+      // public CAD exists). The arms are the Franka meshes — 7 axes, white
+      // with black joints, a two-finger hand: the nearest real thing to
+      // Ultra's own — mounted on the shoulders and tilted outward.
+      op: { k: 0.2, tilt: 34,
+            rootR: [STAND_X + OP_DX, OP_SHOULDER_Y - 4], rootL: [STAND_X - OP_DX, OP_SHOULDER_Y - 4], yawR: 150, yawL: 210,
+            // the right arm's poses; the left arm is its MIRROR (odd joints
+            // negated — they turn about the arm's own axis), see below. Found
+            // by rendering: on a shoulder-mounted Franka, joint 1 near +1.5
+            // brings the hand down in front of the chest; the sign the
+            // standing Franka uses sends it up over the head.
+            restR: [1.5, 1.4, 0, -1.4, 0, 1.0, 0.785, 0.03, 0.03],
+            cycleR: [[1.5, 1.4, 0, -1.4, 0, 1.0, 0.785, 0.03, 0.03], [1.6, 1.6, 0, -1.1, 0, 0.9, 0.785, 0.04, 0.04], [1.6, 1.65, 0, -1.05, 0, 0.9, 0.785, 0.006, 0.006],
+                     [1.5, 1.25, 0, -1.6, 0, 1.1, 0.785, 0.006, 0.006], [1.1, 1.25, 0, -1.6, 0, 1.1, 0.785, 0.006, 0.006], [1.1, 1.55, 0, -1.15, 0, 0.95, 0.785, 0.04, 0.04], [1.3, 1.4, 0, -1.4, 0, 1.0, 0.785, 0.035, 0.035]],
+            period: 10 },
     };
+    const mirrorQ = q => q.map((v, i) => (i % 2 === 0 && i < 7 ? -v : v));
+    RB.op.restL = mirrorQ(RB.op.restR);
+    RB.op.cycleL = RB.op.cycleR.map(mirrorQ);
+    // an arm mounted on a shoulder: standing, then tilted outward about the
+    // stage's z (positive tilt leans a right-hand arm to the right)
+    const shouldered = (root, k, yaw, tiltDeg) => { const B = standing(root, k, yaw); return place(mul(rotZ(tiltDeg * DEG), B.m), B.t); };
     const lerpQ = (A, B, u) => A.map((a, i) => a + (B[i] - a) * u);
     // the SO-ARM's bodies, in tree order, for growing it base first
     const SO_ORDER = ['base', 'shoulder', 'upper_arm', 'lower_arm', 'wrist', 'gripper', 'moving_jaw'];
@@ -2091,10 +2154,11 @@ export default function Flourish3D({ side = 'right' }) {
     // incoming body travels from the outgoing one's placement to its own while
     // it fades in. Base first, tip last. Every part is on screen throughout,
     // moving and turning into the part that replaces it.
-    const lerpM = (A, B, u) => {
+    const detScale = A => Math.cbrt(Math.abs(A[0] * (A[4] * A[8] - A[5] * A[7]) - A[1] * (A[3] * A[8] - A[5] * A[6]) + A[2] * (A[3] * A[7] - A[4] * A[6]))) || 1;
+    // `s0`/`s1` override the scales interpolated between (see drawMorph)
+    const lerpM = (A, B, u, s0, s1) => {
       // interpolate, then pull the columns back to orthonormal, keeping scale
-      const sA = Math.cbrt(Math.abs(A[0] * (A[4] * A[8] - A[5] * A[7]) - A[1] * (A[3] * A[8] - A[5] * A[6]) + A[2] * (A[3] * A[7] - A[4] * A[6]))) || 1;
-      const sB = Math.cbrt(Math.abs(B[0] * (B[4] * B[8] - B[5] * B[7]) - B[1] * (B[3] * B[8] - B[5] * B[6]) + B[2] * (B[3] * B[7] - B[4] * B[6]))) || 1;
+      const sA = detScale(A), sB = detScale(B);
       const M = new Array(9);
       for (let i = 0; i < 9; i++) M[i] = (A[i] / sA) * (1 - u) + (B[i] / sB) * u;
       // Gram-Schmidt on the columns
@@ -2104,10 +2168,10 @@ export default function Flourish3D({ side = 'right' }) {
       c1 = [c1[0] - d * c0[0], c1[1] - d * c0[1], c1[2] - d * c0[2]];
       const n1 = Math.hypot(...c1) || 1; c1 = c1.map(x => x / n1);
       const c2 = [c0[1] * c1[2] - c0[2] * c1[1], c0[2] * c1[0] - c0[0] * c1[2], c0[0] * c1[1] - c0[1] * c1[0]];
-      const s = sA * (1 - u) + sB * u;
+      const s = (s0 ?? sA) * (1 - u) + (s1 ?? sB) * u;
       return [c0[0] * s, c1[0] * s, c2[0] * s, c0[1] * s, c1[1] * s, c2[1] * s, c0[2] * s, c1[2] * s, c2[2] * s];
     };
-    const lerpT = (A, B, u) => ({ m: lerpM(A.m, B.m, u), t: [A.t[0] + (B.t[0] - A.t[0]) * u, A.t[1] + (B.t[1] - A.t[1]) * u, A.t[2] + (B.t[2] - A.t[2]) * u] });
+    const lerpT = (A, B, u, s0, s1) => ({ m: lerpM(A.m, B.m, u, s0, s1), t: [A.t[0] + (B.t[0] - A.t[0]) * u, A.t[1] + (B.t[1] - A.t[1]) * u, A.t[2] + (B.t[2] - A.t[2]) * u] });
     // pair bodies by fraction along the chain
     const pairBodies = (from, to) => {
       const nA = from.bodies.length, nB = to.bodies.length;
@@ -2117,17 +2181,28 @@ export default function Flourish3D({ side = 'right' }) {
     // its own window, base first (BODY_STAGGER of the act), so the machine
     // changes from the ground up.
     const BODY_STAGGER = 0.45;
+    // SIZE is matched on screen, not in the matrix: an SO-ARM servo at 0.66
+    // px/mm and a Franka link at 0.33 are a similar size on the stage, so the
+    // travelling body starts at the size of the part it replaces and grows or
+    // shrinks into its own. Interpolating the matrix scale alone drew the
+    // Franka's links at twice their size half way through the morph.
     function drawMorph(A, baseA, qA, B, baseB, qB, u) {
       const TA = bodyPlacements(A, baseA, qA), TB = bodyPlacements(B, baseB, qB);
       const pairAB = pairBodies(A, B), pairBA = pairBodies(B, A);
       const nA = A.bodies.length, nB = B.bodies.length;
+      const kA = detScale(baseA.m), kB = detScale(baseB.m);
+      const fit = (r0, r1) => clamp(r0 / r1, 0.25, 4);
       // outgoing bodies: travel to their partner, fade out
       for (const part of A.parts) {
         const i = A.index.get(part.body);
         const w = smooth(win(u, (i / Math.max(1, nA - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
-        const a = 1 - smooth(win(w, 0.45, 0.55));
-        if (a <= 0.01) continue;
-        const T = w > 0 ? lerpT(TA[i], TB[pairAB[i]], w) : TA[i];
+        // the crossfade is SHORT (w 0.35-0.65): while a body is half-way it
+        // is drawn twice, and the act with two arms becoming two arms was the
+        // page's most expensive frame
+        const a = 1 - smooth(win(w, 0.35, 0.3));
+        if (a <= 0.02) continue;
+        const j = pairAB[i];
+        const T = w > 0 ? lerpT(TA[i], TB[j], w, kA, kB * fit(B.bodyRadius[j], A.bodyRadius[i])) : TA[i];
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
         submitMesh(part, T, mat, a, matLine[mat]);
       }
@@ -2135,9 +2210,10 @@ export default function Flourish3D({ side = 'right' }) {
       for (const part of B.parts) {
         const j = B.index.get(part.body);
         const w = smooth(win(u, (j / Math.max(1, nB - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
-        const a = smooth(win(w, 0.3, 0.55));
-        if (a <= 0.01) continue;
-        const T = w < 1 ? lerpT(TA[pairBA[j]], TB[j], w) : TB[j];
+        const a = smooth(win(w, 0.35, 0.3));
+        if (a <= 0.02) continue;
+        const i = pairBA[j];
+        const T = w < 1 ? lerpT(TA[i], TB[j], w, kA * fit(A.bodyRadius[i], B.bodyRadius[j]), kB) : TB[j];
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
         submitMesh(part, T, mat, a, matLine[mat]);
       }
@@ -2248,6 +2324,27 @@ export default function Flourish3D({ side = 'right' }) {
           const q = lerpQ([Math.PI, 0, 0, 0, 0, 0], RB.ur.restL, smooth(win(t, 0.6, 0.4)));
           drawRobot(ROBOTS.ur5e, standing(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), q, gL);
         }
+      }
+      flush();
+    }
+
+    // ── act 4 (right): the two UR arms become the Ultra OP1 ─────────────
+    function drawUltraAct(t) {
+      const u = smooth(t);
+      setCam((18 - 2 * u) * DEG, (14 - 3 * u) * DEG, 0);
+      const m = smooth(win(t, 0.05, 0.75));
+      drawStand(1, 1, m);
+      const rBase = standing(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = standing(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
+      const oR = shouldered(RB.op.rootR, RB.op.k, RB.op.yawR, RB.op.tilt), oL = shouldered(RB.op.rootL, RB.op.k, RB.op.yawL, -RB.op.tilt);
+      if (t >= 1) {
+        drawRobot(ROBOTS.fr3, oR, workQ(RB.op, RB.op.cycleR), 1);
+        drawRobot(ROBOTS.fr3, oL, workQ(RB.op, RB.op.cycleL, RB.op.period * 0.5), 1);
+      } else {
+        // each UR arm travels in to a shoulder and becomes a 7-axis arm, the
+        // right first; both unfold from a packed pose on the way
+        const uR = smooth(win(t, 0.08, 0.72)), uL = smooth(win(t, 0.2, 0.72));
+        drawMorph(ROBOTS.ur5e, rBase, RB.ur.restR, ROBOTS.fr3, oR, lerpQ(RB.fr.folded, RB.op.restR, smooth(win(t, 0.3, 0.55))), uR);
+        drawMorph(ROBOTS.ur5e, lBase, RB.ur.restL, ROBOTS.fr3, oL, lerpQ(RB.fr.folded, RB.op.restL, smooth(win(t, 0.4, 0.55))), uL);
       }
       flush();
     }
@@ -2409,7 +2506,8 @@ export default function Flourish3D({ side = 'right' }) {
         } else if (ROBOTS) {
           if (i === 0) drawSoArmAct(t);
           else if (i === 1) drawFrankaAct(t);
-          else drawURPairAct(i === 2 ? t : 1);   // the pair holds through the last act
+          else if (i === 2) drawURPairAct(t);
+          else drawUltraAct(t);
         } else if (i === 0) drawMotorAct(t);
         else if (i === 1) drawArm6Act(t);
         else drawBimanualAct(i === 2 ? t : 1);
@@ -2432,13 +2530,18 @@ export default function Flourish3D({ side = 'right' }) {
       draw();                              // the finished piece, no morph
     } else {
       // ADAPTIVE RATE: time each draw and back off when it is expensive.
+      // The floor is every OTHER frame (32ms): drawing every frame was tried
+      // — a 6ms draw on top of Firefox's own scroll work overran the 16.7ms
+      // budget and a quarter of frames ran long (p90 17 → 33ms). The
+      // multiplier is 2x, not the 8x it was, which had put the acts at
+      // 12-25fps: that was the lag the owner saw while scrolling.
       let MIN_MS = 32;
       let lastDraw = -1e9, pendingY = 0;
       const paint = yy => {
         lastY = yy;
         const t0 = performance.now();
         draw(yy);
-        MIN_MS = clamp((performance.now() - t0) * 8, 32, 120);
+        MIN_MS = clamp((performance.now() - t0) * 2.0, 32, 80);
         lastDraw = performance.now();
       };
       stopScroll = onPageScroll(y => {
@@ -2459,23 +2562,27 @@ export default function Flourish3D({ side = 'right' }) {
 
     // ── the settled loop ────────────────────────────────────────────────
     // Runs only while the page is sitting still on a section AND this piece is
-    // in a held state; 20fps desktop, 10fps phone; rAF stops it dead when the
-    // tab is hidden, and it is never started under reduced motion.
-    const IDLE_MS = window.innerWidth < 992 ? 100 : 50;
-    let idleRAF = 0, idleTimer = 0, idlePrev = 0;
+    // in a held state; rAF stops it dead when the tab is hidden, and it is
+    // never started under reduced motion. It runs at FRAME RATE, with a frame
+    // skipped after any draw that cost more than a third of one: the 20fps it
+    // ran at read as lag once the robots were doing real work. A phone takes
+    // every other frame.
+    const IDLE_SKIP_MS = 6;
+    const IDLE_STRIDE = window.innerWidth < 992 ? 2 : 1;
+    let idleRAF = 0, idleTimer = 0, idlePrev = 0, idleWait = 0;
     const idleStep = () => {
       idleRAF = 0;
       if (!idleOn) return;
+      if (idleWait > 0) { idleWait--; idleSchedule(); return; }
       const now = performance.now();
       const dt = idlePrev ? Math.min(0.25, (now - idlePrev) / 1000) : 0;
       idlePrev = now;
       idleT += dt;
       if (held(lastY)) draw(lastY);
+      idleWait = (IDLE_STRIDE - 1) + (performance.now() - now > IDLE_SKIP_MS ? 1 : 0);
       idleSchedule();
     };
-    const idleSchedule = () => {
-      idleTimer = setTimeout(() => { idleRAF = requestAnimationFrame(idleStep); }, IDLE_MS);
-    };
+    const idleSchedule = () => { idleRAF = requestAnimationFrame(idleStep); };
     const stopIdle = () => {
       idleOn = false; idlePrev = 0;
       if (idleRAF) { cancelAnimationFrame(idleRAF); idleRAF = 0; }

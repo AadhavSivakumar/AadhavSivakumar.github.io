@@ -22,7 +22,7 @@ export const aboutMeData = {
   modalTitle: 'Aadhav Sivakumar',
   modalContent: [
     { type: 'text', value: "Hello! My name is Aadhav Sivakumar, and this website is meant to showcase projects I've worked on in the past, and projects that I'm currently working on. You're also able to view my resume, an extended CV, or look through the different skills, software, and hardware I have worked with previously." },
-    { type: 'text', value: "I'm an Edge AI Engineer on Roboflow's Solutions Research & Development team in New York, where I deploy production computer-vision systems on NVIDIA Jetson at pharmaceutical, food and automotive manufacturing sites, build the robotics demos Roboflow shows at GTC and CVPR, and work on synthetic data and vision-language-action models for robotic manipulation. Alongside that I'm a researcher in NYU Tandon's CREO lab. Before Roboflow I was a robotics researcher at NYU Tandon, where I earned my Master's in Mechatronics and Robotics and TA'd the Foundations of Robotics and Mathematics for Robotics courses with Professor Peng. Earlier I was a Robot Technician at Starship Technologies, working out of the Fordham University hub in the Bronx. I was born and raised in the Bay Area in California, and I went to undergrad at the University of California, Santa Cruz campus, where I studied Robotics Engineering with a minor in Electrical Engineering." },
+    { type: 'text', value: "I'm an AI Engineer on Roboflow's Edge AI engineering team in New York, where I deploy production computer-vision systems on NVIDIA Jetson at pharmaceutical, food and automotive manufacturing sites, build the robotics demos Roboflow shows at GTC and CVPR, and work on synthetic data and vision-language-action models for robotic manipulation. Alongside that I'm a researcher in NYU Tandon's CREO lab. Before Roboflow I was a robotics researcher at NYU Tandon, where I earned my Master's in Mechatronics and Robotics and TA'd the Foundations of Robotics and Mathematics for Robotics courses with Professor Peng. Earlier I was a Robot Technician at Starship Technologies, working out of the Fordham University hub in the Bronx. I was born and raised in the Bay Area in California, and I went to undergrad at the University of California, Santa Cruz campus, where I studied Robotics Engineering with a minor in Electrical Engineering." },
     { type: 'text', value: "I believe that the most effective engineering happens at the intersection of rigorous theory and reliable application. My experiences, ranging from deep academic research to maintaining active robot fleets in the field, have taught me that building intelligent systems requires not just understanding the algorithms, but also the environmental and societal impact of new technologies. I am driven by the challenge of bridging this gap, ensuring that complex robots are robust, efficient, and capable of solving real-world problems." },
     { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
     { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' }
@@ -46,7 +46,8 @@ export const experienceData = [
     group: 'industry',
     badge: 'Roboflow',
     org: 'Roboflow',
-    role: 'Edge AI Engineer, Solutions Research & Development',
+    role: 'AI Engineer',
+    degree: 'Edge AI engineering team',
     location: 'New York, NY',
     period: 'Jan 2026 – Present',
     summary: 'Bridging industrial machine vision and robot learning: production vision systems on NVIDIA Jetson at manufacturing sites, the robotics demos Roboflow shows at major conferences, and research pipelines from teleoperation hardware through VLA policy fine-tuning.',

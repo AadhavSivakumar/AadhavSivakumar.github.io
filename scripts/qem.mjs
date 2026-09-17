@@ -9,11 +9,16 @@
 // tube keeps its roundness, a flat face stays one flat face, and creases stay
 // put until the very end.
 //
-//   decimate({ v, f }, targetFaces) -> { v, f }
+//   decimate({ v, f }, targetFaces, { maxBoundary }) -> { v, f }
 //
 // v: flat [x,y,z,...], f: flat [a,b,c,...]. Returns compacted arrays.
 // Collapses that would flip a face are refused, and boundary edges carry a
-// stiff constraint plane so open shells keep their rims.
+// stiff constraint plane so open shells keep their rims. `maxBoundary` (mm)
+// caps how long a boundary edge may get: the constraint plane lets a rim
+// vertex slide freely ALONG its rim, so on a round opening the rim polygon
+// coarsens until the triangles of the bezel round it run as CHORDS across
+// the hole — the camera's front plate had pale wedges cut across it. With a
+// cap, a rim keeps enough vertices to stay round.
 //
 // Speed matters: the camera casing is 135k faces and the first version of
 // this took a quarter of an hour on it and had not finished. Two things did
@@ -24,7 +29,8 @@
 // far above the target and the loop crawled through re-queues. Now lists
 // are pruned as they are walked and refused edges are just remembered.
 
-export function decimate(mesh, target) {
+export function decimate(mesh, target, opts = {}) {
+  const maxBoundary = opts.maxBoundary ?? Infinity;
   const v = Float64Array.from(mesh.v);
   const f = Int32Array.from(mesh.f);
   const nv = v.length / 3, nf = f.length / 3;
@@ -91,6 +97,11 @@ export function decimate(mesh, target) {
       addPlane(a, nx, ny, nz, d, w); addPlane(b, nx, ny, nz, d, w);
     }
   }
+  const isBoundary = new Uint8Array(nv);
+  for (let i = 0; i < nf; i++) if (faceAlive[i]) for (let k = 0; k < 3; k++) {
+    const a = f[i * 3 + k], b = f[i * 3 + (k + 1) % 3];
+    if (edgeCount.get(edgeKey(a, b)) === 1) { isBoundary[a] = 1; isBoundary[b] = 1; }
+  }
   edgeCount.clear();
 
   // cost of collapsing a-b, and where the merged vertex goes: the best of the
@@ -154,6 +165,17 @@ export function decimate(mesh, target) {
   const N0 = new Float64Array(5), N1 = new Float64Array(5);
   // would any face around `vid` (that does not vanish with the edge) flip if
   // `vid` moved to (nx,ny,nz)?
+  // shape quality of a face: 4*sqrt(3)*area / (sum of squared edges), 1 for
+  // equilateral, toward 0 for a sliver
+  const quality = fi => {
+    const a = f[fi * 3] * 3, b = f[fi * 3 + 1] * 3, c = f[fi * 3 + 2] * 3;
+    const e0 = (v[b] - v[a]) ** 2 + (v[b + 1] - v[a + 1]) ** 2 + (v[b + 2] - v[a + 2]) ** 2;
+    const e1 = (v[c] - v[b]) ** 2 + (v[c + 1] - v[b + 1]) ** 2 + (v[c + 2] - v[b + 2]) ** 2;
+    const e2 = (v[a] - v[c]) ** 2 + (v[a + 1] - v[c + 1]) ** 2 + (v[a + 2] - v[c + 2]) ** 2;
+    plane(fi, N1);
+    return (4 * Math.sqrt(3) * N1[4]) / ((e0 + e1 + e2) || 1e-12);
+  };
+  const SLIVER = 0.12;
   const flipsAround = (vid, a, b, nx, ny, nz) => {
     const L = prune(vid);
     const ox = v[vid * 3], oy = v[vid * 3 + 1], oz = v[vid * 3 + 2];
@@ -167,10 +189,17 @@ export function decimate(mesh, target) {
       if (i2 === a || i2 === b) hits++;
       if (hits >= 2) continue;                 // this face vanishes with the edge
       plane(fi, N0);
+      const q0 = quality(fi);
       v[vid * 3] = nx; v[vid * 3 + 1] = ny; v[vid * 3 + 2] = nz;
       plane(fi, N1);
+      const q1 = quality(fi);
       v[vid * 3] = ox; v[vid * 3 + 1] = oy; v[vid * 3 + 2] = oz;
       if (N1[4] === 0 || N0[0] * N1[0] + N0[1] * N1[1] + N0[2] * N1[2] < 0.2) bad = true;
+      // No SLIVERS: a collapse may not turn a decent face into a needle. On a
+      // band between two preserved rims the cheapest collapses make long
+      // triangles zig-zagging rim to rim, and their alternating mean normals
+      // shade as teeth. A face that already is a sliver may stay one.
+      else if (q1 < SLIVER && q0 >= SLIVER) bad = true;
     }
     return bad;
   };
@@ -206,11 +235,18 @@ export function decimate(mesh, target) {
     const key = edgeKey(a, b);
     if (refused.has(key)) continue;
     evalEdge(a, b, tmp);
+    // a rim vertex merging with an interior one stays ON the rim: the merged
+    // vertex takes the rim vertex's place, or the rim would wander inward
+    // with every such collapse (the casing's front opening grew a triangle
+    // across it that way)
+    if (isBoundary[a] !== isBoundary[b]) { const r = isBoundary[a] ? a : b; tmp[0] = v[r * 3]; tmp[1] = v[r * 3 + 1]; tmp[2] = v[r * 3 + 2]; }
     const nx = tmp[0], ny = tmp[1], nz = tmp[2];
+    if (isBoundary[a] && isBoundary[b] && Math.hypot(v[a * 3] - v[b * 3], v[a * 3 + 1] - v[b * 3 + 1], v[a * 3 + 2] - v[b * 3 + 2]) > maxBoundary) { refused.add(key); continue; }
     if (!linkOK(a, b) || flipsAround(a, a, b, nx, ny, nz) || flipsAround(b, a, b, nx, ny, nz)) { refused.add(key); continue; }
     // collapse b into a
     v[a * 3] = nx; v[a * 3 + 1] = ny; v[a * 3 + 2] = nz;
     for (let i = 0; i < 10; i++) Q[a * 10 + i] += Q[b * 10 + i];
+    isBoundary[a] |= isBoundary[b];
     alive[b] = 0;
     const La = vf[a], Lb = vf[b];
     for (let r = 0; r < Lb.length; r++) {

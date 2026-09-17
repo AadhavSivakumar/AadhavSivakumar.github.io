@@ -97,7 +97,15 @@ function prepare(robot) {
   const index = new Map(bodies.map((b, i) => [b.name, i]));
   // each part's centroid in its body frame (the camera's shutter sits on its lens)
   const centroids = parts.map(p => { let x = 0, y = 0, z = 0; for (let i = 0; i < p.nv; i++) { x += p.v[i * 3]; y += p.v[i * 3 + 1]; z += p.v[i * 3 + 2]; } return [x / p.nv, y / p.nv, z / p.nv]; });
-  return { id: robot.id, parts, bodies, index, centroids };
+  // and how big each BODY is (mm, the largest part's radius about its
+  // centroid), so a morph can match sizes between two robots' bodies
+  const bodyRadius = bodies.map(() => 1);
+  parts.forEach((p, k) => {
+    const c = centroids[k]; let r = 0;
+    for (let i = 0; i < p.nv; i++) { const d = Math.hypot(p.v[i * 3] - c[0], p.v[i * 3 + 1] - c[1], p.v[i * 3 + 2] - c[2]); if (d > r) r = d; }
+    const bi = index.get(p.body); if (r > bodyRadius[bi]) bodyRadius[bi] = r;
+  });
+  return { id: robot.id, parts, bodies, index, centroids, bodyRadius };
 }
 
 /* ── small linear algebra, matching Flourish3D's row-major 3x3 ──────── */
@@ -166,8 +174,10 @@ export function facing(root, k, yawDeg, pitchDeg) {
   return place(mul(yaw, mul(pitch, mul(flip, S))), [root[0], root[1], root[2] || 0]);
 }
 
-// Forward kinematics: the world placement of every body for joint angles `q`
-// (radians, one per jointed body in tree order; the base has no joint).
+// Forward kinematics: the world placement of every body for joint values `q`
+// (one per jointed body in tree order; radians for a hinge, METRES for a
+// slide — the Franka Hand's fingers — scaled here to the bake's millimetres;
+// the base has no joint).
 export function bodyPlacements(robot, base, q) {
   const out = new Array(robot.bodies.length);
   let qi = 0;
@@ -177,7 +187,9 @@ export function bodyPlacements(robot, base, q) {
     let T = chain(parent, place(b.m, b.pos));
     if (b.axis) {
       const a = q[qi++] || 0;
-      T = chain(T, place(axisM(b.axis, a), [0, 0, 0]));
+      T = b.slide
+        ? chain(T, place(IDENT, [b.axis[0] * a * 1000, b.axis[1] * a * 1000, b.axis[2] * a * 1000]))
+        : chain(T, place(axisM(b.axis, a), [0, 0, 0]));
     }
     out[i] = T;
   }

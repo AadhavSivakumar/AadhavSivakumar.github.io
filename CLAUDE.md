@@ -458,7 +458,32 @@ settle point):
 | Experience → Research | the motor lands on the **SO-ARM101**'s base servo and the arm grows out of it | the camera explodes to its **sensor** |
 | Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | the **model runs** on the pixels |
 | Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** on a stand; the left unfolds beside it | the model returns **detections** |
-| Additional Projects → Resume | the pair holds, working | the detections become a **world model** |
+| Additional Projects → Resume | the stand becomes the **Ultra OP1**'s body and the two URs its two arms | the detections become a **world model** |
+
+**The Ultra OP1 is drawn from its published description, not from CAD** —
+there is none public. Ultra's own material says: a stationary dual-arm robot,
+180 cm, white and black, a 5x5 ft fixed base on locking casters, 14 degrees
+of freedom, two-finger grippers, RGB cameras, reaching the floor to 10 ft.
+So `drawStand(u, alpha, m)` with `m` = 1 is that body — caster base, white
+torso with a black chest band, shoulder yoke, a head with two camera eyes —
+and every dimension is interpolated from the stand's, so the workcell turns
+into the robot rather than being replaced. **Its arms are the Franka
+meshes**, shoulder-mounted and tilted outward (`shouldered`, `RB.op`): seven
+axes, white with black joints, a two-finger hand — the nearest real thing to
+Ultra's own arms, which nobody outside Ultra has a model of. If a reference
+photo turns up, the body's proportions in `drawStand` are the thing to fit.
+The left arm's poses are the right's MIRROR: odd joints negated (`mirrorQ`),
+because those turn about the arm's own axis. On a shoulder-mounted Franka,
+joint 1 near +1.5 brings the hand down in front of the chest; the sign the
+standing Franka uses sends it up over the head (rendered both ways to find
+out).
+
+**The Franka has its hand.** The Menagerie's `franka_fr3` ships without one;
+the Franka Hand meshes come from its `franka_emika_panda` (same part), the
+hand body at `pos 0 0 0.107, quat 0.9239 0 0 -0.3827` on link7, two fingers
+on SLIDE joints along the hand's y (0-40 mm). `bodyPlacements` takes a
+`slide` body as a translation of `q` metres along its axis (scaled to the
+bake's mm), so a Franka pose is nine values: seven hinges, two finger gaps.
 
 **A transition is a MORPH, not a swap** (`drawMorph`). The owner: "don't just
 have each one shrink away and then the next one reappear". Each body of the
@@ -475,8 +500,9 @@ pose (`folded` → `rest`) during the morph, so it arrives moving.
 
 **The robots WORK while the page is settled** (`workQ` / `cycleQ`): each has
 a cycle of joint-space waypoints — reach, close, lift, swing, set down, open,
-return — eased between over `period` seconds (`RB.*.cycle`), the UR pair out
-of phase by half a period. The cycle's first waypoint is the rest pose, and
+return — eased between over `period` seconds (`RB.*.cycle`), the UR pair and
+the OP1's arms out of phase by half a period; the Franka's and the OP1's
+fingers open and close with it. The cycle's first waypoint is the rest pose, and
 the instant the page moves the robot is drawn at rest, so the next act's
 morph starts from the frame this one ended on. Before this they swayed two
 joints on a sine (`swayQ`), which read as wobbling, not working.
@@ -674,12 +700,41 @@ Things learned by getting them wrong, in order:
   the air from outside, blur, naive surface nets, decimate — and pinched at
   every lens aperture (hundreds of non-manifold edges the decimator could not
   pass), leaving torn surfaces. Two hours; not worth more.
-- **Mesh fills are SEALED**: after each run of same-toned triangles is filled,
-  the same path is stroked 0.7px in its own colour (`m: 1` on the bucket
-  entry). Adjacent triangles of different tones land in different fill calls,
-  and where two anti-aliased edges meet the page shows through as a
-  hairline — on the dark theme a pale robot came out wearing its whole
-  wireframe.
+- **Black trim gets a depth bias** (+1.4 toward the viewer, `MAT.poly` fills
+  in `submitMesh`). The Franka's base band and joint rings are black parts
+  sitting flush ON the white shell; within one depth slab the two sort by
+  style, the white won half the band's triangles, and the band came out as a
+  row of teeth. It looked like a decimation defect and survived a sliver
+  rule in the decimator (kept — `SLIVER` in qem.mjs refuses collapses that
+  turn a decent face into a needle) before the cause was found.
+- **Rims may not coarsen** (`maxBoundary` in qem.mjs, 2.5mm for the camera).
+  The boundary constraint lets a rim vertex slide freely ALONG its rim, so a
+  round opening's rim polygon loses vertices until the bezel's triangles run
+  as chords across the hole — pale wedges cut across the camera's front
+  plate at the lower casing budget. Capping boundary edge length keeps a
+  rim round; it costs faces, which is why the camera sits above its budget.
+- **Mesh fills are SEALED on the dark theme**: after each run of same-toned
+  triangles is filled, the same path is stroked 0.7px in its own colour
+  (`m: 1` on the bucket entry). Adjacent triangles of different tones land in
+  different fill calls, and where two anti-aliased edges meet the page shows
+  through as a hairline — on the dark theme a pale robot came out wearing its
+  whole wireframe. On the light theme the seam is near-white through
+  near-white and the stroke — the dearer half of the call — is skipped.
+- **Triangles under two thirds of a pixel are not drawn** (`area < 1.3` in
+  `submitMesh`, after the silhouette test has used them). At 0.2-0.33 px/mm
+  a third of a decimated arm's faces are that small, and each was a bucket
+  entry, a sort key and a path segment. With this, dark-only sealing and the
+  budgets below, the page measures the same with the acts redrawing every
+  other frame as it did redrawing every fourth: p50 17.0 / p90 17.2 in
+  Firefox with the lanyards running. **The lanyards are the other half of
+  every long frame** — with their WebGL off the page holds p90 17.2 whatever
+  the art does — so a heavier robot shows up first on the Experience and
+  Research pages, where the badges are.
+- **Budgets** (faces per mesh file, `bake-robots.mjs`): SO-ARM101 420 (7.5k
+  a robot), Franka 480 + a smaller schedule for the hand (6.3k), UR5e 250
+  (5.2k), camera casing 2800 / plate 800 / module 700 (5.2k); a group is
+  never under 100. The OP1 draws two Frankas, and the act that makes it
+  draws them over two URs, so the Franka is the one to keep lean.
 - **Do not peel interiors.** A `peelInterior` pass once dropped inward-facing
   faces from hollow shells to stop them showing through. It opened a boundary
   around every hole it made, every boundary edge is an outline, and the parts
@@ -702,10 +757,11 @@ Things learned by getting them wrong, in order:
   points the gripper down, +gripper opens the jaw. It stands at yaw 195 so
   it reaches into the page with its base servo toward the viewer; at yaw 30
   the forearm ran off the right edge.
-- **Dev hooks, kept**: `?dev=<robot>:q1,q2,…;k;yaw;x;y` draws one baked
-  machine at that pose on the right stage (and the camera on the left;
-  `?dev=d435i;k;yaw;pitch` reframes it), `&part=0,5` limits the camera to
-  those parts. Both need the page scrolled to just past the hero (`art()`
+- **Dev hooks, kept**: `?dev=<robot>:q1,q2,…;k;yaw;x;y[;tilt]` draws one baked
+  machine at that pose on the right stage, on the OP1's body at half alpha
+  for reference, tilted as a shoulder-mounted arm when `tilt` is given (and
+  the camera on the left; `?dev=d435i;k;yaw;pitch` reframes it), `&part=0,5`
+  limits the camera to those parts. Both need the page scrolled to just past the hero (`art()`
   runs there). They have paid for themselves several times.
 - **Screenshot harness gotcha:** the settle snap moves the page two seconds
   after a scripted scroll and the eased glide takes a second, so mid-act
@@ -1077,8 +1133,11 @@ page as well.
 
 ## Settling on a page, and what runs while it is settled
 
-**Stop with a section half in frame and, two seconds later, the page eases
-until it fills the screen** (`src/scrollSnap.js`). Every page is one screen
+**Stop with a section half in frame and, after 0.7s of stillness, the page
+eases until it fills the screen** (`src/scrollSnap.js`); a section ALREADY in
+frame counts as settled 120ms after the scroll stops, so the robots start
+working the moment the reader arrives. It was two seconds for both, which
+the owner found "taking too long". Every page is one screen
 tall, so a settled page shows exactly one — and that is also where the art is
 at a keypoint: `S_MORPH` ends at exactly 1.0 hero heights, the top of
 Experience, so the waves finish becoming the camera and the motor at the
@@ -1109,7 +1168,13 @@ slightly different picture). This is the one thing on the page that animates wit
 the scroll driving it, so it is fenced: settled only, held states only
 (`held()`), 20fps desktop / 10fps phone, rAF stops it when the tab is hidden,
 never under reduced motion, and the piece is redrawn at its resting frame the
-moment the page moves — a shutter frozen half-shut looks broken.
+moment the page moves — a shutter frozen half-shut looks broken. **It runs at
+frame rate** (rAF, a frame skipped after any draw over 6ms; every other frame
+on a phone): the 20fps it first ran at read as lag once the robots were doing
+real work. The scroll-driven redraw keeps its every-other-frame floor (32ms)
+but the cost multiplier is 2x instead of 8x — the acts were at 12-25fps.
+Drawing every frame was tried and measured: a 6ms draw on top of Firefox's
+own scroll work overran the budget and p90 went from 17 to 33ms.
 
 Two details worth keeping:
 

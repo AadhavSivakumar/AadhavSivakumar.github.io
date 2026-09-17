@@ -131,12 +131,12 @@ function cluster(mesh, cell) {
   return { v: nv, f: nf };
 }
 
-function decimateTo(mesh, budget) {
+function decimateTo(mesh, budget, opts) {
   if (mesh.f.length / 3 <= budget) return mesh;
   // Quadric edge collapse (scripts/qem.mjs). Vertex clustering, below, is
   // kept for reference: it produced slivers and torn patches at 5-7k
   // triangles, which the owner saw as "triangles" and "broken".
-  return decimate(mesh, budget);
+  return decimate(mesh, budget, opts);
 }
 function decimateByClustering(mesh, budget) {
   if (mesh.f.length / 3 <= budget) return mesh;
@@ -370,6 +370,9 @@ const ROBOTS = {
     // pinched at every lens aperture (hundreds of non-manifold edges the
     // decimator could not pass), leaving torn surfaces. Not worth more.
     patches: true,
+    // its rims — the bezel round the front, the lens apertures — may not
+    // coarsen past 2.5mm edges, or the bezel's triangles cut across them
+    qem: { maxBoundary: 2.5 },
     bodies: [
       { name: 'd435i', parent: null, pos: [0, 0, 0], geoms: [
         ['d435i_0.obj', 'black'], ['d435i_1.obj', 'green'], ['d435i_2.obj', 'gray'], ['d435i_3.obj', 'black'],
@@ -381,7 +384,7 @@ const ROBOTS = {
   // TheRobotStudio's SO-ARM101, from their own MJCF (Simulation/SO101/
   // so101_new_calib.xml). Printed parts are white, the STS3215 servos black.
   soarm: {
-    dir: 'so101', kind: 'stl', budget: 500,
+    dir: 'so101', kind: 'stl', budget: 420,
     bodies: [
       { name: 'base', parent: null, pos: [0, 0, 0], geoms: [
         ['base_motor_holder_so101_v1.stl', 'white', [-0.00636471, -9.94414e-05, -0.0024], [0.5, 0.5, 0.5, 0.5]],
@@ -435,7 +438,7 @@ const ROBOTS = {
     ],
   },
   fr3: {
-    dir: 'franka_fr3', kind: 'obj', budget: 800,
+    dir: 'franka_fr3', kind: 'obj', budget: 480,
     bodies: [
       { name: 'link0', parent: null, pos: [0, 0, 0], geoms: [['link0.obj']] },
       { name: 'link1', parent: 'link0', pos: [0, 0, 0.333], axis: [0, 0, 1], geoms: [['link1.obj']] },
@@ -445,10 +448,18 @@ const ROBOTS = {
       { name: 'link5', parent: 'link4', pos: [-0.0825, 0.384, 0], quat: [1, -1, 0, 0], axis: [0, 0, 1], geoms: [['link5.obj']] },
       { name: 'link6', parent: 'link5', pos: [0, 0, 0], quat: [1, 1, 0, 0], axis: [0, 0, 1], geoms: [['link6.obj']] },
       { name: 'link7', parent: 'link6', pos: [0.088, 0, 0], quat: [1, 1, 0, 0], axis: [0, 0, 1], geoms: [['link7.obj']] },
+      // the Franka Hand, from the Menagerie's franka_emika_panda (the FR3 model
+      // ships without it; the hand is the same part): two fingers on SLIDE
+      // joints along the hand's y, 0-40 mm each
+      { name: 'hand', parent: 'link7', pos: [0, 0, 0.107], quat: [0.9238795, 0, 0, -0.3826834], geoms: [
+        ['hand_0.obj', 'white'], ['hand_1.obj', 'black'], ['hand_2.obj', 'black'], ['hand_3.obj', 'white'], ['hand_4.obj', 'white'],
+      ] },
+      { name: 'left_finger', parent: 'hand', pos: [0, 0, 0.0584], axis: [0, 1, 0], slide: true, geoms: [['finger_0.obj', 'white'], ['finger_1.obj', 'black']] },
+      { name: 'right_finger', parent: 'hand', pos: [0, 0, 0.0584], quat: [0, 0, 0, 1], axis: [0, 1, 0], slide: true, geoms: [['finger_0.obj', 'white'], ['finger_1.obj', 'black']] },
     ],
   },
   ur5e: {
-    dir: 'universal_robots_ur5e', kind: 'obj', budget: 340,
+    dir: 'universal_robots_ur5e', kind: 'obj', budget: 250,
     bodies: [
       { name: 'base', parent: null, pos: [0, 0, 0], quat: [0, 0, 0, -1], geoms: [['base_0.obj', 'black'], ['base_1.obj', 'jointgray']] },
       { name: 'shoulder', parent: 'base', pos: [0, 0, 0.163], axis: [0, 0, 1],
@@ -484,7 +495,7 @@ for (const [id, R] of Object.entries(ROBOTS)) {
   const out = { id, patches: !!R.patches, bodies: [], parts: [] };
   let tris = 0, bytes = 0, flipped = 0, peels = 0;
   for (const B of R.bodies) {
-    out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, axis: B.axis || null });
+    out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, axis: B.axis || null, slide: !!B.slide });
     for (const [file, matName, gpos, gquat] of B.geoms) {
       const p = path.join(ROOT, R.dir, 'assets', file);
       const groups = R.kind === 'stl' ? readSTL(p) : readOBJ(p);
@@ -495,15 +506,21 @@ for (const [id, R] of Object.entries(ROBOTS)) {
       // then the black front plate — at 110 faces its patches came out as a
       // torn handful of triangles and the casing's open front showed its
       // ribs through the gap — then the sensor module behind it
-      const CAM_BUDGET = { 'd435i_8.obj': 3600, 'd435i_5.obj': 900, 'd435i_4.obj': 900 };
-      const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : budget;
+      const CAM_BUDGET = { 'd435i_8.obj': 2800, 'd435i_5.obj': 800, 'd435i_4.obj': 700 };
+      // the Franka Hand is drawn small; its two big shells and the fingers
+      // need far fewer faces than an arm link (two Frankas make the OP1, and
+      // the frame budget is the whole page's)
+      const HAND_BUDGET = { 'hand_2.obj': 260, 'hand_3.obj': 300, 'hand_1.obj': 160, 'hand_4.obj': 160, 'hand_0.obj': 40, 'finger_0.obj': 120, 'finger_1.obj': 100 };
+      const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : (HAND_BUDGET[file] ?? budget);
       for (const g of groups) {
-        const share = Math.max(24, Math.round(fileBudget * (g.f.length / 3) / total));
+        // a small group still needs enough faces to be a ring and not a
+        // crown: the Franka's base band at 127 was a row of teeth
+        const share = Math.max(100, Math.round(fileBudget * (g.f.length / 3) / total));
         // wind the INPUT consistently first (the SO-ARM's STLs are random per
         // triangle), so the decimator works on an oriented surface; then
         // again after, per shell, outward
         orientOutward(g);
-        const m = decimateTo(g, share);
+        const m = decimateTo(g, share, R.qem);
         if (m.f.length < 3) continue;
         if (orientOutward(m)) flipped++;
         // NO interior peeling. It was tried: removing inward-facing faces from
