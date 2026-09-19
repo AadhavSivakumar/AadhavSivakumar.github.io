@@ -531,7 +531,9 @@ for (const [id, R] of Object.entries(ROBOTS)) {
       // the Franka Hand is drawn small; its two big shells and the fingers
       // need far fewer faces than an arm link (two Frankas make the OP1, and
       // the frame budget is the whole page's)
-      const HAND_BUDGET = { 'hand_2.obj': 260, 'hand_3.obj': 300, 'hand_1.obj': 160, 'hand_4.obj': 160, 'hand_0.obj': 40, 'finger_0.obj': 120, 'finger_1.obj': 100 };
+      // ...and the base, a chamfered pedestal with cut-outs in seven
+      // material groups, needs more than a link (at 480 it was a torn tent)
+      const HAND_BUDGET = { 'hand_2.obj': 260, 'hand_3.obj': 300, 'hand_1.obj': 160, 'hand_4.obj': 160, 'hand_0.obj': 40, 'finger_0.obj': 120, 'finger_1.obj': 100, 'link0.obj': 1500 };
       const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : (HAND_BUDGET[file] ?? budget);
       for (const g of groups) {
         // a small group still needs enough faces to be a ring and not a

@@ -42,7 +42,7 @@ export function loadRobots() {
 // drawing; the Franka, the URs and the camera are organic shells, and on
 // those a lower threshold catches decimation facets at the rounded ends and
 // draws a lattice across them.
-const CREASE_DEG = { soarm: 62, fr3: 76, ur5e: 76, d435i: 78, ultra: 74 };
+const CREASE_DEG = { soarm: 72, fr3: 76, ur5e: 76, d435i: 78, ultra: 74 };
 function prepare(robot) {
   const creaseDeg = CREASE_DEG[robot.id] ?? 70;
   const parts = robot.parts.map(p => {
@@ -89,7 +89,7 @@ function prepare(robot) {
     // a robot made of open CAD patches (the camera) does not draw its
     // patch borders: they are tessellation seams, not edges of the object
     if (robot.patches) for (let k = 0; k < map.size; k++) if (e[k * 4 + 3] < 0) crease[k] = 0;
-    return { body: p.body, name: p.name, mat: p.mat, v, f, n, vn, e, crease, nv, nf, patches: !!robot.patches };
+    return { body: p.body, name: p.name, mat: p.mat, rid: robot.id, v, f, n, vn, e, crease, nv, nf, patches: !!robot.patches };
   });
   const bodies = robot.bodies.map(b => ({
     ...b,

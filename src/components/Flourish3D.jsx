@@ -335,15 +335,16 @@ const MAT = {
   urblue: 8,          // the UR5e's joint caps
   ochre: 9,           // Generalist's yellow 3D-printed gripper fingers
   orange: 10,         // Ultra's gripper tips and logo
+  red: 11, green: 12, blue: 13,   // the cubes the robots handle
 };
 // hex per slot; `copper` and `paint` are filled in from theme tokens
-const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A'];
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A', '#C9473F', '#4E9A5C', '#3F6FB8'];
 // Weight is inversely related to how much of the frame the part covers. A tint
 // worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
 // assembled machine into a coloured blob and throws away the line art. So the
 // big masses stay near the page colour and the small parts carry the colour —
 // and most of the separation is done by the LINEWORK, which costs no area.
-const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62];
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62, 0.72, 0.72, 0.72];
 const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
 
 const MOTOR_SPEC = [
@@ -1256,7 +1257,10 @@ export default function Flourish3D({ side = 'right' }) {
         // it, and within one depth slab the two sort by style — so the white
         // shell won half the band's triangles and the band came out as a row
         // of teeth. The trim gets a small bias toward the viewer.
-        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly ? 1.4 : 0);
+        // (Franka only: on the SO-ARM the black parts are SERVOS inside white
+        // printed holders, and the bias pushed them through their housings —
+        // the "glitching textures" the owner saw as the arm moved.)
+        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly && part.rid === 'fr3' ? 1.4 : 0);
         const col = meshTone(lit, mat);
         bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: 1 });
         segs += 3;
@@ -1323,8 +1327,9 @@ export default function Flourish3D({ side = 'right' }) {
     //   sensor — reads out: a band sweeps the grid and the picture changes
     let ROBOTS = null;                     // the baked machines, once loaded
     loadRobots().then(r => { ROBOTS = r; if (lastY >= 0) draw(lastY); }).catch(() => {});
-    let idleT = 0;                         // seconds of idle animation, kept across stops
+    let idleT = 0;                         // seconds of idle animation, from the settle
     let idleOn = false;
+    let settleU = 0;                       // the settle blend: 1 live, 0 at rest (see the settled loop)
     const SHUTTER = 2.6;                   // seconds between pictures
     const SPIN = 2600 * DEG;
     const ROLL = (90 + 250) * DEG;
@@ -1409,9 +1414,9 @@ export default function Flourish3D({ side = 'right' }) {
           drawUnitProps(TU, unitTaskState(TU, 0), 1);
         } else if (id === 'ur5e' && +tilt === 180 && ROBOTS.ur5e) {
           drawFrame(1, 1);
-          const base = hanging([+x, +y], +k, +yaw), qq = qs.split(',').filter(Boolean).map(Number);
-          drawUR(base, qq.length ? qq : RB.ur.rest, 1);
-          const st = taskState(ROBOTS.ur5e, base, RB.ur.task, 0); drawCubes(st, 1); drawPackBox(base, 1);
+          const base = leaning([+x, +y, MOUNT_Z], +k, +yaw), qq = qs.split(',').filter(Boolean).map(Number);
+          drawUR(base, qq.length ? qq : RB.ur.restR, 1);
+          const st = taskState(ROBOTS.ur5e, base, RB.ur.taskR, 0); drawCubes(st, 1); drawPackBox(base, 1);
         } else if (ROBOTS[id]) {
           const base = shouldered([+x, +y], +k, +yaw, +tilt), qq = qs.split(',').filter(Boolean).map(Number);
           const task = id === 'soarm' ? RB.so.task : id === 'fr3' ? RB.fr.task : null;
@@ -1759,8 +1764,8 @@ export default function Flourish3D({ side = 'right' }) {
     // arms HANGING from a frame over a dark table, black wrists, yellow
     // 3D-printed parallel fingers, packing things into boxes. So: two posts,
     // a crossbar, the UR bases bolted to its underside, a table below.
-    const STAND_X = 12, FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, POST_X = 126;
-    const TABLE_Y = BAR_Y + 12 + 740 * UR_K;                          // the IK put the table 740 mm below the mounts
+    const STAND_X = 12, FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, POST_X = 124;
+    const MOUNT_Z = -46, LEAN = 28, TABLE_Y = 80;                    // the arms hang from a bar set back, leaning in
     function drawFrame(u, alpha) {
       if (u <= 0.01 || alpha <= 0.01) return;
       const F = place(IDENT, [0, 0, 0]);
@@ -1769,17 +1774,20 @@ export default function Flourish3D({ side = 'right' }) {
         submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a);
         submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width);
       };
-      // the frame: posts from the table up to the crossbar, the crossbar, a
-      // mount plate under it at each arm
-      box(8, TABLE_Y - BAR_Y, 8, FRAME_X - POST_X, (TABLE_Y + BAR_Y) / 2, -30, MAT.alu);
-      box(8, TABLE_Y - BAR_Y, 8, FRAME_X + POST_X, (TABLE_Y + BAR_Y) / 2, -30, MAT.alu);
-      box(2 * POST_X + 8, 10, 40, FRAME_X, BAR_Y, -30, MAT.alu);
-      for (const x of [FRAME_X - UR_DX, FRAME_X + UR_DX]) box(34, 6, 34, x, BAR_Y + 8, -12, MAT.steel);
-      // the table: a dark top on a lighter frame. Its near edge sits toward
-      // the viewer and perspective grows it ~15%: at the posts' width it
-      // reached both stage edges, so it is narrower than the frame.
-      box(2 * POST_X - 16, 6, 120, FRAME_X, TABLE_Y + 3, 10, MAT.poly);
-      box(2 * POST_X - 12, 4, 124, FRAME_X, TABLE_Y + 8, 10, MAT.alu);
+      // a heavy black frame: posts up from the table's back corners, the
+      // crossbar, a canted mount block under it for each arm
+      box(14, TABLE_Y - BAR_Y + 10, 14, FRAME_X - POST_X, (TABLE_Y + BAR_Y) / 2, MOUNT_Z, MAT.poly);
+      box(14, TABLE_Y - BAR_Y + 10, 14, FRAME_X + POST_X, (TABLE_Y + BAR_Y) / 2, MOUNT_Z, MAT.poly);
+      box(2 * POST_X + 14, 14, 14, FRAME_X, BAR_Y, MOUNT_Z, MAT.poly);
+      for (const x of [FRAME_X - UR_DX, FRAME_X + UR_DX]) {
+        const M = place(mul(rotX(LEAN * DEG), scaleM(u)), [x, BAR_Y + 8, MOUNT_Z]);
+        submit(boxFaces(36, 10, 36, 0, 3, 0), M, MAT.poly, a);
+        submitLines(boxWire(36, 10, 36, 0, 3, 0), M, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      }
+      // the table: a dark top on a black frame, its back edge under the bar.
+      // Narrower than the frame: its near edge grows ~15% in perspective.
+      box(2 * POST_X - 24, 6, 150, FRAME_X, TABLE_Y + 3, 18, MAT.poly);
+      box(2 * POST_X - 18, 5, 156, FRAME_X, TABLE_Y + 9, 18, MAT.steel);
     }
     const drawStand = (u, alpha) => drawFrame(u, alpha);   // the procedural fallback still calls it by this name
     // The UR's gripper is Generalist's: a black body on the flange, two long
@@ -1790,17 +1798,25 @@ export default function Flourish3D({ side = 'right' }) {
       if (a <= 0.01) return;
       const G = chain(Tw, place(rotX(-90 * DEG), [0, 100, 0]));           // local z along the tool axis
       drawDrum(G, 34, 0, 46, MAT.poly, a);
-      submit(boxFaces(96, 30, 14, 0, 0, 53), G, MAT.poly, a);
-      submitLines(boxWire(96, 30, 14, 0, 0, 53), G, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      submit(boxFaces(100, 34, 14, 0, 0, 53), G, MAT.poly, a);
+      submitLines(boxWire(100, 34, 14, 0, 0, 53), G, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      // the wrist camera on the body's side, looking down the fingers
+      submit(boxFaces(26, 20, 30, 0, 32, 40), G, MAT.poly, a);
+      submitLines(boxWire(26, 20, 30, 0, 32, 40), G, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      submitLines([ringAt(5, 0, 32, 55.5, 12)], G, ink, LOOK.line * a, LOOK.width);
+      // the fingers: long, wide, yellow — the printed ones in every Generalist clip
       for (const sg of [-1, 1]) {
-        const x = sg * (gap / 2 + 7);
-        submit(boxFaces(12, 22, 74, x, 0, 97), G, MAT.ochre, a);
-        submitLines(boxWire(12, 22, 74, x, 0, 97), G, matLine[MAT.ochre], LOOK.line * a, LOOK.width);
+        const x = sg * (gap / 2 + 8);
+        submit(boxFaces(14, 26, 82, x, 0, 101), G, MAT.ochre, a);
+        submitLines(boxWire(14, 26, 82, x, 0, 101), G, matLine[MAT.ochre], LOOK.line * a, LOOK.width);
       }
     }
-    // an arm hanging from the frame: standing, then turned over (a half turn
-    // about the stage's z; the yaw is measured after the turn)
-    const hanging = (root, k, yaw) => shouldered(root, k, yaw, 180);
+    // An arm hanging from the frame's bar and LEANING in toward the viewer
+    // (Generalist's come down over the table at an angle): standing, turned
+    // over (a half turn about the stage's z; the yaw is measured after the
+    // turn), then tilted about the stage's x. The root has a z.
+    const leaning = (root, k, yaw, lean = LEAN) => { const B = standing(root, k, yaw); return place(mul(rotX(lean * DEG), mul(rotZ(Math.PI), B.m)), [root[0], root[1], root[2] || 0]); };
+    const hanging = (root, k, yaw) => leaning(root, k, yaw, 0);
     // a UR with its gripper; the gap rides in q[6] (mm), 90 when absent
     function drawUR(base, q, a, ga = a) {
       drawRobot(ROBOTS.ur5e, base, q, a);
@@ -2030,9 +2046,14 @@ export default function Flourish3D({ side = 'right' }) {
       }
     }
 
-    // ── act 2 (left): the model runs on the pixels ──────────────────────
-    // The sensor turns away and the picture is fed into a stack of layers
-    // that recede from the viewer, with an activation running through them.
+    // ── act 2 (left): a VLA runs on the pixels ──────────────────────────
+    // The left half is the LEARNING half now (the owner's targets: RL, world
+    // models, simulation, VLAs, embodied AI). The picture is cut into patches
+    // and fed, with the INSTRUCTION as a row of language tokens, into a stack
+    // of layers; out the far end come ACTION tokens — seven bars, the joints
+    // of the Franka on the right, read from the same task at the same clock
+    // (RB.fr.task; both pieces reset their clocks on the settle), so what the
+    // left emits is literally what the right does.
     const LAYERS = 4;
     // The stack the picture is fed into. ONE function, because the act that
     // builds it and the act that folds it away both draw it — and if they
@@ -2065,6 +2086,43 @@ export default function Flourish3D({ side = 'right' }) {
         }
       }
     }
+    // the instruction, as a row of language tokens under the picture; `hot`
+    // is the token being attended to (-1 for none)
+    const TOKENS = [24, 16, 32, 14, 22];
+    function drawTokens(T, alpha, hot) {
+      if (alpha <= 0.01) return;
+      const y = GRID_H / 2 + 15;
+      let x = -GRID_W / 2;
+      TOKENS.forEach((w, i) => {
+        const a = alpha * (hot === i ? 1 : 0.6);
+        stroke([rect(w, 9, x + w / 2, y, 3)], T, ink, a, hot === i ? 1.6 : 1);
+        fill([rect(w * 0.62, 2.4, x + w / 2, y, 3)], T, ink, a * 0.55);
+        x += w + 5;
+      });
+    }
+    // the action chunk: seven joints as bars about a zero line, with the
+    // gripper's opening as an eighth, narrower, in the accent
+    const ACT_AT = place(IDENT, [74, 62, -24]);            // under the stack (beyond it, it ran off the stage's inner edge)
+    function drawActionBars(alpha, q) {
+      if (alpha <= 0.01) return;
+      const n = 7, bw = 6, gap = 4, W0 = n * (bw + gap);
+      submit(plate(W0 + 16, 64, 0, 0, -0.5), ACT_AT, MAT.neutral, 0.6 * alpha); flush();
+      stroke([rect(W0 + 16, 64, 0, 0, 0)], ACT_AT, slate, 0.5 * alpha, 1);
+      stroke([[[-W0 / 2, 0, 0], [W0 / 2, 0, 0]]], ACT_AT, slate, 0.5 * alpha, 1);
+      const bars = [];
+      for (let i = 0; i < n; i++) { const v = clamp((q[i] || 0) / 3, -1, 1) * 24; bars.push(rect(bw, Math.abs(v) + 0.6, -W0 / 2 + i * (bw + gap) + bw / 2, -v / 2, 0.5)); }
+      fill(bars, ACT_AT, ink, 0.75 * alpha);
+      const grip = clamp(((q[7] ?? 0.03) - 0.006) / 0.034, 0, 1);
+      fill([rect(3, 26 * grip + 0.6, W0 / 2 + 4, -13 * grip, 0.5)], ACT_AT, copper, 0.7 * alpha);
+    }
+    // the link from the last layer to the action chunk
+    const ACT_LINK = [[[54 + 3 * 11, -4 + 24, 26 - 3 * 30], [74, 62 - 34, -24]]];
+    // the Franka's joints right now — the right side's numbers, on the left
+    const frankaNow = (t) => {
+      const task = RB.fr.task, n = task.W.length;
+      const live = t >= 1 && settleU > 0.001 ? taskQ(task, taskPhase(task, idleT, n)) : task.W[0];
+      return settleU >= 0.999 || t < 1 ? live : lerpQ(task.W[0], live, settleU);
+    };
     function drawInferAct(t) {
       const u = smooth(t);
       setCam(-8 * u * DEG, 6 * u * DEG, 0);            // from (0,0,0), where the camera act ended
@@ -2088,19 +2146,66 @@ export default function Flourish3D({ side = 'right' }) {
         for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
         stroke(lines, T, LINE, 0.5 * patches, 1);
       }
-      // the layers, receding
+      // ...and the instruction arrives under it, a token at a time
+      const tok = smooth(win(t, 0.22, 0.3));
+      drawTokens(T, tok, idleOn && t >= 1 ? Math.floor(idleT * 1.6) % TOKENS.length : -1);
+      // the layers, receding, with an activation running through them
       const run = idleOn && t >= 1 ? (idleT % 2.2) / 2.2 : win(t, 0.5, 0.5);
       drawLayerStack(i => smooth(win(t, 0.28 + i * 0.1, 0.26)), 1, run, 1);
-      // and the picture feeding the first layer
+      // the picture and the tokens feeding the first layer
       const feed = smooth(win(t, 0.3, 0.3));
       if (feed > 0.01) {
-        for (const dy of [-1, 0, 1]) {
-          stroke([[[GRID_W / 2, dy * GRID_H / 3, 3], [GRID_W / 2 + 40 * feed, dy * GRID_H / 4, 3]]], T, slate, 0.45 * feed, 1);
-        }
+        for (const dy of [-1, 0, 1]) stroke([[[GRID_W / 2, dy * GRID_H / 3, 3], [GRID_W / 2 + 40 * feed, dy * GRID_H / 4, 3]]], T, slate, 0.45 * feed, 1);
+        stroke([[[GRID_W / 2 - 10, GRID_H / 2 + 15, 3], [GRID_W / 2 + 40 * feed, GRID_H / 4, 3]]], T, ink, 0.4 * feed * tok, 1);
+      }
+      // out the far end: the action chunk, the right side's joints
+      const act = smooth(win(t, 0.66, 0.3));
+      if (act > 0.01) {
+        stroke(ACT_LINK, place(IDENT, [0, 0, 0]), slate, 0.4 * act, 1);
+        drawActionBars(act, frankaNow(t));
       }
     }
 
-    // ── act 3 (left): the model returns detections ──────────────────────
+    // ── act 3 (left): a world model imagines what happens next ──────────
+    // The stack folds back into the picture, and the picture spawns GHOST
+    // FRAMES receding into the future: three candidate rollouts of the
+    // tracked object fan out from where it is, the model keeps one, and each
+    // ghost frame shows the object further along it. Settled, a marker runs
+    // the chosen rollout and the frames breathe.
+    const ROLLS = [-1, 0, 1];                           // three futures; 0 is the one kept
+    const rollAt = (r, sv) => {                         // where the object is, sv (0..1) along rollout r
+      const d = DETS[0];
+      return [d.x + sv * 54, d.y - sv * 16 + r * sv * 22 - Math.sin(sv * 3.1) * 6 * (1 - Math.abs(r) * 0.5)];
+    };
+    // the futures, drawn on the picture at T; `f` how far out they are, `adv`
+    // the marker's position on the kept rollout (0 for none). ONE function:
+    // the act that raises them and the act that lays them down both draw it.
+    function drawFutures(T, alpha, f, adv) {
+      if (alpha <= 0.01 || f <= 0.01) return;
+      const d = DETS[0];
+      stroke([rect(d.w, d.h, d.x, d.y, 3)], T, ink, 0.8 * alpha, 1.3);
+      // the three rollouts, dashed, on the picture
+      for (const r of ROLLS) {
+        const dashes = [];
+        for (let i = 0; i < 12; i += 2) { const a = rollAt(r, (i / 12) * f), b = rollAt(r, ((i + 1) / 12) * f); dashes.push([[a[0], a[1], 3], [b[0], b[1], 3]]); }
+        stroke(dashes, T, r === 0 ? ink : slate, (r === 0 ? 0.7 : 0.35) * alpha, r === 0 ? 1.5 : 1);
+      }
+      // the ghost frames: the picture's own frame, repeated back and up, the
+      // object drawn further along the kept rollout in each
+      for (let k = 1; k <= 4; k++) {
+        const g = smooth(win(f, (k - 1) * 0.18, 0.4));
+        if (g <= 0.01) continue;
+        const G = chain(T, place(IDENT, [k * 9 * g, -k * 7 * g, -k * 30 * g]));
+        submit(plate(112, 86, 0, 0, -0.5), G, MAT.neutral, 0.55 * g * alpha); flush();
+        stroke([rect(112, 86, 0, 0, 0)], G, slate, 0.45 * g * alpha, 1);
+        const p = rollAt(0, k / 4);
+        stroke([rect(d.w * (1 - k * 0.06), d.h * (1 - k * 0.06), p[0], p[1], 2)], G, ink, 0.55 * g * alpha, 1.2);
+      }
+      if (adv > 0) {
+        const p = rollAt(0, adv);
+        fill([rect(6, 6, p[0], p[1], 4)], T, copper, 0.9 * alpha);
+      }
+    }
     function drawDetectAct(t) {
       const u = smooth(t);
       setCam((-8 + 8 * u) * DEG, (6 - 4 * u) * DEG, 0);  // from (-8, 6, 0)
@@ -2109,25 +2214,30 @@ export default function Flourish3D({ side = 'right' }) {
       const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
       drawPixels(T, 1, frame, null);
       stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
-      // the patch grid it arrived with, fading as the answer replaces it
-      const patch = 1 - smooth(win(t, 0, 0.35));
-      if (patch > 0.01) {
+      // the patch grid, the tokens, the stack and the action chunk it arrived
+      // with, going as the futures come
+      const was = 1 - smooth(win(t, 0, 0.4));
+      if (was > 0.01) {
         const lines = [];
         for (let c = 1; c < 4; c++) lines.push([[-GRID_W / 2 + (c * GRID_W) / 4, -GRID_H / 2, 3], [-GRID_W / 2 + (c * GRID_W) / 4, GRID_H / 2, 3]]);
         for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
-        stroke(lines, T, LINE, 0.5 * patch, 1);
+        stroke(lines, T, LINE, 0.5 * was, 1);
+        drawTokens(T, was, -1);
+        drawLayerStack(() => 1, was, 1, was);
+        stroke(ACT_LINK, place(IDENT, [0, 0, 0]), slate, 0.4 * was, 1);
+        drawActionBars(was, RB.fr.task.W[0]);
       }
-      // the layers fold back into the picture as the answer comes out
-      const fold = 1 - smooth(win(t, 0, 0.45));
-      if (fold > 0.01) drawLayerStack(() => 1, fold, 1, fold);
-      const det = smooth(win(t, 0.34, 0.5));
-      if (det > 0.01) drawDetections(T, det, idleOn && t >= 1 ? idleT : 0);
+      const f = smooth(win(t, 0.3, 0.6));
+      drawFutures(T, 1, f, idleOn && t >= 1 ? (idleT % 3.2) / 3.2 : 0);
     }
 
-    // ── act 4 (left): the detections become a world model ───────────────
-    // The image lies down into a ground plane and what was found in it stands
-    // up on that ground, with the camera's own frustum behind and a predicted
-    // path running forward — a model of the scene, not of the picture.
+    // ── act 4 (left): the world model becomes a SIMULATOR ───────────────
+    // The picture lies down into a ground plane and the objects stand up on
+    // it — the world model as a scene, with the camera's frustum behind and
+    // the kept rollout on the floor. Then the scene is COPIED: two randomised
+    // twins beside it, tinted differently and re-arranged, each with its own
+    // rollout — domain randomisation — and a return curve climbs over them
+    // as training runs. Sim to real.
     function drawWorldAct(t) {
       const u = smooth(t);
       setCam(10 * u * DEG, (2 + 12 * u) * DEG, 0);       // from (0, 2, 0)
@@ -2135,33 +2245,41 @@ export default function Flourish3D({ side = 'right' }) {
       const T = sensorPlace(S);
       const lay = smooth(win(t, 0.1, 0.5));
       drawPixels(T, 1 - lay * 0.75, idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0, null);
-      // the boxes it arrived with, fading as their objects stand up instead
+      // the futures it arrived with, fading as the scene stands up instead
       const flat = 1 - smooth(win(t, 0, 0.4));
       if (flat > 0.01) {
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55 * flat, 1);
-        drawDetections(T, flat, 0);
+        drawFutures(T, flat, 1, 0);
       }
-      // the ground: the picture's own frame, extended into a floor
-      const g = smooth(win(t, 0.16, 0.4));
-      if (g > 0.01) {
-        const gw = GRID_W * (1 + 0.7 * g), gh = GRID_H * (1 + 1.5 * g);
-        const lines = [rect(gw, gh, 0, 0, 0)];
-        for (let i = 1; i < 6; i++) lines.push([[-gw / 2 + (i * gw) / 6, -gh / 2, 0], [-gw / 2 + (i * gw) / 6, gh / 2, 0]]);
-        for (let i = 1; i < 6; i++) lines.push([[-gw / 2, -gh / 2 + (i * gh) / 6, 0], [gw / 2, -gh / 2 + (i * gh) / 6, 0]]);
-        stroke(lines, T, LINE, 0.4 * g, 1);
-      }
-      // what was detected stands up on it
-      const rise = smooth(win(t, 0.3, 0.5));
-      if (rise > 0.01) {
-        for (let i = 0; i < DETS.length; i++) {
-          const d = DETS[i];
-          const hgt = (14 + d.conf * 20) * rise;
-          const B = chain(T, place(rotX(-90 * DEG), [d.x, d.y, 0]));
-          submit(boxFaces(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), B, i === 0 ? MAT.steel : MAT.paint, rise);
-          submitLines(boxWire(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), B, i === 0 ? ink : matLine[MAT.paint], LOOK.line * rise, LOOK.width);
+      // ONE scene: ground, standing objects, rollout — drawn three times
+      const scene = (B, gs, rise, tint, roll, alpha, jiggle) => {
+        const gw = GRID_W * (1 + 0.7 * gs), gh = GRID_H * (1 + 1.5 * gs);
+        if (gs > 0.01) {
+          const lines = [rect(gw, gh, 0, 0, 0)];
+          for (let i = 1; i < 6; i++) lines.push([[-gw / 2 + (i * gw) / 6, -gh / 2, 0], [-gw / 2 + (i * gw) / 6, gh / 2, 0]]);
+          for (let i = 1; i < 6; i++) lines.push([[-gw / 2, -gh / 2 + (i * gh) / 6, 0], [gw / 2, -gh / 2 + (i * gh) / 6, 0]]);
+          stroke(lines, B, LINE, 0.4 * gs * alpha, 1);
         }
-        flush();
-      }
+        if (rise > 0.01) {
+          for (let i = 0; i < DETS.length; i++) {
+            const d = DETS[i];
+            const jx = jiggle ? Math.sin(i * 2.3 + jiggle) * 14 : 0, jy = jiggle ? Math.cos(i * 1.7 + jiggle) * 9 : 0;
+            const hgt = (14 + d.conf * 20) * rise;
+            const Bx = chain(B, place(rotX(-90 * DEG), [d.x + jx, d.y + jy, 0]));
+            submit(boxFaces(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), Bx, i === 0 ? tint : MAT.paint, rise * alpha);
+            submitLines(boxWire(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), Bx, i === 0 ? ink : matLine[MAT.paint], LOOK.line * rise * alpha, LOOK.width);
+          }
+          flush();
+        }
+        if (roll > 0.01) {
+          const P0 = chain(B, place(rotX(-90 * DEG), [0, 0, 0]));
+          const dashes = [];
+          for (let i = 0; i < 12; i += 2) { const a = rollAt(0, i / 12), b = rollAt(0, (i + 1) / 12); dashes.push([[a[0], 0, a[1]], [b[0], 0, b[1]]]); }
+          stroke(dashes, P0, ink, 0.5 * roll * alpha, 1.4);
+        }
+      };
+      const g = smooth(win(t, 0.16, 0.4)), rise = smooth(win(t, 0.3, 0.5)), roll = smooth(win(t, 0.55, 0.3));
+      scene(T, g, rise, MAT.steel, roll, 1, 0);
       // the camera that saw it, as a frustum over the scene
       const fr = smooth(win(t, 0.45, 0.4));
       if (fr > 0.01) {
@@ -2171,25 +2289,24 @@ export default function Flourish3D({ side = 'right' }) {
         stroke(corners.map(c => [apex, c]), F, ink, 0.35 * fr, 1);
         stroke([[...corners, corners[0]]], F, ink, 0.3 * fr, 1);
       }
-      // and what it thinks happens next: a path, and a ghost of where the
-      // first object is going
-      const pr = smooth(win(t, 0.6, 0.4));
-      if (pr > 0.01) {
-        const P0 = chain(T, place(rotX(-90 * DEG), [0, 0, 0]));
-        const path = [];
-        for (let i = 0; i <= 14; i++) {
-          const s2 = i / 14;
-          path.push([DETS[0].x + s2 * 58, 0, DETS[0].y - s2 * 30 + Math.sin(s2 * 3.1) * 8]);
-        }
-        const dashes = [];
-        for (let i = 0; i < 14; i += 2) dashes.push([path[i], path[i + 1]]);
-        stroke(dashes, P0, ink, 0.5 * pr, 1.4);
-        const adv = idleOn && t >= 1 ? (idleT % 3.4) / 3.4 : 0.55;
-        const at = path[Math.min(14, Math.floor(adv * 14))];
-        const G = chain(T, place(rotX(-90 * DEG), [at[0], 0, at[2]]));
-        const hgt = (14 + DETS[0].conf * 20);
-        submitLines(boxWire(DETS[0].w * 0.7, hgt, DETS[0].h * 0.7, 0, -hgt / 2, 0), G, ink, LOOK.line * 0.55 * pr, LOOK.width);
-        flush();
+      // the twins: the same scene, smaller, to either side, tinted and
+      // re-arranged — and while settled, re-randomised every couple of seconds
+      const sim = smooth(win(t, 0.62, 0.38));
+      if (sim > 0.01) {
+        const epoch = idleOn && t >= 1 ? Math.floor(idleT / 2.4) : 0;
+        [[-1, MAT.urblue], [1, MAT.copper]].forEach(([side, tint], k) => {
+          const C = chain(T, place(scaleM(0.34 + 0.04 * sim), [side * 64 * sim, -50 * sim, -46 * sim]));
+          scene(C, sim, sim, tint, sim, 0.85 * sim, 1.3 + epoch * 2.1 + k * 4.2);
+        });
+        // the return curve, climbing as training runs
+        const P = place(IDENT, [-84, -158, 0]);
+        submit(plate(96, 54, 48, 0, -0.5), P, MAT.neutral, 0.6 * sim); flush();
+        stroke([rect(96, 54, 48, 0, 0)], P, slate, 0.45 * sim, 1);
+        stroke([[[0, 24, 0], [96, 24, 0]], [[0, 24, 0], [0, -24, 0]]], P, slate, 0.5 * sim, 1);
+        const N = 24, upto = idleOn && t >= 1 ? clamp((idleT % 7) / 6, 0, 1) : 0.55;
+        const pts = [];
+        for (let i = 0; i <= N; i++) { const x = i / N; if (x > upto) break; pts.push([2 + x * 92, 22 - 42 * (1 - Math.exp(-x * 3.2)) - Math.sin(x * 21) * 2.5 * (1 - x), 0.5]); }
+        if (pts.length > 1) stroke([pts], P, copper, 0.85 * sim, 1.6);
       }
     }
 
@@ -2204,8 +2321,8 @@ export default function Flourish3D({ side = 'right' }) {
     const g = (q, i, v) => { const o = q.slice(); o[i] = v; return o; };
     // SO-ARM101: A and B on the table, 200 forward and 70 to either side of
     // the base; "up" 90 mm above them. Gripper joint 5: 0.7 open, 0.3 closed.
-    const SO_A = [0.341, 0.323, 0.097, 1.052, 0, 0.7], SO_AU = [0.341, 0.245, -0.371, 1.598, 0, 0.7];
-    const SO_B = [-0.341, 0.323, 0.096, 1.052, 0, 0.7], SO_BU = [-0.341, 0.245, -0.372, 1.598, 0, 0.7];
+    const SO_A = [0.341, 0.135, 0.324, 1.012, 0, 0.7], SO_AU = [0.341, 0.039, -0.136, 1.568, 0, 0.7];
+    const SO_B = [-0.341, 0.135, 0.325, 1.012, 0, 0.7], SO_BU = [-0.341, 0.039, -0.136, 1.568, 0, 0.7];
     const SO_W = [SO_AU, SO_A, g(SO_A, 5, 0.3), g(SO_AU, 5, 0.3), g(SO_BU, 5, 0.3), g(SO_B, 5, 0.3), SO_B, SO_BU,
                   SO_BU, SO_B, g(SO_B, 5, 0.3), g(SO_BU, 5, 0.3), g(SO_AU, 5, 0.3), g(SO_A, 5, 0.3), SO_A, SO_AU];
     // Franka: three 50 mm cubes at P1, P2, P3 in front of the base; S1, S2 the
@@ -2220,9 +2337,11 @@ export default function Flourish3D({ side = 'right' }) {
                   FR_S2, fc(FR_S2), fc(FR_HI), fc(FR_P3), FR_P3, FR_HI, FR_S1, fc(FR_S1), fc(FR_HI), fc(FR_P2), FR_P2, FR_HI];
     // UR5e, hanging: the item on the table beside the arm, the box 360 mm
     // toward the pair's centre. Gripper gap in q[6]: 90 open, 60 closed.
-    const UR_IT = [0.03, -1.216, -2.135, 1.781, 1.57, 0, 90], UR_ITU = [0.03, -1.471, -2.452, 2.351, 1.57, 0, 90];
-    const UR_BX = [-1.081, -1.842, -1.904, 2.174, 1.57, 0, 90], UR_BXU = [-1.081, -2.011, -1.994, 2.432, 1.57, 0, 90];
-    const UR_W = [UR_ITU, UR_IT, g(UR_IT, 6, 60), g(UR_ITU, 6, 60), g(UR_BXU, 6, 60), g(UR_BX, 6, 60), UR_BX, UR_BXU, UR_ITU];
+    // ...solved per arm, in stage coordinates, for the LEANING mounts (the
+    // left arm is not the right one's mirror once the mounts lean)
+    const urW = (IT, ITU, BX, BXU) => [ITU, IT, g(IT, 6, 60), g(ITU, 6, 60), g(BXU, 6, 60), g(BX, 6, 60), BX, BXU, ITU];
+    const UR_W_R = urW([-0.034, -1.149, -1.626, 1.693, 1.57, 0, 90], [0.201, -1.258, -2.023, 2.19, 1.57, 0, 90], [-1.121, -1.761, -1.562, 1.979, 1.57, 0, 90], [-0.969, -1.869, -1.675, 2.266, 1.57, 0, 90]);
+    const UR_W_L = urW([0.034, -0.588, -2.022, 0.551, 1.57, 0, 90], [-0.201, -0.148, -2.473, 0.571, 1.57, 0, 90], [-1.198, -1.568, -1.889, 1.695, 1.57, 0, 90], [-1.369, -1.74, -1.98, 2.043, 1.57, 0, 90]);
     // the OP1's small arms (right; the left is the mirror by construction)
     const op = (P, open) => ({ ...P, open });
     const OP_REST = { pitch: -0.45, roll: 0.12, elbow: 0.7, wrist: 0.25 };        // hanging beside the torso, a little forward
@@ -2242,23 +2361,27 @@ export default function Flourish3D({ side = 'right' }) {
       // servo toward the viewer. Its job: one cube, A to B and back.
       so: { k: 0.66, root: [88, 232], yaw: 195,
             folded: [0, 0.3, 1.2, 0.8, 0, 0],
-            task: { period: 14, W: SO_W, tcp: { body: 'gripper', off: [-8.528, 0.492, -85.034] },
-                    cubes: [{ size: 30, mat: MAT.alu }], events: [{ cube: 0, at: 2, drop: 6 }, { cube: 0, at: 10, drop: 14 }] } },
+            // the tool point is between the two jaw tips with the jaw closed
+            // on the cube, 12 mm back so the cube sits IN the fingers
+            task: { period: 14, W: SO_W, tcp: { body: 'gripper', off: [12.411, 0.531, -92.155] },
+                    cubes: [{ size: 30, mat: MAT.red }], events: [{ cube: 0, at: 2, drop: 6 }, { cube: 0, at: 10, drop: 14 }] } },
       // Franka: seven hinges then the hand's two finger slides. Its job:
       // stack the two loose cubes on the third, then unstack them.
       fr: { k: 0.33, root: [24, 262], yaw: 130,
             folded: [0, 0, 0, -0.3, 0, 0.6, 0.785, 0.01, 0.01],
             task: { period: 24, W: FR_W, tcp: { body: 'hand', off: [0, 0, 103.4] },
-                    cubes: [{ size: 50, mat: MAT.alu, at: FR_P1 }, { size: 50, mat: MAT.alu }, { size: 50, mat: MAT.alu }],
+                    cubes: [{ size: 50, mat: MAT.red, at: FR_P1 }, { size: 50, mat: MAT.green }, { size: 50, mat: MAT.blue }],
                     events: [{ cube: 1, at: 2, drop: 5 }, { cube: 2, at: 8, drop: 11 }, { cube: 2, at: 14, drop: 17 }, { cube: 1, at: 20, drop: 23 }] } },
       // the UR pair hangs from the frame's crossbar, UR_DX either side of the
       // centre, each facing the box between them (the left is the right
       // turned half a turn about the vertical, so one task serves both). The
       // job, Generalist's: pack the item into the box; the loop resets.
-      ur: { k: UR_K, rootR: [FRAME_X + UR_DX, BAR_Y + 12], rootL: [FRAME_X - UR_DX, BAR_Y + 12], yawR: 270, yawL: 90,
+      ur: { k: UR_K, rootR: [FRAME_X + UR_DX, BAR_Y + 12, MOUNT_Z], rootL: [FRAME_X - UR_DX, BAR_Y + 12, MOUNT_Z], yawR: 270, yawL: 90,
             folded: [0.03, -1.7, -2.6, 2.4, 1.57, 0, 90],
-            task: { period: 11, W: UR_W, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
-                    cubes: [{ size: 60, mat: MAT.alu }], events: [{ cube: 0, at: 2, drop: 6 }] } },
+            taskR: { period: 11, W: UR_W_R, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+                     cubes: [{ size: 60, mat: MAT.green }], events: [{ cube: 0, at: 2, drop: 6 }] },
+            taskL: { period: 11, W: UR_W_L, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+                     cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 2, drop: 6 }] } },
       cam: { k: 3.5, root: [-2, -12], yaw: -28, pitch: 10 },
       // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
       // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
@@ -2270,7 +2393,7 @@ export default function Flourish3D({ side = 'right' }) {
             folded: [0.3, -1.6, 2.7, -0.9, 1.57, 0],
             unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
     };
-    RB.so.rest = SO_W[0]; RB.fr.rest = FR_W[0]; RB.ur.rest = UR_W[0];
+    RB.so.rest = SO_W[0]; RB.fr.rest = FR_W[0]; RB.ur.restR = UR_W_R[0]; RB.ur.restL = UR_W_L[0];
     // an arm mounted on a shoulder: standing, then tilted outward about the
     // stage's z (positive tilt leans a right-hand arm to the right; 180 hangs it)
     const shouldered = (root, k, yaw, tiltDeg) => { const B = standing(root, k, yaw); return place(mul(rotZ(tiltDeg * DEG), B.m), B.t); };
@@ -2386,10 +2509,21 @@ export default function Flourish3D({ side = 'right' }) {
     const tpOf = (T, off) => [T.m[0] * off[0] + T.m[1] * off[1] + T.m[2] * off[2] + T.t[0], T.m[3] * off[0] + T.m[4] * off[1] + T.m[5] * off[2] + T.t[1], T.m[6] * off[0] + T.m[7] * off[1] + T.m[8] * off[2] + T.t[2]];
     const toolPoint = (robot, base, q, tcp) => tpOf(bodyPlacements(robot, base, q)[robot.index.get(tcp.body)], tcp.off);
     const taskPhase = (task, t, n) => (((t % task.period) + task.period) % task.period) / task.period * n;
+    // The pose along the loop: a cardinal spline THROUGH the waypoints
+    // (Hermite, tangent = TENSION x the chord across each waypoint), so the
+    // arm passes each one with velocity, not a stop. Easing every segment
+    // to a halt — the first version — read as stop-motion; and a waypoint
+    // repeated (the gripper closing) still holds the arm still, which is
+    // where a real arm does pause.
+    const TENSION = 0.42;
+    const splineAt = (P0, P1, P2, P3, u) => {
+      const u2 = u * u, u3 = u2 * u;
+      const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+      return P1.map((_, j) => h00 * P1[j] + h10 * TENSION * (P2[j] - P0[j]) + h01 * P2[j] + h11 * TENSION * (P3[j] - P1[j]));
+    };
     const taskQ = (task, ph) => {
-      const n = task.W.length, i = Math.floor(ph) % n, k = easeIO(ph - Math.floor(ph));
-      const a = task.W[i], b = task.W[(i + 1) % n];
-      return a.map((x, j) => x + (b[j] - x) * k);
+      const W = task.W, n = W.length, i = Math.floor(ph) % n, u = ph - Math.floor(ph);
+      return splineAt(W[(i - 1 + n) % n], W[i], W[(i + 1) % n], W[(i + 2) % n], u);
     };
     // A loop that does not return to where it started (an item packed into a
     // box) RESETS over its last segment: the props fade, go back to their
@@ -2417,49 +2551,79 @@ export default function Flourish3D({ side = 'right' }) {
       submit(boxFaces(sizePx, sizePx, sizePx, 0, 0, 0), T, mat, a);
       submitLines(boxWire(sizePx, sizePx, sizePx, 0, 0, 0), T, matLine[mat], LOOK.line * a, LOOK.width);
     }
-    // one robot's task at time t: its joints and where its cubes are
-    function taskState(robot, base, task, t) {
+    // one robot's task at time t: its joints and where its cubes are. `u` is
+    // the settle blend (below): 1 is the task live, 0 is its rest frame, and
+    // in between the joints and the cubes travel linearly to rest — so a
+    // scroll never snaps a robot out of the middle of a move.
+    function taskState(robot, base, task, t, u = 1) {
       const n = task.W.length;
-      const ph0 = taskPhase(task, t, n);
-      const { a, ph } = taskReset(task, ph0, n);
-      const q = taskQ(task, ph0);
-      const tpAt = qq => toolPoint(robot, base, qq, task.tcp);
-      return { q, ph, a, cubes: taskCubes(task, ph, tpAt, tpAt(q)), R: R_UP, k: detScale(base.m) };
+      const st = ph0 => {
+        const { a, ph } = taskReset(task, ph0, n);
+        const q = taskQ(task, ph0);
+        const tpAt = qq => toolPoint(robot, base, qq, task.tcp);
+        return { q, ph, a, cubes: taskCubes(task, ph, tpAt, tpAt(q)), R: R_UP, k: detScale(base.m) };
+      };
+      if (u <= 0.001) return st(0);
+      const live = st(taskPhase(task, t, n));
+      if (u >= 0.999) return live;
+      const rest = st(0);
+      return { ...live, q: lerpQ(rest.q, live.q, u), a: rest.a + (live.a - rest.a) * u,
+               cubes: live.cubes.map((c, i) => ({ ...c, pos: c.pos && rest.cubes[i].pos ? c.pos.map((x, j) => rest.cubes[i].pos[j] + (x - rest.cubes[i].pos[j]) * u) : c.pos })) };
     }
     function drawCubes(st, alpha) {
       for (const c of st.cubes) drawCube(c.pos, c.size * st.k, st.R, c.mat, alpha * st.a);
     }
     // the box the UR pair packs: under the right arm's drop point
     function drawPackBox(base, alpha) {
-      const d = toolPoint(ROBOTS.ur5e, base, UR_W[6], RB.ur.task.tcp);
+      const d = toolPoint(ROBOTS.ur5e, base, UR_W_R[6], RB.ur.taskR.tcp);
       const k = detScale(base.m);
       drawOpenBox([d[0], d[1] + 80 * k, d[2]], 240, 240, 160, R_UP, k, MAT.iron, alpha);
     }
     // the OP1's job, in the unit's frame: the box's flaps and the item
     const OPB = { BZ: -200, BX: 210, BW: 300, BD: 180, BH: 120 };
     const lerpArm = (A, B, k) => ({ pitch: A.pitch + (B.pitch - A.pitch) * k, roll: A.roll + (B.roll - A.roll) * k, elbow: A.elbow + (B.elbow - A.elbow) * k, wrist: A.wrist + (B.wrist - A.wrist) * k, open: A.open + (B.open - A.open) * k });
-    function unitTaskState(TU, t) {
+    const ARM_KEYS = ['pitch', 'roll', 'elbow', 'wrist', 'open'];
+    const armArr = P => ARM_KEYS.map(k => P[k]);
+    const armObj = q => Object.fromEntries(ARM_KEYS.map((k, i) => [k, q[i]]));
+    // The Fairino SWAYS between jobs — lifts the unit a little and turns —
+    // only while the small arms are off the props (the last two waypoints
+    // and the reset), so nothing it carries misses what it is reaching for.
+    const fairinoSway = ph => {
+      const n = RB.ul.unit.R.length;
+      const w = ph > n - 2.6 ? Math.sin(Math.PI * clamp((ph - (n - 2.6)) / 2.6, 0, 1)) : 0;
+      return RB.ul.rest.map((x, i) => x + w * [0.12, 0.05, -0.08, 0.04, 0, 0][i]);
+    };
+    function unitTaskState(TU, t, u = 1) {
       const task = RB.ul.unit, n = task.R.length;
-      const ph0 = taskPhase(task, t, n);
-      const { a, ph } = taskReset({ reset: true }, ph0, n);
-      const at = (Wa, i) => { const j = Math.floor(i) % n; return lerpArm(Wa[j], Wa[(j + 1) % n], easeIO(i - Math.floor(i))); };
-      const PR = at(task.R, ph0), PL = at(task.L, ph0);
-      const tcpR = P => smallArmFrames(TU, P, 1).tcp;
-      let itemPos = tcpR(task.R[task.item.at]), held = false;
-      if (ph >= task.item.drop) itemPos = tcpR(task.R[task.item.drop]);
-      if (ph >= task.item.at && ph < task.item.drop) { held = true; itemPos = tcpR(PR); }
-      const fold = ([i0, i1]) => smooth(clamp((ph - i0) / (i1 - i0), 0, 1));
-      return { PR, PL, a, itemPos, held, flaps: { R: fold(task.flaps.R), F: fold(task.flaps.F), L: fold(task.flaps.L), B: fold(task.flaps.B) } };
+      const st = ph0 => {
+        const { a, ph } = taskReset({ reset: true }, ph0, n);
+        const at = (Wa, i) => { const j = Math.floor(i) % n, f = i - Math.floor(i); return armObj(splineAt(armArr(Wa[(j - 1 + n) % n]), armArr(Wa[j]), armArr(Wa[(j + 1) % n]), armArr(Wa[(j + 2) % n]), f)); };
+        const PR = at(task.R, ph0), PL = at(task.L, ph0);
+        const tcpR = P => smallArmFrames(TU, P, 1).tcp;
+        let itemPos = tcpR(task.R[task.item.at]), held = false;
+        if (ph >= task.item.drop) itemPos = tcpR(task.R[task.item.drop]);
+        if (ph >= task.item.at && ph < task.item.drop) { held = true; itemPos = tcpR(PR); }
+        const fold = ([i0, i1]) => smooth(clamp((ph - i0) / (i1 - i0), 0, 1));
+        return { PR, PL, a, itemPos, held, q: fairinoSway(ph0), flaps: { R: fold(task.flaps.R), F: fold(task.flaps.F), L: fold(task.flaps.L), B: fold(task.flaps.B) } };
+      };
+      if (u <= 0.001) return st(0);
+      const live = st(taskPhase(task, t, n));
+      if (u >= 0.999) return live;
+      const rest = st(0);
+      const mix = (A, B) => A + (B - A) * u;
+      return { PR: lerpArm(rest.PR, live.PR, u), PL: lerpArm(rest.PL, live.PL, u), a: mix(rest.a, live.a), held: live.held,
+               itemPos: rest.itemPos.map((x, j) => mix(x, live.itemPos[j])), q: lerpQ(rest.q, live.q, u),
+               flaps: { R: mix(rest.flaps.R, live.flaps.R), F: mix(rest.flaps.F, live.flaps.F), L: mix(rest.flaps.L, live.flaps.L), B: mix(rest.flaps.B, live.flaps.B) } };
     }
     function drawUnitProps(TU, st, alpha) {
       if (alpha <= 0.01) return;
       const { BZ, BX, BW, BD, BH } = OPB;
       const k = detScale(TU.m);
       // the packing table under the box, its legs down to the floor
-      submit(boxFaces(400, 620, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
-      submitLines(boxWire(400, 620, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
+      submit(boxFaces(360, 600, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
+      submitLines(boxWire(360, 600, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-        const c = tpOf(TU, [BX + sx * 180, sy * 290, BZ - 42]);
+        const c = tpOf(TU, [BX + sx * 160, sy * 280, BZ - 42]);
         const h = FLOOR_Y - c[1];
         if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.steel, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.steel], LOOK.line * alpha, LOOK.width); }
       }
@@ -2515,7 +2679,7 @@ export default function Flourish3D({ side = 'right' }) {
       // its cube arrives with it, and once settled it moves the cube
       const base = standing(RB.so.root, RB.so.k, RB.so.yaw);
       if (t >= 1) {
-        const st = taskState(ROBOTS.soarm, base, RB.so.task, idleOn ? idleT : 0);
+        const st = taskState(ROBOTS.soarm, base, RB.so.task, idleT, settleU);
         drawRobot(ROBOTS.soarm, base, st.q, 1);
         drawCubes(st, 1);
       } else {
@@ -2537,7 +2701,9 @@ export default function Flourish3D({ side = 'right' }) {
     // ── act 2 (right): the SO-ARM101 becomes a Franka Research 3 ───────
     function drawFrankaAct(t) {
       const u = smooth(t);
-      setCam((16 + 4 * u) * DEG, (10 + 2 * u) * DEG, 0);
+      // the view tips down to 24 as the Franka arrives, to see the cubes on
+      // the floor in front of it (at 12 they hid behind one another)
+      setCam((16 + 4 * u) * DEG, (10 + 14 * u) * DEG, 0);
       // the small arm TURNS INTO the big one: body by body from the base, each
       // SO-ARM part travels to where its Franka counterpart stands and becomes
       // it (drawMorph), while the Franka unfolds from its packed pose into its
@@ -2546,7 +2712,7 @@ export default function Flourish3D({ side = 'right' }) {
       const soBase = standing(RB.so.root, RB.so.k, RB.so.yaw);
       const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
       if (t >= 1) {
-        const st = taskState(ROBOTS.fr3, frBase, RB.fr.task, idleOn ? idleT : 0);
+        const st = taskState(ROBOTS.fr3, frBase, RB.fr.task, idleT, settleU);
         drawRobot(ROBOTS.fr3, frBase, st.q, 1);
         drawCubes(st, 1);
       } else {
@@ -2562,16 +2728,16 @@ export default function Flourish3D({ side = 'right' }) {
     // ── act 3 (right): the Franka becomes Generalist's UR pair ──────────
     function drawURPairAct(t) {
       const u = smooth(t);
-      setCam((20 - 2 * u) * DEG, (12 + 2 * u) * DEG, 0);
+      setCam((20 - 2 * u) * DEG, (24 - 4 * u) * DEG, 0);     // from (20, 24), where the Franka's act ended
       // the Franka BECOMES the right UR arm (drawMorph, base first) as the
       // frame rises round it; the left arm then unfolds from its mount to
       // make the pair. The Franka's cubes go, the table's box and items come.
       // Settled, each arm packs its item into the box.
       const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
-      const rBase = hanging(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = hanging(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
+      const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
       drawFrame(smooth(win(t, 0.1, 0.4)), 1);
-      const time = t >= 1 && idleOn ? idleT : 0;
-      const stR = taskState(ROBOTS.ur5e, rBase, RB.ur.task, time), stL = taskState(ROBOTS.ur5e, lBase, RB.ur.task, time);
+      const live = t >= 1 ? settleU : 0;
+      const stR = taskState(ROBOTS.ur5e, rBase, RB.ur.taskR, idleT, live), stL = taskState(ROBOTS.ur5e, lBase, RB.ur.taskL, idleT, live);
       const propsA = t >= 1 ? 1 : smooth(win(t, 0.7, 0.3));
       drawPackBox(rBase, propsA);
       if (t >= 1) {
@@ -2579,13 +2745,13 @@ export default function Flourish3D({ side = 'right' }) {
         drawCubes(stR, 1); drawCubes(stL, 1);
       } else {
         const m = smooth(win(t, 0.04, 0.72));
-        const qr = lerpQ(RB.ur.folded, RB.ur.rest, smooth(win(t, 0.3, 0.5)));
+        const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(t, 0.3, 0.5)));
         drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, qr, m);
         // the gripper appears on the arriving arm's wrist
         const ga = smooth(win(t, 0.62, 0.25));
         if (ga > 0.01) drawURGripper(bodyPlacements(ROBOTS.ur5e, rBase, qr)[ROBOTS.ur5e.index.get('wrist3')], 90, ga);
         const gL = smooth(win(t, 0.5, 0.4));
-        if (gL > 0.01) drawUR(hanging(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), lerpQ(RB.ur.folded, RB.ur.rest, smooth(win(t, 0.6, 0.4))), gL);
+        if (gL > 0.01) drawUR(leaning(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), lerpQ(RB.ur.folded, RB.ur.restL, smooth(win(t, 0.6, 0.4))), gL);
         drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
         drawCubes(stR, propsA); drawCubes(stL, propsA);
       }
@@ -2600,25 +2766,25 @@ export default function Flourish3D({ side = 'right' }) {
     // arrive. The packing table and the flat box arrive last.
     function drawUltraAct(t) {
       const u = smooth(t);
-      setCam((18 - 2 * u) * DEG, (14 - 3 * u) * DEG, 0);
+      setCam((18 - 2 * u) * DEG, (20 + 5 * u) * DEG, 0);     // from (18, 20); down to 25 to see the box on the table
       const m = smooth(win(t, 0.05, 0.5));
       drawFrame(1, 1 - m);
       drawCart(0.5 + 0.5 * m, m);
       const base = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
-      const rBase = hanging(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = hanging(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
+      const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
       // the unit's frame at REST: where the URs are heading, where the box goes
       const Tf = bodyPlacements(ROBOTS.ultra, base, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), RB.ul.k);
       if (t >= 1) {
-        const st = unitTaskState(TU, idleOn ? idleT : 0);
-        drawUltraRobot(base, RB.ul.rest, st.PR, st.PL, 1);
+        const st = unitTaskState(TU, idleT, settleU);
+        drawUltraRobot(base, st.q, st.PR, st.PL, 1);
         drawUnitProps(TU, st, 1);
         flush();
         return;
       }
       const gone = 1 - smooth(win(t, 0.02, 0.25));
       if (gone > 0.01) {
-        const stR0 = taskState(ROBOTS.ur5e, rBase, RB.ur.task, 0), stL0 = taskState(ROBOTS.ur5e, lBase, RB.ur.task, 0);
+        const stR0 = taskState(ROBOTS.ur5e, rBase, RB.ur.taskR, 0), stL0 = taskState(ROBOTS.ur5e, lBase, RB.ur.taskL, 0);
         drawPackBox(rBase, gone); drawCubes(stR0, gone); drawCubes(stL0, gone);
       }
       const gr = growOrder(UL_ORDER, t, 0.12, 0.62);
@@ -2628,10 +2794,10 @@ export default function Flourish3D({ side = 'right' }) {
       const travel = smooth(win(t, 0.25, 0.65));
       const out = 1 - smooth(win(t, 0.6, 0.3));
       if (out > 0.01) {
-        for (const [root, yaw, side] of [[RB.ur.rootR, RB.ur.yawR, 1], [RB.ur.rootL, RB.ur.yawL, -1]]) {
+        for (const [root, yaw, rest, side] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR, 1], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL, -1]]) {
           const sh = tpOf(TU, [0, side * UNIT.SY, UNIT.SZ]);
-          const pos = [root[0] + (sh[0] - root[0]) * travel, root[1] + (sh[1] - root[1]) * travel, sh[2] * travel];
-          drawUR(hanging(pos, RB.ur.k * (1 - 0.7 * travel), yaw), RB.ur.rest, out);
+          const pos = [root[0] + (sh[0] - root[0]) * travel, root[1] + (sh[1] - root[1]) * travel, root[2] + (sh[2] - root[2]) * travel];
+          drawUR(leaning(pos, RB.ur.k * (1 - 0.7 * travel), yaw, LEAN * (1 - travel)), rest, out);
         }
       }
       drawUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
@@ -2874,24 +3040,39 @@ export default function Flourish3D({ side = 'right' }) {
     // skipped after any draw that cost more than a third of one: the 20fps it
     // ran at read as lag once the robots were doing real work. A phone takes
     // every other frame.
+    // When the page MOVES, the robots do not snap to rest: `settleU` eases
+    // from 1 to 0 over RETURN_MS and every task blends its live pose and
+    // props toward its rest frame by it (taskState's `u`), the loop running
+    // until it gets there. Settling again mid-return picks up where it was;
+    // settling fresh starts the clock at 0, whose pose IS the rest frame, so
+    // the start is continuous too. (Before this the arm jumped from
+    // mid-reach to rest the instant the page scrolled.)
     const IDLE_SKIP_MS = 6;
     const IDLE_STRIDE = window.innerWidth < 992 ? 2 : 1;
-    let idleRAF = 0, idleTimer = 0, idlePrev = 0, idleWait = 0;
+    const RETURN_MS = 700;
+    let idleRAF = 0, idleTimer = 0, idlePrev = 0, idleWait = 0, returning = 0;
     const idleStep = () => {
       idleRAF = 0;
-      if (!idleOn) return;
+      if (!idleOn && !returning) return;
       if (idleWait > 0) { idleWait--; idleSchedule(); return; }
       const now = performance.now();
       const dt = idlePrev ? Math.min(0.25, (now - idlePrev) / 1000) : 0;
       idlePrev = now;
-      idleT += dt;
+      if (idleOn) { idleT += dt; settleU = Math.min(1, settleU + dt / 0.45); }
+      else {
+        const r = (now - returning) / RETURN_MS;
+        settleU = returnFrom * (1 - smooth(clamp(r, 0, 1)));
+        if (r >= 1) { returning = 0; settleU = 0; }
+      }
       if (held(lastY)) draw(lastY);
+      if (!idleOn && !returning) { idlePrev = 0; return; }
       idleWait = (IDLE_STRIDE - 1) + (performance.now() - now > IDLE_SKIP_MS ? 1 : 0);
       idleSchedule();
     };
-    const idleSchedule = () => { idleRAF = requestAnimationFrame(idleStep); };
+    let returnFrom = 1;
+    const idleSchedule = () => { if (!idleRAF) idleRAF = requestAnimationFrame(idleStep); };
     const stopIdle = () => {
-      idleOn = false; idlePrev = 0;
+      idleOn = false; idlePrev = 0; returning = 0; settleU = 0;
       if (idleRAF) { cancelAnimationFrame(idleRAF); idleRAF = 0; }
       if (idleTimer) { clearTimeout(idleTimer); idleTimer = 0; }
     };
@@ -2899,12 +3080,12 @@ export default function Flourish3D({ side = 'right' }) {
       if (on === idleOn) return;
       if (on) {
         if (!held(lastY)) return;           // mid-morph or mid-act: nothing to idle
-        idleOn = true; idlePrev = 0; idleSchedule();
+        if (!returning) { idleT = 0; settleU = 0; }
+        returning = 0; idleOn = true; idlePrev = 0; idleSchedule();
       } else {
-        stopIdle();
-        // back to the piece's resting frame, so a half-shut shutter or a
-        // mid-sweep readout does not freeze on screen
-        if (lastY >= 0) draw(lastY);
+        idleOn = false;
+        if (lastY >= 0 && settleU > 0.01 && held(lastY)) { returning = performance.now(); returnFrom = settleU; idlePrev = 0; idleSchedule(); }
+        else { stopIdle(); if (lastY >= 0) draw(lastY); }
       }
     });
 

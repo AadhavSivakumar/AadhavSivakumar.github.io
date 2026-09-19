@@ -456,15 +456,37 @@ settle point):
 | | right: a robot | left: seeing |
 |---|---|---|
 | Experience → Research | the motor lands on the **SO-ARM101**'s base servo and the arm grows out of it | the camera explodes to its **sensor** |
-| Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | the **model runs** on the pixels |
-| Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | the model returns **detections** |
-| Additional Projects → Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the detections become a **world model** |
+| Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | a **VLA** runs on the pixels and the instruction; its action chunk is the Franka's joints |
+| Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | a **world model** imagines rollouts of the tracked object |
+| Additional Projects → Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the world model becomes a **simulator**: randomised twins, a return curve |
+
+**The left half is the LEARNING half** (the owner's targets: robotics, RL,
+world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
+- **VLA** (`drawInferAct`): the picture is cut into patches and fed, with the
+  INSTRUCTION as a row of language tokens (`drawTokens`), into the layer
+  stack; out the far end comes the ACTION CHUNK (`drawActionBars`) — seven
+  joint bars and a gripper bar that are the Franka's joints read from
+  `RB.fr.task` at the same clock (both pieces reset `idleT` on the settle),
+  so what the left emits is what the right does.
+- **World model** (`drawDetectAct`, name kept for the dispatch): the stack
+  folds back into the picture, three candidate ROLLOUTS of the tracked object
+  fan out on it (`rollAt`), the model keeps one, and ghost frames of the
+  picture recede into the future with the object further along it in each
+  (`drawFutures` — ONE function, drawn by this act and laid down by the next).
+- **Simulator** (`drawWorldAct`): the picture lies down into a ground plane
+  and the objects stand up on it, then the scene is copied — two randomised
+  twins beside it, tinted and re-arranged, re-randomised every 2.4 s while
+  settled — and a return curve climbs. The `scene()` closure draws all three.
+  Things that ran off the stage's inner edge and were pulled in: the action
+  chunk (now under the stack, not beyond it), the twins (±88 at 0.42), the
+  return curve.
 
 **Each settled robot does a JOB, with real props** — the owner asked for
 them by name: the SO-ARM101 picks up one cube and puts it down (A to B and
 back), the Franka stacks two cubes on a third and unstacks them, the UR pair
 packs an item each into a box (Generalist's demos), the OP1's arms fold a
-box's four flaps up and put an item in it. How that works (`TASKS` in
+box's four flaps up and put an item in it. The cubes are RED, GREEN and BLUE
+(`MAT.red/green/blue`), at the owner's request. How that works (`TASKS` in
 `Flourish3D.jsx`): a task is a loop of joint-space waypoints `W` (eased,
 `period` seconds, the gripper's value riding in W too), a tool point (body +
 mm offset), cubes, and EVENTS — cube c picked up at waypoint `at`, put down
@@ -487,18 +509,23 @@ sent the arms past the frame's posts to the stage edges — the items sit
 between mount and box.
 
 **The UR pair is Generalist's** (generalistai.com, GEN-0 / GEN-1 videos):
-two UR e-series HANGING from a frame over a dark table, black wrists,
-yellow 3D-printed parallel fingers (`MAT.ochre`, `drawURGripper`: the
-flange is 100 mm along wrist_3's y, the tool point 130 beyond it), packing
-things into boxes. The frame (`drawFrame`) is two posts and a crossbar with
-the UR bases on its underside (`hanging` = `shouldered` by 180°), the table
-740 mm below the mounts (the IK's number; `TABLE_Y` follows `UR_K`). The left
-arm is the right arm turned half a turn about the vertical (yaw 90 vs 270),
-so one task serves both and they pack the same box, which is drawn under the
-right arm's drop point. **The table is narrower than the frame**: its near
-edge sits toward the viewer and perspective grows it ~15%, and at the posts'
-width it reached both stage edges. It used to be a Generalist-ish stand with
-the arms standing ON a beam; the owner's reference photos are hanging arms.
+two UR e-series coming DOWN from a heavy black frame over a dark table at an
+angle, black wrists with a wrist camera, big yellow 3D-printed parallel
+fingers (`MAT.ochre`, `drawURGripper`: the flange is 100 mm along wrist_3's
+y, the tool point 130 beyond it), packing things into boxes. The frame
+(`drawFrame`) is black posts and a crossbar set back (`MOUNT_Z`) with the UR
+bases on canted blocks under it: `leaning` = standing, turned over (a half
+turn about the stage's z), then tilted `LEAN` (28°) about the stage's x
+toward the viewer. **Leaning breaks the left/right symmetry**, so the two
+arms' waypoints are solved separately (`UR_W_R`, `UR_W_L`) with the props
+stated in STAGE coordinates and brought into each arm's frame in
+`ik-poses.mjs` — the same construction the renderer uses; keep the two in
+step (`UR_LAYOUT` is printed for that). They pack the same box, drawn under
+the right arm's drop point. **The table is narrower than the frame**: its
+near edge sits toward the viewer and perspective grows it ~15%, and at the
+posts' width it reached both stage edges. Earlier versions were a light
+goalpost frame with the arms hanging straight down, and before that a stand
+with the arms ON a beam; the owner said neither looked like the robot.
 
 **The Ultra OP1 is a FAIRINO arm carrying Ultra's bimanual unit**, drawn
 from Ultra's own photos (ultra.tech): a black steel cart on four casters with
@@ -563,7 +590,16 @@ pose (`folded` → `rest`) during the morph, so it arrives moving.
 
 **The robots WORK while the page is settled**, each at its job with real
 props (see "Each settled robot does a JOB" under The acts): `taskState` /
-`unitTaskState` give the joints and where every cube is at `idleT`. The cycle's first waypoint is the rest pose, and
+`unitTaskState` give the joints and where every cube is at `idleT`. **Motion
+is a cardinal spline through the waypoints** (`splineAt`, tension 0.42), not
+an ease per segment — easing every segment to a halt read as stop-motion; a
+repeated waypoint (the gripper closing) still holds the arm still. **And the
+page moving does not snap a robot to rest**: `settleU` eases 1 → 0 over
+`RETURN_MS` (700 ms) and every task blends joints and props toward its rest
+frame by it (`taskState`'s `u`), the loop running until it arrives; settling
+fresh starts the clock at 0, whose pose IS the rest frame. The Fairino
+SWAYS between jobs (`fairinoSway`), only while the unit's arms are off the
+props. The cycle's first waypoint is the rest pose, and
 the instant the page moves the robot is drawn at rest, so the next act's
 morph starts from the frame this one ended on. Before this they swayed two
 joints on a sine (`swayQ`), which read as wobbling, not working.
@@ -775,11 +811,17 @@ Things learned by getting them wrong, in order:
   the air from outside, blur, naive surface nets, decimate — and pinched at
   every lens aperture (hundreds of non-manifold edges the decimator could not
   pass), leaving torn surfaces. Two hours; not worth more.
-- **Black trim gets a depth bias** (+1.4 toward the viewer, `MAT.poly` fills
-  in `submitMesh`). The Franka's base band and joint rings are black parts
-  sitting flush ON the white shell; within one depth slab the two sort by
-  style, the white won half the band's triangles, and the band came out as a
-  row of teeth. It looked like a decimation defect and survived a sliver
+- **Black trim gets a depth bias — on the Franka only** (+1.4 toward the
+  viewer, `MAT.poly` fills of `part.rid === 'fr3'` in `submitMesh`). The
+  Franka's base band and joint rings are black parts sitting flush ON the
+  white shell; within one depth slab the two sort by style, the white won
+  half the band's triangles, and the band came out as a row of teeth. On
+  the SO-ARM the black parts are SERVOS inside white printed holders, and
+  the same bias pushed them through their housings as the arm moved — the
+  "glitching textures" the owner saw. The SO-ARM's crease angle went 62° →
+  72° at the same time; its printed fillets drew as a lattice. The Franka's
+  base (`link0.obj`, seven material groups) has its own budget of 1500: at
+  480 shared across the groups it came out a torn tent. It looked like a decimation defect and survived a sliver
   rule in the decimator (kept — `SLIVER` in qem.mjs refuses collapses that
   turn a decent face into a needle) before the cause was found.
 - **Rims may not coarsen** (`maxBoundary` in qem.mjs, 2.5mm for the camera).

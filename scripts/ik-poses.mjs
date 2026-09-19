@@ -17,7 +17,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { prepare, bodyPlacements } from '../src/robots/index.js';
+import { prepare, bodyPlacements, standing, mul } from '../src/robots/index.js';
 
 const load = id => prepare(JSON.parse(fs.readFileSync(path.resolve('src/robots', `${id}.json`), 'utf8')));
 const IDENT = { m: [1, 0, 0, 0, 1, 0, 0, 0, 1], t: [0, 0, 0] };
@@ -90,8 +90,22 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   let tip = [0, 0, 0], best = 0;
   for (let i = 0; i < fixed.nv; i++) { const d = Math.hypot(fixed.v[i * 3], fixed.v[i * 3 + 1], fixed.v[i * 3 + 2]); if (d > best) { best = d; tip = [fixed.v[i * 3], fixed.v[i * 3 + 1], fixed.v[i * 3 + 2]]; } }
   const L = Math.hypot(...tip);
-  const tcp = { body: 'gripper', off: tip.map(x => x * 0.82), axis: tip.map(x => x / L) };
-  console.log('// SO-ARM101 tool: fixed-jaw tip in gripper frame', tip.map(r3), 'len', r3(L));
+  // the moving jaw's tip, brought into the gripper frame with the jaw CLOSED
+  // on a 30 mm cube (joint 5 = 0.3); the tool point is between the two tips,
+  // pulled 12 mm back along the jaw so the cube sits in the fingers, not on
+  // their ends
+  const mj = R.parts.find(p => p.name === 'moving_jaw_so101_v1');
+  let mtip = [0, 0, 0], mbest = 0;
+  for (let i = 0; i < mj.nv; i++) { const d = Math.hypot(mj.v[i * 3], mj.v[i * 3 + 1], mj.v[i * 3 + 2]); if (d > mbest) { mbest = d; mtip = [mj.v[i * 3], mj.v[i * 3 + 1], mj.v[i * 3 + 2]]; } }
+  const Pq = bodyPlacements(R, IDENT, [0, 0, 0, 0, 0, 0.3]);
+  const Tg = Pq[R.index.get('gripper')], Tm = Pq[R.index.get('moving_jaw')];
+  const wf = xf(Tg, tip), wm = xf(Tm, mtip);
+  const mid = [(wf[0] + wm[0]) / 2, (wf[1] + wm[1]) / 2, (wf[2] + wm[2]) / 2];
+  const inv = v => [Tg.m[0] * v[0] + Tg.m[3] * v[1] + Tg.m[6] * v[2], Tg.m[1] * v[0] + Tg.m[4] * v[1] + Tg.m[7] * v[2], Tg.m[2] * v[0] + Tg.m[5] * v[1] + Tg.m[8] * v[2]];
+  const midG = inv([mid[0] - Tg.t[0], mid[1] - Tg.t[1], mid[2] - Tg.t[2]]);
+  const ax = tip.map(x => x / L);
+  const tcp = { body: 'gripper', off: midG.map((x, i) => x - ax[i] * 12), axis: ax };
+  console.log('// SO-ARM101 tool: fixed-jaw tip', tip.map(r3), 'moving-jaw tip (gripper frame, closed)', inv([wm[0] - Tg.t[0], wm[1] - Tg.t[1], wm[2] - Tg.t[2]]).map(r3), 'tool', tcp.off.map(r3));
   const home = tool(R, tcp, [0, 0.6, -0.2, 1.15, 0, 0.35]);
   console.log('// SO-ARM101 rest tool point', home.p.map(r3), 'axis', home.z.map(r3));
   // targets: cube on the table plane (z = 0 is the base's underside; the base
@@ -108,7 +122,7 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   const A = at(250, -75, 18), B = at(250, 75, 18), liftZ = 95;
   const P = {};
   for (const [name, p] of [['A', A], ['Aup', [A[0], A[1], liftZ]], ['B', B], ['Bup', [B[0], B[1], liftZ]]]) {
-    const s = solve(R, tcp, seed, dof, { p, z: down }, { limits: { 0: [-1.9, 1.9], 1: [0.15, 1.7], 2: [-1.7, 1.7], 3: [-1.7, 1.7] } });
+    const s = solve(R, tcp, seed, dof, { p, z: down }, { limits: { 0: [-1.9, 1.9], 1: [-0.15, 1.7], 2: [-1.7, 1.7], 3: [-1.7, 1.7] } });
     P[name] = s.q; console.log(`// so ${name.padEnd(4)} err ${r3(s.err)}mm axis ${r3(s.zerr)}  ${fmt(s.q)}`);
   }
   console.log('SO_TCP =', JSON.stringify({ body: 'gripper', off: tcp.off.map(r3), axis: tcp.axis.map(r3) }));
@@ -137,33 +151,45 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   console.log('FR_P =', JSON.stringify(Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v.map(r3)]))));
 }
 
-/* ── the URs, hanging from the frame: each packs an item into the box ── */
+/* ── the URs, hanging from Generalist's frame: each packs an item ─────── */
+// The arms hang from the crossbar and LEAN toward the viewer (Generalist's
+// come down over the table at an angle), so their frames are awkward to
+// think in. The props are stated in STAGE coordinates (px; x right, y down,
+// z toward the viewer) and brought into each arm's frame here — the same
+// construction the renderer uses (`hanging` then a lean about the stage's x).
 {
   const R = load('ur5e');
-  // flange at +100 along wrist_3's y (the MJCF's attachment_site), a drawn
-  // gripper 130 long beyond it
   const tcp = { body: 'wrist3', off: [0, 230, 0], axis: [0, 1, 0] };
-  const home = tool(R, tcp, [-1.57, 0.9, 1.9, -1.0, -1.57, 0]);
-  console.log('// UR5e rest tool point', home.p.map(r3), 'axis', home.z.map(r3));
-  // The arm hangs: the mount's +z is world DOWN, so the table is at +z, and
-  // "toward the box" is -y for the right arm (the pair faces each other
-  // across the box; the left arm is the mirror). Items on the table beside
-  // each arm, the box between them.
-  const TABLE = 740;                               // mm below the mounts
-  const C = 60;
-  const seed = [-1.57, -0.9, -1.9, -0.6, 1.57, 0];
-  const dof = [0, 1, 2, 3];
-  const down = [0, 0, 1];                          // "down" in a hanging arm's frame
-  // the item INSIDE the frame, between the mount and the box (out beside the
-  // mount, the arm reached past the frame's post to the stage edge)
-  const targets = { ITEM: [140, -130, TABLE - C / 2], ITEMUP: [140, -130, TABLE - 200], BOX: [40, -360, TABLE - 160], BOXUP: [40, -360, TABLE - 260] };
-  const P = {};
-  for (const [name, p] of Object.entries(targets)) {
-    const s = solve(R, tcp, seed, dof, { p, z: down }, { limits: { 1: [-3.1, 0], 2: [-3.1, 3.1], 3: [-3.1, 3.1] } });
-    P[name] = s.q; console.log(`// ur ${name.padEnd(6)} err ${r3(s.err)}mm axis ${r3(s.zerr)}  ${fmt(s.q)}`);
+  const DEG = Math.PI / 180;
+  const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
+  const rotZ = a => { const c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; };
+  const FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, MOUNT_Z = -46, LEAN = 28, TABLE_Y = 80;
+  const leaning = (root, k, yaw, lean) => { const B = standing(root, k, yaw); const M = mul(rotZ(Math.PI), B.m); return { m: mul(rotX(lean * DEG), M), t: root }; };
+  const toLocal = (base, p) => {                     // stage -> arm frame (mm)
+    const k = UR_K, m = base.m, d = [p[0] - base.t[0], p[1] - base.t[1], p[2] - base.t[2]];
+    return [(m[0] * d[0] + m[3] * d[1] + m[6] * d[2]) / (k * k), (m[1] * d[0] + m[4] * d[1] + m[7] * d[2]) / (k * k), (m[2] * d[0] + m[5] * d[1] + m[8] * d[2]) / (k * k)];
+  };
+  const dirLocal = (base, v) => { const m = base.m, k = UR_K; const o = [(m[0] * v[0] + m[3] * v[1] + m[6] * v[2]) / k, (m[1] * v[0] + m[4] * v[1] + m[7] * v[2]) / k, (m[2] * v[0] + m[5] * v[1] + m[8] * v[2]) / k]; const L = Math.hypot(...o); return o.map(x => x / L); };
+  const C = 60 * UR_K;                                  // the item, stage px
+  const out = {};
+  for (const [name, side, yaw] of [['R', 1, 270], ['L', -1, 90]]) {
+    const root = [FRAME_X + side * UR_DX, BAR_Y + 12, MOUNT_Z];
+    const base = leaning(root, UR_K, yaw, LEAN);
+    const down = dirLocal(base, [0, 1, 0]);
+    const item = [FRAME_X + side * 58, TABLE_Y - C / 2, 40], box = [FRAME_X + side * 6, TABLE_Y - 160 * UR_K, 30];
+    const T = { ITEM: item, ITEMUP: [item[0], item[1] - 44, item[2]], BOX: box, BOXUP: [box[0], box[1] - 26, box[2]] };
+    out[name] = {};
+    for (const [k, p] of Object.entries(T)) {
+      // the left arm is seeded from the right arm's answer, so both land on
+      // the same elbow branch and the pair moves as a mirror
+      const seed = name === 'L' ? out.R[k] : [0, -1.4, -2.3, 2.1, 1.57, 0];
+      const s = solve(R, tcp, seed, [0, 1, 2, 3], { p: toLocal(base, p), z: down }, { limits: { 1: [-3.1, 0], 2: [-3.1, 3.1], 3: [-3.1, 3.1] } });
+      out[name][k] = s.q.map(r3);
+      console.log(`// ur ${name} ${k.padEnd(6)} err ${r3(s.err)}mm axis ${r3(s.zerr)}  ${fmt(s.q)}`);
+    }
   }
-  console.log('UR_TCP =', JSON.stringify(tcp));
-  console.log('UR_P =', JSON.stringify(Object.fromEntries(Object.entries(P).map(([k, v]) => [k, v.map(r3)]))));
+  console.log('UR_LAYOUT =', JSON.stringify({ FRAME_X, BAR_Y, UR_DX, UR_K, MOUNT_Z, LEAN, TABLE_Y }));
+  console.log('UR_P =', JSON.stringify(out));
 }
 
 /* ── the Fairino: where its flange points at the candidate rest poses ── */
