@@ -77,7 +77,24 @@ function ThemeIcon({ theme }) {
 export default function Header({ theme, toggleTheme }) {
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState(null);
+  const [open, setOpen] = useState(false);          // the phone menu
   const navRef = useRef(null);
+  const headerRef = useRef(null);
+
+  // The phone menu closes on Escape, on a tap outside the header, and when
+  // the viewport grows past the phone breakpoint (the links are inline again
+  // and an "open" state would leave them styled as a dropdown).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') setOpen(false); };
+    const onDown = e => { if (headerRef.current && !headerRef.current.contains(e.target)) setOpen(false); };
+    const mq = window.matchMedia('(min-width: 769px)');
+    const onMQ = e => { if (e.matches) setOpen(false); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    mq.addEventListener('change', onMQ);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); mq.removeEventListener('change', onMQ); };
+  }, [open]);
 
   // On a phone the nav is wider than the screen and swipes sideways, so the
   // link for the page being read can be out of view. Keep it in view. This
@@ -117,14 +134,28 @@ export default function Header({ theme, toggleTheme }) {
   }, []);
 
   return (
-    <header className={scrolled ? 'scrolled' : ''}>
+    <header ref={headerRef} className={scrolled ? 'scrolled' : ''}>
       <div className="logo"><a href="#hero">AS.</a></div>
-      <nav ref={navRef}>
+      {/* On a phone the seven links and the toggle are 750px of nav on a
+          390px screen. They used to swipe sideways; they are a menu behind
+          this button now, at the owner's request. Hidden above 768px by CSS. */}
+      <button
+        type="button"
+        className={`nav-burger${open ? ' is-open' : ''}`}
+        aria-label={open ? 'Close menu' : 'Open menu'}
+        aria-expanded={open}
+        aria-controls="site-nav"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span /><span /><span />
+      </button>
+      <nav id="site-nav" ref={navRef} className={open ? 'nav--open' : ''}>
         {LINKS.map((link) => (
           <a
             key={link.id}
             href={`#${link.id}`}
             className={`nav-link ${active === link.id ? 'active' : ''}`}
+            onClick={() => setOpen(false)}
           >
             {active === link.id && (
               <motion.span

@@ -728,9 +728,34 @@ That is the DRAWING coordinate system, and every fit, camera constant and LOD
 threshold in the file is expressed in it — only `ctx.setTransform` changes.
 Resize the stage in CSS and nothing about the composition needs re-tuning.
 
-On mobile the two stages are staggered VERTICALLY (left around 29-32vh,
-right around 71-73vh) rather than pulled off the side edges. Retreating
-horizontally was tried first and reduced them to slivers.
+**On a PHONE (≤768px) the pieces live in a DOCK** (`RobotDock.jsx`,
+`.f3d-dock`): a band across the bottom of the screen, ABOVE the content
+(z 20 — sections are z 10, the header 1000, the modal 2000), with both
+stages side by side in it. The owner asked for the animation to be
+"viewable in mobile mode"; behind the text in a 390px column it was not
+(the earlier answer — smaller, fainter stages staggered vertically behind
+the column — is what tablets 769-991 still get). The dock is the pieces'
+own fixed layer on every screen: on a desktop it is `inset: 0; z-index: -1`,
+identical to the field's layer, so nothing there changed. It is SEPARATE
+from the field's layer because on a phone it has to sit above the content
+while the field stays behind it. Its height is
+`min(32vh, 70vw, 300px)` — the second term is what two 340:660 stages fit
+across at that height — and each stage is sized from it (`--fh: dock / 0.74`,
+the drawing's ink runs y 120-615 of 660, so the top 20% is cropped by the
+dock's edge and 6% hangs below the screen). The hero is shortened by the
+dock and the FOOTER (the last thing on the page, and outside `main`) gets
+the dock's height of bottom margin; on `main` it left the footer behind the
+dock. The dock's background is transparent at the top of the hero and
+solid once the page has scrolled 40px (`.is-solid`): the strands slide
+under its edge and the pieces form inside it, and the content that follows
+scrolls behind it. A tab (`▾ animation`) collapses it to 24px for reading,
+remembered in `localStorage` (`robot-dock`, wrapped in try/catch) as a
+per-viewer convenience; collapsing dispatches a `resize` so the field and
+the stages re-measure. The core gate is ≥4 now (was >4): mid-range phones
+report exactly 4. Verified on a 390x844 @2x touch viewport: dock 390x270 at
+y 574, stages 188x365 each, ink in both canvases at every settle point,
+`::before` opacity 0 → 0.44 mid-morph → 1, footer clear of the dock, no
+page errors; the desktop settle frames and seams unchanged.
 
 ### Baked meshes: the real machines
 
@@ -1279,10 +1304,14 @@ took, in case something is added and a page grows past the screen:
 
 Tablets in landscape (1024x768, 1100x820) still run a page or two 20-80px
 over and scroll within it; below 992px the pages stack naturally and the
-lanyards are not loaded. On phones the nav is ~750px wide, so it swipes
-sideways (masked at the right edge) and the header keeps the active link in
-view by setting the nav's own `scrollLeft` — `scrollIntoView` would scroll the
-page as well.
+lanyards are not loaded. **On phones the nav is a MENU behind a hamburger
+button** (`.nav-burger` in `Header.jsx`, ≤768px): a panel that drops from
+the header with the seven links stacked and the theme toggle last; it
+closes on a link, on Escape, on a tap outside the header, and when the
+viewport grows past the breakpoint. It used to swipe sideways, masked at the
+right edge, which reached everything but told no one it was there. The
+`scrollLeft` effect that kept the active link in view is still there and a
+no-op in the column (nothing overflows).
 
 ## Settling on a page, and what runs while it is settled
 

@@ -12,6 +12,7 @@ import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
 import Flourish3D from './components/Flourish3D';
 import WaveField from './components/WaveField';
+import RobotDock from './components/RobotDock';
 import { useTheme } from './hooks/useTheme';
 import { startScrollSnap } from './scrollSnap';
 
@@ -20,9 +21,12 @@ function App() {
   // Each flourish is one canvas doing its own projection, so the cost is CPU
   // maths rather than layout — but it is still a few thousand segments a frame
   // on every scroll. They are decoration, so on a low-core machine the cheapest
-  // honest fix is not to draw them at all.
+  // honest fix is not to draw them at all. The bar is 4 cores now (it was
+  // more than 4): mid-range phones report exactly 4, the owner asked for the
+  // animation on phones, and the renderer already paces itself — redraws at
+  // twice their own cost, the settled loop skipping frames after a slow draw.
   const [canAfford3D] = useState(
-    () => typeof navigator === 'undefined' || (navigator.hardwareConcurrency ?? 8) > 4
+    () => typeof navigator === 'undefined' || (navigator.hardwareConcurrency ?? 8) >= 4
   );
   const lastClickedCardRef = useRef(null);
   const [modalState, setModalState] = useState({
@@ -95,9 +99,15 @@ function App() {
             half into the motor. The field is drawn on every machine; the
             pieces stay gated. */}
         <WaveField />
+      </div>
+      {/* The pieces' own layer (RobotDock.jsx): behind everything on a
+          desktop, a dock across the bottom of a phone. Separate from the
+          field's layer so that on a phone it can sit ABOVE the content while
+          the field stays behind it. */}
+      <RobotDock>
         {canAfford3D && <Flourish3D side="left" />}
         {canAfford3D && <Flourish3D side="right" />}
-      </div>
+      </RobotDock>
       <a className="skip-link" href="#main">Skip to content</a>
       <Header theme={theme} toggleTheme={toggleTheme} />
       <main id="main">

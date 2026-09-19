@@ -486,24 +486,92 @@ html[data-theme="dark"] .f3d::before {
 .f3d--left { left: clamp(-70px, -1vw, 0px); }
 .f3d--right { right: clamp(-70px, -1vw, 0px); }
 
-/* MOBILE. These used to be hidden below 992px, because two 340px stages on a
-   390px screen sit squarely behind the text. They are shown now, but smaller,
-   fainter, pulled further off each edge, and staggered VERTICALLY so the two
-   of them frame the column rather than both landing behind the same
-   paragraph. */
+/* The pieces' own layer (RobotDock.jsx). On a desktop it is exactly the
+   flourish layer above — fixed, full viewport, behind everything — so the
+   stages sit in the side margins as they always have. */
+.f3d-dock {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.f3d-dock__toggle { display: none; }
+
+/* TABLETS (769-991): smaller, fainter, pulled off each edge and staggered
+   vertically, so the two frame the column rather than both landing behind
+   the same paragraph. */
 @media (max-width: 991px) {
   .f3d { --fw: 244px; --fh: 474px; opacity: 0.72; }
   .f3d--left  { left: -14px;  top: calc(32vh - var(--fh) / 2); }
   .f3d--right { right: -14px; top: calc(71vh - var(--fh) / 2); }
 }
-@media (max-width: 600px) {
-  /* Barely off the edge, not half off it. Pulled 40px clear on a 178px stage
-     the pieces were slivers — technically visible, which is not the same thing
-     as visible. The vertical stagger is what keeps them out of each other's
-     way and off the same paragraph, not a horizontal retreat. */
-  .f3d { --fw: 190px; --fh: 369px; opacity: 0.68; }
-  .f3d--left  { left: -8px;  top: calc(29vh - var(--fh) / 2); }
-  .f3d--right { right: -8px; top: calc(73vh - var(--fh) / 2); }
+
+/* PHONES: THE DOCK. The two stages side by side in a band across the bottom
+   of the screen, ABOVE the content (z 20: sections are z 10, the header
+   1000, the modal 2000), so the robots are seen rather than glimpsed behind
+   a paragraph — the owner asked for the animation to be "viewable in mobile
+   mode". The band's height is the smaller of a third of the screen and what
+   two stages of that height fit across (each stage is 340:660, and 74% of it
+   shows — the drawing's ink runs y 120-615 of 660, so the top is cropped by
+   the dock's edge and the bottom hangs 6% below the screen). The hero is
+   shortened by the dock and the content gets the dock's height of bottom
+   padding, so nothing is left unreachable behind it. Its background is
+   transparent at the top of the hero — the sine field shows through — and
+   solid once the page scrolls (`.is-solid`, RobotDock.jsx): the strands
+   slide under its edge and the pieces form inside it. */
+@media (max-width: 768px) {
+  :root { --dock-h: min(32vh, 70vw, 300px); }
+  .f3d-dock {
+    inset: auto 0 0 0;
+    height: var(--dock-h);
+    z-index: 20;
+    transition: height 0.3s ease;
+  }
+  .f3d-dock::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--background-color);
+    border-top: 1px solid var(--border-color);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .f3d-dock.is-solid::before { opacity: 1; }
+  .f3d {
+    --fh: calc(var(--dock-h) / 0.74);
+    --fw: calc(var(--fh) * 340 / 660);
+    opacity: 0.95;
+    top: auto;
+    bottom: calc(var(--fh) * -0.06);
+  }
+  .f3d--left  { left: calc(50% - var(--fw) - 1vw); }
+  .f3d--right { left: calc(50% + 1vw); right: auto; }
+  .f3d-dock__toggle {
+    display: inline-flex;
+    position: absolute; top: 0; right: 12px;
+    height: 24px; padding: 0 10px;
+    pointer-events: auto;
+    font: 600 11px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    letter-spacing: 0.02em;
+    color: var(--secondary-color);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+  .f3d-dock.is-solid .f3d-dock__toggle, .f3d-dock.is-collapsed .f3d-dock__toggle { opacity: 1; }
+  /* the footer is the last thing on the page and OUTSIDE main, so the room
+     under the dock goes on it (on main it left the footer behind the dock) */
+  footer { margin-bottom: calc(var(--dock-h) + 8px); }
+  #hero { min-height: calc(100vh - var(--dock-h)); min-height: calc(100svh - var(--dock-h)); padding-top: 84px; }
+  /* collapsed for reading: a tab's worth of dock, the stages hidden */
+  html.dock-collapsed .f3d-dock { height: 24px; }
+  html.dock-collapsed .f3d-dock .f3d { visibility: hidden; }
+  html.dock-collapsed footer { margin-bottom: 32px; }
+  html.dock-collapsed #hero { min-height: 100vh; min-height: 100svh; }
 }
 
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
@@ -1048,8 +1116,6 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 }
 
 @media (max-width: 768px) {
-  header nav a { margin-left: 15px; }
-  #theme-toggle { margin-left: 15px; font-size: 1.3rem; }
   .section-title { font-size: 2.5rem; }
   .modal-content-wrapper { padding: 20px; }
   .modal-image-container { padding: 30px 15px 0; }
@@ -1057,8 +1123,6 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   .modal-text-content h2 { font-size: 2rem; }
 }
 @media (max-width: 480px) {
-  header nav a { margin-left: 10px; font-size: 0.9rem;}
-  #theme-toggle { margin-left: 10px; font-size: 1.2rem; }
   .skill-group-item { flex-direction: column; align-items: center; text-align: center; }
   .skill-group-item-image { margin-bottom: 10px; }
   .project-tags-container, .project-status-container { justify-content: center; display: flex; }
@@ -1076,6 +1140,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll-cue, .hero-scroll-cue * { animation: none; }
+  header nav, .nav-burger span, .f3d-dock, .f3d-dock::before, .f3d-dock__toggle { transition: none; }
   .lift-card, .doc-tile, .social-links a, .project-tag { transition: none; }
   .lift-card:hover, .doc-tile:hover { transform: none; }
   .lift-card:active, .doc-tile:active { transform: none; }
@@ -1262,20 +1327,37 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   .page-next { width: 34px; height: 34px; bottom: 8px; }
 }
 
-/* PHONES: the nav has one link per page (eight) plus the theme toggle — about
-   750px of it on a 390px screen. It swipes sideways instead of being clipped;
-   before this, everything past the third link, the theme toggle included,
-   could not be reached on a phone at all. */
+/* PHONES: the nav has one link per page (seven) plus the theme toggle — about
+   750px of it on a 390px screen. It is a MENU behind a hamburger button
+   (Header.jsx): a panel that drops from the header with the links stacked and
+   the theme toggle last. It used to swipe sideways, masked at the right edge,
+   which reached everything but told no one it was there. The button is three
+   bars that turn into a cross. */
+.nav-burger { display: none; }
 @media (max-width: 768px) {
-  header nav {
-    min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-            mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-    padding-right: 24px;
+  header { padding: 14px 5%; }
+  .nav-burger {
+    display: inline-flex; flex-direction: column; justify-content: center; gap: 5px;
+    width: 40px; height: 40px; padding: 8px;
+    background: none; border: none; border-radius: 8px; cursor: pointer;
+    color: var(--primary-color);
   }
-  header nav::-webkit-scrollbar { display: none; }
-  header nav > * { flex: 0 0 auto; }
-  header .logo { flex: 0 0 auto; margin-right: 10px; }
+  .nav-burger span { display: block; height: 2px; width: 22px; background: currentColor; border-radius: 1px; transition: transform 0.25s ease, opacity 0.2s ease; transform-origin: center; }
+  .nav-burger.is-open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .nav-burger.is-open span:nth-child(2) { opacity: 0; }
+  .nav-burger.is-open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  header nav {
+    position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; align-items: stretch; gap: 2px;
+    padding: 6px 5% 14px;
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 12px 30px var(--shadow-color-ambient);
+    opacity: 0; transform: translateY(-8px); pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+  }
+  header nav.nav--open { opacity: 1; transform: none; pointer-events: auto; }
+  header nav .nav-link { padding: 12px 16px; font-size: 1.05rem; border-radius: 10px; }
+  .nav-pill { border-radius: 10px; }
+  header nav #theme-toggle { align-self: flex-start; margin: 8px 12px 0; }
 }
