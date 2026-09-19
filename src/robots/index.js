@@ -199,4 +199,7 @@ export function bodyPlacements(robot, base, q) {
   return out;
 }
 
-export { apply, TAU };
+// `prepare` is exported for the offline pose harness (scripts/ik-poses.mjs),
+// which solves the robots' task waypoints by numerical IK from the same
+// kinematics the renderer uses.
+export { apply, TAU, prepare };

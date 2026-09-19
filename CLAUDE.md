@@ -457,41 +457,89 @@ settle point):
 |---|---|---|
 | Experience → Research | the motor lands on the **SO-ARM101**'s base servo and the arm grows out of it | the camera explodes to its **sensor** |
 | Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | the **model runs** on the pixels |
-| Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** on a stand; the left unfolds beside it | the model returns **detections** |
-| Additional Projects → Resume | the stand becomes the **Ultra OP1**'s body and the two URs its two arms | the detections become a **world model** |
+| Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | the model returns **detections** |
+| Additional Projects → Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the detections become a **world model** |
 
-**The Ultra OP1 is a FAIRINO arm carrying Ultra's bimanual unit** — the
-owner's description: "the base is a fairino Robot, with a custom bimanual
-robot on the end, with a zed camera as eyes". (A first cut drew it as two
-Franka arms on a torso, from Ultra's published spec; it was rejected — "it
-should not be two Franka emika arms".) So the `ultra` robot in the bake is
-the **FAIRINO FR20** (`fairino_description/fairino20_v6.urdf` + its seven
-SolidWorks STLs, from MNikoliCC/fairino_ros2 — the URDF's joint origins are
-roll-pitch-yaw, so the bake and loader take `rpy`: R = Rz·Ry·Rx) with two
-extra bodies on its flange: `unit` (no mesh) and `zed`, the **Stereolabs ZED
-2i** mesh from `zed-ros-interfaces/meshes`, turned from ROS camera_link
-(x forward, z up) to hang under the flange. **The unit itself is drawn**
-(`drawUnit` / `drawSmallArm`, in the unit body's frame: x forward where the
-ZED looks, y across the shoulders, z DOWN): a torso block with a black band
-and the ZED on its face, and two small arms — shoulder drum, upper link,
-elbow drum, forearm, wrist drum, two-finger gripper — hanging from its sides,
-posed by `RB.ul.arm` ({pitch, roll, elbow, wrist, open}; the left arm mirrors
-roll). Ultra's unit has no public CAD, so its proportions are a guess at a
-0.6 m-reach arm pair on a 0.38 m torso; if the owner names the arms, real
-meshes go in through the bake like everything else. The FR20 poses are its
-six joints (base yaw, shoulder, elbow, wrist pitch, wrist yaw, flange roll):
-at rest it rises from the cart and folds back down so the unit hangs over
-the cart's front facing the viewer, and while settled it drifts on a slow
-cycle while the small arms pick and place (`armAt`).
+**Each settled robot does a JOB, with real props** — the owner asked for
+them by name: the SO-ARM101 picks up one cube and puts it down (A to B and
+back), the Franka stacks two cubes on a third and unstacks them, the UR pair
+packs an item each into a box (Generalist's demos), the OP1's arms fold a
+box's four flaps up and put an item in it. How that works (`TASKS` in
+`Flourish3D.jsx`): a task is a loop of joint-space waypoints `W` (eased,
+`period` seconds, the gripper's value riding in W too), a tool point (body +
+mm offset), cubes, and EVENTS — cube c picked up at waypoint `at`, put down
+at `drop`. **A cube rests at the tool point of the waypoint it is next picked
+up at (or was last put down at) and rides the tool point in between, so the
+gripper is on it by construction.** The waypoints are solved offline by
+numerical IK in `scripts/ik-poses.mjs` — damped least squares on a numerical
+Jacobian, position plus a tool-axis direction (pointing down), seeded to pick
+the elbow branch — from where the props are in the robot's frame; the
+comments there say where. `W[0]` is the rest pose every act morphs from and
+to, so seams stay at 0-2 px. A loop that does not return to its start (an
+item packed) `reset`s over its last segment: props fade, go home, fade in.
+Props fade across act boundaries with their robot (out over the first
+quarter of the next act, in over the last quarter of their own). Lessons:
+hand-tuned joint angles never put a gripper on a cube (that is what the IK
+is for); the SO-ARM bunched up when its cubes were at 200 mm — they are at
+250, and its shoulder lift is kept positive; the Franka's cubes at 520-660
+mm projected off the stage — 400-510; the URs' items beside their mounts
+sent the arms past the frame's posts to the stage edges — the items sit
+between mount and box.
 
-**The act** (`drawUltraAct`): the stand's plinth widens into the cart on four
-casters while column, beam, mounts, camera bar and work surface fade
-(`drawStand`'s `m`); the Fairino rises from the cart body by body
-(`growOrder`, as the SO-ARM grew from its servo) unfolding from a packed
-pose; the two URs travel from their mounts to where the unit's shoulders
-will be — the unit at REST, not the one still unfolding, which ran them off
-the left edge — shrinking as they go, and the unit's small arms fade in as
-they arrive. Seam into it: 0 px.
+**The UR pair is Generalist's** (generalistai.com, GEN-0 / GEN-1 videos):
+two UR e-series HANGING from a frame over a dark table, black wrists,
+yellow 3D-printed parallel fingers (`MAT.ochre`, `drawURGripper`: the
+flange is 100 mm along wrist_3's y, the tool point 130 beyond it), packing
+things into boxes. The frame (`drawFrame`) is two posts and a crossbar with
+the UR bases on its underside (`hanging` = `shouldered` by 180°), the table
+740 mm below the mounts (the IK's number; `TABLE_Y` follows `UR_K`). The left
+arm is the right arm turned half a turn about the vertical (yaw 90 vs 270),
+so one task serves both and they pack the same box, which is drawn under the
+right arm's drop point. **The table is narrower than the frame**: its near
+edge sits toward the viewer and perspective grows it ~15%, and at the posts'
+width it reached both stage edges. It used to be a Generalist-ish stand with
+the arms standing ON a beam; the owner's reference photos are hanging arms.
+
+**The Ultra OP1 is a FAIRINO arm carrying Ultra's bimanual unit**, drawn
+from Ultra's own photos (ultra.tech): a black steel cart on four casters with
+the electronics and a black pedestal the white Fairino rises from, a tall
+thin signal pole with a lamp; on the Fairino's flange a black upright torso
+with an orange logo, a ZED on a short mast on TOP of it looking forward, and
+two black arms off the torso's top corners — shoulder, upper arm, elbow,
+forearm, wrist — ending in parallel grippers with orange tips. (A first cut
+drew two Franka arms on a torso, from Ultra's published spec; the owner
+rejected it — "it should not be two Franka emika arms. The base is a fairino
+Robot, with a custom bimanual robot on the end, with a zed camera as eyes".)
+The `ultra` robot in the bake is the **FAIRINO FR20**
+(`fairino_description/fairino20_v6.urdf` + its seven SolidWorks STLs, from
+MNikoliCC/fairino_ros2 — URDF joint origins are roll-pitch-yaw, so the bake
+and loader take `rpy`: R = Rz·Ry·Rx) plus a `zed` body carrying the
+**Stereolabs ZED 2i** mesh (`zed-ros-interfaces/meshes`). **The unit itself
+is drawn** (`drawUnit` / `drawSmallArm`, in a frame built by `unitFrame`: x
+where the ZED looks, y across the shoulders, z UP, origin at the torso's
+bottom centre, mm). That frame is UPRIGHT whatever the wrist does — the
+flange normal projected flat gives the facing, the torso hangs half a depth
+in front of and 210 mm below the flange — so the torso reads as a payload.
+The Fairino rest pose (`RB.ul.rest`, j4 −0.9 / j5 1.57) was chosen by
+scanning the wrist joints for a HORIZONTAL flange normal; at the earlier
+pose it pointed straight down and the torso had nowhere to hang. The small
+arms are a hand-written chain (shoulder at (0, ±165, 300), links 260/250/120;
+`smallArmFrames`), posed by `{pitch, roll, elbow, wrist, open}`, their
+waypoints IK-solved in `ik-poses.mjs` like the others: the box (`OPB`, base
+200 mm below the torso's bottom on a packing table in front, flaps hinged on
+its four edges) is folded flap by flap (`unitTaskState`'s `flaps`), then the
+item on the table is put in. The Fairino holds still while settled; if it
+drifted, the box on the table would have to drift with it.
+
+**The act** (`drawUltraAct`): the frame and table fade as the cart comes;
+the Fairino rises from the cart's pedestal body by body (`growOrder`, as the
+SO-ARM grew from its servo) unfolding from an UPRIGHT packed pose (its zero
+is the arm lying flat along −x, and unfolding from near zero swung it
+through the stage's left edge); the two URs travel from their mounts to
+where the unit's shoulders will be, in their working pose (their zero is
+stretched out flat and folding toward it did the same), shrinking, and the
+unit's arms fade in as they arrive; the packing table and flat box come
+last. Seam into it: 0 px.
 
 **The Franka has its hand.** The Menagerie's `franka_fr3` ships without one;
 the Franka Hand meshes come from its `franka_emika_panda` (same part), the
@@ -513,11 +561,9 @@ robot at rest and at u=1 IS the incoming one, which is what keeps the act
 seams at antialiasing level. The incoming robot also unfolds from a packed
 pose (`folded` → `rest`) during the morph, so it arrives moving.
 
-**The robots WORK while the page is settled** (`workQ` / `cycleQ`): each has
-a cycle of joint-space waypoints — reach, close, lift, swing, set down, open,
-return — eased between over `period` seconds (`RB.*.cycle`), the UR pair and
-the OP1's arms out of phase by half a period; the Franka's and the OP1's
-fingers open and close with it. The cycle's first waypoint is the rest pose, and
+**The robots WORK while the page is settled**, each at its job with real
+props (see "Each settled robot does a JOB" under The acts): `taskState` /
+`unitTaskState` give the joints and where every cube is at `idleT`. The cycle's first waypoint is the rest pose, and
 the instant the page moves the robot is drawn at rest, so the next act's
 morph starts from the frame this one ended on. Before this they swayed two
 joints on a sine (`swayQ`), which read as wobbling, not working.
@@ -778,8 +824,9 @@ Things learned by getting them wrong, in order:
   toward the viewer and Y is flipped with a half turn). MuJoCo quaternions are
   (w, x, y, z); its default euler sequence is intrinsic xyz.
 - **Signs.** In this UR5e model a positive elbow bends the forearm UP.
-- **Poses** (`RB`) are joint angles in each MJCF's joint order, checked by
-  screenshot at the settle points and by the ink bounding box; the stage
+- **Poses** (`RB`) are joint angles in each MJCF's joint order — the task
+  waypoints from `scripts/ik-poses.mjs`, the packed poses by hand — checked
+  by screenshot at the settle points and by the ink bounding box; the stage
   overhangs the screen edge by 14-20 px, so keep ink inside ~x 20-320. The
   SO-ARM101's signs, from rendering each joint alone: +shoulder_lift tilts the
   upper arm toward its reach, +elbow_flex bends the forearm DOWN, +wrist_flex

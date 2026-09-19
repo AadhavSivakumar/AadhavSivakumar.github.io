@@ -333,15 +333,17 @@ const MAT = {
   // the same near-black as everything else on the dark theme.
   pla: 7,
   urblue: 8,          // the UR5e's joint caps
+  ochre: 9,           // Generalist's yellow 3D-printed gripper fingers
+  orange: 10,         // Ultra's gripper tips and logo
 };
 // hex per slot; `copper` and `paint` are filled in from theme tokens
-const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC'];
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A'];
 // Weight is inversely related to how much of the frame the part covers. A tint
 // worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
 // assembled machine into a coloured blob and throws away the line art. So the
 // big masses stay near the page colour and the small parts carry the colour —
 // and most of the separation is done by the LINEWORK, which costs no area.
-const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55];
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62];
 const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
 
 const MOTOR_SPEC = [
@@ -1400,8 +1402,22 @@ export default function Flourish3D({ side = 'right' }) {
         // on the left, ?dev=d435i;k;yaw;pitch overrides the camera's framing
         if (isLeft && id === 'd435i' && DEV.includes(';')) { RB.cam.k = +k; RB.cam.yaw = +yaw; RB.cam.pitch = +x; }
         if (isLeft) drawCameraMesh(1, 0);
-        else if (id === 'ultra' && ROBOTS.ultra) { drawStand(1, 1, 1); drawUltraRobot(standing([+x, +y], +k, +yaw), qs.split(',').filter(Boolean).map(Number), RB.ul.arm, RB.ul.arm, 1); }
-        else if (ROBOTS[id]) drawRobot(ROBOTS[id], shouldered([+x, +y], +k, +yaw, +tilt), qs.split(',').filter(Boolean).map(Number), 1);
+        else if (id === 'ultra' && ROBOTS.ultra) {
+          drawCart(1, 1);
+          const base = standing([+x, +y], +k, +yaw), qq = qs.split(',').filter(Boolean).map(Number);
+          const TU = drawUltraRobot(base, qq, RB.ul.unit.R[0], RB.ul.unit.L[0], 1);
+          drawUnitProps(TU, unitTaskState(TU, 0), 1);
+        } else if (id === 'ur5e' && +tilt === 180 && ROBOTS.ur5e) {
+          drawFrame(1, 1);
+          const base = hanging([+x, +y], +k, +yaw), qq = qs.split(',').filter(Boolean).map(Number);
+          drawUR(base, qq.length ? qq : RB.ur.rest, 1);
+          const st = taskState(ROBOTS.ur5e, base, RB.ur.task, 0); drawCubes(st, 1); drawPackBox(base, 1);
+        } else if (ROBOTS[id]) {
+          const base = shouldered([+x, +y], +k, +yaw, +tilt), qq = qs.split(',').filter(Boolean).map(Number);
+          const task = id === 'soarm' ? RB.so.task : id === 'fr3' ? RB.fr.task : null;
+          drawRobot(ROBOTS[id], base, qq.length ? qq : task ? task.W[0] : [], 1);
+          if (task) drawCubes(taskState(ROBOTS[id], base, task, 0), 1);
+        }
         flush();
         return;
       }
@@ -1738,90 +1754,172 @@ export default function Flourish3D({ side = 'right' }) {
     // beam, a UR base at each end of the beam, a camera bar above looking down
     // at a work surface in front. No torso, no head — a workcell, not a
     // humanoid.
-    const STAND_X = 12, BEAM_Y = -8, ARM_DX = 78;   // the pair's bases sit ARM_DX either side of the stand
-    // The stand, and with `m` > 0 the stand becoming the Ultra OP1's CART:
-    // the plinth widens into a base on four locking casters, and the column,
-    // beam, mounts, camera bar and work surface go — the Fairino arm rises
-    // from the base in their place (drawUltraAct). Dimensions interpolate,
-    // so it is one thing changing shape.
-    function drawStand(u, alpha, m = 0) {
-      if (u <= 0.01) return;
+    // ── the Generalist workcell ─────────────────────────────────────────
+    // Generalist's demos (generalistai.com, GEN-0/GEN-1): two UR e-series
+    // arms HANGING from a frame over a dark table, black wrists, yellow
+    // 3D-printed parallel fingers, packing things into boxes. So: two posts,
+    // a crossbar, the UR bases bolted to its underside, a table below.
+    const STAND_X = 12, FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, POST_X = 126;
+    const TABLE_Y = BAR_Y + 12 + 740 * UR_K;                          // the IK put the table 740 mm below the mounts
+    function drawFrame(u, alpha) {
+      if (u <= 0.01 || alpha <= 0.01) return;
       const F = place(IDENT, [0, 0, 0]);
       const a = alpha;
-      const L = (p, q) => p + (q - p) * m;
-      const box = (w, h, d, x, y, z, mat, aa = a, s = u) => {
-        if (aa <= 0.01 || w <= 0.01 || h <= 0.01) return;
-        submit(boxFaces(w * s, h * s, d * s, x, y, z), F, mat, aa);
-        submitLines(boxWire(w * s, h * s, d * s, x, y, z), F, matLine[mat], LOOK.line * aa, LOOK.width);
+      const box = (w, h, d, x, y, z, mat) => {
+        submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a);
+        submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width);
       };
-      // plinth -> cart base
-      box(L(120, 150), L(18, 14), L(96, 130), STAND_X, L(150, 153), L(-10, 0), MAT.iron);
-      if (m > 0.01) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        const C = place(mul(rotY(90 * DEG), scaleM(u * m)), [STAND_X + sx * 64, 164, sz * 54]);
-        drawDrum(C, 7, -4, 4, MAT.poly, a * m);
+      // the frame: posts from the table up to the crossbar, the crossbar, a
+      // mount plate under it at each arm
+      box(8, TABLE_Y - BAR_Y, 8, FRAME_X - POST_X, (TABLE_Y + BAR_Y) / 2, -30, MAT.alu);
+      box(8, TABLE_Y - BAR_Y, 8, FRAME_X + POST_X, (TABLE_Y + BAR_Y) / 2, -30, MAT.alu);
+      box(2 * POST_X + 8, 10, 40, FRAME_X, BAR_Y, -30, MAT.alu);
+      for (const x of [FRAME_X - UR_DX, FRAME_X + UR_DX]) box(34, 6, 34, x, BAR_Y + 8, -12, MAT.steel);
+      // the table: a dark top on a lighter frame. Its near edge sits toward
+      // the viewer and perspective grows it ~15%: at the posts' width it
+      // reached both stage edges, so it is narrower than the frame.
+      box(2 * POST_X - 16, 6, 120, FRAME_X, TABLE_Y + 3, 10, MAT.poly);
+      box(2 * POST_X - 12, 4, 124, FRAME_X, TABLE_Y + 8, 10, MAT.alu);
+    }
+    const drawStand = (u, alpha) => drawFrame(u, alpha);   // the procedural fallback still calls it by this name
+    // The UR's gripper is Generalist's: a black body on the flange, two long
+    // yellow printed fingers. In the wrist_3 frame the flange is 100 mm along
+    // y and the tool axis is +y (the MJCF's attachment_site); the tool point
+    // is 130 beyond the flange, between the fingertips. `gap` in mm.
+    function drawURGripper(Tw, gap, a) {
+      if (a <= 0.01) return;
+      const G = chain(Tw, place(rotX(-90 * DEG), [0, 100, 0]));           // local z along the tool axis
+      drawDrum(G, 34, 0, 46, MAT.poly, a);
+      submit(boxFaces(96, 30, 14, 0, 0, 53), G, MAT.poly, a);
+      submitLines(boxWire(96, 30, 14, 0, 0, 53), G, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      for (const sg of [-1, 1]) {
+        const x = sg * (gap / 2 + 7);
+        submit(boxFaces(12, 22, 74, x, 0, 97), G, MAT.ochre, a);
+        submitLines(boxWire(12, 22, 74, x, 0, 97), G, matLine[MAT.ochre], LOOK.line * a, LOOK.width);
       }
-      const fade = a * (1 - m);
-      if (fade > 0.01) {
-        box(34, 118, 34, STAND_X, 82, -10, MAT.alu, fade);
-        box(2 * ARM_DX + 60, 14, 30, STAND_X, BEAM_Y + 14, -10, MAT.alu, fade);
-        for (const x of [STAND_X - ARM_DX, STAND_X + ARM_DX]) {
-          const M = place(mul(rotX(90 * DEG), scaleM(0.56 * u)), [x, BEAM_Y + 2, 0]);
-          drawDrum(M, 20, -8, 8, MAT.steel, fade);
-        }
-        box(6, 110, 6, STAND_X - ARM_DX - 26, BEAM_Y - 40, -10, MAT.steel, fade);
-        box(6, 110, 6, STAND_X + ARM_DX + 26, BEAM_Y - 40, -10, MAT.steel, fade);
-        box(2 * ARM_DX + 58, 6, 6, STAND_X, BEAM_Y - 94, -10, MAT.steel, fade);
-        const C = place(scaleM(u), [STAND_X, BEAM_Y - 82, -4]);
-        submit(boxFaces(30, 16, 22, 0, 0, 0), C, MAT.poly, fade);
-        submitLines(boxWire(30, 16, 22, 0, 0, 0), C, matLine[MAT.poly], LOOK.line * fade, LOOK.width);
-        submitLines([ringAt(5, 0, 8.2, 0, 14), ringAt(7, 0, 8.6, 0, 14)], chain(C, place(rotX(90 * DEG), [0, 0, 0])), ink, LOOK.line * fade, LOOK.width);
-        box(2 * ARM_DX + 70, 8, 70, STAND_X, 122, 44, MAT.neutral, fade);
-      }
+    }
+    // an arm hanging from the frame: standing, then turned over (a half turn
+    // about the stage's z; the yaw is measured after the turn)
+    const hanging = (root, k, yaw) => shouldered(root, k, yaw, 180);
+    // a UR with its gripper; the gap rides in q[6] (mm), 90 when absent
+    function drawUR(base, q, a, ga = a) {
+      drawRobot(ROBOTS.ur5e, base, q, a);
+      const Tw = bodyPlacements(ROBOTS.ur5e, base, q)[ROBOTS.ur5e.index.get('wrist3')];
+      drawURGripper(Tw, q[6] ?? 90, ga);
+    }
+    // the cardboard box the pair packs, on the table between them: an open
+    // box under the right arm's drop point, world-upright
+    const R_UP = rotX(90 * DEG);                                      // Z-up geometry, screen-up
+    function drawOpenBox(c, w, d, h, R, k, mat, a) {
+      if (a <= 0.01) return;
+      const T = place(R.map(x => x * k), c);
+      const wall = (bw, bd, bh, x, y, z) => { submit(boxFaces(bw, bd, bh, x, y, z), T, mat, a); submitLines(boxWire(bw, bd, bh, x, y, z), T, matLine[mat], LOOK.line * a, LOOK.width); };
+      wall(w, d, 6, 0, 0, -h / 2 + 3);
+      wall(6, d, h, -w / 2 + 3, 0, 0); wall(6, d, h, w / 2 - 3, 0, 0);
+      wall(w, 6, h, 0, -d / 2 + 3, 0); wall(w, 6, h, 0, d / 2 - 3, 0);
     }
 
-    // ── Ultra's bimanual unit, on the Fairino's flange ──────────────────
-    // Drawn in the unit body's frame (mm; x forward, y across, z down): a
-    // torso block with a black band, the ZED 2i on its front (a real mesh,
-    // drawn with the robot), and two small arms — shoulder drum, upper link,
-    // elbow drum, forearm, wrist drum, two-finger gripper — hanging from its
-    // sides. `PR`/`PL` are the arm poses (see RB.ul.arm); `ga` fades the arms
-    // on their own (the URs become them).
-    function drawSmallArm(F, P, side, a) {
+    // ── the Ultra OP1's cart, and its bimanual unit ─────────────────────
+    // From Ultra's photos (ultra.tech): a black steel cart on four casters
+    // carrying the electronics and a black pedestal the white Fairino rises
+    // from, a tall thin signal pole with a lamp; on the Fairino's flange a
+    // black upright torso (orange logo) with a ZED on a short mast on top,
+    // and two black arms off the torso's top corners — shoulder, upper arm,
+    // elbow, forearm, wrist — ending in parallel grippers with orange tips.
+    const CART_X = STAND_X + 24, FLOOR_Y = 158;
+    const ULTRA_ROOT = [CART_X + 46, FLOOR_Y - 66];
+    function drawCart(u, alpha) {
+      if (u <= 0.01 || alpha <= 0.01) return;
+      const F = place(IDENT, [0, 0, 0]); const a = alpha;
+      const box = (w, h, d, x, y, z, mat) => { submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a); submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width); };
+      // the base frame: two rails and two cross members, casters at the corners
+      box(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly); box(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly);
+      box(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly); box(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) drawDrum(place(mul(rotY(90 * DEG), scaleM(u)), [CART_X + sx * 74, FLOOR_Y + 2, sz * 46]), 6, -4, 4, MAT.poly, a);
+      // the pedestal the arm stands on, the electronics box beside it
+      box(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly);
+      box(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly);
+      // the signal pole and its lamp
+      box(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel);
+      box(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu);
+    }
+    // The unit, drawn in its own frame: x forward (where the ZED looks), y
+    // across the shoulders, z UP, origin at the torso's bottom centre; mm,
+    // the scale carried by the placement.
+    const UNIT = { W: 200, D: 150, H: 330, SY: 165, SZ: 300, L1: 260, L2: 250, L3: 120 };
+    // The frame the unit hangs in: upright, its back on the Fairino's flange,
+    // facing the way the flange points (projected flat — the torso is a
+    // payload that stays level however the wrist is turned).
+    function unitFrame(Tf, k) {
+      let fx = Tf.m[2], fz = Tf.m[8];                       // the flange normal, flattened
+      let L = Math.hypot(fx, fz);
+      if (L < 0.2 * k) { fx = Tf.m[0]; fz = Tf.m[6]; L = Math.hypot(fx, fz) || 1; }
+      fx /= L; fz /= L;
+      const f = [fx, 0, fz], up = [0, -1, 0];
+      const sd = [up[1] * f[2] - up[2] * f[1], up[2] * f[0] - up[0] * f[2], up[0] * f[1] - up[1] * f[0]];   // up × f
+      const m = [f[0] * k, sd[0] * k, up[0] * k, f[1] * k, sd[1] * k, up[1] * k, f[2] * k, sd[2] * k, up[2] * k];
+      // the torso's bottom centre: half a torso in front of the flange and
+      // 210 mm below it (the flange meets the torso's back two thirds up)
+      return { m, t: [Tf.t[0] + f[0] * UNIT.D / 2 * k, Tf.t[1] + 210 * k, Tf.t[2] + f[2] * UNIT.D / 2 * k] };
+    }
+    // one of the unit's arms: frames of shoulder, elbow, wrist, and the tool
+    // point between the fingertips. `P` = { pitch, roll, elbow, wrist, open }:
+    // the upper arm hangs at pitch 0, pitch swings it forward about y, roll
+    // swings it outward about x, elbow and wrist turn about the arm's own y.
+    function smallArmFrames(TU, P, side) {
+      const S = chain(TU, place(mul(rotX(-side * P.roll), rotY(P.pitch)), [0, side * UNIT.SY, UNIT.SZ]));
+      const E = chain(S, place(rotY(P.elbow), [0, 0, -UNIT.L1]));
+      const Wr = chain(E, place(rotY(P.wrist), [0, 0, -UNIT.L2]));
+      const tcp = [Wr.m[2] * -UNIT.L3 + Wr.t[0], Wr.m[5] * -UNIT.L3 + Wr.t[1], Wr.m[8] * -UNIT.L3 + Wr.t[2]];
+      return { S, E, Wr, tcp };
+    }
+    function drawSmallArm(TU, P, side, a) {
       if (a <= 0.01) return;
-      const SH = [0, side * 215, 110];                                            // the shoulder, on the torso's side
-      const S = chain(F, place(mul(rotX(side * P.roll), rotY(P.pitch)), SH));
-      drawDrum(chain(F, place(rotX(90 * DEG), SH)), 44, -34, 34, MAT.poly, a);
-      drawDrum(S, 34, 24, 320, MAT.pla, a);
-      const E = chain(S, place(rotY(P.elbow), [0, 0, 334]));
-      drawDrum(chain(S, place(rotX(90 * DEG), [0, 0, 334])), 38, -34, 34, MAT.poly, a);
-      drawDrum(E, 29, 24, 290, MAT.pla, a);
-      const Wr = chain(E, place(rotY(P.wrist), [0, 0, 306]));
-      drawDrum(chain(E, place(rotX(90 * DEG), [0, 0, 306])), 31, -28, 28, MAT.poly, a);
-      drawDrum(Wr, 26, 12, 70, MAT.poly, a);
+      const { S, E, Wr } = smallArmFrames(TU, P, side);
+      // the shoulder: a block on the torso's top corner, the joint drum outboard
+      submit(boxFaces(70, 60, 60, 0, side * (UNIT.SY - 40), UNIT.SZ), TU, MAT.poly, a);
+      submitLines(boxWire(70, 60, 60, 0, side * (UNIT.SY - 40), UNIT.SZ), TU, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      drawDrum(chain(TU, place(rotX(90 * DEG), [0, side * UNIT.SY, UNIT.SZ])), 34, -26, 26, MAT.poly, a);
+      drawDrum(S, 24, -UNIT.L1 + 14, -12, MAT.poly, a);                                // upper arm
+      drawDrum(chain(E, place(rotX(90 * DEG), [0, 0, 0])), 28, -26, 26, MAT.poly, a);    // elbow
+      drawDrum(E, 20, -UNIT.L2 + 14, -12, MAT.poly, a);                                 // forearm
+      drawDrum(chain(Wr, place(rotX(90 * DEG), [0, 0, 0])), 24, -22, 22, MAT.poly, a);   // wrist
+      // the gripper: a black body, two jaws, orange tips
+      submit(boxFaces(60, 36, 40, 0, 0, -30), Wr, MAT.poly, a);
+      submitLines(boxWire(60, 36, 40, 0, 0, -30), Wr, matLine[MAT.poly], LOOK.line * a, LOOK.width);
       for (const sg of [-1, 1]) {
-        const off = sg * (14 + P.open);
-        submit(boxFaces(12, 18, 90, off, 0, 118), Wr, MAT.steel, a);
-        submitLines(boxWire(12, 18, 90, off, 0, 118), Wr, matLine[MAT.steel], LOOK.line * a, LOOK.width);
+        const x = sg * (P.open / 2 + 6);
+        submit(boxFaces(10, 30, 50, x, 0, -75), Wr, MAT.poly, a);
+        submitLines(boxWire(10, 30, 50, x, 0, -75), Wr, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+        submit(boxFaces(10, 30, 22, x, 0, -111), Wr, MAT.orange, a);
+        submitLines(boxWire(10, 30, 22, x, 0, -111), Wr, matLine[MAT.orange], LOOK.line * a, LOOK.width);
       }
     }
-    function drawUnit(T, PR, PL, a, ga = 1) {
+    function drawUnit(TU, PR, PL, a, ga = 1) {
       if (a <= 0.01) return;
-      submit(boxFaces(190, 380, 270, 0, 0, 175), T, MAT.pla, a);
-      submitLines(boxWire(190, 380, 270, 0, 0, 175), T, matLine[MAT.pla], LOOK.line * a, LOOK.width);
-      submit(boxFaces(196, 386, 50, 0, 0, 70), T, MAT.poly, a);
-      submitLines(boxWire(196, 386, 50, 0, 0, 70), T, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-      drawDrum(chain(T, place(IDENT, [0, 0, -30])), 70, 0, 40, MAT.poly, a);     // the flange coupling above
-      drawSmallArm(T, PR, 1, a * ga);
-      drawSmallArm(T, PL, -1, a * ga);
+      // the torso, with the orange logo on its face
+      submit(boxFaces(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, MAT.poly, a);
+      submitLines(boxWire(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      submit(plate(64, 64, 0, 0, 0), chain(TU, place(rotY(90 * DEG), [UNIT.D / 2 + 0.6, 0, UNIT.H * 0.42])), MAT.orange, a * 0.9);
+      // the mast, and the ZED 2i on it (a real mesh), looking forward
+      submit(boxFaces(24, 24, 60, 0, 0, UNIT.H + 30), TU, MAT.poly, a);
+      submitLines(boxWire(24, 24, 60, 0, 0, UNIT.H + 30), TU, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      const zed = ROBOTS.ultra.parts.find(p => p.body === 'zed');
+      if (zed) submitMesh(zed, chain(TU, place(IDENT, [12, 0, UNIT.H + 78])), MAT.poly, a, matLine[MAT.poly]);
+      // the coupling to the Fairino's flange, at the torso's back
+      drawDrum(chain(TU, place(rotY(90 * DEG), [-UNIT.D / 2, 0, 210])), 44, -30, 0, MAT.alu, a);
+      drawSmallArm(TU, PR, 1, a * ga);
+      drawSmallArm(TU, PL, -1, a * ga);
     }
-    // the whole machine: Fairino + ZED (meshes) and the unit (drawn)
+    // the whole machine: the Fairino (mesh) with the unit hanging from its
+    // flange; returns the unit's frame
     function drawUltraRobot(base, q, PR, PL, alpha, bodyAlpha, armAlpha = 1) {
       const robot = ROBOTS.ultra;
-      drawRobot(robot, base, q, alpha, bodyAlpha);
-      const T = bodyPlacements(robot, base, q)[robot.index.get('unit')];
-      const ua = alpha * (bodyAlpha ? (bodyAlpha.unit ?? 1) : 1);
-      drawUnit(T, PR, PL, ua, armAlpha);
-      return T;
+      drawRobot(robot, base, q, alpha, { ...(bodyAlpha || {}), zed: 0 });
+      const Tf = bodyPlacements(robot, base, q)[robot.index.get('wrist3_link')];
+      const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(base.m));
+      drawUnit(TU, PR, PL, alpha * (bodyAlpha ? (bodyAlpha.unit ?? 1) : 1), armAlpha);
+      return TU;
     }
     const UL_ORDER = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link', 'unit', 'zed'];
 
@@ -2100,92 +2198,81 @@ export default function Flourish3D({ side = 'right' }) {
     // is one of three real robots posed by forward kinematics, and the left's
     // camera is the RealSense D435i. Until then the procedural drawings above
     // stand in. Poses are joint angles in radians, in each MJCF's joint order.
+    // Task waypoints, solved by IK in scripts/ik-poses.mjs from where the
+    // props are in each robot's frame (see "TASKS" below). `g(q, v)` sets the
+    // gripper's value on a copy of a pose.
+    const g = (q, i, v) => { const o = q.slice(); o[i] = v; return o; };
+    // SO-ARM101: A and B on the table, 200 forward and 70 to either side of
+    // the base; "up" 90 mm above them. Gripper joint 5: 0.7 open, 0.3 closed.
+    const SO_A = [0.341, 0.323, 0.097, 1.052, 0, 0.7], SO_AU = [0.341, 0.245, -0.371, 1.598, 0, 0.7];
+    const SO_B = [-0.341, 0.323, 0.096, 1.052, 0, 0.7], SO_BU = [-0.341, 0.245, -0.372, 1.598, 0, 0.7];
+    const SO_W = [SO_AU, SO_A, g(SO_A, 5, 0.3), g(SO_AU, 5, 0.3), g(SO_BU, 5, 0.3), g(SO_B, 5, 0.3), SO_B, SO_BU,
+                  SO_BU, SO_B, g(SO_B, 5, 0.3), g(SO_BU, 5, 0.3), g(SO_AU, 5, 0.3), g(SO_A, 5, 0.3), SO_A, SO_AU];
+    // Franka: three 50 mm cubes at P1, P2, P3 in front of the base; S1, S2 the
+    // stack on P1; HI the travel pose over the work. Fingers (7, 8): 0.04
+    // open, 0.025 closed on a 50 mm cube.
+    const FR_HI = [0, -0.322, 0, -2.492, 0, 2.17, 0.785, 0.04, 0.04];
+    const FR_P1 = [-0.268, 0.348, 0, -2.637, 0, 2.985, 0.785, 0.04, 0.04], FR_P2 = [0.268, 0.348, 0, -2.637, 0, 2.985, 0.785, 0.04, 0.04];
+    const FR_P3 = [0, 0.489, 0, -2.328, 0, 2.817, 0.785, 0.04, 0.04];
+    const FR_S1 = [-0.268, 0.178, 0, -2.672, 0, 2.849, 0.785, 0.04, 0.04], FR_S2 = [-0.268, 0.017, 0, -2.683, 0, 2.7, 0.785, 0.04, 0.04];
+    const fc = q => { const o = q.slice(); o[7] = 0.025; o[8] = 0.025; return o; };
+    const FR_W = [FR_HI, FR_P2, fc(FR_P2), fc(FR_HI), fc(FR_S1), FR_S1, FR_HI, FR_P3, fc(FR_P3), fc(FR_HI), fc(FR_S2), FR_S2, FR_HI,
+                  FR_S2, fc(FR_S2), fc(FR_HI), fc(FR_P3), FR_P3, FR_HI, FR_S1, fc(FR_S1), fc(FR_HI), fc(FR_P2), FR_P2, FR_HI];
+    // UR5e, hanging: the item on the table beside the arm, the box 360 mm
+    // toward the pair's centre. Gripper gap in q[6]: 90 open, 60 closed.
+    const UR_IT = [0.03, -1.216, -2.135, 1.781, 1.57, 0, 90], UR_ITU = [0.03, -1.471, -2.452, 2.351, 1.57, 0, 90];
+    const UR_BX = [-1.081, -1.842, -1.904, 2.174, 1.57, 0, 90], UR_BXU = [-1.081, -2.011, -1.994, 2.432, 1.57, 0, 90];
+    const UR_W = [UR_ITU, UR_IT, g(UR_IT, 6, 60), g(UR_ITU, 6, 60), g(UR_BXU, 6, 60), g(UR_BX, 6, 60), UR_BX, UR_BXU, UR_ITU];
+    // the OP1's small arms (right; the left is the mirror by construction)
+    const op = (P, open) => ({ ...P, open });
+    const OP_REST = { pitch: -0.45, roll: 0.12, elbow: 0.7, wrist: 0.25 };        // hanging beside the torso, a little forward
+    const OP_R = { FLAP: { pitch: -1.103, roll: -0.087, elbow: 1.071, wrist: 0.032 }, FLAP_UP: { pitch: -1.556, roll: 0.066, elbow: 1.636, wrist: -0.08 },
+                   FLAP2: { pitch: -0.778, roll: 0.183, elbow: 0, wrist: 0.691 }, FLAP2_UP: { pitch: -1.49, roll: 0.228, elbow: 1.253, wrist: 0.238 },
+                   ITEM: { pitch: -1.17, roll: -0.191, elbow: 1.288, wrist: -0.118 }, ITEM_UP: { pitch: -1.93, roll: -0.295, elbow: 2.064, wrist: -0.134 },
+                   OVER: { pitch: -1.963, roll: 0.333, elbow: 1.964, wrist: -0.001 }, IN: { pitch: -1.287, roll: 0.223, elbow: 1.326, wrist: -0.038 } };
+    const OP_L = { FLAP: OP_R.FLAP, FLAP_UP: OP_R.FLAP_UP, FLAP2: { pitch: -0.953, roll: 0.183, elbow: 1.417, wrist: -0.464 }, FLAP2_UP: { pitch: -1.444, roll: 0.228, elbow: 1.837, wrist: -0.394 } };
+    const OPW_R = [op(OP_REST, 60), op(OP_R.FLAP, 60), op(OP_R.FLAP_UP, 60), op(OP_R.FLAP2, 60), op(OP_R.FLAP2_UP, 60),
+                   op(OP_R.ITEM_UP, 100), op(OP_R.ITEM, 100), op(OP_R.ITEM, 76), op(OP_R.ITEM_UP, 76), op(OP_R.OVER, 76), op(OP_R.IN, 76), op(OP_R.IN, 100), op(OP_R.OVER, 100), op(OP_REST, 60)];
+    const OPW_L = [op(OP_REST, 60), op(OP_L.FLAP, 60), op(OP_L.FLAP_UP, 60), op(OP_L.FLAP2, 60), op(OP_L.FLAP2_UP, 60),
+                   op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60)];
+
     const RB = {
       // SO-ARM101 joints: shoulder_pan, shoulder_lift, elbow_flex, wrist_flex,
-      // wrist_roll, gripper. Signs, from rendering each alone: +lift tilts the
-      // upper arm forward (its reach direction), +elbow bends the forearm
-      // DOWN, +wrist points the gripper down, +gripper opens the jaw. At yaw
-      // 195 it reaches into the page, its base servo toward the viewer.
+      // wrist_roll, gripper. At yaw 195 it reaches into the page, its base
+      // servo toward the viewer. Its job: one cube, A to B and back.
       so: { k: 0.66, root: [88, 232], yaw: 195,
-            rest: [0, 0.6, -0.2, 1.15, 0, 0.35],
             folded: [0, 0.3, 1.2, 0.8, 0, 0],
-            // the job it does while settled: reach out and down, close, lift,
-            // swing round, open, come back — a pick and place, in joint space
-            cycle: [[0, 0.6, -0.2, 1.15, 0, 0.35], [0.3, 0.8, -0.3, 1.2, 0, 0.7], [0.3, 0.8, -0.3, 1.2, 0, 0.12],
-                    [0.3, 0.45, -0.05, 1.1, 0, 0.12], [-0.45, 0.45, -0.05, 1.1, 0.3, 0.12], [-0.45, 0.75, -0.25, 1.2, 0.3, 0.12],
-                    [-0.45, 0.75, -0.25, 1.2, 0.3, 0.7], [-0.2, 0.55, -0.15, 1.15, 0.1, 0.5]],
-            period: 11 },
-      // Franka: seven hinges, then the hand's two finger slides (metres, 0
-      // closed to 0.04 open)
-      fr: { k: 0.33, root: [14, 262], yaw: 145,
-            rest: [0, -0.6, 0, -1.9, 0, 1.3, 0.785, 0.03, 0.03],
+            task: { period: 14, W: SO_W, tcp: { body: 'gripper', off: [-8.528, 0.492, -85.034] },
+                    cubes: [{ size: 30, mat: MAT.alu }], events: [{ cube: 0, at: 2, drop: 6 }, { cube: 0, at: 10, drop: 14 }] } },
+      // Franka: seven hinges then the hand's two finger slides. Its job:
+      // stack the two loose cubes on the third, then unstack them.
+      fr: { k: 0.33, root: [24, 262], yaw: 130,
             folded: [0, 0, 0, -0.3, 0, 0.6, 0.785, 0.01, 0.01],
-            cycle: [[0, -0.6, 0, -1.9, 0, 1.3, 0.785, 0.03, 0.03], [0.35, -0.2, 0, -2.3, 0, 2.1, 0.785, 0.04, 0.04], [0.35, 0.1, 0, -2.2, 0, 2.3, 0.785, 0.006, 0.006],
-                    [0.35, -0.5, 0, -1.9, 0, 1.4, 0.785, 0.006, 0.006], [-0.5, -0.5, 0, -1.9, 0, 1.4, 0.785, 0.006, 0.006], [-0.5, 0.0, 0, -2.2, 0, 2.2, 0.785, 0.006, 0.006],
-                    [-0.5, -0.5, 0, -1.8, 0, 1.3, 0.785, 0.04, 0.04], [-0.1, -0.7, 0, -1.9, 0, 1.2, 0.785, 0.035, 0.035]],
-            period: 12 },
-      // the pair stands ON THE BEAM (BEAM_Y), reaching forward and down to the
-      // work surface, turned a little toward each other
-      ur: { k: 0.22, rootR: [STAND_X + ARM_DX, BEAM_Y - 8], rootL: [STAND_X - ARM_DX, BEAM_Y - 8], yawR: 30, yawL: 30,
-            // the left arm is turned about its base to face its partner, so
-            // both reach in over the work surface rather than one swinging
-            // out of the stage
-            // shoulders low, elbows high, forearms down to the work: the
-            // classic bimanual reach-in over a table
-            // In this model ZERO is the arm lying flat and a negative lift
-            // raises it (checked numerically: lift -pi/2 puts the elbow 425mm
-            // straight up). Pan -pi/2 points the arm at the viewer, so both
-            // reach FORWARD over the work surface and down to it, converging
-            // in front of the stand — picked from six rendered variants.
-            restR: [-1.57, 0.9, 1.9, -1.0, -1.57, 0], restL: [Math.PI + 1.57, 0.9, 1.9, -1.0, -1.57, 0],
-            folded: [0, 0, 0, 0, 0, 0],
-            // the pair works the surface between them, out of phase: each
-            // reaches down, lifts, moves across, sets down, comes back
-            cycleR: [[-1.57, 0.9, 1.9, -1.0, -1.57, 0], [-1.35, 1.15, 1.75, -1.15, -1.57, 0.3], [-1.35, 0.95, 1.55, -0.75, -1.57, 0.3],
-                     [-1.8, 0.95, 1.55, -0.75, -1.57, -0.2], [-1.8, 1.15, 1.75, -1.15, -1.57, -0.2], [-1.65, 0.8, 1.9, -0.9, -1.57, 0]],
-            cycleL: [[Math.PI + 1.57, 0.9, 1.9, -1.0, -1.57, 0], [Math.PI + 1.8, 1.15, 1.75, -1.15, -1.57, -0.3], [Math.PI + 1.8, 0.95, 1.55, -0.75, -1.57, -0.3],
-                     [Math.PI + 1.35, 0.95, 1.55, -0.75, -1.57, 0.2], [Math.PI + 1.35, 1.15, 1.75, -1.15, -1.57, 0.2], [Math.PI + 1.5, 0.8, 1.9, -0.9, -1.57, 0]],
-            period: 9 },
+            task: { period: 24, W: FR_W, tcp: { body: 'hand', off: [0, 0, 103.4] },
+                    cubes: [{ size: 50, mat: MAT.alu, at: FR_P1 }, { size: 50, mat: MAT.alu }, { size: 50, mat: MAT.alu }],
+                    events: [{ cube: 1, at: 2, drop: 5 }, { cube: 2, at: 8, drop: 11 }, { cube: 2, at: 14, drop: 17 }, { cube: 1, at: 20, drop: 23 }] } },
+      // the UR pair hangs from the frame's crossbar, UR_DX either side of the
+      // centre, each facing the box between them (the left is the right
+      // turned half a turn about the vertical, so one task serves both). The
+      // job, Generalist's: pack the item into the box; the loop resets.
+      ur: { k: UR_K, rootR: [FRAME_X + UR_DX, BAR_Y + 12], rootL: [FRAME_X - UR_DX, BAR_Y + 12], yawR: 270, yawL: 90,
+            folded: [0.03, -1.7, -2.6, 2.4, 1.57, 0, 90],
+            task: { period: 11, W: UR_W, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+                    cubes: [{ size: 60, mat: MAT.alu }], events: [{ cube: 0, at: 2, drop: 6 }] } },
       cam: { k: 3.5, root: [-2, -12], yaw: -28, pitch: 10 },
-      // The Ultra OP1, as the owner describes it: a FAIRINO arm as the base,
-      // carrying a custom bimanual unit on its flange with a ZED camera for
-      // eyes. The Fairino FR20 and the ZED 2i are real meshes (`ultra` in
-      // the bake); the unit — torso, two small arms, grippers — is Ultra's
-      // own design with no public CAD, drawn here (`drawUnit`) in the unit
-      // body's frame: x forward (where the ZED looks), y across the
-      // shoulders, z DOWN from the flange.
-      ul: { k: 0.2, root: [STAND_X + 80, 146], yaw: 35,
-            // j1..j6 of the FR20: base yaw, shoulder, elbow, wrist pitch,
-            // wrist yaw, flange roll. Rest: up from the cart and folded back
-            // down, the unit hanging over the cart's front, facing the viewer.
-            rest: [0.3, -1.3, 2.2, -2.4, -1.57, 0],
-            // packed UPRIGHT (joint 2 at -1.57 is the upper arm vertical; at 0
-            // the FR20 lies flat along -x, and a packed pose near 0 swung the
-            // whole arm out through the stage's left edge while unfolding)
-            folded: [0.3, -1.6, 2.7, -2.4, -1.57, 0],
-            // the Fairino itself drifts while settled — carrying the unit
-            // across the cell — on a slow cycle
-            cycle: [[0.3, -1.3, 2.2, -2.4, -1.57, 0], [0.45, -1.25, 2.15, -2.4, -1.57, 0], [0.45, -1.4, 2.3, -2.4, -1.57, 0],
-                    [0.15, -1.4, 2.3, -2.4, -1.57, 0], [0.15, -1.25, 2.15, -2.4, -1.57, 0]],
-            period: 16,
-            // the small arms: { pitch (forward swing), roll (out from the
-            // torso), elbow, wrist, open (mm) } for the right arm; the left
-            // mirrors roll. Their cycle is the pick and place.
-            arm: { pitch: 0.55, roll: 0.35, elbow: 0.9, wrist: 0.5, open: 14 },
-            armCycle: [{ pitch: 0.55, roll: 0.35, elbow: 0.9, wrist: 0.5, open: 14 }, { pitch: 0.9, roll: 0.3, elbow: 0.6, wrist: 0.6, open: 22 },
-                       { pitch: 1.0, roll: 0.3, elbow: 0.5, wrist: 0.65, open: 4 }, { pitch: 0.6, roll: 0.5, elbow: 0.9, wrist: 0.5, open: 4 },
-                       { pitch: 0.3, roll: 0.7, elbow: 1.1, wrist: 0.4, open: 4 }, { pitch: 0.3, roll: 0.7, elbow: 1.1, wrist: 0.4, open: 22 },
-                       { pitch: 0.45, roll: 0.45, elbow: 0.95, wrist: 0.5, open: 16 }],
-            armPeriod: 9 },
+      // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
+      // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
+      // horizontal flange normal) with the unit on it. The Fairino holds
+      // still while settled — the unit's arms do the work: fold the box's
+      // four flaps up, then put the item in it; the loop resets.
+      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 55,
+            rest: [0.3, -1.3, 2.2, -0.9, 1.57, 0],
+            folded: [0.3, -1.6, 2.7, -0.9, 1.57, 0],
+            unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
     };
-    const ARM_KEYS = ['pitch', 'roll', 'elbow', 'wrist', 'open'];
-    const armAt = (spec, phase = 0) => {
-      if (!idleOn) return spec.arm;
-      const q = cycleQ(spec.armCycle.map(w => ARM_KEYS.map(k => w[k])), spec.armPeriod, idleT + phase);
-      return Object.fromEntries(ARM_KEYS.map((k, i) => [k, q[i]]));
-    };
+    RB.so.rest = SO_W[0]; RB.fr.rest = FR_W[0]; RB.ur.rest = UR_W[0];
     // an arm mounted on a shoulder: standing, then tilted outward about the
-    // stage's z (positive tilt leans a right-hand arm to the right)
+    // stage's z (positive tilt leans a right-hand arm to the right; 180 hangs it)
     const shouldered = (root, k, yaw, tiltDeg) => { const B = standing(root, k, yaw); return place(mul(rotZ(tiltDeg * DEG), B.m), B.t); };
     const lerpQ = (A, B, u) => A.map((a, i) => a + (B[i] - a) * u);
     // the SO-ARM's bodies, in tree order, for growing it base first
@@ -2195,10 +2282,6 @@ export default function Flourish3D({ side = 'right' }) {
       order.forEach((name, i) => { out[name] = smooth(win(t, lead + (i / order.length) * span, span * 0.7)); });
       return out;
     };
-    // a settled robot WORKS: its pose while idle comes from its cycle (below),
-    // and is its rest pose the instant the page moves — so the frame the next
-    // act starts from is the frame this one's morph ends on
-    const workQ = (spec, cycle, phase = 0) => (idleOn ? cycleQ(cycle, spec.period, idleT + phase) : cycle[0]);
 
     // ── one machine becoming another ────────────────────────────────────
     // The owner: "don't just have each one shrink away and then the next one
@@ -2290,6 +2373,115 @@ export default function Flourish3D({ side = 'right' }) {
       return a.map((x, j) => x + (b[j] - x) * k);
     }
 
+    // ── TASKS: what a settled robot does, with real props ───────────────
+    // A task is a loop of joint-space waypoints W (eased between over
+    // `period` seconds, the gripper's value carried in W too), a tool point
+    // (body + offset, mm), the cubes it handles, and EVENTS: cube c is picked
+    // up at waypoint `at` and put down at waypoint `drop`. A cube rests at
+    // the tool point of the waypoint it is next picked up at (or was last put
+    // down at) and rides the tool point in between — so the gripper is on it
+    // by construction. The waypoints were solved by IK offline
+    // (scripts/ik-poses.mjs) from the cubes' positions in the robot's frame;
+    // the rest pose every act morphs from and to is W[0].
+    const tpOf = (T, off) => [T.m[0] * off[0] + T.m[1] * off[1] + T.m[2] * off[2] + T.t[0], T.m[3] * off[0] + T.m[4] * off[1] + T.m[5] * off[2] + T.t[1], T.m[6] * off[0] + T.m[7] * off[1] + T.m[8] * off[2] + T.t[2]];
+    const toolPoint = (robot, base, q, tcp) => tpOf(bodyPlacements(robot, base, q)[robot.index.get(tcp.body)], tcp.off);
+    const taskPhase = (task, t, n) => (((t % task.period) + task.period) % task.period) / task.period * n;
+    const taskQ = (task, ph) => {
+      const n = task.W.length, i = Math.floor(ph) % n, k = easeIO(ph - Math.floor(ph));
+      const a = task.W[i], b = task.W[(i + 1) % n];
+      return a.map((x, j) => x + (b[j] - x) * k);
+    };
+    // A loop that does not return to where it started (an item packed into a
+    // box) RESETS over its last segment: the props fade, go back to their
+    // first positions, and fade in.
+    const taskReset = (task, ph, n) => {
+      if (!task.reset) return { a: 1, ph };
+      const r = ph - (n - 1);
+      if (r <= 0) return { a: 1, ph };
+      return r < 0.5 ? { a: 1 - r * 2, ph } : { a: (r - 0.5) * 2, ph: 0 };
+    };
+    function taskCubes(task, ph, tpAt, tpNow) {
+      return task.cubes.map((c, ci) => {
+        const evs = task.events.filter(e => e.cube === ci);
+        let rest = c.at ? tpAt(c.at) : evs.length ? tpAt(task.W[evs[0].at]) : null;
+        let held = false;
+        for (const e of evs) { if (ph >= e.drop) rest = tpAt(task.W[e.drop]); if (ph >= e.at && ph < e.drop) held = true; }
+        return { pos: held ? tpNow : rest, held, size: c.size, mat: c.mat };
+      });
+    }
+    // a cube at a stage point, square to the robot's floor (its base rotation)
+    const unitRot = m => { const k = detScale(m) || 1; return m.map(x => x / k); };
+    function drawCube(pos, sizePx, R, mat, a) {
+      if (a <= 0.01 || !pos) return;
+      const T = place(R, pos);
+      submit(boxFaces(sizePx, sizePx, sizePx, 0, 0, 0), T, mat, a);
+      submitLines(boxWire(sizePx, sizePx, sizePx, 0, 0, 0), T, matLine[mat], LOOK.line * a, LOOK.width);
+    }
+    // one robot's task at time t: its joints and where its cubes are
+    function taskState(robot, base, task, t) {
+      const n = task.W.length;
+      const ph0 = taskPhase(task, t, n);
+      const { a, ph } = taskReset(task, ph0, n);
+      const q = taskQ(task, ph0);
+      const tpAt = qq => toolPoint(robot, base, qq, task.tcp);
+      return { q, ph, a, cubes: taskCubes(task, ph, tpAt, tpAt(q)), R: R_UP, k: detScale(base.m) };
+    }
+    function drawCubes(st, alpha) {
+      for (const c of st.cubes) drawCube(c.pos, c.size * st.k, st.R, c.mat, alpha * st.a);
+    }
+    // the box the UR pair packs: under the right arm's drop point
+    function drawPackBox(base, alpha) {
+      const d = toolPoint(ROBOTS.ur5e, base, UR_W[6], RB.ur.task.tcp);
+      const k = detScale(base.m);
+      drawOpenBox([d[0], d[1] + 80 * k, d[2]], 240, 240, 160, R_UP, k, MAT.iron, alpha);
+    }
+    // the OP1's job, in the unit's frame: the box's flaps and the item
+    const OPB = { BZ: -200, BX: 210, BW: 300, BD: 180, BH: 120 };
+    const lerpArm = (A, B, k) => ({ pitch: A.pitch + (B.pitch - A.pitch) * k, roll: A.roll + (B.roll - A.roll) * k, elbow: A.elbow + (B.elbow - A.elbow) * k, wrist: A.wrist + (B.wrist - A.wrist) * k, open: A.open + (B.open - A.open) * k });
+    function unitTaskState(TU, t) {
+      const task = RB.ul.unit, n = task.R.length;
+      const ph0 = taskPhase(task, t, n);
+      const { a, ph } = taskReset({ reset: true }, ph0, n);
+      const at = (Wa, i) => { const j = Math.floor(i) % n; return lerpArm(Wa[j], Wa[(j + 1) % n], easeIO(i - Math.floor(i))); };
+      const PR = at(task.R, ph0), PL = at(task.L, ph0);
+      const tcpR = P => smallArmFrames(TU, P, 1).tcp;
+      let itemPos = tcpR(task.R[task.item.at]), held = false;
+      if (ph >= task.item.drop) itemPos = tcpR(task.R[task.item.drop]);
+      if (ph >= task.item.at && ph < task.item.drop) { held = true; itemPos = tcpR(PR); }
+      const fold = ([i0, i1]) => smooth(clamp((ph - i0) / (i1 - i0), 0, 1));
+      return { PR, PL, a, itemPos, held, flaps: { R: fold(task.flaps.R), F: fold(task.flaps.F), L: fold(task.flaps.L), B: fold(task.flaps.B) } };
+    }
+    function drawUnitProps(TU, st, alpha) {
+      if (alpha <= 0.01) return;
+      const { BZ, BX, BW, BD, BH } = OPB;
+      const k = detScale(TU.m);
+      // the packing table under the box, its legs down to the floor
+      submit(boxFaces(400, 620, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
+      submitLines(boxWire(400, 620, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+        const c = tpOf(TU, [BX + sx * 180, sy * 290, BZ - 42]);
+        const h = FLOOR_Y - c[1];
+        if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.steel, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.steel], LOOK.line * alpha, LOOK.width); }
+      }
+      const a = alpha * st.a;
+      if (a <= 0.01) return;
+      // the box: a base plate, and a flap hinged on each edge, lying flat
+      // outward until an arm folds it up
+      submit(boxFaces(BD, BW, 6, BX, 0, BZ - 3), TU, MAT.iron, a);
+      submitLines(boxWire(BD, BW, 6, BX, 0, BZ - 3), TU, matLine[MAT.iron], LOOK.line * a, LOOK.width);
+      const flap = (hinge, M, w, d, cx, cy) => {
+        const F = chain(TU, place(M, hinge));
+        submit(boxFaces(w, d, 6, cx, cy, 3), F, MAT.iron, a);
+        submitLines(boxWire(w, d, 6, cx, cy, 3), F, matLine[MAT.iron], LOOK.line * a, LOOK.width);
+      };
+      const H = 90 * DEG;
+      flap([BX, BW / 2, BZ], rotX(st.flaps.R * H), BD, BH, 0, BH / 2);
+      flap([BX, -BW / 2, BZ], rotX(-st.flaps.L * H), BD, BH, 0, -BH / 2);
+      flap([BX + BD / 2, 0, BZ], rotY(-st.flaps.F * H), BH, BW, BH / 2, 0);
+      flap([BX - BD / 2, 0, BZ], rotY(st.flaps.B * H), BH, BW, -BH / 2, 0);
+      drawCube(st.itemPos, 80 * k, R_UP, MAT.alu, a);
+    }
+
     // ── act 1 (right): the motor becomes the SO-ARM101 ──────────────────
     function drawSoArmAct(t) {
       const a = smooth(win(t, 0.0, 0.36));
@@ -2319,12 +2511,18 @@ export default function Flourish3D({ side = 'right' }) {
         submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), C, MAT.copper, ma);
         submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), C, MAT.copper, ma);
       }
-      // the arm grows out of the servo, base first, unfolding to its pose
-      const g = growOrder(SO_ORDER, t, 0.34, 0.5);
-      const u = smooth(win(t, 0.5, 0.5));
-      let q = lerpQ(RB.so.folded, RB.so.rest, u);
-      if (t >= 1) q = workQ(RB.so, RB.so.cycle);
-      drawRobot(ROBOTS.soarm, standing(RB.so.root, RB.so.k, RB.so.yaw), q, 1, t >= 1 ? null : g);
+      // the arm grows out of the servo, base first, unfolding to its pose;
+      // its cube arrives with it, and once settled it moves the cube
+      const base = standing(RB.so.root, RB.so.k, RB.so.yaw);
+      if (t >= 1) {
+        const st = taskState(ROBOTS.soarm, base, RB.so.task, idleOn ? idleT : 0);
+        drawRobot(ROBOTS.soarm, base, st.q, 1);
+        drawCubes(st, 1);
+      } else {
+        const gr = growOrder(SO_ORDER, t, 0.34, 0.5);
+        drawRobot(ROBOTS.soarm, base, lerpQ(RB.so.folded, RB.so.rest, smooth(win(t, 0.5, 0.5))), 1, gr);
+        drawCubes(taskState(ROBOTS.soarm, base, RB.so.task, 0), smooth(win(t, 0.8, 0.2)));
+      }
       flush();
     }
     // where the SO-ARM's base servo sits on the stage — the motor lands there
@@ -2343,87 +2541,100 @@ export default function Flourish3D({ side = 'right' }) {
       // the small arm TURNS INTO the big one: body by body from the base, each
       // SO-ARM part travels to where its Franka counterpart stands and becomes
       // it (drawMorph), while the Franka unfolds from its packed pose into its
-      // working one. Nothing leaves and nothing appears from nowhere.
+      // working one. The SO-ARM's cube goes as the arm does; the Franka's
+      // three cubes arrive as it finishes. Settled, it stacks them.
       const soBase = standing(RB.so.root, RB.so.k, RB.so.yaw);
       const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
       if (t >= 1) {
-        drawRobot(ROBOTS.fr3, frBase, workQ(RB.fr, RB.fr.cycle), 1);
+        const st = taskState(ROBOTS.fr3, frBase, RB.fr.task, idleOn ? idleT : 0);
+        drawRobot(ROBOTS.fr3, frBase, st.q, 1);
+        drawCubes(st, 1);
       } else {
         const m = smooth(win(t, 0.04, 0.9));
         const qf = lerpQ(RB.fr.folded, RB.fr.rest, smooth(win(t, 0.3, 0.6)));
         drawMorph(ROBOTS.soarm, soBase, RB.so.rest, ROBOTS.fr3, frBase, qf, m);
+        drawCubes(taskState(ROBOTS.soarm, soBase, RB.so.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
+        drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), smooth(win(t, 0.78, 0.2)));
       }
       flush();
     }
 
-    // ── act 3 (right): the Franka becomes two UR5e on a stand ───────────
+    // ── act 3 (right): the Franka becomes Generalist's UR pair ──────────
     function drawURPairAct(t) {
       const u = smooth(t);
       setCam((20 - 2 * u) * DEG, (12 + 2 * u) * DEG, 0);
-      // the Franka BECOMES the right UR arm (drawMorph, base first) while the
-      // stand rises under it; the left arm then unfolds from its mount to
-      // make the pair. Both work, out of phase, once the page has settled.
+      // the Franka BECOMES the right UR arm (drawMorph, base first) as the
+      // frame rises round it; the left arm then unfolds from its mount to
+      // make the pair. The Franka's cubes go, the table's box and items come.
+      // Settled, each arm packs its item into the box.
       const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
-      const rBase = standing(RB.ur.rootR, RB.ur.k, RB.ur.yawR);
-      const lBase = standing(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
-      const stand = smooth(win(t, 0.1, 0.4));
-      drawStand(stand, 1);
+      const rBase = hanging(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = hanging(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
+      drawFrame(smooth(win(t, 0.1, 0.4)), 1);
+      const time = t >= 1 && idleOn ? idleT : 0;
+      const stR = taskState(ROBOTS.ur5e, rBase, RB.ur.task, time), stL = taskState(ROBOTS.ur5e, lBase, RB.ur.task, time);
+      const propsA = t >= 1 ? 1 : smooth(win(t, 0.7, 0.3));
+      drawPackBox(rBase, propsA);
       if (t >= 1) {
-        drawRobot(ROBOTS.ur5e, rBase, workQ(RB.ur, RB.ur.cycleR), 1);
-        drawRobot(ROBOTS.ur5e, lBase, workQ(RB.ur, RB.ur.cycleL, RB.ur.period * 0.5), 1);
+        drawUR(rBase, stR.q, 1); drawUR(lBase, stL.q, 1);
+        drawCubes(stR, 1); drawCubes(stL, 1);
       } else {
         const m = smooth(win(t, 0.04, 0.72));
-        const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(t, 0.3, 0.5)));
+        const qr = lerpQ(RB.ur.folded, RB.ur.rest, smooth(win(t, 0.3, 0.5)));
         drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, qr, m);
+        // the gripper appears on the arriving arm's wrist
+        const ga = smooth(win(t, 0.62, 0.25));
+        if (ga > 0.01) drawURGripper(bodyPlacements(ROBOTS.ur5e, rBase, qr)[ROBOTS.ur5e.index.get('wrist3')], 90, ga);
         const gL = smooth(win(t, 0.5, 0.4));
-        if (gL > 0.01) {
-          const q = lerpQ([Math.PI, 0, 0, 0, 0, 0], RB.ur.restL, smooth(win(t, 0.6, 0.4)));
-          drawRobot(ROBOTS.ur5e, standing(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), q, gL);
-        }
+        if (gL > 0.01) drawUR(hanging(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), lerpQ(RB.ur.folded, RB.ur.rest, smooth(win(t, 0.6, 0.4))), gL);
+        drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
+        drawCubes(stR, propsA); drawCubes(stL, propsA);
       }
       flush();
     }
 
     // ── act 4 (right): the workcell becomes the Ultra OP1 ───────────────
-    // The stand's plinth widens into the cart; the Fairino rises from it body
-    // by body (as the SO-ARM grew from its servo) while the column and beam
-    // go; the two UR arms travel up to the unit's shoulders, shrinking, and
-    // are the unit's two arms by the time they get there.
+    // The frame and table fade as the cart comes; the Fairino rises from the
+    // cart's pedestal body by body (as the SO-ARM grew from its servo),
+    // unfolding to hold its flange out level; the two UR arms travel to the
+    // unit's shoulders, shrinking, and the unit's own arms fade in as they
+    // arrive. The packing table and the flat box arrive last.
     function drawUltraAct(t) {
       const u = smooth(t);
       setCam((18 - 2 * u) * DEG, (14 - 3 * u) * DEG, 0);
-      const m = smooth(win(t, 0.05, 0.6));
-      drawStand(1, 1, m);
+      const m = smooth(win(t, 0.05, 0.5));
+      drawFrame(1, 1 - m);
+      drawCart(0.5 + 0.5 * m, m);
       const base = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
-      const mir = P => ({ ...P });
+      const rBase = hanging(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = hanging(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
+      // the unit's frame at REST: where the URs are heading, where the box goes
+      const Tf = bodyPlacements(ROBOTS.ultra, base, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
+      const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), RB.ul.k);
       if (t >= 1) {
-        const PR = armAt(RB.ul), PL = armAt(RB.ul, RB.ul.armPeriod * 0.5);
-        drawUltraRobot(base, workQ(RB.ul, RB.ul.cycle), PR, PL, 1);
+        const st = unitTaskState(TU, idleOn ? idleT : 0);
+        drawUltraRobot(base, RB.ul.rest, st.PR, st.PL, 1);
+        drawUnitProps(TU, st, 1);
         flush();
         return;
       }
-      const g = growOrder(UL_ORDER, t, 0.12, 0.62);
+      const gone = 1 - smooth(win(t, 0.02, 0.25));
+      if (gone > 0.01) {
+        const stR0 = taskState(ROBOTS.ur5e, rBase, RB.ur.task, 0), stL0 = taskState(ROBOTS.ur5e, lBase, RB.ur.task, 0);
+        drawPackBox(rBase, gone); drawCubes(stR0, gone); drawCubes(stL0, gone);
+      }
+      const gr = growOrder(UL_ORDER, t, 0.12, 0.62);
       const q = lerpQ(RB.ul.folded, RB.ul.rest, smooth(win(t, 0.3, 0.6)));
       const armIn = smooth(win(t, 0.62, 0.3));
-      drawUltraRobot(base, q, RB.ul.arm, mir(RB.ul.arm), 1, g, armIn);
-      // the URs: from their mounts to where the unit's shoulders WILL BE
-      // (the unit at rest, not the one still unfolding — chasing that ran
-      // them off the stage's left edge), smaller as they go, gone as the
-      // small arms arrive
-      const T = bodyPlacements(ROBOTS.ultra, base, RB.ul.rest)[ROBOTS.ultra.index.get('unit')];
+      drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
       const travel = smooth(win(t, 0.25, 0.65));
       const out = 1 - smooth(win(t, 0.6, 0.3));
       if (out > 0.01) {
-        for (const [root, yaw, rest, side] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR, 1], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL, -1]]) {
-          const sh = [T.m[1] * side * 215 + T.m[2] * 110 + T.t[0], T.m[4] * side * 215 + T.m[5] * 110 + T.t[1], T.m[7] * side * 215 + T.m[8] * 110 + T.t[2]];
+        for (const [root, yaw, side] of [[RB.ur.rootR, RB.ur.yawR, 1], [RB.ur.rootL, RB.ur.yawL, -1]]) {
+          const sh = tpOf(TU, [0, side * UNIT.SY, UNIT.SZ]);
           const pos = [root[0] + (sh[0] - root[0]) * travel, root[1] + (sh[1] - root[1]) * travel, sh[2] * travel];
-          const k = RB.ur.k * (1 - 0.7 * travel);
-          // in their working pose the whole way: the UR's zero pose is the
-          // arm stretched out flat, and folding toward it swept the left
-          // arm through the stage's left edge
-          drawRobot(ROBOTS.ur5e, standing(pos, k, yaw), rest, out);
+          drawUR(hanging(pos, RB.ur.k * (1 - 0.7 * travel), yaw), RB.ur.rest, out);
         }
       }
+      drawUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
       flush();
     }
 
