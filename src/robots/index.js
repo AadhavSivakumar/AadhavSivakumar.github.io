@@ -11,7 +11,7 @@
 
 const TAU = Math.PI * 2;
 
-export const ROBOT_IDS = ['soarm', 'fr3', 'ur5e', 'd435i'];
+export const ROBOT_IDS = ['soarm', 'fr3', 'ur5e', 'd435i', 'ultra'];
 
 let loading = null;
 export function loadRobots() {
@@ -21,6 +21,7 @@ export function loadRobots() {
       import('./fr3.json'),
       import('./ur5e.json'),
       import('./d435i.json'),
+      import('./ultra.json'),
     ]).then(mods => {
       const out = {};
       mods.forEach((m, i) => { out[ROBOT_IDS[i]] = prepare(m.default || m); });
@@ -41,7 +42,7 @@ export function loadRobots() {
 // drawing; the Franka, the URs and the camera are organic shells, and on
 // those a lower threshold catches decimation facets at the rounded ends and
 // draws a lattice across them.
-const CREASE_DEG = { soarm: 62, fr3: 76, ur5e: 76, d435i: 78 };
+const CREASE_DEG = { soarm: 62, fr3: 76, ur5e: 76, d435i: 78, ultra: 74 };
 function prepare(robot) {
   const creaseDeg = CREASE_DEG[robot.id] ?? 70;
   const parts = robot.parts.map(p => {
@@ -92,7 +93,7 @@ function prepare(robot) {
   });
   const bodies = robot.bodies.map(b => ({
     ...b,
-    m: b.quat ? quatM(b.quat) : b.euler ? eulerM(b.euler) : IDENT.slice(),
+    m: b.quat ? quatM(b.quat) : b.euler ? eulerM(b.euler) : b.rpy ? rpyM(b.rpy) : IDENT.slice(),
   }));
   const index = new Map(bodies.map((b, i) => [b.name, i]));
   // each part's centroid in its body frame (the camera's shutter sits on its lens)
@@ -137,6 +138,8 @@ const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, 
 const rotY = a => { const c = Math.cos(a), s = Math.sin(a); return [c, 0, s, 0, 1, 0, -s, 0, c]; };
 const rotZ = a => { const c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; };
 const eulerM = e => mul(rotX(e[0]), mul(rotY(e[1]), rotZ(e[2])));
+// URDF's roll-pitch-yaw are fixed-axis: R = Rz(yaw) · Ry(pitch) · Rx(roll)
+const rpyM = e => mul(rotZ(e[2]), mul(rotY(e[1]), rotX(e[0])));
 // rotation of `a` radians about a unit axis
 export function axisM(axis, a) {
   const [x, y, z] = axis, c = Math.cos(a), s = Math.sin(a), t = 1 - c;

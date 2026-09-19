@@ -458,6 +458,27 @@ const ROBOTS = {
       { name: 'right_finger', parent: 'hand', pos: [0, 0, 0.0584], quat: [0, 0, 0, 1], axis: [0, 1, 0], slide: true, geoms: [['finger_0.obj', 'white'], ['finger_1.obj', 'black']] },
     ],
   },
+  // The Ultra OP1's base machine: a FAIRINO FR20 (fairino_description,
+  // fairino20_v6.urdf — SolidWorks-exported STLs in metres, joint origins as
+  // URDF rpy), carrying Ultra's own bimanual unit on its flange. The unit
+  // has no public CAD and is drawn procedurally in Flourish3D at the `unit`
+  // body; its eyes are a Stereolabs ZED 2i (zed-ros-interfaces/meshes),
+  // whose frame is ROS camera_link (x forward, z up) turned to hang under
+  // the flange (the unit's z points down).
+  ultra: {
+    dir: 'fairino20', kind: 'stl', budget: 450,
+    bodies: [
+      { name: 'base_link', parent: null, pos: [0, 0, 0], geoms: [['base_link.STL', 'white']] },
+      { name: 'shoulder_link', parent: 'base_link', pos: [0, 0, 0], axis: [0, 0, 1], geoms: [['shoulder_link.STL', 'white']] },
+      { name: 'upperarm_link', parent: 'shoulder_link', pos: [0, 0, 0.215], rpy: [1.5708, 0, 0], axis: [0, 0, 1], geoms: [['upperarm_link.STL', 'white']] },
+      { name: 'forearm_link', parent: 'upperarm_link', pos: [-1, 0, 0], axis: [0, 0, 1], geoms: [['forearm_link.STL', 'white']] },
+      { name: 'wrist1_link', parent: 'forearm_link', pos: [-0.716, 0, 0], axis: [0, 0, 1], geoms: [['wrist1_link.STL', 'white']] },
+      { name: 'wrist2_link', parent: 'wrist1_link', pos: [0, 0, 0.16601], rpy: [1.5708, 0, 0], axis: [0, 0, 1], geoms: [['wrist2_link.STL', 'white']] },
+      { name: 'wrist3_link', parent: 'wrist2_link', pos: [0, 0, 0.138], rpy: [-1.5708, 0, 0], axis: [0, 0, 1], geoms: [['wrist3_link.STL', 'linkgray']] },
+      { name: 'unit', parent: 'wrist3_link', pos: [0, 0, 0.12], geoms: [] },
+      { name: 'zed', parent: 'unit', pos: [0.09, 0, 0.07], rpy: [3.14159, 0, 0], geoms: [['../../zed/zed2i.stl', 'black']] },
+    ],
+  },
   ur5e: {
     dir: 'universal_robots_ur5e', kind: 'obj', budget: 250,
     bodies: [
@@ -495,7 +516,7 @@ for (const [id, R] of Object.entries(ROBOTS)) {
   const out = { id, patches: !!R.patches, bodies: [], parts: [] };
   let tris = 0, bytes = 0, flipped = 0, peels = 0;
   for (const B of R.bodies) {
-    out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, axis: B.axis || null, slide: !!B.slide });
+    out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, rpy: B.rpy || null, axis: B.axis || null, slide: !!B.slide });
     for (const [file, matName, gpos, gquat] of B.geoms) {
       const p = path.join(ROOT, R.dir, 'assets', file);
       const groups = R.kind === 'stl' ? readSTL(p) : readOBJ(p);
@@ -530,7 +551,7 @@ for (const [id, R] of Object.entries(ROBOTS)) {
         // per-shell orientation above fixes that; inner surfaces face away
         // from the viewer and cull themselves.
         const mat = matName || (id === 'fr3' ? fr3Material(g.mtl) : 'white');
-        out.parts.push({ body: B.name, name: file.replace(/\.(obj|stl)$/, ''), mat, v: m.v.map(x => round(x, 1)), f: m.f });
+        out.parts.push({ body: B.name, name: path.basename(file).replace(/\.(obj|stl)$/i, ''), mat, v: m.v.map(x => round(x, 1)), f: m.f });
         tris += m.f.length / 3;
       }
     }

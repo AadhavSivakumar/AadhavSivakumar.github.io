@@ -460,23 +460,38 @@ settle point):
 | Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** on a stand; the left unfolds beside it | the model returns **detections** |
 | Additional Projects → Resume | the stand becomes the **Ultra OP1**'s body and the two URs its two arms | the detections become a **world model** |
 
-**The Ultra OP1 is drawn from its published description, not from CAD** —
-there is none public. Ultra's own material says: a stationary dual-arm robot,
-180 cm, white and black, a 5x5 ft fixed base on locking casters, 14 degrees
-of freedom, two-finger grippers, RGB cameras, reaching the floor to 10 ft.
-So `drawStand(u, alpha, m)` with `m` = 1 is that body — caster base, white
-torso with a black chest band, shoulder yoke, a head with two camera eyes —
-and every dimension is interpolated from the stand's, so the workcell turns
-into the robot rather than being replaced. **Its arms are the Franka
-meshes**, shoulder-mounted and tilted outward (`shouldered`, `RB.op`): seven
-axes, white with black joints, a two-finger hand — the nearest real thing to
-Ultra's own arms, which nobody outside Ultra has a model of. If a reference
-photo turns up, the body's proportions in `drawStand` are the thing to fit.
-The left arm's poses are the right's MIRROR: odd joints negated (`mirrorQ`),
-because those turn about the arm's own axis. On a shoulder-mounted Franka,
-joint 1 near +1.5 brings the hand down in front of the chest; the sign the
-standing Franka uses sends it up over the head (rendered both ways to find
-out).
+**The Ultra OP1 is a FAIRINO arm carrying Ultra's bimanual unit** — the
+owner's description: "the base is a fairino Robot, with a custom bimanual
+robot on the end, with a zed camera as eyes". (A first cut drew it as two
+Franka arms on a torso, from Ultra's published spec; it was rejected — "it
+should not be two Franka emika arms".) So the `ultra` robot in the bake is
+the **FAIRINO FR20** (`fairino_description/fairino20_v6.urdf` + its seven
+SolidWorks STLs, from MNikoliCC/fairino_ros2 — the URDF's joint origins are
+roll-pitch-yaw, so the bake and loader take `rpy`: R = Rz·Ry·Rx) with two
+extra bodies on its flange: `unit` (no mesh) and `zed`, the **Stereolabs ZED
+2i** mesh from `zed-ros-interfaces/meshes`, turned from ROS camera_link
+(x forward, z up) to hang under the flange. **The unit itself is drawn**
+(`drawUnit` / `drawSmallArm`, in the unit body's frame: x forward where the
+ZED looks, y across the shoulders, z DOWN): a torso block with a black band
+and the ZED on its face, and two small arms — shoulder drum, upper link,
+elbow drum, forearm, wrist drum, two-finger gripper — hanging from its sides,
+posed by `RB.ul.arm` ({pitch, roll, elbow, wrist, open}; the left arm mirrors
+roll). Ultra's unit has no public CAD, so its proportions are a guess at a
+0.6 m-reach arm pair on a 0.38 m torso; if the owner names the arms, real
+meshes go in through the bake like everything else. The FR20 poses are its
+six joints (base yaw, shoulder, elbow, wrist pitch, wrist yaw, flange roll):
+at rest it rises from the cart and folds back down so the unit hangs over
+the cart's front facing the viewer, and while settled it drifts on a slow
+cycle while the small arms pick and place (`armAt`).
+
+**The act** (`drawUltraAct`): the stand's plinth widens into the cart on four
+casters while column, beam, mounts, camera bar and work surface fade
+(`drawStand`'s `m`); the Fairino rises from the cart body by body
+(`growOrder`, as the SO-ARM grew from its servo) unfolding from a packed
+pose; the two URs travel from their mounts to where the unit's shoulders
+will be — the unit at REST, not the one still unfolding, which ran them off
+the left edge — shrinking as they go, and the unit's small arms fade in as
+they arrive. Seam into it: 0 px.
 
 **The Franka has its hand.** The Menagerie's `franka_fr3` ships without one;
 the Franka Hand meshes come from its `franka_emika_panda` (same part), the
