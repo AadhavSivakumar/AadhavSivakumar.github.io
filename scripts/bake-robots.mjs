@@ -384,7 +384,7 @@ const ROBOTS = {
   // TheRobotStudio's SO-ARM101, from their own MJCF (Simulation/SO101/
   // so101_new_calib.xml). Printed parts are white, the STS3215 servos black.
   soarm: {
-    dir: 'so101', kind: 'stl', budget: 420,
+    dir: 'so101', kind: 'stl', budget: 620,
     bodies: [
       { name: 'base', parent: null, pos: [0, 0, 0], geoms: [
         ['base_motor_holder_so101_v1.stl', 'white', [-0.00636471, -9.94414e-05, -0.0024], [0.5, 0.5, 0.5, 0.5]],
@@ -438,7 +438,7 @@ const ROBOTS = {
     ],
   },
   fr3: {
-    dir: 'franka_fr3', kind: 'obj', budget: 480,
+    dir: 'franka_fr3', kind: 'obj', budget: 720,
     bodies: [
       { name: 'link0', parent: null, pos: [0, 0, 0], geoms: [['link0.obj']] },
       { name: 'link1', parent: 'link0', pos: [0, 0, 0.333], axis: [0, 0, 1], geoms: [['link1.obj']] },
@@ -466,7 +466,7 @@ const ROBOTS = {
   // whose frame is ROS camera_link (x forward, z up) turned to hang under
   // the flange (the unit's z points down).
   ultra: {
-    dir: 'fairino20', kind: 'stl', budget: 450,
+    dir: 'fairino20', kind: 'stl', budget: 640,
     bodies: [
       { name: 'base_link', parent: null, pos: [0, 0, 0], geoms: [['base_link.STL', 'white']] },
       { name: 'shoulder_link', parent: 'base_link', pos: [0, 0, 0], axis: [0, 0, 1], geoms: [['shoulder_link.STL', 'white']] },
@@ -480,7 +480,7 @@ const ROBOTS = {
     ],
   },
   ur5e: {
-    dir: 'universal_robots_ur5e', kind: 'obj', budget: 250,
+    dir: 'universal_robots_ur5e', kind: 'obj', budget: 380,
     bodies: [
       { name: 'base', parent: null, pos: [0, 0, 0], quat: [0, 0, 0, -1], geoms: [['base_0.obj', 'black'], ['base_1.obj', 'jointgray']] },
       { name: 'shoulder', parent: 'base', pos: [0, 0, 0.163], axis: [0, 0, 1],
@@ -527,13 +527,13 @@ for (const [id, R] of Object.entries(ROBOTS)) {
       // then the black front plate — at 110 faces its patches came out as a
       // torn handful of triangles and the casing's open front showed its
       // ribs through the gap — then the sensor module behind it
-      const CAM_BUDGET = { 'd435i_8.obj': 2800, 'd435i_5.obj': 800, 'd435i_4.obj': 700 };
+      const CAM_BUDGET = { 'd435i_8.obj': 3600, 'd435i_5.obj': 950, 'd435i_4.obj': 800 };
       // the Franka Hand is drawn small; its two big shells and the fingers
       // need far fewer faces than an arm link (two Frankas make the OP1, and
       // the frame budget is the whole page's)
       // ...and the base, a chamfered pedestal with cut-outs in seven
       // material groups, needs more than a link (at 480 it was a torn tent)
-      const HAND_BUDGET = { 'hand_2.obj': 260, 'hand_3.obj': 300, 'hand_1.obj': 160, 'hand_4.obj': 160, 'hand_0.obj': 40, 'finger_0.obj': 120, 'finger_1.obj': 100, 'link0.obj': 1500 };
+      const HAND_BUDGET = { 'hand_2.obj': 320, 'hand_3.obj': 380, 'hand_1.obj': 190, 'hand_4.obj': 190, 'hand_0.obj': 50, 'finger_0.obj': 150, 'finger_1.obj': 120, 'link0.obj': 1800 };
       const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : (HAND_BUDGET[file] ?? budget);
       for (const g of groups) {
         // a small group still needs enough faces to be a ring and not a

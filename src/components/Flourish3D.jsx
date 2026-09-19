@@ -816,7 +816,7 @@ export default function Flourish3D({ side = 'right' }) {
     // do everything, ragged where it hugged the facets. At ±0.42 the turn of
     // a tube reads on its own and the lines can fade back.
     const MESH_STEPS = 56;
-    const MESH_RANGE = 0.42;
+    const MESH_RANGE = 0.30;
     const meshToneCache = new Map();
     const meshTone = (lit, mat) => {
       const q = Math.max(0, Math.min(MESH_STEPS, Math.round(lit * MESH_STEPS)));
@@ -1155,10 +1155,10 @@ export default function Flourish3D({ side = 'right' }) {
           // through as a hairline — on the dark theme, a pale robot came out
           // wearing its whole wireframe in dark lines. The stroke covers the
           // seam; on a silhouette it adds a third of a pixel nobody can see.
-          // (only on the dark theme: the seam is the page showing through,
-          // and near-white through near-white is invisible; the stroke is
-          // the dearer half of the fill call)
-          if (f.m && dark) { ctx.strokeStyle = f.c; ctx.lineWidth = 0.7; ctx.stroke(); }
+          // (`m` is set per fill in submitMesh: dark theme, or a dark material
+          // on the light one — the light theme's black joint rings and servos
+          // showed every seam as a pale hairline, "each individual triangle".)
+          if (f.m) { ctx.strokeStyle = f.c; ctx.lineWidth = 0.7; ctx.stroke(); }
         }
         i = end;
       }
@@ -1260,9 +1260,12 @@ export default function Flourish3D({ side = 'right' }) {
         // (Franka only: on the SO-ARM the black parts are SERVOS inside white
         // printed holders, and the bias pushed them through their housings —
         // the "glitching textures" the owner saw as the arm moved.)
-        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly && part.rid === 'fr3' ? 1.4 : 0);
+        const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly && part.rid === 'fr3' && part.body === 'link0' ? 1.4 : 0);
         const col = meshTone(lit, mat);
-        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: 1 });
+        // sealed (flush) where the seam would show: every fill on the dark
+        // theme, the dark materials on the light one. Sealing everything on
+        // the light theme doubled p90 (17 → 33ms) for seams no one can see.
+        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: dark || mat === MAT.poly || mat === MAT.iron || mat === MAT.steel ? 1 : 0 });
         segs += 3;
       }
       // lines: the SILHOUETTE, and CREASES (real edges of the CAD, dihedral over
@@ -2086,19 +2089,40 @@ export default function Flourish3D({ side = 'right' }) {
         }
       }
     }
+    // CAPTIONS. The left half tells a story a recruiter should be able to
+    // read, so its stages are named in small monospace type — projected
+    // through the same camera as the geometry, drawn straight to the context
+    // after it (text is not depth-sorted; nothing here sits behind a mass).
+    // Skipped in capture mode: the hero's strands have no text to fly into.
+    function caption(text, x, y, z, alpha, align = 'left') {
+      if (cap || alpha <= 0.01) return;
+      const p = cam(x, y, z);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = ink;
+      ctx.font = '600 9.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+      ctx.textAlign = align; ctx.textBaseline = 'middle';
+      ctx.fillText(text, p[0], p[1]);
+      ctx.restore();
+    }
     // the instruction, as a row of language tokens under the picture; `hot`
     // is the token being attended to (-1 for none)
-    const TOKENS = [24, 16, 32, 14, 22];
+    const WORDS = ['stack', 'the', 'red', 'cube', 'first'];
+    const TOKENS = WORDS.map(w => 6 + w.length * 4.6);
     function drawTokens(T, alpha, hot) {
       if (alpha <= 0.01) return;
       const y = GRID_H / 2 + 15;
       let x = -GRID_W / 2;
       TOKENS.forEach((w, i) => {
         const a = alpha * (hot === i ? 1 : 0.6);
-        stroke([rect(w, 9, x + w / 2, y, 3)], T, ink, a, hot === i ? 1.6 : 1);
-        fill([rect(w * 0.62, 2.4, x + w / 2, y, 3)], T, ink, a * 0.55);
+        stroke([rect(w, 11, x + w / 2, y, 3)], T, ink, a, hot === i ? 1.6 : 1);
+        const c = [x + w / 2, y, 3];
+        const p = [T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2]];
+        caption(WORDS[i], p[0], p[1], p[2], a * 0.9, 'center');
         x += w + 5;
       });
+      const e = [-GRID_W / 2, y + 12, 3];
+      caption('instruction', T.m[0] * e[0] + T.m[1] * e[1] + T.m[2] * e[2] + T.t[0], T.m[3] * e[0] + T.m[4] * e[1] + T.m[5] * e[2] + T.t[1], T.m[6] * e[0] + T.m[7] * e[1] + T.m[8] * e[2] + T.t[2], alpha * 0.55);
     }
     // the action chunk: seven joints as bars about a zero line, with the
     // gripper's opening as an eighth, narrower, in the accent
@@ -2114,6 +2138,7 @@ export default function Flourish3D({ side = 'right' }) {
       fill(bars, ACT_AT, ink, 0.75 * alpha);
       const grip = clamp(((q[7] ?? 0.03) - 0.006) / 0.034, 0, 1);
       fill([rect(3, 26 * grip + 0.6, W0 / 2 + 4, -13 * grip, 0.5)], ACT_AT, copper, 0.7 * alpha);
+      caption('actions · 7 joints + grip', ACT_AT.t[0], ACT_AT.t[1] + 40, ACT_AT.t[2], alpha * 0.6, 'center');   // centred under the panel: left-aligned it ran off the stage
     }
     // the link from the last layer to the action chunk
     const ACT_LINK = [[[54 + 3 * 11, -4 + 24, 26 - 3 * 30], [74, 62 - 34, -24]]];
@@ -2152,6 +2177,7 @@ export default function Flourish3D({ side = 'right' }) {
       // the layers, receding, with an activation running through them
       const run = idleOn && t >= 1 ? (idleT % 2.2) / 2.2 : win(t, 0.5, 0.5);
       drawLayerStack(i => smooth(win(t, 0.28 + i * 0.1, 0.26)), 1, run, 1);
+      caption('VLA policy', 54 + 20, -4 - 48, 26, smooth(win(t, 0.4, 0.3)) * 0.6, 'center');   // short: the long name ran off the stage's inner edge
       // the picture and the tokens feeding the first layer
       const feed = smooth(win(t, 0.3, 0.3));
       if (feed > 0.01) {
@@ -2190,17 +2216,30 @@ export default function Flourish3D({ side = 'right' }) {
         for (let i = 0; i < 12; i += 2) { const a = rollAt(r, (i / 12) * f), b = rollAt(r, ((i + 1) / 12) * f); dashes.push([[a[0], a[1], 3], [b[0], b[1], 3]]); }
         stroke(dashes, T, r === 0 ? ink : slate, (r === 0 ? 0.7 : 0.35) * alpha, r === 0 ? 1.5 : 1);
       }
-      // the ghost frames: the picture's own frame, repeated back and up, the
-      // object drawn further along the kept rollout in each
+      // the ghost frames: the picture's own frame, repeated back and up, and
+      // in each an IMAGINED picture — the sensor's grid re-lit with the bright
+      // blob moved along the kept rollout — with the object boxed where the
+      // model puts it
       for (let k = 1; k <= 4; k++) {
         const g = smooth(win(f, (k - 1) * 0.18, 0.4));
         if (g <= 0.01) continue;
         const G = chain(T, place(IDENT, [k * 9 * g, -k * 7 * g, -k * 30 * g]));
-        submit(plate(112, 86, 0, 0, -0.5), G, MAT.neutral, 0.55 * g * alpha); flush();
+        submit(plate(112, 86, 0, 0, -0.5), G, MAT.neutral, 0.7 * g * alpha); flush();
         stroke([rect(112, 86, 0, 0, 0)], G, slate, 0.45 * g * alpha, 1);
         const p = rollAt(0, k / 4);
-        stroke([rect(d.w * (1 - k * 0.06), d.h * (1 - k * 0.06), p[0], p[1], 2)], G, ink, 0.55 * g * alpha, 1.2);
+        const dx = p[0] - d.x, dy = p[1] - d.y;
+        const buckets = [[], [], [], []];
+        for (let i = 0; i < PX_C * PX_R; i++) {
+          const [x, y] = pxPos(i);
+          const dd = Math.hypot((x - 13 - dx) / 38, (y + 7 - dy) / 29);
+          const v = clamp(1.15 - dd, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7 + k * 2.3));
+          buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(PX * 0.76, PX * 0.76, x, y, 1.5));
+        }
+        for (let b = 0; b < 4; b++) fill(buckets[b], G, ink, (0.12 + 0.72 * ((b + 1) / 4)) * 0.45 * g * alpha);
+        stroke([rect(d.w * (1 - k * 0.06), d.h * (1 - k * 0.06), p[0], p[1], 2)], G, ink, 0.6 * g * alpha, 1.2);
+        if (k === 4) { const c = [-56, -52, 0]; caption('t+4 · imagined', G.m[0] * c[0] + G.m[1] * c[1] + G.m[2] * c[2] + G.t[0], G.m[3] * c[0] + G.m[4] * c[1] + G.m[5] * c[2] + G.t[1], G.m[6] * c[0] + G.m[7] * c[1] + G.m[8] * c[2] + G.t[2], 0.6 * g * alpha); }
       }
+      { const c = [-56, 52, 3]; caption('world model · 3 rollouts, 1 kept', T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2], 0.6 * alpha * f); }
       if (adv > 0) {
         const p = rollAt(0, adv);
         fill([rect(6, 6, p[0], p[1], 4)], T, copper, 0.9 * alpha);
@@ -2226,6 +2265,7 @@ export default function Flourish3D({ side = 'right' }) {
         drawLayerStack(() => 1, was, 1, was);
         stroke(ACT_LINK, place(IDENT, [0, 0, 0]), slate, 0.4 * was, 1);
         drawActionBars(was, RB.fr.task.W[0]);
+        caption('VLA policy', 54 + 20, -4 - 48, 26, was * 0.6, 'center');   // carried in from the last act, or the seam jumps
       }
       const f = smooth(win(t, 0.3, 0.6));
       drawFutures(T, 1, f, idleOn && t >= 1 ? (idleT % 3.2) / 3.2 : 0);
@@ -2240,7 +2280,7 @@ export default function Flourish3D({ side = 'right' }) {
     // as training runs. Sim to real.
     function drawWorldAct(t) {
       const u = smooth(t);
-      setCam(10 * u * DEG, (2 + 12 * u) * DEG, 0);       // from (0, 2, 0)
+      setCam(10 * u * DEG, (2 - 18 * u) * DEG, 0);       // from (0, 2, 0); down to -16 over the ground plane
       const S = lerpS(SENSOR_DET, SENSOR_WORLD, u);
       const T = sensorPlace(S);
       const lay = smooth(win(t, 0.1, 0.5));
@@ -2307,6 +2347,9 @@ export default function Flourish3D({ side = 'right' }) {
         const pts = [];
         for (let i = 0; i <= N; i++) { const x = i / N; if (x > upto) break; pts.push([2 + x * 92, 22 - 42 * (1 - Math.exp(-x * 3.2)) - Math.sin(x * 21) * 2.5 * (1 - x), 0.5]); }
         if (pts.length > 1) stroke([pts], P, copper, 0.85 * sim, 1.6);
+        caption('return · training in sim', P.t[0] + 2, P.t[1] - 34, 0, 0.6 * sim);
+        caption(`episode ${(idleOn && t >= 1 ? Math.floor(idleT / 7) : 0) * 1000 + Math.floor(upto * 1000)}`, P.t[0] + 2, P.t[1] + 34, 0, 0.5 * sim);
+        caption('domain randomisation', T.t[0] - 92 * sim, T.t[1] - 100 * sim, T.t[2], 0.55 * sim);
       }
     }
 
@@ -2649,7 +2692,12 @@ export default function Flourish3D({ side = 'right' }) {
     // ── act 1 (right): the motor becomes the SO-ARM101 ──────────────────
     function drawSoArmAct(t) {
       const a = smooth(win(t, 0.0, 0.36));
-      setCam(16 * DEG, (14 - 4 * a) * DEG, 30 * (1 - a));
+      // In this camera a POSITIVE pitch looks UP from below (a floor point
+      // toward the viewer lands higher on screen than one away — checked
+      // numerically). Every act tipped up by +10..+28 for two releases and the
+      // owner saw the robots "from under angles"; the work is looked DOWN on
+      // now, and each act starts at the pitch the last one ended on.
+      setCam(16 * DEG, (14 - 22 * a) * DEG, 30 * (1 - a));
       // the motor swings round and shrinks down to where the SO-ARM's base
       // servo sits — a servo IS a small motor — then hands over
       const shrink = smooth(win(t, 0.30, 0.34));
@@ -2703,7 +2751,7 @@ export default function Flourish3D({ side = 'right' }) {
       const u = smooth(t);
       // the view tips down to 24 as the Franka arrives, to see the cubes on
       // the floor in front of it (at 12 they hid behind one another)
-      setCam((16 + 4 * u) * DEG, (10 + 14 * u) * DEG, 0);
+      setCam((16 + 4 * u) * DEG, (-8 - 10 * u) * DEG, 0);     // from (16, -8), down to -18 over the cubes
       // the small arm TURNS INTO the big one: body by body from the base, each
       // SO-ARM part travels to where its Franka counterpart stands and becomes
       // it (drawMorph), while the Franka unfolds from its packed pose into its
@@ -2728,7 +2776,7 @@ export default function Flourish3D({ side = 'right' }) {
     // ── act 3 (right): the Franka becomes Generalist's UR pair ──────────
     function drawURPairAct(t) {
       const u = smooth(t);
-      setCam((20 - 2 * u) * DEG, (24 - 4 * u) * DEG, 0);     // from (20, 24), where the Franka's act ended
+      setCam((20 - 2 * u) * DEG, (-18 - 4 * u) * DEG, 0);    // from (20, -18), where the Franka's act ended
       // the Franka BECOMES the right UR arm (drawMorph, base first) as the
       // frame rises round it; the left arm then unfolds from its mount to
       // make the pair. The Franka's cubes go, the table's box and items come.
@@ -2766,7 +2814,7 @@ export default function Flourish3D({ side = 'right' }) {
     // arrive. The packing table and the flat box arrive last.
     function drawUltraAct(t) {
       const u = smooth(t);
-      setCam((18 - 2 * u) * DEG, (20 + 5 * u) * DEG, 0);     // from (18, 20); down to 25 to see the box on the table
+      setCam((18 - 2 * u) * DEG, (-22 - 4 * u) * DEG, 0);    // from (18, -22); down to -26 over the box on the table
       const m = smooth(win(t, 0.05, 0.5));
       drawFrame(1, 1 - m);
       drawCart(0.5 + 0.5 * m, m);

@@ -476,7 +476,18 @@ world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
 - **Simulator** (`drawWorldAct`): the picture lies down into a ground plane
   and the objects stand up on it, then the scene is copied — two randomised
   twins beside it, tinted and re-arranged, re-randomised every 2.4 s while
-  settled — and a return curve climbs. The `scene()` closure draws all three.
+  settled — and a return curve climbs with an episode counter. The `scene()`
+  closure draws all three.
+- **Captions** (`caption()`): the stages are NAMED in small monospace type —
+  "instruction" with the actual words as tokens ("stack the red cube
+  first"), "vision-language-action policy", "action chunk · 7 joints +
+  grip", "world model · 3 rollouts, 1 kept", "t+4 · imagined", "domain
+  randomisation", "return · training in sim". Projected through the same
+  camera, drawn straight to the context after the geometry (text is not
+  depth-sorted), skipped in capture mode. The ghost frames carry IMAGINED
+  PIXELS: the sensor's grid re-lit with the blob moved along the kept
+  rollout, so a future frame looks like a picture the model made, not an
+  empty card.
   Things that ran off the stage's inner edge and were pulled in: the action
   chunk (now under the stack, not beyond it), the twins (±88 at 0.42), the
   return curve.
@@ -830,13 +841,28 @@ Things learned by getting them wrong, in order:
   as chords across the hole — pale wedges cut across the camera's front
   plate at the lower casing budget. Capping boundary edge length keeps a
   rim round; it costs faces, which is why the camera sits above its budget.
-- **Mesh fills are SEALED on the dark theme**: after each run of same-toned
-  triangles is filled, the same path is stroked 0.7px in its own colour
-  (`m: 1` on the bucket entry). Adjacent triangles of different tones land in
-  different fill calls, and where two anti-aliased edges meet the page shows
-  through as a hairline — on the dark theme a pale robot came out wearing its
-  whole wireframe. On the light theme the seam is near-white through
-  near-white and the stroke — the dearer half of the call — is skipped.
+- **Mesh fills are SEALED where the seam would show**: after each run of
+  same-toned triangles is filled, the same path is stroked 0.7px in its own
+  colour (`m` on the bucket entry, set per fill in `submitMesh`: every fill
+  on the dark theme, and the DARK materials — poly, iron, steel — on the
+  light one). Adjacent triangles of different tones land in different fill
+  calls, and where two anti-aliased edges meet the page shows through as a
+  hairline — on the dark theme a pale robot came out wearing its whole
+  wireframe. It was dark-only for a release, on the reasoning that
+  near-white through near-white is invisible; true of the white shells, but
+  the light theme's BLACK parts (the Franka's joint rings, the servos) showed
+  every seam as a pale hairline — "I can still see each individual
+  triangle". Sealing EVERYTHING on the light theme was tried and doubled p90
+  (17 → 33ms) for seams no one can see.
+- **"Use something other than STL"** was asked. The triangles are not the
+  file format's — an OBJ, a DAE or a tessellated STEP is triangles too; they
+  are the decimation budget and the per-face tone. Two knobs: budgets went up
+  ~1.5x (SO-ARM 620, Franka 720 + base 1800, UR 380, Fairino 640, casing
+  3600; 6-11k triangles a robot — at 2x, p90 went 17 → 33ms) and
+  `MESH_RANGE` came down 0.42 → 0.30 so the tone step between neighbouring
+  faces is smaller. The limit of a flat-filled renderer is that each triangle is ONE
+  tone; true Gouraud needs per-pixel shading, i.e. WebGL, which this file has
+  been through and rejected (see ONE renderer).
 - **Triangles under two thirds of a pixel are not drawn** (`area < 1.3` in
   `submitMesh`, after the silhouette test has used them). At 0.2-0.33 px/mm
   a third of a decimated arm's faces are that small, and each was a bucket
@@ -847,10 +873,10 @@ Things learned by getting them wrong, in order:
   every long frame** — with their WebGL off the page holds p90 17.2 whatever
   the art does — so a heavier robot shows up first on the Experience and
   Research pages, where the badges are.
-- **Budgets** (faces per mesh file, `bake-robots.mjs`): SO-ARM101 420 (7.5k
-  a robot), Franka 480 + a smaller schedule for the hand (6.3k), UR5e 250
-  (5.2k), camera casing 2800 / plate 800 / module 700 (5.2k); a group is
-  never under 100. The OP1 draws two Frankas, and the act that makes it
+- **Budgets** (faces per mesh file, `bake-robots.mjs`): SO-ARM101 620
+  (10.7k a robot), Franka 720 + 1800 for the base + a smaller schedule for
+  the hand (9.3k), UR5e 380 (7.5k), Fairino 640 (5.1k), camera casing 3600 /
+  plate 950 / module 800 (6.4k); a group is never under 100. The OP1 draws two Frankas, and the act that makes it
   draws them over two URs, so the Franka is the one to keep lean.
 - **Do not peel interiors.** A `peelInterior` pass once dropped inward-facing
   faces from hollow shells to stop them showing through. It opened a boundary
@@ -861,6 +887,15 @@ Things learned by getting them wrong, in order:
 - **Facets are not features.** At 28°, then 55°, the decimation's own facets
   qualified as feature edges and the robots read as wireframes; the crease
   angle is per robot now, and nothing is drawn along a non-crease edge.
+- **The camera's pitch sign: POSITIVE LOOKS UP.** `setCam(yaw, pitch, dolly)`
+  with a positive pitch puts a floor point toward the viewer HIGHER on
+  screen than one away — the camera is below the floor, looking up. Every
+  act ran at +10..+28 for two releases, believed to be "looking down", and
+  the owner saw the robots "from under angles" with the table tops hidden.
+  Checked numerically (project (0,0,±100) at ±20°), then flipped: the acts
+  now end at −8 / −18 / −22 / −26 on the right and −16 on the left's ground
+  plane, each act starting at the pitch the last one ended on. If a scene's
+  floor is hidden, check the sign before moving anything.
 - **Frames.** MuJoCo is Z-up; `standing()` turns Z to screen-up and scales mm
   to stage px; the camera uses `facing()` (its sensors are on +Z, so Z stays
   toward the viewer and Y is flipped with a half turn). MuJoCo quaternions are
