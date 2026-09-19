@@ -1413,16 +1413,21 @@ export default function Flourish3D({ side = 'right' }) {
     // explodes down to its sensor and the sensor resolves into pixels; the
     // motor becomes the shoulder of a 2R arm. Both then hold.
     function drawCameraAct(t) {
-      // the view squares up to the sensor as the camera leaves
-      const q = smooth(win(t, 0.16, 0.44));
-      setCam(-26 * (1 - q) * DEG, 15 * (1 - q) * DEG, -70 + 70 * q);
+      // the view holds its three-quarter angle while the camera comes apart
+      // (an exploded view needs the angle to read), then squares up to the
+      // sensor once the parts have gone
+      const q = smooth(win(t, 0.44, 0.3));
+      // ...pulling back a little as it opens (dolly -70 -> -115), so the fan
+      // of parts — front ones left, the casing right — stays on the stage
+      const e = smooth(win(t, 0.03, 0.42));
+      setCam(-26 * (1 - q) * DEG, 15 * (1 - q) * DEG, (-70 - 45 * e) * (1 - q));
       const home = place(CAM_TURN, [CAM_X, CAM_Y, 0]);
       const EX_D = 440;
       // 1 · the camera comes apart along its own optical axis, each piece
-      // holding its orientation, and fades as it leaves the stage — soon
-      // enough that the shells are gone before the sensor needs the room.
+      // holding its orientation, to its own station (see drawCameraMesh).
       // The real D435i when its model has loaded; the drawn one until then.
-      if (ROBOTS) drawCameraMesh(1, Math.max(0.001, t));
+      let from = [CAM_X, CAM_Y, 0];
+      if (ROBOTS) from = drawCameraMesh(1, Math.max(0.001, t)) || from;
       else for (const piece of CAMERA) {
         const ex = CAM_EXPLODE[piece.id];
         const mv = smooth(win(t, 0.02 + ex.order * 0.03, 0.30));
@@ -1433,14 +1438,15 @@ export default function Flourish3D({ side = 'right' }) {
         submitLines(piece.wire, T, piece.glass ? ink : matLine[piece.mat], LOOK.line * a, LOOK.width);
       }
       flush();
-      // 2 · the sensor is what is left: it turns from the camera's
-      // three-quarter view to face the viewer, comes forward and grows
-      const sens = smooth(win(t, 0.14, 0.30));
+      // 2 · the sensor is what is left: it grows out of the sensor board's
+      // place in the exploded view, turns to face the viewer and comes to
+      // the centre of the stage
+      const sens = smooth(win(t, 0.5, 0.26));
       if (sens <= 0) return;
-      const sc = 1 + (SENSOR_SCALE - 1) * smooth(win(t, 0.2, 0.4));
-      const T = place(mul(rotY(74 * (1 - sens) * DEG), scaleM(sc)), [CAM_X * (1 - sens), CAM_Y * (1 - sens), -30 + 46 * sens]);
+      const sc = 1 + (SENSOR_SCALE - 1) * smooth(win(t, 0.54, 0.3));
+      const T = place(mul(rotY(74 * (1 - sens) * DEG), scaleM(sc)), [from[0] * (1 - sens), from[1] * (1 - sens), -30 + 46 * sens]);
       // the die, solid, until the photosites take it over
-      const dieFade = 1 - win(t, 0.58, 0.22);
+      const dieFade = 1 - win(t, 0.7, 0.18);
       if (dieFade > 0.01) { submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade); flush(); }
       stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.55 * sens, 1);
       stroke(SENSOR_PADS, T, LINE, 0.5 * sens, 1);
@@ -1452,7 +1458,7 @@ export default function Flourish3D({ side = 'right' }) {
       const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
       const buckets = [[], [], [], []];
       for (let i = 0; i < PX_C * PX_R; i++) {
-        const a = smooth(win(t, 0.46 + (i / (PX_C * PX_R)) * 0.30, 0.10));
+        const a = smooth(win(t, 0.64 + (i / (PX_C * PX_R)) * 0.26, 0.10));
         if (a <= 0.02) continue;
         const [x, y] = pxPos(i);
         const v = pxVal(i, frame) * a;
@@ -2422,32 +2428,49 @@ export default function Flourish3D({ side = 'right' }) {
     }
 
     // ── the camera, and how it comes apart ──────────────────────────────
-    // The D435i's nine parts each leave along the optical axis: the front
-    // glass and rims forward, the sensor module a little, the casing back —
-    // the order a teardown takes it apart in.
+    // An EXPLODED VIEW, the way a teardown drawing shows it: every part
+    // slides along the optical axis to its own station — the RGB lens and
+    // the glass farthest forward, the front plate and its labels behind
+    // them, the RGB module and the sensor board a little forward, the PCB
+    // and the casing back — and STAYS there, whole, while the view holds its
+    // three-quarter angle so the stations fan out across the stage. Only
+    // once it is fully apart (t ~0.45) do the shells fade, the view square
+    // up, and the sensor grow out of the sensor board's position. The first
+    // version moved the parts a fifth as far and faded them while they were
+    // still moving: the camera dissolved rather than coming apart.
     // a camera part by name, the first of these that the bake kept
     const camPart = (robot, names) => { for (const n of names) { const i = robot.parts.findIndex(p => p.name === n); if (i >= 0) return i; } return 0; };
-    const CAM_PARTS_OUT = { d435i_8: -1.0, d435i_5: 0.55, d435i_6: 0.5, d435i_4: 0.2, d435i_2: 0.7, d435i_0: 0.9, d435i_3: 0.9, d435i_1: 0.85, d435i_7: 0.95 };
+    const CAM_PARTS_OUT = { d435i_8: -0.36, d435i_5: 0.55, d435i_6: 0.45, d435i_4: 0.15, d435i_2: 0.8, d435i_0: 0.62, d435i_3: 0.62, d435i_1: -0.2, d435i_7: 0.95 };
+    const CAM_ORDER = { d435i_7: 0, d435i_2: 1, d435i_8: 1, d435i_0: 2, d435i_3: 2, d435i_5: 3, d435i_6: 3, d435i_1: 4, d435i_4: 5 };
+    const CAM_EX = 130;                       // px, the farthest station (210 ran the plate and casing off both stage edges)
     function drawCameraMesh(alpha, t) {
-      const cam0 = facing(RB.cam.root, RB.cam.k, RB.cam.yaw, RB.cam.pitch);
+      // The fan opens front-left and back-right, and the casing at the back
+      // ran off the stage's inner edge; the whole assembly drifts 24 px left
+      // as it opens (the outer edge has that much overhang to spare).
+      const drift = t > 0 ? -24 * smooth(win(t, 0.03, 0.42)) : 0;
+      const cam0 = facing([RB.cam.root[0] + drift, RB.cam.root[1]], RB.cam.k, RB.cam.yaw, RB.cam.pitch);
       const robot = ROBOTS.d435i;
       const T0 = bodyPlacements(robot, cam0, [])[0];
+      let sensorAt = null;                    // where the sensor board is on the stage, for the hand-over
       for (let i = 0; i < robot.parts.length; i++) {
         const part = robot.parts[i];
         if (DEV_PARTS && !DEV_PARTS.has(i)) continue;
         const key = part.name || `d435i_${i}`;
         const out = t > 0 ? (CAM_PARTS_OUT[key] ?? 0.5) : 0;
-        const mv = t > 0 ? smooth(win(t, 0.02 + i * 0.02, 0.30)) : 0;
-        const a = alpha * (t > 0 ? 1 - win(t, 0.10 + i * 0.02, 0.14) : 1);
-        if (a <= 0.01) continue;
+        const order = CAM_ORDER[key] ?? 3;
+        const mv = t > 0 ? smooth(win(t, 0.03 + order * 0.03, 0.42)) : 0;
+        const board = key === 'd435i_4';
+        const a = alpha * (t > 0 ? 1 - smooth(board ? win(t, 0.58, 0.14) : win(t, 0.44 + order * 0.02, 0.18)) : 1);
         // the part's own frame slid along the camera's Z (toward the viewer)
-        const T = chain(T0, place(IDENT, [0, 0, out * 120 * mv / RB.cam.k]));
+        const T = chain(T0, place(IDENT, [0, 0, out * CAM_EX * mv / RB.cam.k]));
+        if (board) { const c = robot.centroids[i]; sensorAt = [T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2]]; }
+        if (a <= 0.01) continue;
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
         submitMesh(part, T, mat, a, matLine[mat]);
       }
       flush();
       // TAKING PICTURES: the shutter, on the RGB lens
-      if (!idleOn || cap || t > 0) return;
+      if (!idleOn || cap || t > 0) return sensorAt;
       const u = idleT % SHUTTER;
       if (u > 0.42) return;
       const kf = u / 0.42, shut = Math.sin(Math.PI * kf);
@@ -2456,6 +2479,7 @@ export default function Flourish3D({ side = 'right' }) {
       fill([ring(8 - 6.5 * shut, 0, 6)], L, LINE, 0.6 * Math.pow(shut, 0.45));
       stroke([ring(9.5, -0.2, 24)], L, ink, 0.95 * shut, 1.6);
       stroke([ring(11.5, -0.4, 24)], L, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
+      return sensorAt;
     }
 
     // ── act 1: the motor becomes a 2R arm ───────────────────────────────

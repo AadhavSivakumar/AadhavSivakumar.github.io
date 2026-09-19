@@ -589,10 +589,24 @@ torso with a sensor head (two lenses: the camera side of the page in
 miniature), posed differently and working out of phase (`workP(P, ph)`).
 Fitted by ink box; the first cut ran the right gripper off the stage edge.
 
-**Act one: the camera explodes** along its own optical axis
-(`CAM_EXPLODE`: glass forward, shells back, the top plate up), each piece
-fading as it leaves — the shells fast enough to be gone before the sensor
-needs the room — while the view squares up. **The sensor is what is left**: it
+**Act one: the camera explodes** — as an EXPLODED VIEW, the way a teardown
+drawing shows it (`drawCameraMesh` with `t` > 0, for the real D435i;
+`CAM_EXPLODE` is the same idea for the drawn fallback): every part slides
+along the optical axis to its own station (`CAM_PARTS_OUT`, in units of
+`CAM_EX` = 150 px — the RGB lens and glass farthest forward, the front plate
+and its labels behind them, the board a little forward, the PCB and the
+casing back), front parts first (`CAM_ORDER`), and STAYS there, whole, while
+the view HOLDS its three-quarter angle so the stations fan out across the
+stage. Only once it is apart (t ≈ 0.45) do the parts fade, the view square
+up, and the sensor grow out of the sensor board's own position
+(`drawCameraMesh` returns it). The owner asked for it to "explode properly":
+the first version moved the parts a fifth as far and faded them while still
+moving, so the camera dissolved rather than coming apart. Keeping the fan ON
+the stage took three things together, each measured by ink box: `CAM_EX`
+210 → 130, the view pulling back as it opens (dolly −70 → −115), and the
+whole assembly drifting 24 px toward the outer edge (`drift`), where the
+stage overhangs the screen. The casing, at the back, is what reached the
+inner edge every time. **The sensor is what is left**: it
 turns to face the viewer and grows (`SENSOR_SCALE`), the die fades as its
 8x6 photosites light to their own values (`pxVal`: a soft bright blob, so the
 grid IS an image, not graph paper), and bond pads round the package make it
