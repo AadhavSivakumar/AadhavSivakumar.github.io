@@ -151,9 +151,17 @@ That is the owner's stated goal, and three things follow from it:
   MujocoSim repo's notebooks: FK/IK for position and velocity on a UR10e, then
   a Fruit Ninja demo), in that order. Sluice was removed at the owner's
   request. Everything else — including the tactile sensor — is in `smallProjectsData`,
-  strongest first. Preserve `id` values when moving entries between the two
-  arrays; a card promoted to major needs a `cardDescription`, which small cards
-  do not use.
+  strongest first: thirteen cards, five to a row. **The first is the Roboflow
+  webinar** (id `'k'`): the owner's public talk on part-presence inspection
+  with RF-DETR-Seg, added at their request as a card rather than a "Talks"
+  section (one talk does not make a section). Its cover is DRAWN, not a
+  screenshot — `Media/web/projects/webinar.webp`, 1000x500, rendered from a
+  scratch HTML page with Playwright (a grid of parts with one missing) — and
+  its button goes to the webinar SERIES (luma.com/roboflow) because the
+  recording's own URL is not anywhere public that could be reached; swap it
+  in when the owner supplies it. Preserve `id` values when moving entries
+  between the two arrays; a card promoted to major needs a `cardDescription`,
+  which small cards do not use.
 - Metadata (`index.html` title/OG/description) names "Robotics & Computer
   Vision Engineer" and the JSON-LD `Person` block carries role, employer,
   degrees and profile links. **Every value in that block is a fact already
@@ -1451,9 +1459,12 @@ both acts drop to p90 17.1; a 4px shadow, or the same 15px shadow in a
 literal rgba instead of the `color-mix()` token, changes nothing — it is the
 presence of a blurred shadow being repainted under a scroll on a software
 rasteriser (this Firefox has no GPU). The videos are not it (hidden, no
-change), nor are the masked icons or layer promotion. Not changed: it is the
-harness's renderer, and a shadow is the design; on a GPU the compositor owns
-it. If it ever has to go, the cards' resting shadow is the lever.
+change), nor are the masked icons or layer promotion. **So the cards have no
+resting shadow** — the owner: "remove the shadows if it's going to improve
+performance" — on `.major-project-card`, `.small-project-card`,
+`.skill-group-card`, `.doc-tile` and `.exp-card`; the 1px border carries the
+edge, and the HOVER shadow stays because it is one element at a time. Acts
+3 and 4 measure p90 17 with it.
 
 So: **the libraries are a DOWNLOAD cost, not a frame cost.** `index-*.js` is
 ~400KB and the lazy `Lanyard-*.js` ~3MB (three + rapier + drei + meshline),

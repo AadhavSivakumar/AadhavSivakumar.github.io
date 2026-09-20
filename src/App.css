@@ -641,6 +641,13 @@ html[data-theme="dark"] .f3d::before {
   background-color: color-mix(in srgb, var(--surface-color) 86%, transparent);
   border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
   will-change: transform;
+  /* No RESTING box-shadow on any card (this rule, .small-project-card,
+     .skill-group-card, .doc-tile, .exp-card). Measured per act in Firefox:
+     a screen of shadowed cards repainting under the scroll while the pieces
+     draw put acts 3 and 4 at p90 33ms; with the shadows off, 17. Any blur
+     radius cost the same. The hover shadow stays — it is one element at a
+     time. The border carries the edge. Owner's call: "remove the shadows if
+     it's going to improve performance". */
 }
 
 .project-modal-trigger.animating-out {
@@ -684,7 +691,7 @@ html[data-theme="dark"] .f3d::before {
    whatever height the row ends up. */
 .major-projects-grid .major-project-card {
   display: grid; grid-template-columns: calc(var(--mp-h) * 1.6) minmax(0, 1fr);
-  min-height: var(--mp-h); border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient);
+  min-height: var(--mp-h); border-radius: 10px;
 }
 .major-projects-grid .major-project-card:nth-child(even) { grid-template-columns: minmax(0, 1fr) calc(var(--mp-h) * 1.6); }
 .major-projects-grid .major-project-card:nth-child(even) > img,
@@ -740,7 +747,7 @@ html[data-theme="dark"] .f3d::before {
 
 /* All thirteen on one screen: five to a row, the last row centred. */
 .small-projects-grid { --cols: 5; --gap: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); }
-.small-project-card { flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)); min-width: 0; border-radius: 10px; box-shadow: 0 5px 15px var(--shadow-color-ambient); }
+.small-project-card { flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)); min-width: 0; border-radius: 10px; }
 @media (max-width: 1000px) { .small-projects-grid { --cols: 4; } }
 @media (max-width: 860px) { .small-projects-grid { --cols: 3; } }
 @media (max-width: 600px) { .small-projects-grid { --cols: 2; --gap: 10px; } }
@@ -824,7 +831,6 @@ html[data-theme="dark"] .project-tag.status-in-progress { background-color: #3A2
 .skill-group-card {
   border-radius: 10px;
   overflow: visible;
-  box-shadow: 0 5px 15px var(--shadow-color-ambient);
   text-align: center;
   padding: 18px 16px 34px 16px;
   display: flex;
@@ -957,7 +963,6 @@ html[data-theme="dark"] .skill-group-card-image {
   cursor: pointer;
   background-color: color-mix(in srgb, var(--surface-color) 86%, transparent);
   border: 1px solid color-mix(in srgb, var(--border-color) 50%, transparent);
-  box-shadow: 0 5px 15px var(--shadow-color-ambient);
   color: var(--secondary-color);
   transition: transform 0.3s ease-out, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
 }
@@ -1265,7 +1270,6 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   border: 1px solid var(--border-color);
   border-left: 3px solid var(--accent-color);
   border-radius: 10px;
-  box-shadow: 0 5px 15px var(--shadow-color-ambient);
   padding: 18px 24px 16px;
   cursor: pointer;
   transition: transform 0.3s ease-out, box-shadow 0.4s ease, border-color 0.4s ease;
