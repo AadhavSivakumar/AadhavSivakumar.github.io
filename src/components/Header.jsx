@@ -8,8 +8,7 @@ const LINKS = [
   { id: 'research', label: 'Research' },
   { id: 'projects', label: 'Projects' },
   { id: 'additional-projects', label: 'More' },
-  { id: 'resume', label: 'Resume' },
-  { id: 'skills', label: 'Skills' },
+  { id: 'skills', label: 'Skills & Resume' },
   { id: 'contact', label: 'Contact' },
 ];
 

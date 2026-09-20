@@ -5,7 +5,6 @@ import Hero from './components/Hero';
 import Experience from './components/Experience';
 import Projects from './components/Projects';
 import Skills from './components/Skills';
-import Resume from './components/Resume';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
@@ -113,13 +112,13 @@ function App() {
       <main id="main">
         <Hero />
         {/* One screen each, in the owner's order: industry experience, research,
-            major projects, additional projects, resume, skills, contact. Each
+            major projects, additional projects, skills & resume, contact. Each
             page but the last ends in a down button to the next (`next`). The
-            about card is in the contact page now. */}
+            about card is in the contact page; the resume's documents are a
+            strip on the skills page (they had a page of their own). */}
         <Experience id="experience" title="Experience" group="industry" onCardClick={handleCardClick} next={{ to: 'research', label: 'Research' }} />
         <Experience id="research" title="Research" group="research" onCardClick={handleCardClick} next={{ to: 'projects', label: 'Major Projects' }} />
         <Projects onCardClick={handleCardClick} />
-        <Resume onCardClick={handleCardClick} next={{ to: 'skills', label: 'Technical Skills' }} />
         <Skills onCardClick={handleCardClick} next={{ to: 'contact', label: 'Get In Touch' }} />
         <Contact onCardClick={handleCardClick} />
       </main>

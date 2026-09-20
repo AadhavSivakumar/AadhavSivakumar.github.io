@@ -458,7 +458,7 @@ settle point):
 | Experience → Research | the motor lands on the **SO-ARM101**'s base servo and the arm grows out of it | the camera explodes to its **sensor** |
 | Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | a **VLA** runs on the pixels and the instruction; its action chunk is the Franka's joints |
 | Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | a **world model** imagines rollouts of the tracked object |
-| Additional Projects → Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the world model becomes a **simulator**: randomised twins, a return curve |
+| Additional Projects → Skills & Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the world model becomes a **simulator**: randomised twins, a return curve |
 
 **The left half is the LEARNING half** (the owner's targets: robotics, RL,
 world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
@@ -542,9 +542,19 @@ with the arms ON a beam; the owner said neither looked like the robot.
 from Ultra's own photos (ultra.tech): a black steel cart on four casters with
 the electronics and a black pedestal the white Fairino rises from, a tall
 thin signal pole with a lamp; on the Fairino's flange a black upright torso
-with an orange logo, a ZED on a short mast on TOP of it looking forward, and
-two black arms off the torso's top corners — shoulder, upper arm, elbow,
-forearm, wrist — ending in parallel grippers with orange tips. (A first cut
+with a top plate, a panel seam, an orange logo and an e-stop, a ZED on a
+short mast on TOP of it looking forward, and two black arms off the torso's
+top corners — a shoulder block hung off the corner with a yaw drum on top
+and an orange-ringed pitch drum outboard, a cable sagging from the torso's
+back to it, upper arm with its module seam, orange-ringed elbow, forearm,
+orange-ringed wrist pitch, a wrist roll down the tool axis — ending in
+parallel grippers with a wrist camera on the body, pads on the fingers'
+inner faces and orange tips. **No two of its solids share a volume**: the
+shoulder blocks used to sit INSIDE the torso's top, the torso's back face ON
+the flange face and the coupling drum INTO the wrist mesh, and coplanar or
+intersecting solids sorted by centroid z-fight as the arm moves — the
+"clipping and glitching" the owner saw. The torso now stands 12 mm off the
+flange (`unitFrame`) with the coupling filling exactly that gap. (A first cut
 drew two Franka arms on a torso, from Ultra's published spec; the owner
 rejected it — "it should not be two Franka emika arms. The base is a fairino
 Robot, with a custom bimanual robot on the end, with a zed camera as eyes".)
@@ -691,8 +701,22 @@ and its labels behind them, the board a little forward, the PCB and the
 casing back), front parts first (`CAM_ORDER`), and STAYS there, whole, while
 the view HOLDS its three-quarter angle so the stations fan out across the
 stage. Only once it is apart (t ≈ 0.45) do the parts fade, the view square
-up, and the sensor grow out of the sensor board's own position
-(`drawCameraMesh` returns it). The owner asked for it to "explode properly":
+up, and **the sensor COME OUT**: the stereo module (`d435i_4`) leaves its
+station, travels to the centre of the stage turning to face the viewer and
+shrinking to the die's size (`lerpT` from its station frame to a `facing`
+frame at scale 2 with its front face on the die plane, z 16), the drawn
+package forms AROUND it in its own frame, and its photosites light as it
+fades — the module becomes the pixel array (`drawCameraMesh` returns the
+module's frame; `drawCameraAct` builds the die frame from it, undoing
+`facing()`'s half turn so the die ends at `SENSOR_HOME`'s identity and the
+next act starts where this one ends). The owner asked for the left side to
+flow, "like the sensor from the camera actually coming out and becoming the
+pixel array"; before this the sensor drawing grew out of the board's
+position while the board faded. Two traps: lerping the module's rotation to
+an UNflipped target is a 180° lerp and collapses through zero (keep the
+flip on the target, undo it on the die); and the photosites sit a depth
+slab in front of the module's face while it is there (z 4 → 1.5 as it goes),
+or the two interleave within a slab and flicker. The owner asked for it to "explode properly":
 the first version moved the parts a fifth as far and faded them while still
 moving, so the camera dissolved rather than coming apart. Keeping the fan ON
 the stage took three things together, each measured by ink box: `CAM_EX`
@@ -1251,11 +1275,20 @@ a page". It is canvas painting only, so the mutation check above still reads 0.
 From Experience down, every section is a `.page` — at least the viewport tall,
 content centred under the fixed header — in the owner's order: **Experience
 (Roboflow, Starship) · Research (NYU, UCSC) · Major Projects · Additional
-Projects · Resume · Technical Skills · Get In Touch.** The nav has one link per
-page in that order ("More" is Additional Projects). Only the hero comes before
-them. **Get In Touch carries the about card** (portrait, name, the bio behind
-a click) beside the invitation and the links; it used to be its own section
-right under the hero.
+Projects · Skills & Resume · Get In Touch.** The nav has one link per page in
+that order ("More" is Additional Projects). Only the hero comes before them.
+**Get In Touch carries the about card** (portrait, name, the bio behind a
+click) beside the invitation and the links; it used to be its own section
+right under the hero. **Skills & Resume is one page** (`Skills.jsx` +
+`DocStrip.jsx`): the eight skill groups four across, and under them the
+resume, extended CV and two transcripts as a row of 48px compact tiles
+(`.doc-tile--compact`, a compound selector because `.doc-tile`'s 180x180
+comes later in the file and won on order). The resume was a page of its own
+— four tiles on an otherwise empty screen — until the owner merged the two;
+`Resume.jsx` and `.docs-grid` are history. Anything that lists the pages
+(`ACTS` in `waveField.js`, `IDS` in `scrollSnap.js`, `LINKS` in `Header.jsx`,
+the `PageNext` targets) changed with it; the last act now ends at the top of
+Skills & Resume.
 
 **Every page but the last ends in a down button** (`PageNext`) to the next
 one. It is a link, so it works from the keyboard and without JavaScript, and
@@ -1406,6 +1439,21 @@ and blur everything behind twenty-odd elements on every frame they move. It is
 gone; the fill went from 70% to 86% of the surface colour to compensate, and
 the page now measures p50 16.7 / p90 17.2 with everything on, 6 frames over
 20ms. The hero chips keep their glass — there are five of them, on one screen.
+
+**Acts 3 and 4 run at p90 33ms in headless Firefox, and the cause is the
+cards' `box-shadow`, not the art.** Measured per act (`ffacts2.mjs`-style:
+frame intervals while scrolling each act at 12px a frame, 1440x900): the
+art alone (page content `visibility: hidden`) fits, p90 17; the content
+alone (the pieces not mounted) fits, p90 17; both together overrun to 33 in
+the two acts whose pages carry a screen of shadowed cards — Major Projects
+and, since the merge, Skills & Resume. With `box-shadow: none` on the cards
+both acts drop to p90 17.1; a 4px shadow, or the same 15px shadow in a
+literal rgba instead of the `color-mix()` token, changes nothing — it is the
+presence of a blurred shadow being repainted under a scroll on a software
+rasteriser (this Firefox has no GPU). The videos are not it (hidden, no
+change), nor are the masked icons or layer promotion. Not changed: it is the
+harness's renderer, and a shadow is the design; on a GPU the compositor owns
+it. If it ever has to go, the cards' resting shadow is the lever.
 
 So: **the libraries are a DOWNLOAD cost, not a frame cost.** `index-*.js` is
 ~400KB and the lazy `Lanyard-*.js` ~3MB (three + rapier + drei + meshline),

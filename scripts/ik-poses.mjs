@@ -208,7 +208,7 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
 // upper arm hangs DOWN at pitch 0; pitch swings it forward about y, roll
 // swings it outward about x, elbow and wrist about the arm's local y.
 {
-  const S_Y = 165, S_Z = 300, L1 = 260, L2 = 250, L3 = 120;
+  const S_Y = 170, S_Z = 300, L1 = 260, L2 = 250, L3 = 120;   // UNIT in Flourish3D.jsx
   const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
   const rotY = a => { const c = Math.cos(a), s = Math.sin(a); return [c, 0, s, 0, 1, 0, -s, 0, c]; };
   const mul = (A, B) => [A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8], A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8], A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8]];

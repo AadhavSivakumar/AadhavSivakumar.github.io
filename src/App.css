@@ -924,11 +924,19 @@ html[data-theme="dark"] .skill-group-card-image {
 }
 
 
-#contact p, #resume p {
+#contact p {
   max-width: 600px; margin: 0 auto 40px; color: var(--secondary-color); text-align: center;
 }
 
-/* Resume / CV / Transcript document tiles */
+/* Resume / CV / Transcript document tiles. `.docs-grid` was the resume's
+   own page (four 180px tiles); `.docs-strip` is the row of compact tiles at
+   the foot of the Skills & Resume page the documents live on now. */
+.docs-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; }
+.docs-strip-lead { font-family: 'Poppins', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); margin-right: 6px; }
+/* (compound selectors: `.doc-tile` below sets 180x180 and would win on order) */
+.doc-tile.doc-tile--compact { flex-direction: row; width: auto; height: 48px; gap: 10px; padding: 0 16px 0 12px; border-radius: 10px; }
+.doc-tile.doc-tile--compact .doc-tile-label { padding: 0; font-size: 0.85rem; }
+.doc-tile.doc-tile--compact .doc-tile-badge { position: static; margin-left: 2px; font-size: 0.68rem; padding: 2px 7px; }
 .docs-grid {
   display: flex;
   flex-wrap: wrap;

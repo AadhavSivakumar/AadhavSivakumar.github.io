@@ -1450,8 +1450,9 @@ export default function Flourish3D({ side = 'right' }) {
       // 1 · the camera comes apart along its own optical axis, each piece
       // holding its orientation, to its own station (see drawCameraMesh).
       // The real D435i when its model has loaded; the drawn one until then.
-      let from = [CAM_X, CAM_Y, 0];
-      if (ROBOTS) from = drawCameraMesh(1, Math.max(0.001, t)) || from;
+      const from = [CAM_X, CAM_Y, 0];
+      let board = null;
+      if (ROBOTS) board = drawCameraMesh(1, Math.max(0.001, t));
       else for (const piece of CAMERA) {
         const ex = CAM_EXPLODE[piece.id];
         const mv = smooth(win(t, 0.02 + ex.order * 0.03, 0.30));
@@ -1462,16 +1463,28 @@ export default function Flourish3D({ side = 'right' }) {
         submitLines(piece.wire, T, piece.glass ? ink : matLine[piece.mat], LOOK.line * a, LOOK.width);
       }
       flush();
-      // 2 · the sensor is what is left: it grows out of the sensor board's
-      // place in the exploded view, turns to face the viewer and comes to
-      // the centre of the stage
-      const sens = smooth(win(t, 0.5, 0.26));
+      // 2 · the sensor is the module that came out of the camera: the drawn
+      // package forms AROUND it, in ITS frame — unflipped (facing() turned
+      // it a half turn about z, and the die must end at SENSOR_HOME's
+      // identity for the next act to start where this one ends), at the
+      // die's own scale, its plane on the module's front face
+      const sens = smooth(win(t, 0.56, 0.24));
       if (sens <= 0) return;
-      const sc = 1 + (SENSOR_SCALE - 1) * smooth(win(t, 0.54, 0.3));
-      const T = place(mul(rotY(74 * (1 - sens) * DEG), scaleM(sc)), [from[0] * (1 - sens), from[1] * (1 - sens), -30 + 46 * sens]);
-      // the die, solid, until the photosites take it over
-      const dieFade = 1 - win(t, 0.7, 0.18);
-      if (dieFade > 0.01) { submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade); flush(); }
+      let T;
+      if (board) {
+        const k = detScale(board.T.m) || 1;
+        const Rm = mul(board.T.m.map(x => x / k), rotZ(Math.PI));
+        const pc = tpOf(board.T, board.c);
+        const d = -1 - board.c[2];                                   // the front face is at z −1 in the module's frame
+        T = place(Rm.map(x => x * SENSOR_SCALE), [pc[0] + board.T.m[2] * d, pc[1] + board.T.m[5] * d, pc[2] + board.T.m[8] * d]);
+      } else {
+        const sc = 1 + (SENSOR_SCALE - 1) * smooth(win(t, 0.54, 0.3));
+        T = place(mul(rotY(74 * (1 - sens) * DEG), scaleM(sc)), [from[0] * (1 - sens), from[1] * (1 - sens), -30 + 46 * sens]);
+        // the die, solid, until the photosites take it over (the drawn
+        // camera has no module to be the die)
+        const dieFade = 1 - win(t, 0.7, 0.18);
+        if (dieFade > 0.01) { submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade); flush(); }
+      }
       stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.55 * sens, 1);
       stroke(SENSOR_PADS, T, LINE, 0.5 * sens, 1);
       // 3 · pixels: each photosite lights to its own value, so the grid IS
@@ -1481,13 +1494,17 @@ export default function Flourish3D({ side = 'right' }) {
       // slightly different picture behind.
       const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
       const buckets = [[], [], [], []];
+      // the photosites sit a little in front of the module while it is still
+      // there (a depth slab clear of its front face), and settle onto the die
+      // plane as it goes, so the next act's z 1.5 is where they end
+      const pz = 1.5 + 2.5 * (1 - smooth(win(t, 0.86, 0.12)));
       for (let i = 0; i < PX_C * PX_R; i++) {
-        const a = smooth(win(t, 0.64 + (i / (PX_C * PX_R)) * 0.26, 0.10));
+        const a = smooth(win(t, 0.66 + (i / (PX_C * PX_R)) * 0.24, 0.10));
         if (a <= 0.02) continue;
         const [x, y] = pxPos(i);
         const v = pxVal(i, frame) * a;
         const sz = PX * 0.76 * (0.30 + 0.70 * a);
-        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), 1.5));
+        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), pz));
       }
       for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, 0.12 + 0.72 * ((b + 1) / 4));
       if (frame) {
@@ -1865,7 +1882,7 @@ export default function Flourish3D({ side = 'right' }) {
     // The unit, drawn in its own frame: x forward (where the ZED looks), y
     // across the shoulders, z UP, origin at the torso's bottom centre; mm,
     // the scale carried by the placement.
-    const UNIT = { W: 200, D: 150, H: 330, SY: 165, SZ: 300, L1: 260, L2: 250, L3: 120 };
+    const UNIT = { W: 200, D: 150, H: 330, SY: 170, SZ: 300, L1: 260, L2: 250, L3: 120 };
     // The frame the unit hangs in: upright, its back on the Fairino's flange,
     // facing the way the flange points (projected flat — the torso is a
     // payload that stays level however the wrist is turned).
@@ -1877,9 +1894,13 @@ export default function Flourish3D({ side = 'right' }) {
       const f = [fx, 0, fz], up = [0, -1, 0];
       const sd = [up[1] * f[2] - up[2] * f[1], up[2] * f[0] - up[0] * f[2], up[0] * f[1] - up[1] * f[0]];   // up × f
       const m = [f[0] * k, sd[0] * k, up[0] * k, f[1] * k, sd[1] * k, up[1] * k, f[2] * k, sd[2] * k, up[2] * k];
-      // the torso's bottom centre: half a torso in front of the flange and
-      // 210 mm below it (the flange meets the torso's back two thirds up)
-      return { m, t: [Tf.t[0] + f[0] * UNIT.D / 2 * k, Tf.t[1] + 210 * k, Tf.t[2] + f[2] * UNIT.D / 2 * k] };
+      // the torso's bottom centre: half a torso plus a 12 mm coupling in
+      // front of the flange (the torso's back face used to sit ON the
+      // flange face, and the coupling drum reached back INTO the wrist mesh
+      // — coplanar and intersecting solids z-fight as the arm moves, which
+      // is the "glitching" the owner saw) and 210 mm below it
+      const g = (UNIT.D / 2 + 12) * k;
+      return { m, t: [Tf.t[0] + f[0] * g, Tf.t[1] + 210 * k, Tf.t[2] + f[2] * g] };
     }
     // one of the unit's arms: frames of shoulder, elbow, wrist, and the tool
     // point between the fingertips. `P` = { pitch, roll, elbow, wrist, open }:
@@ -1895,38 +1916,59 @@ export default function Flourish3D({ side = 'right' }) {
     function drawSmallArm(TU, P, side, a) {
       if (a <= 0.01) return;
       const { S, E, Wr } = smallArmFrames(TU, P, side);
-      // the shoulder: a block on the torso's top corner, the joint drum outboard
-      submit(boxFaces(70, 60, 60, 0, side * (UNIT.SY - 40), UNIT.SZ), TU, MAT.poly, a);
-      submitLines(boxWire(70, 60, 60, 0, side * (UNIT.SY - 40), UNIT.SZ), TU, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-      drawDrum(chain(TU, place(rotX(90 * DEG), [0, side * UNIT.SY, UNIT.SZ])), 34, -26, 26, MAT.poly, a);
-      drawDrum(S, 24, -UNIT.L1 + 14, -12, MAT.poly, a);                                // upper arm
-      drawDrum(chain(E, place(rotX(90 * DEG), [0, 0, 0])), 28, -26, 26, MAT.poly, a);    // elbow
-      drawDrum(E, 20, -UNIT.L2 + 14, -12, MAT.poly, a);                                 // forearm
-      drawDrum(chain(Wr, place(rotX(90 * DEG), [0, 0, 0])), 24, -22, 22, MAT.poly, a);   // wrist
-      // the gripper: a black body, two jaws, orange tips
-      submit(boxFaces(60, 36, 40, 0, 0, -30), Wr, MAT.poly, a);
-      submitLines(boxWire(60, 36, 40, 0, 0, -30), Wr, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
+      const box = (F, w, d, h, x, y, z, mat) => { submit(boxFaces(w, d, h, x, y, z), F, mat, a); line(boxWire(w, d, h, x, y, z), F, mat); };
+      // The shoulder: a block hung OFF the torso's top corner — outside it; a
+      // block inside the torso's top shared its volume and the two z-fought,
+      // flickering as the arm moved — with a yaw drum on top and the pitch
+      // drum outboard, ringed in the orange of Ultra's joints.
+      const sy = side * (UNIT.W / 2 + 25);
+      box(TU, 70, 50, 60, 0, sy, UNIT.H - 30, MAT.poly);
+      drawDrum(chain(TU, place(IDENT, [0, sy, UNIT.H])), 20, 0, 26, MAT.poly, a);
+      drawDrum(chain(TU, place(rotX(90 * DEG), [0, side * UNIT.SY, UNIT.SZ])), 34, -20, 20, MAT.poly, a, matLine[MAT.orange]);
+      // the cable from the torso's back to the shoulder, sagging
+      const cable = [];
+      for (let i = 0; i <= 6; i++) { const u = i / 6; cable.push([-UNIT.D / 2 - 6 + 6 * u, side * (70 + (UNIT.SY - 70) * u), UNIT.H - 60 + 84 * u - Math.sin(Math.PI * u) * 34]); }
+      submitLines([cable], TU, matLine[MAT.poly], LOOK.line * a * 0.8, 1.3);
+      // the arm: joint modules as drums, links as thinner drums between them
+      drawDrum(S, 28, -UNIT.L1 + 14, -12, MAT.poly, a);                                                  // upper arm
+      line([ring(28.5, -UNIT.L1 / 2, 18)], S, MAT.steel);                                                // its module seam
+      drawDrum(chain(E, place(rotX(90 * DEG), [0, 0, 0])), 32, -28, 28, MAT.poly, a, matLine[MAT.orange]);   // elbow
+      drawDrum(E, 24, -UNIT.L2 + 14, -12, MAT.poly, a);                                                  // forearm
+      drawDrum(chain(Wr, place(rotX(90 * DEG), [0, 0, 0])), 28, -24, 24, MAT.poly, a, matLine[MAT.orange]);  // wrist pitch
+      drawDrum(Wr, 21, -30, -2, MAT.poly, a);                                                             // wrist roll, down the tool axis
+      // the gripper: a body, its camera on the front, two fingers with pads
+      // on their inner faces, orange tips — the parallel grippers in the photos
+      box(Wr, 62, 38, 34, 0, 0, -47, MAT.poly);
+      box(Wr, 20, 18, 22, 40, 0, -47, MAT.poly);
+      line([ringAt(5, 0, 0, 0.5, 12), ringAt(2.5, 0, 0, 0.8, 8)], chain(Wr, place(rotY(90 * DEG), [50.5, 0, -47])), MAT.steel);
       for (const sg of [-1, 1]) {
         const x = sg * (P.open / 2 + 6);
-        submit(boxFaces(10, 30, 50, x, 0, -75), Wr, MAT.poly, a);
-        submitLines(boxWire(10, 30, 50, x, 0, -75), Wr, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-        submit(boxFaces(10, 30, 22, x, 0, -111), Wr, MAT.orange, a);
-        submitLines(boxWire(10, 30, 22, x, 0, -111), Wr, matLine[MAT.orange], LOOK.line * a, LOOK.width);
+        box(Wr, 10, 30, 44, x, 0, -86, MAT.poly);
+        box(Wr, 2, 26, 36, x - sg * 6, 0, -92, MAT.steel);
+        box(Wr, 10, 30, 18, x, 0, -117, MAT.orange);
       }
     }
     function drawUnit(TU, PR, PL, a, ga = 1) {
       if (a <= 0.01) return;
-      // the torso, with the orange logo on its face
+      const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
+      // the torso: the box, a top plate, a panel seam across its face, the
+      // orange logo, an e-stop on the plate
       submit(boxFaces(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, MAT.poly, a);
-      submitLines(boxWire(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      line(boxWire(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, MAT.poly);
+      submit(boxFaces(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly, a);
+      line(boxWire(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly);
+      line([[[UNIT.D / 2 + 0.4, -UNIT.W / 2 + 10, UNIT.H * 0.66], [UNIT.D / 2 + 0.4, UNIT.W / 2 - 10, UNIT.H * 0.66]]], TU, MAT.steel);
       submit(plate(64, 64, 0, 0, 0), chain(TU, place(rotY(90 * DEG), [UNIT.D / 2 + 0.6, 0, UNIT.H * 0.42])), MAT.orange, a * 0.9);
+      drawDrum(chain(TU, place(IDENT, [-40, -70, UNIT.H + 6])), 9, 0, 10, MAT.orange, a);
       // the mast, and the ZED 2i on it (a real mesh), looking forward
-      submit(boxFaces(24, 24, 60, 0, 0, UNIT.H + 30), TU, MAT.poly, a);
-      submitLines(boxWire(24, 24, 60, 0, 0, UNIT.H + 30), TU, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      submit(boxFaces(24, 24, 60, 0, 0, UNIT.H + 36), TU, MAT.poly, a);
+      line(boxWire(24, 24, 60, 0, 0, UNIT.H + 36), TU, MAT.poly);
       const zed = ROBOTS.ultra.parts.find(p => p.body === 'zed');
-      if (zed) submitMesh(zed, chain(TU, place(IDENT, [12, 0, UNIT.H + 78])), MAT.poly, a, matLine[MAT.poly]);
-      // the coupling to the Fairino's flange, at the torso's back
-      drawDrum(chain(TU, place(rotY(90 * DEG), [-UNIT.D / 2, 0, 210])), 44, -30, 0, MAT.alu, a);
+      if (zed) submitMesh(zed, chain(TU, place(IDENT, [12, 0, UNIT.H + 84])), MAT.poly, a, matLine[MAT.poly]);
+      // the coupling to the Fairino's flange: the 12 mm between the torso's
+      // back and the flange face, orange-ringed, touching both and inside neither
+      drawDrum(chain(TU, place(rotY(90 * DEG), [-UNIT.D / 2, 0, 210])), 44, -12, 0, MAT.alu, a, matLine[MAT.orange]);
       drawSmallArm(TU, PR, 1, a * ga);
       drawSmallArm(TU, PL, -1, a * ga);
     }
@@ -2431,7 +2473,7 @@ export default function Flourish3D({ side = 'right' }) {
       // horizontal flange normal) with the unit on it. The Fairino holds
       // still while settled — the unit's arms do the work: fold the box's
       // four flaps up, then put the item in it; the loop resets.
-      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 55,
+      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 62,
             rest: [0.3, -1.3, 2.2, -0.9, 1.57, 0],
             folded: [0.3, -1.6, 2.7, -0.9, 1.57, 0],
             unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
@@ -2663,10 +2705,10 @@ export default function Flourish3D({ side = 'right' }) {
       const { BZ, BX, BW, BD, BH } = OPB;
       const k = detScale(TU.m);
       // the packing table under the box, its legs down to the floor
-      submit(boxFaces(360, 600, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
-      submitLines(boxWire(360, 600, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
+      submit(boxFaces(340, 500, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
+      submitLines(boxWire(340, 500, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-        const c = tpOf(TU, [BX + sx * 160, sy * 280, BZ - 42]);
+        const c = tpOf(TU, [BX + sx * 150, sy * 230, BZ - 42]);
         const h = FLOOR_Y - c[1];
         if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.steel, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.steel], LOOK.line * alpha, LOOK.width); }
       }
@@ -2876,7 +2918,7 @@ export default function Flourish3D({ side = 'right' }) {
       const cam0 = facing([RB.cam.root[0] + drift, RB.cam.root[1]], RB.cam.k, RB.cam.yaw, RB.cam.pitch);
       const robot = ROBOTS.d435i;
       const T0 = bodyPlacements(robot, cam0, [])[0];
-      let sensorAt = null;                    // where the sensor board is on the stage, for the hand-over
+      let boardT = null;                      // the sensor module's frame and centroid, for the hand-over
       for (let i = 0; i < robot.parts.length; i++) {
         const part = robot.parts[i];
         if (DEV_PARTS && !DEV_PARTS.has(i)) continue;
@@ -2885,17 +2927,34 @@ export default function Flourish3D({ side = 'right' }) {
         const order = CAM_ORDER[key] ?? 3;
         const mv = t > 0 ? smooth(win(t, 0.03 + order * 0.03, 0.42)) : 0;
         const board = key === 'd435i_4';
-        const a = alpha * (t > 0 ? 1 - smooth(board ? win(t, 0.58, 0.14) : win(t, 0.44 + order * 0.02, 0.18)) : 1);
+        const a = alpha * (t > 0 ? 1 - smooth(board ? win(t, 0.78, 0.12) : win(t, 0.44 + order * 0.02, 0.18)) : 1);
         // the part's own frame slid along the camera's Z (toward the viewer)
-        const T = chain(T0, place(IDENT, [0, 0, out * CAM_EX * mv / RB.cam.k]));
-        if (board) { const c = robot.centroids[i]; sensorAt = [T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2]]; }
+        let T = chain(T0, place(IDENT, [0, 0, out * CAM_EX * mv / RB.cam.k]));
+        if (board && t > 0) {
+          // THE SENSOR COMES OUT. Once the view is apart the stereo module
+          // leaves its station: it travels to the centre of the stage,
+          // turning to face the viewer and shrinking to the die's size, and
+          // the drawn package forms around it while its photosites light as
+          // it fades — the module becomes the pixel array. Its target keeps
+          // `facing()`'s half turn so the rotation lerp is a short one (a
+          // 180° lerp collapses through zero); the die frame undoes it
+          // (drawCameraAct). The front face lands on the die's plane, z 16.
+          const s = smooth(win(t, 0.46, 0.3));
+          const c = robot.centroids[i];
+          const kB = 2.0;
+          const Rf = facing([0, 0], kB, 0, 0).m;
+          const off = [Rf[0] * c[0] + Rf[1] * c[1] + Rf[2] * c[2], Rf[3] * c[0] + Rf[4] * c[1] + Rf[5] * c[2], Rf[6] * c[0] + Rf[7] * c[1] + Rf[8] * c[2]];
+          const TB = { m: Rf, t: [-off[0], -off[1], 16 + kB] };
+          if (s > 0) T = lerpT(T, TB, s, RB.cam.k, kB);
+          boardT = { T, c };
+        }
         if (a <= 0.01) continue;
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
         submitMesh(part, T, mat, a, matLine[mat]);
       }
       flush();
       // TAKING PICTURES: the shutter, on the RGB lens
-      if (!idleOn || cap || t > 0) return sensorAt;
+      if (!idleOn || cap || t > 0) return boardT;
       const u = idleT % SHUTTER;
       if (u > 0.42) return;
       const kf = u / 0.42, shut = Math.sin(Math.PI * kf);
@@ -2904,7 +2963,7 @@ export default function Flourish3D({ side = 'right' }) {
       fill([ring(8 - 6.5 * shut, 0, 6)], L, LINE, 0.6 * Math.pow(shut, 0.45));
       stroke([ring(9.5, -0.2, 24)], L, ink, 0.95 * shut, 1.6);
       stroke([ring(11.5, -0.4, 24)], L, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
-      return sensorAt;
+      return boardT;
     }
 
     // ── act 1: the motor becomes a 2R arm ───────────────────────────────

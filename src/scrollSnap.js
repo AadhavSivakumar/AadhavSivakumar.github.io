@@ -29,7 +29,7 @@ const MAX_PULL = 0.55;     // of a viewport
 const RETRY_MS = 600;      // while something is in the way
 const FIT = 1.05;          // a section counts as "fits" up to this much of one
 
-const IDS = ['hero', 'experience', 'research', 'projects', 'additional-projects', 'resume', 'skills', 'contact'];
+const IDS = ['hero', 'experience', 'research', 'projects', 'additional-projects', 'skills', 'contact'];
 
 const listeners = new Set();
 let settled = false;

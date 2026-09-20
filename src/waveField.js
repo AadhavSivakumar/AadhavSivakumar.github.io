@@ -93,7 +93,7 @@ export const ACTS = [
   ['experience', 'research'],
   ['research', 'projects'],
   ['projects', 'additional-projects'],
-  ['additional-projects', 'resume'],
+  ['additional-projects', 'skills'],
 ];
 let spans = null;
 function measureActs() {

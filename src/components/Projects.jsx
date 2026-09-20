@@ -44,7 +44,7 @@ export default function Projects({ onCardClick }) {
             />
           ))}
         </div>
-        <PageNext to="resume" label="Resume" />
+        <PageNext to="skills" label="Skills &amp; Resume" />
       </section>
     </>
   );
