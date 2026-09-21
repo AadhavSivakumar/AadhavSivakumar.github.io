@@ -223,7 +223,7 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
     const p = ap(W, [0, 0, -L3]).map((x, i) => x + w[i]);
     return { p, z: ap(W, [0, 0, -1]) };
   };
-  const solveArm = (target, side, seed) => {
+  const solveArm = (target, side, seed, rollMax = 0.08) => {
     const P = { ...seed };
     const keys = ['pitch', 'roll', 'elbow', 'wrist'];
     const err = () => { const t = fk(P, side); const e = [target.p[0] - t.p[0], target.p[1] - t.p[1], target.p[2] - t.p[2]]; if (target.z) e.push(120 * (target.z[0] - t.z[0]), 120 * (target.z[1] - t.z[1]), 120 * (target.z[2] - t.z[2])); return e; };
@@ -235,27 +235,40 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
       const A = Array.from({ length: m }, (_, r) => Array.from({ length: m }, (_, c) => J[r].reduce((s, _, k) => s + J[r][k] * J[c][k], 0) + (r === c ? 40 : 0)));
       const y = gauss(A, e); const step = Math.min(1, 60 / Math.max(1, n));
       keys.forEach((k, c) => { let d = 0; for (let r = 0; r < m; r++) d += J[r][c] * y[r]; P[k] += d * step * 0.9; });
-      P.roll = Math.max(-0.3, Math.min(1.3, P.roll));
+      // roll: in this chain POSITIVE swings an arm INWARD (toward the other
+      // arm), so it is capped near zero — the arms stay outboard of their
+      // shoulders and never cross in front of the torso
+      P.roll = Math.max(-1.0, Math.min(rollMax, P.roll));
       P.elbow = Math.max(0, Math.min(2.6, P.elbow));
     }
     const e = err(); return { P, err: Math.hypot(e[0], e[1], e[2]) };
   };
-  const seed = { pitch: 0.6, roll: 0.3, elbow: 0.9, wrist: 0.5 };
+  const seed = { pitch: 0.6, roll: -0.2, elbow: 0.9, wrist: 0.5 };
   const down = [0, 0, -1];
   // The box, on a table in front: base BD (x) by BW (y) at z = BZ, walls BH
   // tall when folded; its centre BX forward of the torso. Flaps lie flat
   // outward from each base edge until an arm folds them up.
   const BZ = -200, BX = 240, BW = 300, BD = 180, BH = 120;
   const T = {
-    RIGHT: { FLAP: [BX, BW / 2 + 60, BZ + 15], FLAP_UP: [BX, BW / 2 - 12, BZ + BH + 8], FLAP2: [BX + BD / 2 + 50, 70, BZ + 15], FLAP2_UP: [BX + BD / 2 - 12, 70, BZ + BH + 8],
-             ITEM: [BX - 30, BW / 2 + 110, BZ + 40], ITEM_UP: [BX - 30, BW / 2 + 110, BZ + 240], OVER: [BX, 60, BZ + 250], IN: [BX, 60, BZ + 70], REST: [180, 230, -60] },
-    LEFT:  { FLAP: [BX, -(BW / 2 + 60), BZ + 15], FLAP_UP: [BX, -(BW / 2 - 12), BZ + BH + 8], FLAP2: [BX - BD / 2 - 50, -70, BZ + 15], FLAP2_UP: [BX - BD / 2 + 12, -70, BZ + BH + 8], REST: [180, -230, -60] },
+    // each arm's second flap is grabbed on ITS OWN side of the box (y ±120 of
+    // a 300-wide box): at y ±70 the arm had to swing inward to reach it
+    RIGHT: { FLAP: [BX, BW / 2 + 60, BZ + 15], FLAP_UP: [BX, BW / 2 - 12, BZ + BH + 8], FLAP2: [BX + BD / 2 + 50, 120, BZ + 15], FLAP2_UP: [BX + BD / 2 - 12, 120, BZ + BH + 8],
+             // the item and the box work on the RIGHT half (y > 0): reaching the
+             // box's centre took the right arm across in front of the left one
+             ITEM: [BX - 30, BW / 2 + 110, BZ + 40], ITEM_UP: [BX - 30, BW / 2 + 110, BZ + 240], OVER: [BX, 100, BZ + 250], IN: [BX, 100, BZ + 70],
+             // REST: elbow up, hand forward and clear of the table — hanging
+             // straight down the 630 mm arm put the fingertips 80 mm INTO the
+             // table top, which is 500 mm below the shoulder
+             REST: [200, 230, -60] },
+    LEFT:  { FLAP: [BX, -(BW / 2 + 60), BZ + 15], FLAP_UP: [BX, -(BW / 2 - 12), BZ + BH + 8], FLAP2: [BX - BD / 2 - 50, -120, BZ + 15], FLAP2_UP: [BX - BD / 2 + 12, -120, BZ + BH + 8], REST: [200, -230, -60] },
   };
   const out = {};
   for (const [side, name, s] of [[1, 'RIGHT', T.RIGHT], [-1, 'LEFT', T.LEFT]]) {
     out[name] = {};
     for (const [k, p] of Object.entries(s)) {
-      const r = solveArm({ p, z: down }, side, seed);
+      // the drop into the box (right half, y 100) is the one reach that may
+      // swing a little inward; the other arm is at rest, outboard, then
+      const r = solveArm({ p, z: down }, side, seed, k === 'OVER' || k === 'IN' ? 0.3 : 0.08);
       out[name][k] = { pitch: r3(r.P.pitch), roll: r3(r.P.roll), elbow: r3(r.P.elbow), wrist: r3(r.P.wrist) };
       console.log(`// op ${name} ${k.padEnd(8)} err ${r3(r.err)}mm  ${JSON.stringify(out[name][k])}`);
     }

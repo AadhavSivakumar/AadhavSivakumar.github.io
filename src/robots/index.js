@@ -11,7 +11,7 @@
 
 const TAU = Math.PI * 2;
 
-export const ROBOT_IDS = ['soarm', 'fr3', 'ur5e', 'd435i', 'ultra'];
+export const ROBOT_IDS = ['soarm', 'fr3', 'ur5e', 'ultra'];
 
 let loading = null;
 export function loadRobots() {
@@ -20,7 +20,6 @@ export function loadRobots() {
       import('./soarm.json'),
       import('./fr3.json'),
       import('./ur5e.json'),
-      import('./d435i.json'),
       import('./ultra.json'),
     ]).then(mods => {
       const out = {};

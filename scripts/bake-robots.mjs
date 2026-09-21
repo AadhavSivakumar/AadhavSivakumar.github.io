@@ -359,8 +359,11 @@ const ROBOTS = {
   // The camera: one body, nine parts by material. Budget is generous — it is
   // the whole of the left side, drawn large, and it comes apart piece by
   // piece, so every piece has to hold up on its own.
+  // The camera is DRAWN now (Flourish3D.jsx, `D435`): Intel's export is open
+  // B-rep patches and never stopped reading as broken. The entry stays as the
+  // record of what was tried; `skip` keeps it out of the bake.
   d435i: {
-    dir: 'realsense_d435i', kind: 'obj', budget: 500,
+    dir: 'realsense_d435i', kind: 'obj', budget: 500, skip: true,
     // Intel's CAD export is OPEN B-rep patches with T-junctions, not shells
     // (75k boundary edges in the body; welding cannot stitch a T-junction),
     // so its patches are oriented by the centre test in orientOutward, and

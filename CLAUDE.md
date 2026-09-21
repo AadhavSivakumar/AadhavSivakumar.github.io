@@ -364,7 +364,14 @@ keep them:
 The front page follows the old `/portfolio` hero, at the owner's request: a
 full-viewport band, a 224px portrait disc (`Media/hero/frontpagepfp.webp`,
 imported so Vite bundles it) above the name, the keyword chips, and the gold
-sine field behind all of it. The hero's scroll cue goes to Experience — there
+sine field behind all of it. **The tagline and chips name the work the owner
+is looking for** — "Robotics engineer working on embodied AI — VLAs, world
+models, reinforcement learning and simulation", chips Embodied AI · VLAs ·
+World Models · Reinforcement Learning · Simulation · Robotics — in the
+owner's own words; the page title, OG/Twitter text, JSON-LD description and
+`knowsAbout` say the same. They used to describe the current job (Edge AI /
+machine vision). The claims rule below is about the SKILLS list; the hero
+states a direction, at the owner's instruction. The hero's scroll cue goes to Experience — there
 is no About section in between any more. **Scroll, and every row is cut at the
 centre line: the LEFT half flies straight from the big field into the camera,
 the RIGHT half into the motor, part by part, top to bottom.** Then both pieces
@@ -446,15 +453,26 @@ page, it describes code that no longer exists — `LAID_OUT`, `revs`, the idle
 spin and the vision pipeline are in git history (the camera's teardown and
 pipeline at `3e5b1c3`).
 
-**The camera** is six pieces (`CAMERA`): front and back shells, lens barrel,
-two glass elements drawn in the accent (gold = the optical path), and the top
-plate with its shutter and dial. Materials as on the motor — the big shells
-get the lightest dose. It faces INWARD, toward the page: the first framing had
-the lens nearly head-on (a white disc hiding the body), the second pointed it
-out of the page with its front 15px from the screen edge. `CAM_TURN`
-(rotY 74°) with camera yaw -26° and pitch 15°, at `CAM_SCALE` 2.25 and
-`CAM_X`/`CAM_Y` -22/-10: ink box 259x202 in the 340x660 stage, beside the
-motor's 221x259.
+**The camera is a DRAWN RealSense D435i** (`D435` at module scope,
+`drawD435` in the closure): from Intel's dimensional drawing, a 90x25x25 mm
+bar with a stadium front profile, an aluminium body, a dark front plate with
+the four apertures left to right — IR imager, IR projector, IR imager (the
+50 mm baseline), RGB — and inside, the stereo module board with its three
+barrels and the main PCB. Six parts, each with an explode station along +z
+and an order; the MODULE is its own part because it is what comes out and
+becomes the pixel array. It replaced the baked mesh (below) in the third
+round of "the depth camera seems a little broken": Intel's export is open
+B-rep patches, and after orienting, sealing, rim-capping and budgeting it
+still had torn plates and lattice fins. Big clean shapes read as a sim
+render, which is what the owner asked for. Framing: `CAM2` = k 2.55 at
+(-4, -10), the camera's own yaw 34 / pitch 8, the VIEW at yaw +26 / pitch
+15 / dolly -70 — **the view's yaw has the same sign as the camera's**: with
+opposite signs the two cancelled and the exploding parts slid straight at
+the viewer, foreshortened to nothing. `drawD435` sets that view itself at
+rest, because the hero's capture pass draws it before any act has set one
+(`cam()` was null and the page threw at load). The old DSLR (`CAMERA`,
+`CAM_TURN`) and the mesh path are gone; `src/robots/d435i.json` is deleted
+and the bake entry is `skip: true`.
 
 **The acts: one transition per page boundary** (`ACTS` / `actAt` in
 `waveField.js` — each runs from a fifth of the way down its first page to the
@@ -470,6 +488,11 @@ settle point):
 
 **The left half is the LEARNING half** (the owner's targets: robotics, RL,
 world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
+- **The object is the RED CUBE** the robots handle on the right (the owner:
+  "have the object detector detect a red cube"): the two brightest photosite
+  buckets are red (`pxColor`), `DETS[0]` sits ON the bright blob (it did
+  not), the world-model act draws it as a detector would — red box, corner
+  ticks, "red cube · 0.94" — and the simulator stands it up in `MAT.red`.
 - **VLA** (`drawInferAct`): the picture is cut into patches and fed, with the
   INSTRUCTION as a row of language tokens (`drawTokens`), into the layer
   stack; out the far end comes the ACTION CHUNK (`drawActionBars`) — seven
@@ -584,8 +607,22 @@ arms are a hand-written chain (shoulder at (0, ±165, 300), links 260/250/120;
 waypoints IK-solved in `ik-poses.mjs` like the others: the box (`OPB`, base
 200 mm below the torso's bottom on a packing table in front, flaps hinged on
 its four edges) is folded flap by flap (`unitTaskState`'s `flaps`), then the
-item on the table is put in. The Fairino holds still while settled; if it
-drifted, the box on the table would have to drift with it.
+item on the table is put in. The Fairino sways between jobs (`fairinoSway`), only while the unit's arms
+are off the props. **The small arms' waypoints are checked, not eyeballed**:
+`scratchpad`-style harnesses (`armcheck2.mjs` in the session's scratch)
+sample the cardinal spline between waypoints and report the closest the two
+arms' links come and the lowest fingertip against the table top. What they
+found: at the old REST the arms hung straight down, and a 630 mm arm from a
+shoulder 500 mm above the table put the fingertips 80 mm INTO it ("the
+ultra arm is going through the table"); and `roll` in this chain swings an
+arm INWARD, so the IK had both arms crossing toward the box's centre ("the
+bimanual arms are touching each other"). Now: REST is IK-solved with the
+elbow up (tip 140 mm above the table), roll is capped near zero in
+`ik-poses.mjs` (a little inward only for the drop into the box, when the
+other arm is at rest), each arm's second flap is grabbed on its own side of
+the box (y ±120), and the drop is on the right half (y 100). Along the whole
+spline the arms come no closer than 276 mm and the lowest tip is 14 mm
+above the table.
 
 **The act** (`drawUltraAct`): the frame and table fade as the cart comes;
 the Fairino rises from the cart's pedestal body by body (`growOrder`, as the
@@ -727,11 +764,11 @@ slab in front of the module's face while it is there (z 4 → 1.5 as it goes),
 or the two interleave within a slab and flicker. The owner asked for it to "explode properly":
 the first version moved the parts a fifth as far and faded them while still
 moving, so the camera dissolved rather than coming apart. Keeping the fan ON
-the stage took three things together, each measured by ink box: `CAM_EX`
-210 → 130, the view pulling back as it opens (dolly −70 → −115), and the
-whole assembly drifting 24 px toward the outer edge (`drift`), where the
-stage overhangs the screen. The casing, at the back, is what reached the
-inner edge every time. **The sensor is what is left**: it
+the stage took three things together, each measured by ink box: short
+stations (`out`, in mm: lenses +48, plate +32, module +14, body −16, PCB
+−30), the view pulling back as it opens (dolly −70 → −115), and the whole
+assembly drifting 20 px toward the outer edge (`drift`), where the stage
+overhangs the screen — the lenses fan toward the INNER edge. **The sensor is what is left**: it
 turns to face the viewer and grows (`SENSOR_SCALE`), the die fades as its
 8x6 photosites light to their own values (`pxVal`: a soft bright blob, so the
 grid IS an image, not graph paper), and bond pads round the package make it
@@ -917,9 +954,18 @@ Things learned by getting them wrong, in order:
   ~1.5x (SO-ARM 620, Franka 720 + base 1800, UR 380, Fairino 640, casing
   3600; 6-11k triangles a robot — at 2x, p90 went 17 → 33ms) and
   `MESH_RANGE` came down 0.42 → 0.30 so the tone step between neighbouring
-  faces is smaller. The limit of a flat-filled renderer is that each triangle is ONE
-  tone; true Gouraud needs per-pixel shading, i.e. WebGL, which this file has
-  been through and rejected (see ONE renderer).
+  faces is smaller. Then, the round after ("I can still see the little
+  triangles... it should be using larger shapes like cylinders"), **the
+  lighting is BANDED** (`MESH_BANDS` = 6, `bandLit`): the per-face light is
+  quantised to six levels before `meshTone`, so whole regions of a surface
+  share one tone, the triangle edges inside a band vanish, and what remains
+  is a few contour bands following the light — a cel-shaded sim look.
+  `?bands=N` compares (0 = the 56-step ramp). The limit of a flat-filled
+  renderer is that each triangle is ONE tone; true Gouraud needs per-pixel
+  shading, i.e. WebGL, which this file has been through and rejected (see
+  ONE renderer). Where a shape is drawn rather than baked — the camera, the
+  OP1's unit — it IS cylinders and boxes, and those are smooth by
+  construction.
 - **Triangles under two thirds of a pixel are not drawn** (`area < 1.3` in
   `submitMesh`, after the silhouette test has used them). At 0.2-0.33 px/mm
   a third of a decimated arm's faces are that small, and each was a bucket

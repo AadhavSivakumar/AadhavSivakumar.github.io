@@ -659,6 +659,36 @@ const silWire = (sil, z0, z1, every = 4) => [
 // a joint drum along z, radius r, from z0 to z1
 const drum = (r, z0, z1) => [...surface([[z0, r], [z1, r]], 18), ...disc(0, r, z1, 18), ...disc(0, r, z0, 18)];
 const drumWire = (r, z0, z1) => [ring(r, z0, 22), ring(r, z1, 22), ring(r * 0.45, z1, 14)];
+
+// ── the RealSense D435i, DRAWN (after drum/silWire: it uses them at module scope) ──────────────────────────────────────────
+// From Intel's dimensional drawing: a 90 x 25 x 25 mm bar whose front profile
+// is a stadium (fully rounded ends), an aluminium body, a dark front plate
+// carrying four apertures left to right — IR imager, IR projector, IR imager
+// (the 50 mm stereo baseline), RGB — and inside, the stereo module board
+// with its three barrels and the main PCB behind it. Units are mm, +z out of
+// the front. It replaced Intel's CAD mesh: that export is open B-rep patches
+// (see "Baked meshes"), and after two rounds of orienting, sealing and
+// budgeting it still read as "a little broken". Big clean shapes read as a
+// sim render; the owner asked for exactly that ("larger shapes like
+// cylinders"). The module is the part that COMES OUT and becomes the pixel
+// array (drawCameraAct), so it is its own part with its own frame.
+const D435_W = 90, D435_H = 25, D435_D = 25;
+const d435Sil = (L, r, n) => stadium(L, r, n).map(([x, y]) => [x - L / 2, y]);
+const D435_BODY_SIL = d435Sil(D435_W - D435_H, D435_H / 2, 12);
+const D435_PLATE_SIL = d435Sil(D435_W - D435_H - 2, D435_H / 2 - 1, 12);
+const D435_APERTURES = [[-32, 5.5], [-11, 4.5], [18, 5.5], [36, 6.2]];   // x, radius: IR-L, projector, IR-R, RGB
+const D435_RGB_X = 36;
+const D435 = [
+  // id, material, solid faces, wire polylines, explode station (mm along +z), explode order
+  { id: 'body', mat: MAT.alu, solid: extrude(D435_BODY_SIL, -D435_D / 2, 9), wire: silWire(D435_BODY_SIL, -D435_D / 2, 9, 6), out: -16, order: 3 },
+  { id: 'plate', mat: MAT.poly, solid: extrude(D435_PLATE_SIL, 9, 12.5), wire: [...silWire(D435_PLATE_SIL, 9, 12.5, 99), ...D435_APERTURES.map(([x, r]) => ringAt(r + 1.2, x, 0, 12.6, 20))], out: 32, order: 1 },
+  ...D435_APERTURES.map(([x, r], i) => ({ id: `lens${i}`, mat: MAT.poly, glass: true,
+    solid: [...surface([[12.6, r], [15, r]], 16).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })), ...disc(0, r, 15, 16).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n }))],
+    wire: [ringAt(r, x, 0, 15.05, 20), ringAt(r * 0.55, x, 0, 15.1, 14)], out: 48, order: 0 })),
+  { id: 'module', mat: MAT.steel, solid: [...boxFaces(84, 20, 6, 0, 0, 4), ...[-32, 18, 36].flatMap(x => drum(3.6, 7, 8.8).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })))],
+    wire: [...boxWire(84, 20, 6, 0, 0, 4), ...[-32, 18, 36].map(x => ringAt(3.6, x, 0, 8.9, 14))], out: 14, order: 2 },
+  { id: 'pcb', mat: MAT.iron, solid: boxFaces(82, 20, 2, 0, -1, -2), wire: boxWire(82, 20, 2, 0, -1, -2), out: -30, order: 3 },
+];
 const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
 const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
 const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
@@ -817,6 +847,15 @@ export default function Flourish3D({ side = 'right' }) {
     // a tube reads on its own and the lines can fade back.
     const MESH_STEPS = 56;
     const MESH_RANGE = 0.30;
+    // BANDED shading. A flat-filled triangle is one tone, so on a 56-step ramp
+    // every neighbouring pair of facets differs a little and a curved surface
+    // reads as a mosaic — "I can still see the little triangles". With the
+    // lighting quantised to a few bands, whole regions of a surface share one
+    // tone, the triangle edges inside a band vanish, and what remains is a
+    // few contour bands following the light: the look of a cel-shaded sim
+    // render. `?bands=N` overrides for comparison (0 = the full ramp).
+    const MESH_BANDS = typeof location !== 'undefined' && new URLSearchParams(location.search).has('bands') ? +new URLSearchParams(location.search).get('bands') : 6;
+    const bandLit = lit => (MESH_BANDS > 1 ? Math.round(lit * (MESH_BANDS - 1)) / (MESH_BANDS - 1) : lit);
     const meshToneCache = new Map();
     const meshTone = (lit, mat) => {
       const q = Math.max(0, Math.min(MESH_STEPS, Math.round(lit * MESH_STEPS)));
@@ -1261,7 +1300,7 @@ export default function Flourish3D({ side = 'right' }) {
         // printed holders, and the bias pushed them through their housings —
         // the "glitching textures" the owner saw as the arm moved.)
         const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly && part.rid === 'fr3' && part.body === 'link0' ? 1.4 : 0);
-        const col = meshTone(lit, mat);
+        const col = meshTone(bandLit(lit), mat);
         // sealed (flush) where the seam would show: every fill on the dark
         // theme, the dark materials on the light one. Sealing everything on
         // the light theme doubled p90 (17 → 33ms) for seams no one can see.
@@ -1368,34 +1407,57 @@ export default function Flourish3D({ side = 'right' }) {
       }
       flush();     // ONE sorted pass over the whole machine: masses and lines
     }
-    function drawCamera() {
-      setCam(-26 * DEG, 15 * DEG, -70);
-      const T = place(CAM_TURN, [CAM_X, CAM_Y, 0]);
-      for (const piece of CAMERA) {
-        const pa = partA ? (partA[piece.id] ?? 0) : 1;
-        if (pa <= 0.004) continue;
-        capId = piece.id;
-        submit(piece.solid, T, piece.mat, pa);
-        submitLines(piece.wire, T, piece.glass ? ink : matLine[piece.mat], LOOK.line * pa, LOOK.width);
-        if (piece.detail && !cap) submitLines(piece.detail, T, matLine[piece.mat], LOOK.line * 0.8 * pa, LOOK.width);
+    // The camera on the stage: faces into the page (its front is +z, turned
+    // toward the page's centre), three-quarter view, mm to px by CAM2.k.
+    // `t` > 0 explodes it (see drawCameraAct); returns the module's frame
+    // for the hand-over to the sensor.
+    const CAM2 = { k: 2.55, x: -14, y: -10, yaw: 34, pitch: 8 };
+    const CAM2_EX = 1.0;                                    // explode stations are in mm, scaled by k
+    function drawD435(alpha, t) {
+      // at rest this piece sets its own view (the acts set theirs): the hero's
+      // capture pass draws it before anything else has, and cam() was null
+      if (t <= 0 && !DEV) setCam(26 * DEG, 15 * DEG, -70);
+      // as it opens the assembly drifts toward the outer edge, where the
+      // stage overhangs the screen, so the fan of parts stays on the stage
+      const drift = t > 0 ? -20 * smooth(win(t, 0.03, 0.42)) : 0;     // the lenses fan toward the INNER edge (+x); the assembly drifts out
+      const home = place(mul(mul(rotY(CAM2.yaw * DEG), rotX(-CAM2.pitch * DEG)), scaleM(CAM2.k)), [CAM2.x + drift, CAM2.y, 0]);
+      let moduleT = null;
+      for (const part of D435) {
+        const pa = partA ? (partA[part.id] ?? 0) : 1;
+        const mv = t > 0 ? smooth(win(t, 0.03 + part.order * 0.03, 0.42)) : 0;
+        const isModule = part.id === 'module';
+        const a = alpha * pa * (t > 0 ? 1 - smooth(isModule ? win(t, 0.78, 0.12) : win(t, 0.44 + part.order * 0.02, 0.18)) : 1);
+        let T = chain(home, place(IDENT, [0, 0, part.out * CAM2_EX * mv]));
+        if (isModule && t > 0) {
+          // THE SENSOR COMES OUT. Once the view is apart the module leaves its
+          // station: it travels to the centre of the stage, turning to face
+          // the viewer and shrinking to the die's size, its front face
+          // landing on the die plane (z 16), and the drawn package forms
+          // around it while its photosites light as it fades
+          const s = smooth(win(t, 0.46, 0.3));
+          const kB = 2.0;
+          const TB = { m: scaleM(kB), t: [0, 0, 16 - 7 * kB] };
+          if (s > 0) T = lerpT(T, TB, s, CAM2.k, kB);
+          moduleT = { T, c: [0, 0, 7] };                      // the front face's centre, in the module's frame
+        }
+        if (a <= 0.004) continue;
+        capId = part.id;
+        submit(part.solid, T, part.mat, a);
+        submitLines(part.wire, T, part.glass ? ink : matLine[part.mat], LOOK.line * a, LOOK.width);
       }
       flush();
-      // TAKING PICTURES: the iris shuts and opens over ~0.34s, and the rim
-      // flashes with it. Drawn after the flush, on top of the glass, and only
-      // while the page is settled — a shutter frozen half-shut looks broken,
-      // so it rests fully open.
-      if (!idleOn || cap) return;
+      // TAKING PICTURES: the RGB aperture's iris shuts and opens over ~0.34s
+      // and its rim flashes. Drawn after the flush, on top; only while the
+      // page is settled — a shutter frozen half-shut looks broken.
+      if (!idleOn || cap || t > 0) return moduleT;
       const u = idleT % SHUTTER;
-      if (u > 0.42) return;
-      const k = u / 0.42;
-      const shut = Math.sin(Math.PI * k);                  // 0 open -> 1 shut -> 0 open
-      // The iris STARTS at the rim and at zero alpha, or it pops on as a dark
-      // disc over the glass. It closes to a point and opens again.
-      const r = 27 - 23 * shut;
-      fill([ring(r, 74.6, 6)], T, LINE, 0.6 * Math.pow(shut, 0.45));   // six blades, near enough
-      // and the rim flashes as it fires
-      stroke([ring(27.5, 74.2, 24)], T, ink, 0.95 * shut, 1.6);
-      stroke([ring(30.5, 73.8, 24)], T, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
+      if (u > 0.42) return moduleT;
+      const kf = u / 0.42, shut = Math.sin(Math.PI * kf);
+      const L = chain(home, place(IDENT, [D435_RGB_X, 0, 0]));
+      fill([ring(6 - 5 * shut, 15.2, 6)], L, LINE, 0.6 * Math.pow(shut, 0.45));
+      stroke([ring(7.2, 15.25, 24)], L, ink, 0.95 * shut, 1.6);
+      stroke([ring(9, 15.3, 24)], L, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
+      return moduleT;
     }
     // Dev hook (kept — it has paid for itself three times): ?dev=<robot>:q1,q2,..;k;yaw;x;y
     // shows one baked machine at that pose on the right, the camera on the left.
@@ -1408,8 +1470,8 @@ export default function Flourish3D({ side = 'right' }) {
         const [id, qs = ''] = spec.split(':');
         setCam(20 * DEG, 12 * DEG, 0);
         // on the left, ?dev=d435i;k;yaw;pitch overrides the camera's framing
-        if (isLeft && id === 'd435i' && DEV.includes(';')) { RB.cam.k = +k; RB.cam.yaw = +yaw; RB.cam.pitch = +x; }
-        if (isLeft) drawCameraMesh(1, 0);
+        if (isLeft && id === 'd435i' && DEV.includes(';')) { CAM2.k = +k; CAM2.yaw = +yaw; CAM2.pitch = +x; }
+        if (isLeft) drawD435(1, 0);
         else if (id === 'ultra' && ROBOTS.ultra) {
           drawCart(1, 1);
           const base = standing([+x, +y], +k, +yaw), qq = qs.split(',').filter(Boolean).map(Number);
@@ -1429,7 +1491,7 @@ export default function Flourish3D({ side = 'right' }) {
         flush();
         return;
       }
-      if (isLeft) { if (ROBOTS) drawCameraMesh(1, 0); else drawCamera(); } else drawMotor();
+      if (isLeft) drawD435(1, 0); else drawMotor();
     };
 
     // ── act two ─────────────────────────────────────────────────────────
@@ -1442,49 +1504,26 @@ export default function Flourish3D({ side = 'right' }) {
       // sensor once the parts have gone
       const q = smooth(win(t, 0.44, 0.3));
       // ...pulling back a little as it opens (dolly -70 -> -115), so the fan
-      // of parts — front ones left, the casing right — stays on the stage
+      // of parts stays on the stage. The view's yaw has the SAME sign as the
+      // camera's own (CAM2.yaw): with opposite signs they cancelled and the
+      // parts slid straight at the viewer, foreshortened to nothing.
       const e = smooth(win(t, 0.03, 0.42));
-      setCam(-26 * (1 - q) * DEG, 15 * (1 - q) * DEG, (-70 - 45 * e) * (1 - q));
-      const home = place(CAM_TURN, [CAM_X, CAM_Y, 0]);
-      const EX_D = 440;
+      setCam(26 * (1 - q) * DEG, 15 * (1 - q) * DEG, (-70 - 45 * e) * (1 - q));
       // 1 · the camera comes apart along its own optical axis, each piece
-      // holding its orientation, to its own station (see drawCameraMesh).
-      // The real D435i when its model has loaded; the drawn one until then.
-      const from = [CAM_X, CAM_Y, 0];
-      let board = null;
-      if (ROBOTS) board = drawCameraMesh(1, Math.max(0.001, t));
-      else for (const piece of CAMERA) {
-        const ex = CAM_EXPLODE[piece.id];
-        const mv = smooth(win(t, 0.02 + ex.order * 0.03, 0.30));
-        const a = 1 - win(t, 0.10 + ex.order * 0.03, 0.14);
-        if (a <= 0.01) continue;
-        const T = chain(home, place(IDENT, [0, ex.rise * EX_D * 0.62 * mv, ex.at * EX_D * mv]));
-        submit(piece.solid, T, piece.mat, a);
-        submitLines(piece.wire, T, piece.glass ? ink : matLine[piece.mat], LOOK.line * a, LOOK.width);
-      }
-      flush();
+      // holding its orientation, to its own station (see drawD435)
+      const board = drawD435(1, Math.max(0.001, t));
       // 2 · the sensor is the module that came out of the camera: the drawn
       // package forms AROUND it, in ITS frame — unflipped (facing() turned
       // it a half turn about z, and the die must end at SENSOR_HOME's
       // identity for the next act to start where this one ends), at the
       // die's own scale, its plane on the module's front face
       const sens = smooth(win(t, 0.56, 0.24));
-      if (sens <= 0) return;
-      let T;
-      if (board) {
-        const k = detScale(board.T.m) || 1;
-        const Rm = mul(board.T.m.map(x => x / k), rotZ(Math.PI));
-        const pc = tpOf(board.T, board.c);
-        const d = -1 - board.c[2];                                   // the front face is at z −1 in the module's frame
-        T = place(Rm.map(x => x * SENSOR_SCALE), [pc[0] + board.T.m[2] * d, pc[1] + board.T.m[5] * d, pc[2] + board.T.m[8] * d]);
-      } else {
-        const sc = 1 + (SENSOR_SCALE - 1) * smooth(win(t, 0.54, 0.3));
-        T = place(mul(rotY(74 * (1 - sens) * DEG), scaleM(sc)), [from[0] * (1 - sens), from[1] * (1 - sens), -30 + 46 * sens]);
-        // the die, solid, until the photosites take it over (the drawn
-        // camera has no module to be the die)
-        const dieFade = 1 - win(t, 0.7, 0.18);
-        if (dieFade > 0.01) { submit(plate(112, 86, 0, 0, 0), T, MAT.neutral, 0.85 * sens * dieFade); flush(); }
-      }
+      if (sens <= 0 || !board) return;
+      // the die's frame is the module's — at the die's scale, its plane on the
+      // module's front face — and at t = 1 it is exactly SENSOR_HOME
+      const k = detScale(board.T.m) || 1;
+      const Rm = board.T.m.map(x => x / k);
+      const T = place(Rm.map(x => x * SENSOR_SCALE), tpOf(board.T, board.c));
       stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.55 * sens, 1);
       stroke(SENSOR_PADS, T, LINE, 0.5 * sens, 1);
       // 3 · pixels: each photosite lights to its own value, so the grid IS
@@ -1506,7 +1545,7 @@ export default function Flourish3D({ side = 'right' }) {
         const sz = PX * 0.76 * (0.30 + 0.70 * a);
         buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), pz));
       }
-      for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, 0.12 + 0.72 * ((b + 1) / 4));
+      for (let b = 0; b < 4; b++) fill(buckets[b], T, pxColor(b), 0.12 + 0.72 * ((b + 1) / 4));
       if (frame) {
         const u = (idleT % SHUTTER) / SHUTTER;
         if (u < 0.55) {
@@ -2054,6 +2093,11 @@ export default function Flourish3D({ side = 'right' }) {
     });
     const sensorPlace = S => place(mul(mul(rotY(S.ry * DEG), rotX(S.rx * DEG)), scaleM(S.s)), [S.x, S.y, S.z]);
     // the photosite grid, drawn wherever the sensor currently is
+    // The bright object in the picture is the RED CUBE the robots handle on
+    // the right (the owner: "have the object detector detect a red cube"):
+    // the two brightest photosite buckets are red, the rest the page's ink.
+    const RED = MAT_HEX[MAT.red];
+    const pxColor = b => (b >= 2 ? RED : ink);
     function drawPixels(T, alpha, frame, band) {
       const buckets = [[], [], [], []];
       for (let i = 0; i < PX_C * PX_R; i++) {
@@ -2061,12 +2105,12 @@ export default function Flourish3D({ side = 'right' }) {
         const v = pxVal(i, frame);
         buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(PX * 0.76, PX * 0.76, x, y, 1.5));
       }
-      for (let b = 0; b < 4; b++) fill(buckets[b], T, ink, (0.12 + 0.72 * ((b + 1) / 4)) * alpha);
+      for (let b = 0; b < 4; b++) fill(buckets[b], T, pxColor(b), (0.12 + 0.72 * ((b + 1) / 4)) * alpha);
       if (band != null) fill([rect(GRID_W + 8, 11, 0, -GRID_H / 2 + band * GRID_H, 2.5)], T, ink, 0.22 * alpha);
     }
     // three things the model found in the picture: where, and how sure
     const DETS = [
-      { x: -18, y: -14, w: 46, h: 34, conf: 0.94 },
+      { x: 13, y: -7, w: 40, h: 32, conf: 0.94 },      // the red cube — ON the bright blob (pxVal's centre), where it was not
       { x: 24, y: 10, w: 34, h: 26, conf: 0.81 },
       { x: -34, y: 18, w: 26, h: 18, conf: 0.66 },
     ];
@@ -2251,7 +2295,16 @@ export default function Flourish3D({ side = 'right' }) {
     function drawFutures(T, alpha, f, adv) {
       if (alpha <= 0.01 || f <= 0.01) return;
       const d = DETS[0];
-      stroke([rect(d.w, d.h, d.x, d.y, 3)], T, ink, 0.8 * alpha, 1.3);
+      // the detection, as a detector draws it: box, corner ticks, class and score
+      stroke([rect(d.w, d.h, d.x, d.y, 3)], T, RED, 0.9 * alpha, 1.3);
+      const cx = d.w / 2, cy = d.h / 2, tk = 5;
+      stroke([
+        [[d.x - cx, d.y - cy + tk, 3], [d.x - cx, d.y - cy, 3], [d.x - cx + tk, d.y - cy, 3]],
+        [[d.x + cx - tk, d.y - cy, 3], [d.x + cx, d.y - cy, 3], [d.x + cx, d.y - cy + tk, 3]],
+        [[d.x - cx, d.y + cy - tk, 3], [d.x - cx, d.y + cy, 3], [d.x - cx + tk, d.y + cy, 3]],
+        [[d.x + cx - tk, d.y + cy, 3], [d.x + cx, d.y + cy, 3], [d.x + cx, d.y + cy - tk, 3]],
+      ], T, RED, 0.9 * alpha, 1.6);
+      { const c = [d.x - cx, d.y - cy - 7, 3]; caption(`red cube · ${d.conf.toFixed(2)}`, T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2], 0.85 * alpha); }
       // the three rollouts, dashed, on the picture
       for (const r of ROLLS) {
         const dashes = [];
@@ -2277,7 +2330,7 @@ export default function Flourish3D({ side = 'right' }) {
           const v = clamp(1.15 - dd, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7 + k * 2.3));
           buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(PX * 0.76, PX * 0.76, x, y, 1.5));
         }
-        for (let b = 0; b < 4; b++) fill(buckets[b], G, ink, (0.12 + 0.72 * ((b + 1) / 4)) * 0.45 * g * alpha);
+        for (let b = 0; b < 4; b++) fill(buckets[b], G, pxColor(b), (0.12 + 0.72 * ((b + 1) / 4)) * 0.45 * g * alpha);
         stroke([rect(d.w * (1 - k * 0.06), d.h * (1 - k * 0.06), p[0], p[1], 2)], G, ink, 0.6 * g * alpha, 1.2);
         if (k === 4) { const c = [-56, -52, 0]; caption('t+4 · imagined', G.m[0] * c[0] + G.m[1] * c[1] + G.m[2] * c[2] + G.t[0], G.m[3] * c[0] + G.m[4] * c[1] + G.m[5] * c[2] + G.t[1], G.m[6] * c[0] + G.m[7] * c[1] + G.m[8] * c[2] + G.t[2], 0.6 * g * alpha); }
       }
@@ -2361,7 +2414,7 @@ export default function Flourish3D({ side = 'right' }) {
         }
       };
       const g = smooth(win(t, 0.16, 0.4)), rise = smooth(win(t, 0.3, 0.5)), roll = smooth(win(t, 0.55, 0.3));
-      scene(T, g, rise, MAT.steel, roll, 1, 0);
+      scene(T, g, rise, MAT.red, roll, 1, 0);       // the red cube, standing on the ground it was seen on
       // the camera that saw it, as a frustum over the scene
       const fr = smooth(win(t, 0.45, 0.4));
       if (fr > 0.01) {
@@ -2429,12 +2482,18 @@ export default function Flourish3D({ side = 'right' }) {
     const UR_W_L = urW([0.034, -0.588, -2.022, 0.551, 1.57, 0, 90], [-0.201, -0.148, -2.473, 0.571, 1.57, 0, 90], [-1.198, -1.568, -1.889, 1.695, 1.57, 0, 90], [-1.369, -1.74, -1.98, 2.043, 1.57, 0, 90]);
     // the OP1's small arms (right; the left is the mirror by construction)
     const op = (P, open) => ({ ...P, open });
-    const OP_REST = { pitch: -0.45, roll: 0.12, elbow: 0.7, wrist: 0.25 };        // hanging beside the torso, a little forward
-    const OP_R = { FLAP: { pitch: -1.103, roll: -0.087, elbow: 1.071, wrist: 0.032 }, FLAP_UP: { pitch: -1.556, roll: 0.066, elbow: 1.636, wrist: -0.08 },
-                   FLAP2: { pitch: -0.778, roll: 0.183, elbow: 0, wrist: 0.691 }, FLAP2_UP: { pitch: -1.49, roll: 0.228, elbow: 1.253, wrist: 0.238 },
-                   ITEM: { pitch: -1.17, roll: -0.191, elbow: 1.288, wrist: -0.118 }, ITEM_UP: { pitch: -1.93, roll: -0.295, elbow: 2.064, wrist: -0.134 },
-                   OVER: { pitch: -1.963, roll: 0.333, elbow: 1.964, wrist: -0.001 }, IN: { pitch: -1.287, roll: 0.223, elbow: 1.326, wrist: -0.038 } };
-    const OP_L = { FLAP: OP_R.FLAP, FLAP_UP: OP_R.FLAP_UP, FLAP2: { pitch: -0.953, roll: 0.183, elbow: 1.417, wrist: -0.464 }, FLAP2_UP: { pitch: -1.444, roll: 0.228, elbow: 1.837, wrist: -0.394 } };
+    // ...solved in scripts/ik-poses.mjs with the arms kept OUTBOARD (roll,
+    // which swings an arm inward in this chain, capped near zero; a little
+    // inward only for the drop into the box, when the other arm is at rest),
+    // each arm's second flap grabbed on its own side, and a rest pose with
+    // the elbow up: hanging, the 630 mm arms put their fingertips 80 mm into
+    // the table top
+    const OP_REST = { pitch: -1.562, roll: -0.149, elbow: 1.805, wrist: -0.242 };
+    const OP_R = { FLAP: { pitch: -1.105, roll: -0.078, elbow: 1.074, wrist: 0.031 }, FLAP_UP: { pitch: -1.555, roll: 0.078, elbow: 1.635, wrist: -0.08 },
+                   FLAP2: { pitch: -0.791, roll: 0.08, elbow: 0, wrist: 0.72 }, FLAP2_UP: { pitch: -1.526, roll: 0.08, elbow: 1.291, wrist: 0.235 },
+                   ITEM: { pitch: -1.174, roll: -0.181, elbow: 1.294, wrist: -0.119 }, ITEM_UP: { pitch: -1.937, roll: -0.28, elbow: 2.068, wrist: -0.131 },
+                   OVER: { pitch: -2.01, roll: 0.225, elbow: 1.991, wrist: 0.019 }, IN: { pitch: -1.315, roll: 0.15, elbow: 1.361, wrist: -0.046 } };
+    const OP_L = { FLAP: { pitch: -1.105, roll: -0.078, elbow: 1.074, wrist: 0.031 }, FLAP_UP: { pitch: -1.555, roll: 0.078, elbow: 1.635, wrist: -0.08 }, FLAP2: { pitch: -0.976, roll: 0.08, elbow: 1.456, wrist: -0.48 }, FLAP2_UP: { pitch: -1.477, roll: 0.08, elbow: 1.875, wrist: -0.398 } };
     const OPW_R = [op(OP_REST, 60), op(OP_R.FLAP, 60), op(OP_R.FLAP_UP, 60), op(OP_R.FLAP2, 60), op(OP_R.FLAP2_UP, 60),
                    op(OP_R.ITEM_UP, 100), op(OP_R.ITEM, 100), op(OP_R.ITEM, 76), op(OP_R.ITEM_UP, 76), op(OP_R.OVER, 76), op(OP_R.IN, 76), op(OP_R.IN, 100), op(OP_R.OVER, 100), op(OP_REST, 60)];
     const OPW_L = [op(OP_REST, 60), op(OP_L.FLAP, 60), op(OP_L.FLAP_UP, 60), op(OP_L.FLAP2, 60), op(OP_L.FLAP2_UP, 60),
@@ -2467,7 +2526,6 @@ export default function Flourish3D({ side = 'right' }) {
                      cubes: [{ size: 60, mat: MAT.green }], events: [{ cube: 0, at: 2, drop: 6 }] },
             taskL: { period: 11, W: UR_W_L, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 2, drop: 6 }] } },
-      cam: { k: 3.5, root: [-2, -12], yaw: -28, pitch: 10 },
       // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
       // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
       // horizontal flange normal) with the unit on it. The Fairino holds
@@ -2892,78 +2950,6 @@ export default function Flourish3D({ side = 'right' }) {
       }
       drawUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
       flush();
-    }
-
-    // ── the camera, and how it comes apart ──────────────────────────────
-    // An EXPLODED VIEW, the way a teardown drawing shows it: every part
-    // slides along the optical axis to its own station — the RGB lens and
-    // the glass farthest forward, the front plate and its labels behind
-    // them, the RGB module and the sensor board a little forward, the PCB
-    // and the casing back — and STAYS there, whole, while the view holds its
-    // three-quarter angle so the stations fan out across the stage. Only
-    // once it is fully apart (t ~0.45) do the shells fade, the view square
-    // up, and the sensor grow out of the sensor board's position. The first
-    // version moved the parts a fifth as far and faded them while they were
-    // still moving: the camera dissolved rather than coming apart.
-    // a camera part by name, the first of these that the bake kept
-    const camPart = (robot, names) => { for (const n of names) { const i = robot.parts.findIndex(p => p.name === n); if (i >= 0) return i; } return 0; };
-    const CAM_PARTS_OUT = { d435i_8: -0.36, d435i_5: 0.55, d435i_6: 0.45, d435i_4: 0.15, d435i_2: 0.8, d435i_0: 0.62, d435i_3: 0.62, d435i_1: -0.2, d435i_7: 0.95 };
-    const CAM_ORDER = { d435i_7: 0, d435i_2: 1, d435i_8: 1, d435i_0: 2, d435i_3: 2, d435i_5: 3, d435i_6: 3, d435i_1: 4, d435i_4: 5 };
-    const CAM_EX = 130;                       // px, the farthest station (210 ran the plate and casing off both stage edges)
-    function drawCameraMesh(alpha, t) {
-      // The fan opens front-left and back-right, and the casing at the back
-      // ran off the stage's inner edge; the whole assembly drifts 24 px left
-      // as it opens (the outer edge has that much overhang to spare).
-      const drift = t > 0 ? -24 * smooth(win(t, 0.03, 0.42)) : 0;
-      const cam0 = facing([RB.cam.root[0] + drift, RB.cam.root[1]], RB.cam.k, RB.cam.yaw, RB.cam.pitch);
-      const robot = ROBOTS.d435i;
-      const T0 = bodyPlacements(robot, cam0, [])[0];
-      let boardT = null;                      // the sensor module's frame and centroid, for the hand-over
-      for (let i = 0; i < robot.parts.length; i++) {
-        const part = robot.parts[i];
-        if (DEV_PARTS && !DEV_PARTS.has(i)) continue;
-        const key = part.name || `d435i_${i}`;
-        const out = t > 0 ? (CAM_PARTS_OUT[key] ?? 0.5) : 0;
-        const order = CAM_ORDER[key] ?? 3;
-        const mv = t > 0 ? smooth(win(t, 0.03 + order * 0.03, 0.42)) : 0;
-        const board = key === 'd435i_4';
-        const a = alpha * (t > 0 ? 1 - smooth(board ? win(t, 0.78, 0.12) : win(t, 0.44 + order * 0.02, 0.18)) : 1);
-        // the part's own frame slid along the camera's Z (toward the viewer)
-        let T = chain(T0, place(IDENT, [0, 0, out * CAM_EX * mv / RB.cam.k]));
-        if (board && t > 0) {
-          // THE SENSOR COMES OUT. Once the view is apart the stereo module
-          // leaves its station: it travels to the centre of the stage,
-          // turning to face the viewer and shrinking to the die's size, and
-          // the drawn package forms around it while its photosites light as
-          // it fades — the module becomes the pixel array. Its target keeps
-          // `facing()`'s half turn so the rotation lerp is a short one (a
-          // 180° lerp collapses through zero); the die frame undoes it
-          // (drawCameraAct). The front face lands on the die's plane, z 16.
-          const s = smooth(win(t, 0.46, 0.3));
-          const c = robot.centroids[i];
-          const kB = 2.0;
-          const Rf = facing([0, 0], kB, 0, 0).m;
-          const off = [Rf[0] * c[0] + Rf[1] * c[1] + Rf[2] * c[2], Rf[3] * c[0] + Rf[4] * c[1] + Rf[5] * c[2], Rf[6] * c[0] + Rf[7] * c[1] + Rf[8] * c[2]];
-          const TB = { m: Rf, t: [-off[0], -off[1], 16 + kB] };
-          if (s > 0) T = lerpT(T, TB, s, RB.cam.k, kB);
-          boardT = { T, c };
-        }
-        if (a <= 0.01) continue;
-        const mat = MESH_MAT[part.mat] ?? MAT.neutral;
-        submitMesh(part, T, mat, a, matLine[mat]);
-      }
-      flush();
-      // TAKING PICTURES: the shutter, on the RGB lens
-      if (!idleOn || cap || t > 0) return boardT;
-      const u = idleT % SHUTTER;
-      if (u > 0.42) return;
-      const kf = u / 0.42, shut = Math.sin(Math.PI * kf);
-      const c = robot.centroids[camPart(robot, ['d435i_7', 'd435i_6', 'd435i_4'])];   // the RGB pupil
-      const L = chain(T0, place(IDENT, [c[0], c[1], c[2] + 2]));
-      fill([ring(8 - 6.5 * shut, 0, 6)], L, LINE, 0.6 * Math.pow(shut, 0.45));
-      stroke([ring(9.5, -0.2, 24)], L, ink, 0.95 * shut, 1.6);
-      stroke([ring(11.5, -0.4, 24)], L, ink, 0.5 * Math.max(0, shut - 0.3), 1.2);
-      return boardT;
     }
 
     // ── act 1: the motor becomes a 2R arm ───────────────────────────────

@@ -5,13 +5,17 @@ import HeroChip from './HeroChip';
 import portrait from '../../Media/hero/frontpagepfp.webp';
 
 // Keyword chips under the tagline, like the live /portfolio hero — clicking
-// one jumps to the section where that topic lives.
+// one jumps to the section where that topic lives. These are the fields the
+// owner is looking for work in, in their words ("reinforcement learning,
+// world models, simulation, VLAs, embodied AI"), plus robotics itself; the
+// tagline says the same thing in a sentence.
 const KEYWORDS = [
-  { label: 'Edge AI', target: 'experience' },
-  { label: 'Computer Vision', target: 'skills' },
-  { label: 'Robot Learning', target: 'experience' },
+  { label: 'Embodied AI', target: 'experience' },
+  { label: 'VLAs', target: 'skills' },
+  { label: 'World Models', target: 'research' },
+  { label: 'Reinforcement Learning', target: 'research' },
+  { label: 'Simulation', target: 'projects' },
   { label: 'Robotics', target: 'projects' },
-  { label: 'Machine Vision', target: 'skills' },
 ];
 
 const NAME = 'Aadhav Sivakumar';
@@ -171,7 +175,7 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        Edge AI engineer bridging industrial machine vision and robot learning
+        Robotics engineer working on embodied AI — VLAs, world models, reinforcement learning and simulation
       </motion.p>
 
       <div className="hero-chips">
