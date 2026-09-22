@@ -857,6 +857,7 @@ export default function Flourish3D({ side = 'right' }) {
     const MESH_BANDS = typeof location !== 'undefined' && new URLSearchParams(location.search).has('bands') ? +new URLSearchParams(location.search).get('bands') : 6;
     const bandLit = lit => (MESH_BANDS > 1 ? Math.round(lit * (MESH_BANDS - 1)) / (MESH_BANDS - 1) : lit);
     const meshToneCache = new Map();
+    const PLA_LIGHT = [227, 222, 213];
     const meshTone = (lit, mat) => {
       const q = Math.max(0, Math.min(MESH_STEPS, Math.round(lit * MESH_STEPS)));
       const key = q * 16 + mat;
@@ -864,8 +865,13 @@ export default function Flourish3D({ side = 'right' }) {
       if (c) return c;
       const lift = dark ? 0.19 : -0.08;
       // tint FIRST, then shade the tinted body — a white robot goes from
-      // white to grey in the shadow, not from page colour toward white
-      const tint = matRGB[mat], w = Math.min(1, MAT_W[mat] * (dark ? 1 : 1.55));
+      // white to grey in the shadow, not from page colour toward white.
+      // On the light theme white PLA lit full-on came out AT the page colour
+      // (tint #EEEAE2 pushed toward WARM_HI), so the lit side of the SO-ARM
+      // and the Franka vanished and only their shadow bands and lines were
+      // left — a hollow, wireframe look. A slightly greyer white keeps the
+      // body a body: ~9 levels under the page at its brightest.
+      const tint = !dark && mat === MAT.pla ? PLA_LIGHT : matRGB[mat], w = Math.min(1, MAT_W[mat] * (dark ? 1 : 1.55));
       let r = paperRGB[0], g = paperRGB[1], b2 = paperRGB[2];
       if (tint && w) { r = r + (tint[0] - r) * w; g = g + (tint[1] - g) * w; b2 = b2 + (tint[2] - b2) * w; }
       const k = (q / MESH_STEPS - 0.5) * 2 * MESH_RANGE + lift * 0.5;
@@ -944,12 +950,18 @@ export default function Flourish3D({ side = 'right' }) {
     // lived arrays a frame of pure GC pressure. Callers read the three values
     // immediately, so one shared triple is safe.
     const _c = [0, 0, 0];
+    // ZOOM scales everything on BOTH stages about the stage centre — the
+    // robots, the camera, the sensor, the stacks, the props, the captions'
+    // anchors — in one place. 0.85 at the owner's request ("15% smaller"),
+    // which is also 28% fewer pixels to fill per frame. Every ink box in
+    // this file's history was measured at 1.0; multiply.
+    const ZOOM = 0.85;
     const setCam = (yaw, pitch, dolly) => {
       const cy = Math.cos(yaw), sy = Math.sin(yaw), cx = Math.cos(pitch), sx = Math.sin(pitch);
       cam = (x, y, z) => {
         const X = x * cy + z * sy, Z0 = -x * sy + z * cy;
         const Y = y * cx - Z0 * sx, Z = y * sx + Z0 * cx + dolly;
-        const k = PERSP / (PERSP - Z);
+        const k = PERSP / (PERSP - Z) * ZOOM;
         _c[0] = CX + X * k; _c[1] = CY + Y * k; _c[2] = Z;
         return _c;
       };
@@ -959,6 +971,18 @@ export default function Flourish3D({ side = 'right' }) {
     // One beginPath/stroke per style group, so the draw-call count stays in the
     // dozens no matter how many segments there are.
     let segs = 0;
+    let calls = 0;                 // fill/stroke calls this frame (the draw-call count)
+    // ?perf writes each frame's cost to the canvas dataset — draw ms, draw
+    // calls, segments — for the profiling harness. A DOM write per frame, so
+    // dev only: with it on, "hold still and count mutations" measures this.
+    const PERF = typeof location !== 'undefined' && new URLSearchParams(location.search).has('perf');
+    const EXACT = typeof location !== 'undefined' && new URLSearchParams(location.search).has('exact');   // dev: exact-depth sort, no slabs
+    let flushMs = 0;
+    // ?idledt=16 advances the settled animation by a FIXED step per drawn frame
+    // instead of wall-clock time, so a harness that only manages 5fps still
+    // sees consecutive frames 16ms of motion apart (the pop detector needs
+    // motion that takes several frames to cross a pixel).
+    const IDLE_DT = typeof location !== 'undefined' && new URLSearchParams(location.search).has('idledt') ? +new URLSearchParams(location.search).get('idledt') / 1000 : 0;
     // CAPTURE MODE. While `cap` is an array, nothing is drawn: every polyline
     // that would have been stroked is projected and recorded instead, with
     // its colour, alpha and width. The prelude uses one such capture — the
@@ -1151,6 +1175,7 @@ export default function Flourish3D({ side = 'right' }) {
     function flush() {
       if (cap) { bucket.length = 0; ptsN = 0; return; }
       if (!bucket.length) return;
+      const tf = PERF ? performance.now() : 0;
       // Sort by depth SLAB first, then by style. Ordering strictly by depth is
       // correct but interleaves styles, so almost nothing merges — and giving
       // each part its own material made that worse, +20% draw calls. Within one
@@ -1162,7 +1187,8 @@ export default function Flourish3D({ side = 'right' }) {
       }
       const slab = Math.max(1e-6, (zHi - zLo) / 56);
       for (let i = 0; i < bucket.length; i++) bucket[i].s = ((bucket[i].z - zLo) / slab) | 0;
-      bucket.sort((A, B) => (A.s - B.s) || (A.k - B.k));
+      if (EXACT) bucket.sort((A, B) => (A.z - B.z) || (A.k - B.k));
+      else bucket.sort((A, B) => (A.s - B.s) || (A.k - B.k));
       let i = 0;
       while (i < bucket.length) {
         const f = bucket[i];
@@ -1181,6 +1207,7 @@ export default function Flourish3D({ side = 'right' }) {
           if (!e.line) ctx.closePath();
         }
         ctx.globalAlpha = f.a;
+        calls++;
         if (f.line) {
           ctx.strokeStyle = f.c;
           ctx.lineWidth = f.w;
@@ -1203,6 +1230,7 @@ export default function Flourish3D({ side = 'right' }) {
       }
       bucket.length = 0;
       ptsN = 0;                      // the whole frame's points are done with
+      if (PERF) flushMs += performance.now() - tf;
     }
 
     // ── the pieces ──────────────────────────────────────────────────────
@@ -1238,10 +1266,23 @@ export default function Flourish3D({ side = 'right' }) {
     // those passed the old test.
     const MESH_FLIP = false;
     const MESH_MIN_AREA = typeof location !== 'undefined' && new URLSearchParams(location.search).has('noskip') ? 0 : 1.3;
+    const SIL_EPS = typeof location !== 'undefined' && new URLSearchParams(location.search).has('sileps') ? +new URLSearchParams(location.search).get('sileps') : 0;
+    const NOLINES = typeof location !== 'undefined' && new URLSearchParams(location.search).has('nolines');
+    // BAND HYSTERESIS. A triangle's tone is its lighting quantised to a band,
+    // and as the arm turns, a triangle whose lighting sits near a band
+    // boundary hops between two greys from frame to frame. Measured at a
+    // 16ms step (`?perf` → dataset.flips): 4-16 faces a frame flipped on the
+    // settled SO-ARM and Franka, halved with hysteresis — a small sparkle,
+    // not the glitch, but free to remove. Each face keeps its band until its
+    // lighting has crossed the boundary by HYST of a band; ?hyst=N overrides
+    // (0 = off).
+    const HYST = typeof location !== 'undefined' && new URLSearchParams(location.search).has('hyst') ? +new URLSearchParams(location.search).get('hyst') : 0.2;
+    let flips = 0;                 // faces that changed band this frame (dev read-out)
     function submitMesh(part, T, mat, a, lineCol, lineA) {
       if (a <= 0.004) return;
       const m = T.m, t = T.t;
       const nv = part.nv, nf = part.nf, v = part.v, f = part.f, vn = part.vn;
+      const bands = part.bands || (part.bands = new Uint8Array(nf).fill(255));   // last frame's band per face
       if (MESH_SCR.length < nv * 3) MESH_SCR = new Float64Array(nv * 3 * 2);
       if (MESH_FRONT.length < nf) { MESH_FRONT = new Uint8Array(nf * 2); MESH_FACE = new Float32Array(nf * 2); }
       // project every vertex once
@@ -1268,9 +1309,14 @@ export default function Flourish3D({ side = 'right' }) {
         // a triangle under two thirds of a pixel is not drawn: at 0.2-0.33
         // px/mm a third of a decimated arm's faces are that small, each one a
         // bucket entry, a sort key and a path segment for nothing visible
-        // (its neighbours' seals cover the hole). The silhouette test above
-        // still uses it.
-        if (front && area < MESH_MIN_AREA) { MESH_FRONT[i] = 0; continue; }
+        // (its neighbours' seals cover the hole). It stays FRONT for the
+        // lines below: this used to clear MESH_FRONT for a skipped face, so
+        // every crease and silhouette edge beside one blinked out and back as
+        // the arm moved and the face crossed the size threshold — half of the
+        // one-frame pops on the settled SO-ARM (3330 → 1682 per 90 frames,
+        // measured with the size test off). The silhouette test needs the
+        // face's facing, not whether it was worth filling.
+        if (front && area < MESH_MIN_AREA) continue;
         // SMOOTH shading: the mean of the three vertex normals, not the face's
         // own — adjacent facets then shade continuously and the surface reads
         // as curved. (Per-face normals are what made it look like a mesh.)
@@ -1300,11 +1346,24 @@ export default function Flourish3D({ side = 'right' }) {
         // printed holders, and the bias pushed them through their housings —
         // the "glitching textures" the owner saw as the arm moved.)
         const zc = (MESH_SCR[ia * 3 + 2] + MESH_SCR[ib * 3 + 2] + MESH_SCR[ic * 3 + 2]) / 3 + (mat === MAT.poly && part.rid === 'fr3' && part.body === 'link0' ? 1.4 : 0);
-        const col = meshTone(bandLit(lit), mat);
+        let band = lit;
+        if (MESH_BANDS > 1) {
+          const q = lit * (MESH_BANDS - 1), prev = bands[i];
+          let bi = Math.round(q);
+          if (prev !== 255 && Math.abs(q - prev) < 0.5 + HYST) bi = prev;
+          if (prev !== 255 && bi !== prev) flips++;
+          bands[i] = bi;
+          band = bi / (MESH_BANDS - 1);
+        }
+        const col = meshTone(band, mat);
         // sealed (flush) where the seam would show: every fill on the dark
         // theme, the dark materials on the light one. Sealing everything on
         // the light theme doubled p90 (17 → 33ms) for seams no one can see.
-        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: dark || mat === MAT.poly || mat === MAT.iron || mat === MAT.steel ? 1 : 0 });
+        // (and on the dark theme the DARK materials go unsealed in turn: a
+        // hairline of near-black page inside a dark-grey servo is invisible,
+        // and the seal stroke is a second rasterisation of every fill)
+        const darkMat = mat === MAT.poly || mat === MAT.iron || mat === MAT.steel;
+        bucket.push({ o, n: 3, z: zc, a: a * LOOK.surface, c: col, k: styleId(0, col, 0), m: dark !== darkMat ? 1 : 0 });
         segs += 3;
       }
       // lines: the SILHOUETTE, and CREASES (real edges of the CAD, dihedral over
@@ -1315,14 +1374,23 @@ export default function Flourish3D({ side = 'right' }) {
       // On the dark theme the line is pale on near-black and a dense set of
       // them reads as a wireframe; the meshes take a lighter hand there.
       const la = (lineA == null ? LOOK.line : lineA) * a * (dark ? 0.5 : 0.7);
-      if (la <= 0.004) return;
+      if (la <= 0.004 || NOLINES) return;
       const laF = la * 0.3;
-      const MIN_PX2 = 9;                                 // edges under 3px on screen are noise
+      const MIN_PX2 = 16;                                // edges under 4px on screen are noise (was 3px; at ZOOM 0.85 the same edge is 15% shorter)
       for (let i = 0; i < ne; i++) {
         const fa = e[i * 4 + 2], fb = e[i * 4 + 3];
         const fra = MESH_FRONT[fa], frb = fb < 0 ? 0 : MESH_FRONT[fb];
         if (!fra && !frb) continue;                      // wholly on the far side
-        const silhouette = fb < 0 ? (fra === 1 && !part.patches) : (MESH_FACE[fa] > 0) !== (MESH_FACE[fb] > 0);
+        // A silhouette edge has to pass BOTH tests: one face toward the viewer
+        // and one away by the smooth normal (the real edge of the body), AND
+        // by the screen winding (a face actually culled on the far side). The
+        // smooth test alone drew every dimple of a decimated printed part —
+        // a screw boss, a slot's floor — as a starburst of little outline
+        // fragments inside the surface: the "glitching textures". The
+        // winding alone hops at every wobble of a curve. Where they agree is
+        // the outline.
+        const za = MESH_FACE[fa], zb = fb < 0 ? 0 : MESH_FACE[fb];
+        const silhouette = fb < 0 ? (fra === 1 && !part.patches) : fra !== frb && (za > SIL_EPS ? zb < -SIL_EPS : za < -SIL_EPS && zb > SIL_EPS);
         if (!silhouette && !crease[i]) continue;
         const ia = e[i * 4], ib = e[i * 4 + 1];
         const dx = MESH_SCR[ia * 3] - MESH_SCR[ib * 3], dy = MESH_SCR[ia * 3 + 1] - MESH_SCR[ib * 3 + 1];
@@ -1416,7 +1484,7 @@ export default function Flourish3D({ side = 'right' }) {
     function drawD435(alpha, t) {
       // at rest this piece sets its own view (the acts set theirs): the hero's
       // capture pass draws it before anything else has, and cam() was null
-      if (t <= 0 && !DEV) setCam(26 * DEG, 15 * DEG, -70);
+      if (t <= 0 && (!DEV || !cam)) setCam(26 * DEG, 15 * DEG, -70);   // (?dev=<robot> on the right leaves the left with no view at all)
       // as it opens the assembly drifts toward the outer edge, where the
       // stage overhangs the screen, so the fan of parts stays on the stage
       const drift = t > 0 ? -20 * smooth(win(t, 0.03, 0.42)) : 0;     // the lenses fan toward the INNER edge (+x); the assembly drifts out
@@ -2186,7 +2254,9 @@ export default function Flourish3D({ side = 'right' }) {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.fillStyle = ink;
-      ctx.font = '600 9.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace';
+      // the type scales with the stage (ZOOM): the token chips are geometry
+      // and shrank with everything else, and 9.5px words overran them
+      ctx.font = `600 ${(9.5 * ZOOM).toFixed(2)}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
       ctx.textAlign = align; ctx.textBaseline = 'middle';
       ctx.fillText(text, p[0], p[1]);
       ctx.restore();
@@ -3050,12 +3120,13 @@ export default function Flourish3D({ side = 'right' }) {
       return i < 0 ? 'pieces' : t >= 1 ? `act${i}` : null;
     };
     function draw(y = window.scrollY) {
+      const t0 = PERF ? performance.now() : 0;
       ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.globalAlpha = 1;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
-      segs = 0;
+      segs = 0; calls = 0; flushMs = 0; flips = 0;
       const s = reduce ? Infinity : heroPhase(y);
       if (s < S_ART) prelude(s);
       else if (reduce) art();
@@ -3083,6 +3154,7 @@ export default function Flourish3D({ side = 'right' }) {
       // running so "hold still and count mutations" still measures the page
       // rather than this attribute.
       if (!idleOn) canvas.dataset.segs = String(segs);
+      if (PERF) { canvas.dataset.ms = (performance.now() - t0).toFixed(2); canvas.dataset.flush = flushMs.toFixed(2); canvas.dataset.calls = String(calls); canvas.dataset.segs = String(segs); canvas.dataset.flips = String(flips); }
     }
 
     // ── scroll driver ───────────────────────────────────────────────────
@@ -3141,6 +3213,9 @@ export default function Flourish3D({ side = 'right' }) {
     // the start is continuous too. (Before this the arm jumped from
     // mid-reach to rest the instant the page scrolled.)
     const IDLE_SKIP_MS = 6;
+    let idleCost = 0;                         // EMA of the settled draw's cost, ms
+    // dev (?perf): a harness sets the task clock — with ?idledt tiny it stays
+    if (PERF) window['__f3dT_' + side] = t => { idleT = t; settleU = 1; };
     const IDLE_STRIDE = window.innerWidth < 992 ? 2 : 1;
     const RETURN_MS = 700;
     let idleRAF = 0, idleTimer = 0, idlePrev = 0, idleWait = 0, returning = 0;
@@ -3149,7 +3224,7 @@ export default function Flourish3D({ side = 'right' }) {
       if (!idleOn && !returning) return;
       if (idleWait > 0) { idleWait--; idleSchedule(); return; }
       const now = performance.now();
-      const dt = idlePrev ? Math.min(0.25, (now - idlePrev) / 1000) : 0;
+      const dt = IDLE_DT ? IDLE_DT : idlePrev ? Math.min(0.25, (now - idlePrev) / 1000) : 0;
       idlePrev = now;
       if (idleOn) { idleT += dt; settleU = Math.min(1, settleU + dt / 0.45); }
       else {
@@ -3159,7 +3234,16 @@ export default function Flourish3D({ side = 'right' }) {
       }
       if (held(lastY)) draw(lastY);
       if (!idleOn && !returning) { idlePrev = 0; return; }
-      idleWait = (IDLE_STRIDE - 1) + (performance.now() - now > IDLE_SKIP_MS ? 1 : 0);
+      // ADAPTIVE: the settled loop skips frames in proportion to what a draw
+      // costs on THIS machine — one for every IDLE_SKIP_MS of it, up to three
+      // (60 → 30 → 20 → 15fps) — so a slow machine spends the same share of
+      // its frame on the robots as a fast one. A fixed "skip one over 6ms"
+      // left a 20ms draw on a 30fps schedule, two thirds of every frame.
+      // Fast down, slow up: one slow draw (the first after a mesh arrives, a
+      // GC pause) must not set the rate for seconds, a slow machine should.
+      const c = performance.now() - now;
+      idleCost = c < idleCost ? c : idleCost * 0.6 + c * 0.4;
+      idleWait = (IDLE_STRIDE - 1) + Math.min(3, Math.floor(idleCost / IDLE_SKIP_MS));
       idleSchedule();
     };
     let returnFrom = 1;

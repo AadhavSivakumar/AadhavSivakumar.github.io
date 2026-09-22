@@ -792,6 +792,15 @@ output to match, so a phone gets a smaller, cheaper canvas rather than nothing:
 0.45 megapixels of backing store at desktop, 0.14 at phone width, with the
 device-pixel-ratio cap dropping from 1.5 to 1.25 there as well.
 
+**Everything on both stages is drawn 15% smaller than its numbers say**
+(`ZOOM` 0.85 inside `cam()`, about the stage centre): the owner asked for the
+robots and the left side smaller, and one factor in the projection is the
+one place that does it — robots, props, the camera, the pixel grids, the
+captions' anchors. The caption type scales with it too (`caption()`), because
+the token chips under the VLA's picture are geometry and 9.5px words
+overran them. Every ink box quoted in this file from before Sept 2026 was
+measured at 1.0.
+
 **W and H inside `Flourish3D.jsx` stay 340x660 whatever the viewport does.**
 That is the DRAWING coordinate system, and every fit, camera constant and LOD
 threshold in the file is expressed in it — only `ctx.setTransform` changes.
@@ -873,11 +882,19 @@ screen winding, shaded by the MEAN OF THE THREE VERTEX NORMALS (`meshTone`: 56
 steps, ±0.42 range, tint first then shade, so a white robot goes white to
 grey in shadow) — plus lines: the SILHOUETTE, found from the smooth normal's
 sign change (not the winding: on a decimated curve the winding flips at every
-wobble and drew a hundred outline fragments), and CREASES (per robot: 62° for
-the boxy printed SO-ARM whose right angles ARE its drawing, 76-78° for the
-organic shells) at 0.3 strength. Edges under 3px on screen are skipped. On
-the dark theme the lines are at half strength — pale on near-black, a dense
-set reads as a wireframe.
+wobble and drew a hundred outline fragments) — AND, since the lag round, by
+the winding as well: an edge is a silhouette only where both tests agree
+(`fra !== frb` and the smooth normals' signs differ). The smooth test alone
+drew every dimple of a decimated printed part — a screw boss, a slot's floor
+— as a starburst of little outline fragments inside the surface, which was
+much of the SO-ARM's "glitching textures" — and CREASES (per robot: 80° for
+the boxy printed SO-ARM, whose right angles ARE its drawing; it was 62° then
+72°, and at 72° every fillet and rib of a printed part still qualified; 74-78°
+for the organic shells) at 0.3 strength. Edges under 4px on screen are
+skipped (3px before ZOOM). On the dark theme the lines are at half strength
+— pale on near-black, a dense set reads as a wireframe. **Lines were two
+thirds of the SO-ARM page's draw calls** (1,300 a frame, 450 without them);
+these three changes took the page to 890.
 
 Things learned by getting them wrong, in order:
 - **The cull was INVERTED for two releases, and closed shells hid it.**
@@ -923,8 +940,10 @@ Things learned by getting them wrong, in order:
   half the band's triangles, and the band came out as a row of teeth. On
   the SO-ARM the black parts are SERVOS inside white printed holders, and
   the same bias pushed them through their housings as the arm moved — the
-  "glitching textures" the owner saw. The SO-ARM's crease angle went 62° →
-  72° at the same time; its printed fillets drew as a lattice. The Franka's
+  first "glitching textures" the owner saw (the second round's were the
+  interior silhouette starbursts and the blinking edges, above). The SO-ARM's
+  crease angle went 62° → 72° at the same time; its printed fillets drew as
+  a lattice. The Franka's
   base (`link0.obj`, seven material groups) has its own budget of 1500: at
   480 shared across the groups it came out a torn tent. It looked like a decimation defect and survived a sliver
   rule in the decimator (kept — `SLIVER` in qem.mjs refuses collapses that
@@ -937,9 +956,11 @@ Things learned by getting them wrong, in order:
   rim round; it costs faces, which is why the camera sits above its budget.
 - **Mesh fills are SEALED where the seam would show**: after each run of
   same-toned triangles is filled, the same path is stroked 0.7px in its own
-  colour (`m` on the bucket entry, set per fill in `submitMesh`: every fill
-  on the dark theme, and the DARK materials — poly, iron, steel — on the
-  light one). Adjacent triangles of different tones land in different fill
+  colour (`m` on the bucket entry, set per fill in `submitMesh`: the fills
+  that CONTRAST with the page — the pale materials on the dark theme, the
+  DARK materials — poly, iron, steel — on the light one; `dark !== darkMat`.
+  A hairline of near-black page inside a dark-grey servo is invisible, and
+  the seal is a second rasterisation of every fill it is on). Adjacent triangles of different tones land in different fill
   calls, and where two anti-aliased edges meet the page shows through as a
   hairline — on the dark theme a pale robot came out wearing its whole
   wireframe. It was dark-only for a release, on the reasoning that
@@ -960,7 +981,15 @@ Things learned by getting them wrong, in order:
   quantised to six levels before `meshTone`, so whole regions of a surface
   share one tone, the triangle edges inside a band vanish, and what remains
   is a few contour bands following the light — a cel-shaded sim look.
-  `?bands=N` compares (0 = the 56-step ramp). The limit of a flat-filled
+  `?bands=N` compares (0 = the 56-step ramp). **Bands have hysteresis**
+  (`HYST` 0.2 of a band, per face, `part.bands`): a face near a boundary
+  otherwise hops between two greys as the arm turns — measured at a 16ms
+  step, 4-16 faces a frame on the settled SO-ARM and Franka, halved with it;
+  a small sparkle, not the glitch, but free. **White PLA is greyer on the
+  light theme** (`PLA_LIGHT`, ~9 levels under the page at its brightest):
+  tinted #EEEAE2 and lit full-on it came out AT the page colour, so the lit
+  side of the SO-ARM and the Franka vanished and only shadow bands and lines
+  were left — a hollow, wireframe look the dark theme never had. The limit of a flat-filled
   renderer is that each triangle is ONE tone; true Gouraud needs per-pixel
   shading, i.e. WebGL, which this file has been through and rejected (see
   ONE renderer). Where a shape is drawn rather than baked — the camera, the
@@ -969,18 +998,30 @@ Things learned by getting them wrong, in order:
 - **Triangles under two thirds of a pixel are not drawn** (`area < 1.3` in
   `submitMesh`, after the silhouette test has used them). At 0.2-0.33 px/mm
   a third of a decimated arm's faces are that small, and each was a bucket
-  entry, a sort key and a path segment. With this, dark-only sealing and the
+  entry, a sort key and a path segment. **A skipped face stays FRONT for the
+  lines.** For three releases the skip also cleared `MESH_FRONT`, so every
+  crease and silhouette edge beside a sub-pixel face blinked out and back as
+  the arm moved and the face crossed the size threshold — half of the
+  one-frame pops on the settled SO-ARM (3,330 → 1,465 per 90 frames with
+  the skip's line effect removed; `?noskip` had shown the same number). The
+  silhouette test needs the face's facing, not whether it was worth filling. With this, dark-only sealing and the
   budgets below, the page measures the same with the acts redrawing every
   other frame as it did redrawing every fourth: p50 17.0 / p90 17.2 in
   Firefox with the lanyards running. **The lanyards are the other half of
   every long frame** — with their WebGL off the page holds p90 17.2 whatever
   the art does — so a heavier robot shows up first on the Experience and
   Research pages, where the badges are.
-- **Budgets** (faces per mesh file, `bake-robots.mjs`): SO-ARM101 620
-  (10.7k a robot), Franka 720 + 1800 for the base + a smaller schedule for
-  the hand (9.3k), UR5e 380 (7.5k), Fairino 640 (5.1k), camera casing 3600 /
-  plate 950 / module 800 (6.4k); a group is never under 100. The OP1 draws two Frankas, and the act that makes it
-  draws them over two URs, so the Franka is the one to keep lean.
+- **Budgets** (faces per mesh file, `bake-robots.mjs`): SO-ARM101 460, with
+  the servo STL — one file placed five times, a fifth the size of the base —
+  at 300 and the mounting plate at 220 (6.9k a robot), Franka 540 + 1350
+  for the base + the hand schedule at three quarters (7.3k), UR5e 285
+  (5.8k), Fairino 480 (3.8k); a group is never under 100. The camera is
+  drawn, not baked (see the D435i). **A quarter came off every budget in the
+  lag round** (Sept 2026, from 620 / 720+1800 / 380 / 640) when the stage
+  ZOOM went to 0.85: 15% smaller on screen wants 15% fewer faces for the
+  same screen density, and the banded shading hides the rest — checked by
+  montage at every settle point, both themes. Before that the SO-ARM was
+  10.7k faces and the most expensive page by half.
 - **Do not peel interiors.** A `peelInterior` pass once dropped inward-facing
   faces from hollow shells to stop them showing through. It opened a boundary
   around every hole it made, every boundary edge is an outline, and the parts
@@ -1018,7 +1059,29 @@ Things learned by getting them wrong, in order:
   for reference, tilted as a shoulder-mounted arm when `tilt` is given (and
   the camera on the left; `?dev=d435i;k;yaw;pitch` reframes it), `&part=0,5`
   limits the camera to those parts. Both need the page scrolled to just past the hero (`art()`
-  runs there). They have paid for themselves several times.
+  runs there). They have paid for themselves several times. The dev view
+  looks UP (pitch +12): fine for a part, misleading for a table top.
+  **Profiling and glitch hooks** (all dev-only, none costs anything when
+  absent): `?perf` writes each frame's `ms`, `flush` (raster share), `calls`
+  (fill+stroke), `segs` and `flips` (faces that changed tone band) to
+  `canvas.dataset` — a DOM write per frame, so never on by default — and
+  installs `window.__f3dT_<side>(t)` to set the task clock; `?idledt=16`
+  advances the settled animation a fixed 16ms per DRAWN frame instead of by
+  wall clock, so a harness at 5fps still sees consecutive frames 16ms of
+  motion apart; `?exact` sorts fills by exact depth (no slabs), `?nolines`
+  drops the mesh lines, `?noskip` draws sub-pixel faces, `?sileps=0.03`
+  puts a deadband on the silhouette test, `?hyst=0` turns band hysteresis
+  off, `?bands=N` sets the band count.
+- **A "flicker detector" over settled frames measures MOTION, not glitches.**
+  Counting pixels that change and change straight back (A→B→A) on the
+  working SO-ARM gave 0 pops with the animation frozen, 21 at a 4ms step,
+  3,700 at 16ms and 9,150 at 200ms — thin lines and jaw teeth crossing a
+  pixel in two frames are legitimate pops. It is only good for A/B: same
+  page, same fixed step (`?idledt`), same frame count, one variant at a time
+  (parallel Chromiums change the frame count). Used that way it found the
+  blinking edges (skip fix) and cleared the sort: `?exact` (exact-depth
+  fills) changed nothing visible and cost 4x the draw calls, so the depth
+  slabs stay.
 - **Screenshot harness gotcha:** the settle snap moves the page two seconds
   after a scripted scroll and the eased glide takes a second, so mid-act
   captures were blank or of the wrong frame. `?nosnap` on the URL turns the
@@ -1440,9 +1503,16 @@ the scroll driving it, so it is fenced: settled only, held states only
 (`held()`), 20fps desktop / 10fps phone, rAF stops it when the tab is hidden,
 never under reduced motion, and the piece is redrawn at its resting frame the
 moment the page moves — a shutter frozen half-shut looks broken. **It runs at
-frame rate** (rAF, a frame skipped after any draw over 6ms; every other frame
-on a phone): the 20fps it first ran at read as lag once the robots were doing
-real work. The scroll-driven redraw keeps its every-other-frame floor (32ms)
+frame rate, backing off in proportion to what a draw costs on THAT machine**
+(rAF; one frame skipped for every 6ms of the draw's running cost, up to
+three — 60 → 30 → 20 → 15fps; every other frame on a phone on top; `idleCost`
+is fast-down/slow-up so the first draw after a mesh arrives does not set the
+rate for seconds): the 20fps it first ran at read as lag once the robots
+were doing real work, and a fixed "skip one over 6ms" left a 20ms draw on a
+30fps schedule, two thirds of every frame. Nothing here can measure the
+owner's machine — "there's still quite a bit of lag" arrived with this box
+at p50 17.0 — so the levers are the ones that scale: ZOOM 0.85 (28% fewer
+pixels), a quarter off the mesh budgets, two thirds off the lines, and this. The scroll-driven redraw keeps its every-other-frame floor (32ms)
 but the cost multiplier is 2x instead of 8x — the acts were at 12-25fps.
 Drawing every frame was tried and measured: a 6ms draw on top of Firefox's
 own scroll work overran the budget and p90 went from 17 to 33ms.

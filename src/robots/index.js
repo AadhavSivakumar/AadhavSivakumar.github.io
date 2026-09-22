@@ -41,7 +41,11 @@ export function loadRobots() {
 // drawing; the Franka, the URs and the camera are organic shells, and on
 // those a lower threshold catches decimation facets at the rounded ends and
 // draws a lattice across them.
-const CREASE_DEG = { soarm: 72, fr3: 76, ur5e: 76, d435i: 78, ultra: 74 };
+// The SO-ARM's went 62 → 72 → 80: every slot, boss and rib of a printed part
+// is a 90° edge, and at 72 the light theme drew a wireframe over the arm —
+// and the lines were two thirds of the page's draw calls (1300 → 450 without
+// them). At 80 only the real right angles are left.
+const CREASE_DEG = { soarm: 80, fr3: 76, ur5e: 76, d435i: 78, ultra: 74 };
 function prepare(robot) {
   const creaseDeg = CREASE_DEG[robot.id] ?? 70;
   const parts = robot.parts.map(p => {
