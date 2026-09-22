@@ -100,7 +100,7 @@ src/
     ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
   robots/                 # the REAL machines, baked from MuJoCo Menagerie models (see below)
     index.js              # lazy loader, mesh preparation, forward kinematics
-    soarm.json fr3.json ur5e.json d435i.json   # baked meshes: mm, Z-up, decimated
+    soarm.json fr3.json ur5e.json ultra.json g1.json   # baked meshes: mm, Z-up, decimated
 scripts/
   copy-static.mjs         # post-build asset copy + referenced-asset existence check
   bake-robots.mjs         # robot meshes -> src/robots/*.json (raw meshes not committed)
@@ -485,6 +485,7 @@ settle point):
 | Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | a **VLA** runs on the pixels and the instruction; its action chunk is the Franka's joints |
 | Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | a **world model** imagines rollouts of the tracked object |
 | Additional Projects → Skills & Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the world model becomes a **simulator**: randomised twins, a return curve |
+| Skills & Resume → Get In Touch | the OP1 becomes a **Unitree G1 humanoid**, which **waves goodbye** while the reader is on the last page | the simulator holds |
 
 **The left half is the LEARNING half** (the owner's targets: robotics, RL,
 world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
@@ -623,6 +624,47 @@ other arm is at rest), each arm's second flap is grabbed on its own side of
 the box (y ±120), and the drop is on the right half (y 100). Along the whole
 spline the arms come no closer than 276 mm and the lowest tip is 14 mm
 above the table.
+
+**The last act is a humanoid waving goodbye** (`drawHumanoidAct`, Skills &
+Resume → Get In Touch; the owner: "the very last animation at the bottom of
+the page should be a humanoid robot waving away"). It is the **Unitree G1**
+(29 DoF, `unitree_g1/g1.xml` from the Menagerie), baked like the others —
+but its thirty bodies are PARSED from the MJCF (`bodiesFromMJCF` in the bake
+script: bodies in document order, which is the joint order the forward
+kinematics consumes `q` in; visual mesh geoms only; "metal" drawn as
+aluminium, "black" as black) rather than copied by hand. Budget 170 a file,
+the torso 400 and the hands 240; 35 parts, 7.4k triangles, 129 KB; the page
+draws at ~1,000 calls, in line with the SO-ARM's. **Its joint signs, from
+rendering each** (`RB.g1`, `g1Pose` builds the 29-vector from a leg, the
+waist and two arms; the right leg and arm mirror roll, yaw and the wrist):
++elbow LOWERS the forearm (0 has it forward, 1.5 hanging at the side), +left
+shoulder roll takes the arm out sideways, +left shoulder yaw turns the
+elbow's plane upright — so roll 1.25 / yaw 1.5 / elbow ≈ 0 is a hand raised
+beside the head, and the elbow swinging −0.45..0.35 IS the wave (at +0.6 the
+arm ran off the stage). It waves the LEFT hand: at yaw 255 it faces the
+reader a little from its left and that hand is toward the page, not the
+screen edge. The wave is a joint-space loop like the other jobs (`g1Q`, the
+same spline: stand, raise, three waves with a wrist flick, lower, stand;
+8 s), blended to rest by `settleU`, on a faint floor ring (`drawFloorMark`).
+**The transformation**: the cart and props go first; the Fairino folds down
+into its pedestal and fades; the UNIT — Ultra's torso with the ZED for eyes
+— lifts off the flange and travels to where the G1 will stand, growing from
+0.17 to 0.36 px/mm (`lerpT`), and the G1 grows out of it torso first
+(`G1_ORDER`: torso, waist, pelvis, then hips and shoulders outward to the
+ankles and wrists), unfolding from a crouch (`RB.g1.folded`) to standing as
+it arrives. **Its base is re-placed every frame so that its torso IS the
+travelling frame**: `gBase = TL ∘ (base⁻¹ ∘ Tq)⁻¹` (`invT` inverts a
+placement — rotation × uniform scale — as mᵀ/s²), which is what makes one
+object become another instead of two fading past each other; with the torso
+pinned to the final frame while the legs still unfolded, the feet went
+through the floor, so the travel and the unfold end together (t 0.72) and
+the last quarter is the arms arriving and the floor ring. The camera goes
+from the OP1's (16, −26) to (14, −6): a standing figure is met near eye
+level, not looked down on. The left side HOLDS the simulator through this
+act (`drawWorldAct(1)`); the goodbye is the right's. Seam into it 8 px;
+Firefox through it p50 17. Anything that enumerates the acts had a fifth
+added: `ACTS` in `waveField.js`, the two dispatches in `draw()`, and the
+scratch harnesses' `ids` lists (they were hard-coded to five pages).
 
 **The act** (`drawUltraAct`): the frame and table fade as the cart comes;
 the Fairino rises from the cart's pedestal body by body (`growOrder`, as the
@@ -1055,7 +1097,8 @@ Things learned by getting them wrong, in order:
   it reaches into the page with its base servo toward the viewer; at yaw 30
   the forearm ran off the right edge.
 - **Dev hooks, kept**: `?dev=<robot>:q1,q2,…;k;yaw;x;y[;tilt]` draws one baked
-  machine at that pose on the right stage, on the OP1's body at half alpha
+  machine at that pose on the right stage (this is how the G1's joint signs
+  and its wave were found: a pose per screenshot, five at a time), on the OP1's body at half alpha
   for reference, tilted as a shoulder-mounted arm when `tilt` is given (and
   the camera on the left; `?dev=d435i;k;yaw;pitch` reframes it), `&part=0,5`
   limits the camera to those parts. Both need the page scrolled to just past the hero (`art()`

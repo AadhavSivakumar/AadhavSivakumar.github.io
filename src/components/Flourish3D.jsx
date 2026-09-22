@@ -2607,6 +2607,41 @@ export default function Flourish3D({ side = 'right' }) {
             unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
     };
     RB.so.rest = SO_W[0]; RB.fr.rest = FR_W[0]; RB.ur.restR = UR_W_R[0]; RB.ur.restL = UR_W_L[0];
+    // ── the Unitree G1, and its goodbye ─────────────────────────────────
+    // 29 joints in the MJCF's body order: left leg (hip pitch, roll, yaw,
+    // knee, ankle pitch, roll), right leg, waist (yaw, roll, pitch), left arm
+    // (shoulder pitch, roll, yaw, elbow, wrist roll, pitch, yaw), right arm.
+    // Signs, from rendering each: +elbow LOWERS the forearm (0 has it
+    // forward, 1.5 hanging); +left shoulder roll takes the arm out sideways;
+    // +left shoulder yaw turns the elbow's plane upright — so roll 1.25 / yaw
+    // 1.5 / elbow ~0 is a hand raised beside the head, and the elbow swinging
+    // -0.45..0.35 is the wave (at +0.6 the arm ran off the stage). The right
+    // arm mirrors roll, yaw and the wrist. It waves the LEFT hand: at yaw 255
+    // it faces the reader a little from its left, and that hand is toward the
+    // page, not the screen edge.
+    const g1Pose = (leg, waist, L, R) => [...leg, leg[0], -leg[1], -leg[2], leg[3], leg[4], -leg[5], ...waist, ...L, ...R];
+    const g1Mirror = A => [A[0], -A[1], -A[2], A[3], -A[4], A[5], -A[6]];
+    const G1_LEG = [-0.12, 0, 0, 0.25, -0.13, 0];
+    const G1_ARM = [0.2, 0.12, 0, 1.45, 0, 0, 0];
+    const G1_REST = g1Pose(G1_LEG, [0, 0, 0], G1_ARM, g1Mirror(G1_ARM));
+    const g1Wave = (elbow, wristYaw, waistYaw) => g1Pose(G1_LEG, [waistYaw, 0, -0.03], [-0.25, 1.25, 1.5, elbow, 0, 0, wristYaw], g1Mirror(G1_ARM));
+    const G1_UP = g1Wave(0.05, 0, -0.1), G1_A = g1Wave(-0.45, 0.25, -0.12), G1_B = g1Wave(0.35, -0.25, -0.12);
+    // packed, as it comes out of the unit: crouched, arms folded in
+    const G1_FOLD_ARM = [0.7, 0.15, 0, 0.9, 0, 0, 0];
+    const G1_FOLDED = g1Pose([-1.25, 0, 0, 2.3, -1.05, 0], [0, 0, 0.35], G1_FOLD_ARM, g1Mirror(G1_FOLD_ARM));
+    RB.g1 = { k: 0.36, root: [10, 240], yaw: 255, rest: G1_REST, folded: G1_FOLDED,
+              // stand, raise the hand, three waves, lower it, stand: 8 s
+              wave: { period: 8, W: [G1_REST, G1_REST, G1_UP, G1_A, G1_B, G1_A, G1_B, G1_A, G1_B, G1_UP, G1_REST, G1_REST] } };
+    const g1Q = (t, u) => {
+      const task = RB.g1.wave, q = taskQ(task, taskPhase(task, t, task.W.length));
+      return u >= 0.999 ? q : u <= 0.001 ? RB.g1.rest : lerpQ(RB.g1.rest, q, u);
+    };
+    // the inverse of a placement (rotation x uniform scale, then translation)
+    const invT = T => {
+      const s2 = detScale(T.m) ** 2, M = T.m;
+      const m = [M[0] / s2, M[3] / s2, M[6] / s2, M[1] / s2, M[4] / s2, M[7] / s2, M[2] / s2, M[5] / s2, M[8] / s2];
+      return place(m, [-(m[0] * T.t[0] + m[1] * T.t[1] + m[2] * T.t[2]), -(m[3] * T.t[0] + m[4] * T.t[1] + m[5] * T.t[2]), -(m[6] * T.t[0] + m[7] * T.t[1] + m[8] * T.t[2])]);
+    };
     // an arm mounted on a shoulder: standing, then tilted outward about the
     // stage's z (positive tilt leans a right-hand arm to the right; 180 hangs it)
     const shouldered = (root, k, yaw, tiltDeg) => { const B = standing(root, k, yaw); return place(mul(rotZ(tiltDeg * DEG), B.m), B.t); };
@@ -3022,6 +3057,63 @@ export default function Flourish3D({ side = 'right' }) {
       flush();
     }
 
+    // ── act 5: the OP1 becomes a humanoid, and it waves goodbye ─────────
+    // The last page boundary, into Get In Touch. The cart and the props go
+    // first; the Fairino folds down into its pedestal and fades; the UNIT —
+    // Ultra's torso with the ZED for eyes — lifts off the flange and travels
+    // to where the G1 will stand, growing to its size, and the G1 grows out
+    // of it: torso first (the unit IS its torso), then waist and pelvis,
+    // legs down and arms out, unfolding from a crouch to standing as it
+    // arrives. Its base is placed each frame so that its torso IS the
+    // travelling frame (`gBase`), which is what makes it one object becoming
+    // another rather than two fading past each other. Settled, it waves.
+    const G1_ORDER = ['torso_link', 'waist_roll_link', 'waist_yaw_link', 'pelvis',
+      'left_hip_pitch_link', 'right_hip_pitch_link', 'left_shoulder_pitch_link', 'right_shoulder_pitch_link',
+      'left_hip_roll_link', 'right_hip_roll_link', 'left_shoulder_roll_link', 'right_shoulder_roll_link',
+      'left_hip_yaw_link', 'right_hip_yaw_link', 'left_shoulder_yaw_link', 'right_shoulder_yaw_link',
+      'left_knee_link', 'right_knee_link', 'left_elbow_link', 'right_elbow_link',
+      'left_ankle_pitch_link', 'right_ankle_pitch_link', 'left_wrist_roll_link', 'right_wrist_roll_link',
+      'left_ankle_roll_link', 'right_ankle_roll_link', 'left_wrist_pitch_link', 'right_wrist_pitch_link',
+      'left_wrist_yaw_link', 'right_wrist_yaw_link'];
+    function drawFloorMark(base, a) {
+      if (a <= 0.01) return;
+      submitLines([ringAt(340, 0, 0, 0, 40)], base, ink, LOOK.line * 0.45 * a, LOOK.width);
+    }
+    function drawHumanoidAct(t) {
+      const u = smooth(t);
+      setCam((16 - 2 * u) * DEG, (-26 + 20 * u) * DEG, 0);   // from the OP1's (16, -26) to (14, -6): a standing figure is met near eye level, not looked down on
+      const base = standing(RB.g1.root, RB.g1.k, RB.g1.yaw);
+      const g1 = ROBOTS.g1, torso = g1.index.get('torso_link');
+      if (t >= 1) {
+        drawFloorMark(base, 1);
+        drawRobot(g1, base, g1Q(idleT, settleU), 1);
+        flush();
+        return;
+      }
+      const ulBase = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
+      const gone = 1 - smooth(win(t, 0.02, 0.3));
+      drawCart(1, gone);
+      const Tf = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
+      const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), RB.ul.k);
+      if (gone > 0.01) drawUnitProps(TU, unitTaskState(TU, 0), gone);
+      const fa = 1 - smooth(win(t, 0.12, 0.4));
+      if (fa > 0.01) drawRobot(ROBOTS.ultra, ulBase, lerpQ(RB.ul.rest, RB.ul.folded, smooth(win(t, 0.08, 0.45))), fa, { zed: 0 });
+      const travel = smooth(win(t, 0.12, 0.6));
+      const Tt = bodyPlacements(g1, base, RB.g1.rest)[torso];
+      const TL = lerpT(TU, Tt, travel, RB.ul.k, RB.g1.k);
+      const ua = 1 - smooth(win(t, 0.45, 0.3));
+      if (ua > 0.01) drawUnit(TL, RB.ul.unit.R[0], RB.ul.unit.L[0], ua);
+      const ga = smooth(win(t, 0.38, 0.25));
+      if (ga > 0.01) {
+        const q = lerpQ(RB.g1.folded, RB.g1.rest, smooth(win(t, 0.3, 0.42)));
+        const Tq = bodyPlacements(g1, base, q)[torso];
+        const gBase = chain(TL, invT(chain(invT(base), Tq)));
+        drawRobot(g1, gBase, q, ga, growOrder(G1_ORDER, t, 0.35, 0.38));
+      }
+      drawFloorMark(base, smooth(win(t, 0.72, 0.28)));
+      flush();
+    }
+
     // ── act 1: the motor becomes a 2R arm ───────────────────────────────
     function drawMotorAct(t) {
       const a = smooth(win(t, 0.0, 0.36));            // the motor turns and settles
@@ -3139,12 +3231,14 @@ export default function Flourish3D({ side = 'right' }) {
           if (i === 0) drawCameraAct(t);
           else if (i === 1) drawInferAct(t);
           else if (i === 2) drawDetectAct(t);
-          else drawWorldAct(t);
+          else if (i === 3) drawWorldAct(t);
+          else drawWorldAct(1);          // the simulator holds through the last act; the goodbye is the right's
         } else if (ROBOTS) {
           if (i === 0) drawSoArmAct(t);
           else if (i === 1) drawFrankaAct(t);
           else if (i === 2) drawURPairAct(t);
-          else drawUltraAct(t);
+          else if (i === 3) drawUltraAct(t);
+          else drawHumanoidAct(t);
         } else if (i === 0) drawMotorAct(t);
         else if (i === 1) drawArm6Act(t);
         else drawBimanualAct(i === 2 ? t : 1);

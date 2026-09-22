@@ -355,6 +355,38 @@ function transformInPlace(mesh, pos, quat) {
 
 const mm = p => p.map(x => x * 1000);
 
+// A body tree read straight from an MJCF, for a model with too many bodies
+// to copy by hand (the G1 has thirty). Bodies in document order — which is
+// the joint order the renderer's forward kinematics consumes q in — with
+// pos/quat, the joint axis, and the VISUAL mesh geoms (their asset file,
+// material, own pos/quat). Collision geoms and primitives are skipped.
+function bodiesFromMJCF(file, matMap, defaultMat) {
+  const xml = fs.readFileSync(file, 'utf8');
+  const attrs = str => { const o = {}; for (const m of str.matchAll(/(\w+)="([^"]*)"/g)) o[m[1]] = m[2]; return o; };
+  const nums = v => v.trim().split(/\s+/).map(Number);
+  const meshes = {};
+  for (const m of xml.matchAll(/<mesh\b([^>]*?)\/>/g)) { const a = attrs(m[1]); meshes[a.name || a.file.replace(/\.[^.]+$/, '')] = a.file; }
+  const bodies = [], stack = [];
+  for (const m of xml.matchAll(/<(\/?)(body|joint|geom)\b([^>]*?)(\/?)>/g)) {
+    const [, close, tag, rest] = m;
+    if (tag === 'body') {
+      if (close) { stack.pop(); continue; }
+      const a = attrs(rest);
+      const B = { name: a.name, parent: stack.length ? stack[stack.length - 1].name : null, pos: a.pos ? nums(a.pos) : [0, 0, 0], quat: a.quat ? nums(a.quat) : undefined, geoms: [] };
+      bodies.push(B); stack.push(B);
+      continue;
+    }
+    const B = stack[stack.length - 1];
+    if (!B) continue;
+    const a = attrs(rest);
+    if (tag === 'joint') { if (a.type !== 'free') B.axis = a.axis ? nums(a.axis) : [0, 0, 1]; continue; }
+    if (a.class !== 'visual' || !a.mesh) continue;
+    const mat = matMap[a.material || defaultMat] || defaultMat;
+    B.geoms.push(a.pos || a.quat ? [meshes[a.mesh], mat, a.pos ? nums(a.pos) : [0, 0, 0], a.quat ? nums(a.quat) : [1, 0, 0, 0]] : [meshes[a.mesh], mat]);
+  }
+  return bodies;
+}
+
 const ROBOTS = {
   // The camera: one body, nine parts by material. Budget is generous — it is
   // the whole of the left side, drawn large, and it comes apart piece by
@@ -482,6 +514,15 @@ const ROBOTS = {
       { name: 'zed', parent: 'unit', pos: [0.09, 0, 0.07], rpy: [3.14159, 0, 0], geoms: [['../../zed/zed2i.stl', 'black']] },
     ],
   },
+  // The Unitree G1 (29 DoF), from the Menagerie's unitree_g1/g1.xml —
+  // thirty bodies, so the tree is parsed rather than copied. Its two
+  // materials: "metal" (0.7 grey, most of it) drawn as aluminium, "black"
+  // for the pelvis, hip and ankle links, the head and the logo. The last act
+  // makes it out of the OP1 and it waves goodbye at the foot of the page.
+  g1: {
+    dir: 'menagerie/unitree_g1', kind: 'stl', budget: 170,
+    bodies: ROOT ? bodiesFromMJCF(path.join(ROOT, 'menagerie/unitree_g1/g1.xml'), { metal: 'linkgray', black: 'black' }, 'linkgray') : [],
+  },
   ur5e: {
     dir: 'universal_robots_ur5e', kind: 'obj', budget: 285,
     bodies: [
@@ -539,6 +580,9 @@ for (const [id, R] of Object.entries(ROBOTS)) {
       // the SO-ARM's servo is one STL placed five times, and a servo is a fifth the
       // size of the base: the same 460 faces on each was 2,300 of the arm's 7,800
       const HAND_BUDGET = { 'sts3215_03a_v1.stl': 300, 'sts3215_03a_no_horn_v1.stl': 300, 'waveshare_mounting_plate_so101_v2.stl': 220,
+        // the G1: the torso and pelvis are most of what you see; the hands are what wave
+        'torso_link_rev_1_0.STL': 400, 'pelvis.STL': 240, 'pelvis_contour_link.STL': 160, 'head_link.STL': 200, 'logo_link.STL': 40,
+        'left_rubber_hand.STL': 240, 'right_rubber_hand.STL': 240, 'waist_yaw_link_rev_1_0.STL': 120, 'waist_roll_link_rev_1_0.STL': 120,
         'hand_2.obj': 240, 'hand_3.obj': 285, 'hand_1.obj': 140, 'hand_4.obj': 140, 'hand_0.obj': 50, 'finger_0.obj': 110, 'finger_1.obj': 90, 'link0.obj': 1350 };
       const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : (HAND_BUDGET[file] ?? budget);
       for (const g of groups) {

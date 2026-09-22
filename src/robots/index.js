@@ -11,7 +11,7 @@
 
 const TAU = Math.PI * 2;
 
-export const ROBOT_IDS = ['soarm', 'fr3', 'ur5e', 'ultra'];
+export const ROBOT_IDS = ['soarm', 'fr3', 'ur5e', 'ultra', 'g1'];
 
 let loading = null;
 export function loadRobots() {
@@ -21,6 +21,7 @@ export function loadRobots() {
       import('./fr3.json'),
       import('./ur5e.json'),
       import('./ultra.json'),
+      import('./g1.json'),
     ]).then(mods => {
       const out = {};
       mods.forEach((m, i) => { out[ROBOT_IDS[i]] = prepare(m.default || m); });
@@ -45,7 +46,7 @@ export function loadRobots() {
 // is a 90° edge, and at 72 the light theme drew a wireframe over the arm —
 // and the lines were two thirds of the page's draw calls (1300 → 450 without
 // them). At 80 only the real right angles are left.
-const CREASE_DEG = { soarm: 80, fr3: 76, ur5e: 76, d435i: 78, ultra: 74 };
+const CREASE_DEG = { soarm: 80, fr3: 76, ur5e: 76, d435i: 78, ultra: 74, g1: 76 };
 function prepare(robot) {
   const creaseDeg = CREASE_DEG[robot.id] ?? 70;
   const parts = robot.parts.map(p => {

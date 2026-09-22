@@ -94,6 +94,7 @@ export const ACTS = [
   ['research', 'projects'],
   ['projects', 'additional-projects'],
   ['additional-projects', 'skills'],
+  ['skills', 'contact'],
 ];
 let spans = null;
 function measureActs() {
