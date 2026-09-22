@@ -374,11 +374,14 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
     const tile = 1.5; // world units per 4-hole tile
     // A small board: just enough panel to read as a pegboard behind the pin.
     // It was 3.2 x 2.0 (x sizeMul) and filled the column; the owner asked for
-    // it smaller and the badge bigger. The badge grew through the canvas
-    // height instead (see .exp-lanyard), so nothing here is physics.
-    const w = maxX - minX + 1.12 * sizeMul;
-    const top = maxY + 0.36 * sizeMul; // clears the highest pin
-    const bottom = minY - 0.48 * sizeMul; // below the lowest pin, above the badge
+    // it smaller and the badge bigger, then smaller again. The badge grew
+    // through the canvas height instead (see .exp-lanyard), so nothing here
+    // is physics. Now 0.84 wide and 0.64 tall (x sizeMul) round a lone pin —
+    // a quarter less each way than the 1.12 x 0.84 before; the pin head
+    // (PIN_HEAD_R x sizeMul) still sits well inside it.
+    const w = maxX - minX + 0.84 * sizeMul;
+    const top = maxY + 0.28 * sizeMul; // clears the highest pin
+    const bottom = minY - 0.36 * sizeMul; // below the lowest pin, above the badge
     const h = top - bottom;
     return { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2, tile };
   }, [anchors, sizeMul]);

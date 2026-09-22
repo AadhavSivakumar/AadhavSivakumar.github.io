@@ -678,7 +678,10 @@ html[data-theme="dark"] .f3d::before {
 /* SIDEWAYS, one under another, the picture ZIG-ZAGGING: left on the first,
    right on the second, and so on. The row height comes from the screen so all
    four fit one page: what is left under the title and the playback toggle,
-   in four. The picture is 16:10 at that height; the text takes the rest. */
+   in four. The picture is 2.3:1 at that height (it was 16:10; the owner asked
+   for the video bigger and the text smaller — the row cannot grow without
+   breaking the one-screen fit, so the picture grew sideways and the text
+   column, padding and type came down); the text takes the rest. */
 .major-projects-grid {
   --mp-h: clamp(108px, calc((100svh - 80px - 56px - 108px - 36px - 3 * 14px) / 4), 200px);
   display: flex; flex-direction: column; gap: 14px;
@@ -690,10 +693,10 @@ html[data-theme="dark"] .f3d::before {
    than the row and spilled out of both ends. The picture stretches to
    whatever height the row ends up. */
 .major-projects-grid .major-project-card {
-  display: grid; grid-template-columns: calc(var(--mp-h) * 1.6) minmax(0, 1fr);
+  display: grid; grid-template-columns: calc(var(--mp-h) * 2.3) minmax(0, 1fr);
   min-height: var(--mp-h); border-radius: 10px;
 }
-.major-projects-grid .major-project-card:nth-child(even) { grid-template-columns: minmax(0, 1fr) calc(var(--mp-h) * 1.6); }
+.major-projects-grid .major-project-card:nth-child(even) { grid-template-columns: minmax(0, 1fr) calc(var(--mp-h) * 2.3); }
 .major-projects-grid .major-project-card:nth-child(even) > img,
 .major-projects-grid .major-project-card:nth-child(even) > video { grid-column: 2 / 3; grid-row: 1 / 2; }
 .major-projects-grid .major-project-card:nth-child(even) > .project-content { grid-column: 1 / 2; grid-row: 1 / 2; }
@@ -719,18 +722,18 @@ html[data-theme="dark"] .f3d::before {
 }
 
 .major-projects-grid .major-project-card .project-content {
-  padding: 14px 24px;
+  padding: 12px 20px;
   text-align: left;
-  display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0;
 }
 .major-projects-grid .major-project-card .project-content h4 {
-  font-size: 1.18rem;
+  font-size: 1.08rem;
   line-height: 1.25;
   margin: 0;
 }
 .major-projects-grid .major-project-card .project-content p {
   color: var(--secondary-color);
-  font-size: 0.87rem;
+  font-size: 0.82rem;
   line-height: 1.5;
   margin: 0;
   display: -webkit-box;

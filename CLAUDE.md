@@ -230,8 +230,8 @@ page, and as tall as the two rows it spans allow. **That is how the badges were
 made bigger** (~30%, to 600px at 1440x900), at the owner's request — not by
 `sizeMul`, which would have meant re-deriving the drag clamp, the pegboard's
 flip clearance and the hang. The pegboard was made smaller at the same time,
-in `LanyardRack`'s geometry (1.7 x 1.2, x sizeMul, from 3.2 x 2.0), which is
-pure scenery. **`.exp-lanyard` must stay `position: relative`**:
+in `LanyardRack`'s geometry (1.12 x 0.84, x sizeMul, from 3.2 x 2.0; then
+0.84 x 0.64 when the owner asked again), which is pure scenery. **`.exp-lanyard` must stay `position: relative`**:
 it is the containing block for the Lanyard's absolutely positioned canvas. It
 used to be `sticky`, which did that job silently; the first version of the
 pages dropped `sticky` and the badge hung over the middle of the cards.
@@ -1361,8 +1361,10 @@ took, in case something is added and a page grows past the screen:
 - **Major projects are SIDEWAYS rows, the picture zig-zagging** — left on the
   first, right on the second (`:nth-child(even)` swaps the grid columns) —
   with the row height taken from the screen (`--mp-h`: what is left under the
-  title and the playback toggle, in four) and the picture 16:10 at that
-  height. The owner's words were "picture on the left and text on the right,
+  title and the playback toggle, in four) and the picture 2.3:1 at that
+  height (16:10 until the owner asked for the video bigger and the text
+  smaller; the row cannot grow without breaking the fit, so the picture grew
+  sideways and the text column, padding and type came down). The owner's words were "picture on the left and text on the right,
   then the next one should be picture on the left and text on the right";
   read as alternating, and flagged. **The card has a MIN-height, not a
   height**: at a fixed height the vertically centred text overflowed both
