@@ -100,7 +100,7 @@ src/
     ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
   robots/                 # the REAL machines, baked from MuJoCo Menagerie models (see below)
     index.js              # lazy loader, mesh preparation, forward kinematics
-    soarm.json fr3.json ur5e.json ultra.json g1.json   # baked meshes: mm, Z-up, decimated
+    soarm.json fr3.json ur5e.json ultra.json atlas.json   # baked meshes: mm, Z-up, decimated
 scripts/
   copy-static.mjs         # post-build asset copy + referenced-asset existence check
   bake-robots.mjs         # robot meshes -> src/robots/*.json (raw meshes not committed)
@@ -123,7 +123,26 @@ All page content lives in `src/data/siteData.js`:
 - `aboutMeData` — about card + modal (title, teaser, `modalContent` blocks).
 - `majorProjectsData` / `smallProjectsData` — project cards. Shape: `{ id, title, cardDescription, imageUrl, tags, status, modalContent }`. `modalContent` is an array of `{ type: 'text' | 'button' | 'embed' | 'image', ... }` blocks rendered by `Modal.jsx`. Preserve existing `id` values.
 - `skillGroupsData` — skill category cards; each group has `items` of `{ name, imageUrl, description }`.
-- `experienceData` — the Experience and Research pages (`Experience.jsx`): `{ id, group, badge, org, role, degree?, location, period, summary, bullets, tags }`. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary and the first two bullets, each clamped, and five tags — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
+- `experienceData` — the Experience and Research pages (`Experience.jsx`): `{ id, group, badge, org, role, degree?, location, period, summary, bullets, tags, video }`.
+  **Each card carries a VIDEO** beside its text (the owner: "have a video for
+  the Roboflow card, the Starship card, the NYU card and the UCSC card"):
+  `video` is a root-relative `.mp4` with a `-poster.webp` beside it, drawn by
+  the same lazy, poster-first, pause-control-aware `CoverVideo` the project
+  covers use (exported from `ProjectCard.jsx`). NYU's is real footage (the
+  reinforcement-learning project's parallel quadrupeds,
+  `Media/web/experience/nyu-rl.mp4`, cut from `Media/projects/l_reinforcementlearning/1.mp4`
+  at 800 px, 10 s, no audio) and UCSC's is the Stockbot capstone cover it
+  already had. **Roboflow's and Starship's are DRAWN loops**, because the
+  repo holds no footage of either job: `roboflow-inspection.mp4` (trays of
+  parts riding a belt through an inspection station, a box and score on
+  every slot, a red MISSING on an empty one, the tally counting; RF-DETR-Seg
+  on Jetson named in its panel) and `starship-fleet.mp4` (a six-wheeled
+  delivery robot on a scrolling sidewalk under a fleet panel and a route
+  map) — Canvas2D scenes in the site's palette, rendered frame by frame
+  with Playwright from a scratch `anim.html` and encoded with ffmpeg
+  (8 s, 30 fps, 800×400, libx264 crf 27; 94 and 194 KB). They are
+  illustrations of the described work and say so by their manner; swap in
+  real clips when the owner supplies them, same filenames. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary and the first two bullets, each clamped, and five tags — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
   **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
 - `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
@@ -485,7 +504,7 @@ settle point):
 | Research → Major Projects | the SO-ARM **turns into** a **Franka Research 3** | a **VLA** runs on the pixels and the instruction; its action chunk is the Franka's joints |
 | Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | a **world model** imagines rollouts of the tracked object |
 | Additional Projects → Skills & Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the world model becomes a **simulator**: randomised twins, a return curve |
-| Skills & Resume → Get In Touch | the OP1 becomes a **Unitree G1 humanoid**, which **waves goodbye** while the reader is on the last page | the simulator holds |
+| Skills & Resume → Get In Touch | the OP1 becomes **Boston Dynamics' Atlas**, which **waves goodbye** while the reader is on the last page | the simulator holds |
 
 **The left half is the LEARNING half** (the owner's targets: robotics, RL,
 world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
@@ -627,44 +646,85 @@ above the table.
 
 **The last act is a humanoid waving goodbye** (`drawHumanoidAct`, Skills &
 Resume → Get In Touch; the owner: "the very last animation at the bottom of
-the page should be a humanoid robot waving away"). It is the **Unitree G1**
-(29 DoF, `unitree_g1/g1.xml` from the Menagerie), baked like the others —
-but its thirty bodies are PARSED from the MJCF (`bodiesFromMJCF` in the bake
-script: bodies in document order, which is the joint order the forward
-kinematics consumes `q` in; visual mesh geoms only; "metal" drawn as
-aluminium, "black" as black) rather than copied by hand. Budget 170 a file,
-the torso 400 and the hands 240; 35 parts, 7.4k triangles, 129 KB; the page
-draws at ~1,000 calls, in line with the SO-ARM's. **Its joint signs, from
-rendering each** (`RB.g1`, `g1Pose` builds the 29-vector from a leg, the
-waist and two arms; the right leg and arm mirror roll, yaw and the wrist):
-+elbow LOWERS the forearm (0 has it forward, 1.5 hanging at the side), +left
-shoulder roll takes the arm out sideways, +left shoulder yaw turns the
-elbow's plane upright — so roll 1.25 / yaw 1.5 / elbow ≈ 0 is a hand raised
-beside the head, and the elbow swinging −0.45..0.35 IS the wave (at +0.6 the
-arm ran off the stage). It waves the LEFT hand: at yaw 255 it faces the
-reader a little from its left and that hand is toward the page, not the
-screen edge. The wave is a joint-space loop like the other jobs (`g1Q`, the
-same spline: stand, raise, three waves with a wrist flick, lower, stand;
-8 s), blended to rest by `settleU`, on a faint floor ring (`drawFloorMark`).
+the page should be a humanoid robot waving away", then "make it the atlas
+humanoid"). It is **Boston Dynamics' ATLAS** — the DRC-era v5, the only Atlas
+with a public model: Drake's `drake_models/atlas` (`atlas_minimal_contact.urdf`,
+glTF visuals, Apache-licensed), fetched by sparse checkout of
+RobotLocomotion/models into the scratch models dir. The bake gained two
+readers for it: `bodiesFromURDF` (links → bodies, each revolute joint's
+xyz/rpy the child's frame and its axis the joint axis, fixed joints bodies
+without an axis, a depth-first walk from the root so parents come first —
+which fixes the q order; the bake PRINTS it) and `readGLTF` (every primitive
+of every node, node transforms applied, uint8/16/32 indices, and `gltfYUp`
+turning glTF's +Y-up into Z-up — Drake's convention for its own glTF
+geometry; without it the robot lay on its back). The left arm is the right
+arm's meshes turned round (its joints carry rpy π), not mirrored, so no
+negative scale was needed. Budget 200 a file, the torso 520, pelvis and
+head 260, hands 220: 30 parts, 6.0k triangles, 121 KB; the page draws at
+~1,060 calls, in line with the SO-ARM's. Before the Atlas the act shipped
+one release with the Unitree G1 (Menagerie, `bodiesFromMJCF`); its bake
+entry is kept `skip: true` and its JSON is gone.
+
+**A pose is written by JOINT, keyed by the joint's CHILD LINK** (the body
+that turns), and `humQ` turns the map into q in the bake's body order once
+the robot has loaded (`humPoses` builds rest, folded and the wave lazily —
+`RB` is built before the meshes arrive): back_bkz → ltorso, back_bky →
+mtorso, back_bkx → utorso, neck_ay → head; arms shz → clav, shx → scap,
+ely → uarm, elx → larm, uwy → ufarm, mwx → lfarm, lwy → hand; legs hpz →
+uglut, hpx → lglut, hpy → uleg, kny → lleg, aky → talus, akx → foot. **Its
+zero pose is a T**, arms straight out, and **the root body is the PELVIS**,
+0.93 m above the soles with the legs straight (`HUM_PELVIS`), so
+`humBase()` lifts the standing placement by that much off the floor point
+and the floor ring is drawn `HUM_PELVIS` below the pelvis frame. **Signs,
+from rendering poses through `?dev`** (five a screenshot): `l_arm_shx` rolls
+the left arm in the frontal plane, −1.3 hanging at the side, +1.3 straight
+up; `l_arm_elx` bends the elbow in that same plane, so with the upper arm
+raised out at 45° (shx 0.75) the forearm swings toward and away from the
+head — which IS a wave: elx 1.6 is the hand up beside the head, 1.15..1.95
+the swing (`HUM_WAVE_*`); `l_arm_ely` turns the bending plane (at 1.5 the
+forearm points at the viewer). The right arm mirrors shz, shx, elx and mwx.
+The wave is a joint-space loop like the other jobs (`humQAt`, the same
+spline: stand, raise, three waves with a wrist flick, lower, stand; 8 s),
+blended to rest by `settleU`, on a faint floor ring (`drawFloorMark`). It
+waves the LEFT hand: at yaw 255 it faces the reader a little from its left
+and that hand is toward the page, not the screen edge.
+
 **The transformation**: the cart and props go first; the Fairino folds down
 into its pedestal and fades; the UNIT — Ultra's torso with the ZED for eyes
-— lifts off the flange and travels to where the G1 will stand, growing from
-0.17 to 0.36 px/mm (`lerpT`), and the G1 grows out of it torso first
-(`G1_ORDER`: torso, waist, pelvis, then hips and shoulders outward to the
-ankles and wrists), unfolding from a crouch (`RB.g1.folded`) to standing as
-it arrives. **Its base is re-placed every frame so that its torso IS the
-travelling frame**: `gBase = TL ∘ (base⁻¹ ∘ Tq)⁻¹` (`invT` inverts a
-placement — rotation × uniform scale — as mᵀ/s²), which is what makes one
-object become another instead of two fading past each other; with the torso
-pinned to the final frame while the legs still unfolded, the feet went
-through the floor, so the travel and the unfold end together (t 0.72) and
-the last quarter is the arms arriving and the floor ring. The camera goes
-from the OP1's (16, −26) to (14, −6): a standing figure is met near eye
-level, not looked down on. The left side HOLDS the simulator through this
-act (`drawWorldAct(1)`); the goodbye is the right's. Seam into it 8 px;
-Firefox through it p50 17. Anything that enumerates the acts had a fifth
-added: `ACTS` in `waveField.js`, the two dispatches in `draw()`, and the
-scratch harnesses' `ids` lists (they were hard-coded to five pages).
+— lifts off the flange and travels to where the Atlas will stand, growing
+from 0.17 to 0.25 px/mm (`lerpT`), and the Atlas grows out of it torso
+first (`HUM_ORDER`: utorso, mtorso, ltorso, pelvis, head, then clavicles
+and gluts outward to the hands and feet), unfolding from a crouch
+(`foldedMap`: hips −1.2, knees 2.1, ankles −0.9, back 0.35, arms hanging
+with a little more bend — at elx 2.0 the forearms swung out sideways and
+the crouch was as wide as the stage) to standing as it arrives. **Its base
+is re-placed every frame so that its torso IS the travelling frame**:
+`gBase = TL ∘ (base⁻¹ ∘ Tq)⁻¹` (`invT` inverts a placement — rotation ×
+uniform scale — as mᵀ/s²), which is what makes one object become another
+instead of two fading past each other; with the torso pinned to the final
+frame while the legs still unfolded, the feet went through the floor, so
+the travel and the unfold end together (t 0.72) and the last quarter is the
+arms arriving and the floor ring. The camera goes from the OP1's (16, −26)
+to (14, −6): a standing figure is met near eye level, not looked down on.
+The left side HOLDS the simulator through this act (`drawWorldAct(1)`); the
+goodbye is the right's. Seam into it 8 px; Firefox through it p50 16.5.
+Anything that enumerates the acts had a fifth added: `ACTS` in
+`waveField.js`, the two dispatches in `draw()`, and the scratch harnesses'
+`ids` lists (they were hard-coded to five pages).
+
+**The left side's settled animations were smoothed in the same round** (the
+owner: "fix up some of the animations on the left side"), each found by a
+montage of the settled state at six moments: the world model's marker is
+now the RED CUBE running the kept rollout with an eased run and a fade at
+each end (a copper square that snapped back to the start every 3.2 s read
+as a glitch) and the rollouts' dashes CRAWL while settled; the simulator's
+twins GLIDE to each new randomisation over the last 0.6 s of the epoch
+instead of popping (the jiggle phase is continuous through sin/cos), its
+return curve climbs once over six seconds and then holds with a flickering
+tail (it used to run 0 → 1 and snap back every seven seconds, a thousand
+episodes a cycle), the episode counter ticks at 14/s from 1000, and the
+"domain randomisation" caption sits above the ground plane's far edge, not
+on its line.
 
 **The act** (`drawUltraAct`): the frame and table fade as the cart comes;
 the Fairino rises from the cart's pedestal body by body (`growOrder`, as the
@@ -1125,6 +1185,10 @@ Things learned by getting them wrong, in order:
   blinking edges (skip fix) and cleared the sort: `?exact` (exact-depth
   fills) changed nothing visible and cost 4x the draw calls, so the depth
   slabs stay.
+- **Chromium here cannot play the .mp4s** (no H.264), so in the SwiftShader
+  harness every card video shows its POSTER — `CoverVideo`'s `onError` path —
+  and the network log shows the four `.mp4` requests as failed. That is the
+  environment, not the page; Firefox and production play them.
 - **Screenshot harness gotcha:** the settle snap moves the page two seconds
   after a scripted scroll and the eased glide takes a second, so mid-act
   captures were blank or of the wrong frame. `?nosnap` on the URL turns the
@@ -1486,7 +1550,21 @@ took, in case something is added and a page grows past the screen:
   description is in the modal. A second line of chips was enough to push the
   grid past the screen.
 - **Experience cards are teasers** (see `experienceData`), with the card
-  height taken from the viewport (`--exp-row-h`), not the content.
+  height taken from the viewport (`--exp-row-h`), not the content. **With a
+  video beside the text** (`.exp-card--media`: a grid, the video in a
+  `clamp(170px, 29%, 250px)` column, absolutely positioned inside its cell
+  so it never adds to the row height) the text column is a third narrower,
+  and the Research page ran 92px past one screen at 1440x900 from wrapping
+  alone — so beside a video the type comes down a step, the organisation
+  and degree keep to ONE line (the location is dropped from the card; it is
+  in the modal), and the tag row holds three (`SHOWN_TAGS_MEDIA`). On a
+  phone the video goes above the text at 16:9, and the tags wrap again (the
+  card's height is free there). **A no-wrap line ellipsises only if every
+  box above it may shrink**: the head's text cell needed `min-width: 0` and
+  the phone's `.exp-head` track `minmax(0, 1fr)`, or the degree line's full
+  width became the grid's minimum and the WHOLE phone layout grew to 408px
+  in a 390px viewport — found because the phone harness's tap on the dock's
+  tab was intercepted by a card that had slid under it.
 - **A short-screen block** (`max-height: 840px`) drops to one highlight per
   experience card, shortens the covers and hides the skill icons, and a
   mid-height block (`max-height: 880px`, for 1536x864) tightens the experience

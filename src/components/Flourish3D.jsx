@@ -2375,10 +2375,17 @@ export default function Flourish3D({ side = 'right' }) {
         [[d.x + cx - tk, d.y + cy, 3], [d.x + cx, d.y + cy, 3], [d.x + cx, d.y + cy - tk, 3]],
       ], T, RED, 0.9 * alpha, 1.6);
       { const c = [d.x - cx, d.y - cy - 7, 3]; caption(`red cube · ${d.conf.toFixed(2)}`, T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2], 0.85 * alpha); }
-      // the three rollouts, dashed, on the picture
+      // the three rollouts, dashed, on the picture — the dashes CRAWL along
+      // them while settled (`adv` runs), the way a predicted path is drawn
+      // live, so the futures read as being computed rather than printed
+      const crawl = adv > 0 ? (adv * 2) % (2 / 12) : 0;
       for (const r of ROLLS) {
         const dashes = [];
-        for (let i = 0; i < 12; i += 2) { const a = rollAt(r, (i / 12) * f), b = rollAt(r, ((i + 1) / 12) * f); dashes.push([[a[0], a[1], 3], [b[0], b[1], 3]]); }
+        for (let i = -2; i < 12; i += 2) {
+          const s0 = clamp(i / 12 + crawl, 0, 1) * f, s1 = clamp((i + 1) / 12 + crawl, 0, 1) * f;
+          if (s1 - s0 < 0.005) continue;
+          const a = rollAt(r, s0), b = rollAt(r, s1); dashes.push([[a[0], a[1], 3], [b[0], b[1], 3]]);
+        }
         stroke(dashes, T, r === 0 ? ink : slate, (r === 0 ? 0.7 : 0.35) * alpha, r === 0 ? 1.5 : 1);
       }
       // the ghost frames: the picture's own frame, repeated back and up, and
@@ -2405,9 +2412,15 @@ export default function Flourish3D({ side = 'right' }) {
         if (k === 4) { const c = [-56, -52, 0]; caption('t+4 · imagined', G.m[0] * c[0] + G.m[1] * c[1] + G.m[2] * c[2] + G.t[0], G.m[3] * c[0] + G.m[4] * c[1] + G.m[5] * c[2] + G.t[1], G.m[6] * c[0] + G.m[7] * c[1] + G.m[8] * c[2] + G.t[2], 0.6 * g * alpha); }
       }
       { const c = [-56, 52, 3]; caption('world model · 3 rollouts, 1 kept', T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2], 0.6 * alpha * f); }
+      // the imagined object running the kept rollout: the red cube, fading
+      // in at the start and out at the end of each run instead of snapping
+      // back (a copper square that jumped to the start every 3.2 s read as
+      // a glitch)
       if (adv > 0) {
         const p = rollAt(0, adv);
-        fill([rect(6, 6, p[0], p[1], 4)], T, copper, 0.9 * alpha);
+        const ma = smooth(win(adv, 0, 0.12)) * (1 - smooth(win(adv, 0.84, 0.16)));
+        fill([rect(7, 7, p[0], p[1], 4)], T, RED, 0.9 * alpha * ma);
+        stroke([rect(7, 7, p[0], p[1], 4)], T, ink, 0.6 * alpha * ma, 1);
       }
     }
     function drawDetectAct(t) {
@@ -2433,7 +2446,8 @@ export default function Flourish3D({ side = 'right' }) {
         caption('VLA policy', 54 + 20, -4 - 48, 26, was * 0.6, 'center');   // carried in from the last act, or the seam jumps
       }
       const f = smooth(win(t, 0.3, 0.6));
-      drawFutures(T, 1, f, idleOn && t >= 1 ? (idleT % 3.2) / 3.2 : 0);
+      // the run eases out and in rather than sweeping at one speed
+      drawFutures(T, 1, f, idleOn && t >= 1 ? smooth((idleT % 4) / 4) : 0);
     }
 
     // ── act 4 (left): the world model becomes a SIMULATOR ───────────────
@@ -2498,7 +2512,11 @@ export default function Flourish3D({ side = 'right' }) {
       // re-arranged — and while settled, re-randomised every couple of seconds
       const sim = smooth(win(t, 0.62, 0.38));
       if (sim > 0.01) {
-        const epoch = idleOn && t >= 1 ? Math.floor(idleT / 2.4) : 0;
+        // every 2.4 s a new randomisation — reached by GLIDING over the last
+        // 0.6 s of the epoch (the jiggle phase is continuous through sin/cos),
+        // not by popping; the pop read as a glitch on the settled page
+        const ep = idleOn && t >= 1 ? idleT / 2.4 : 0;
+        const epoch = Math.floor(ep) + smooth(clamp((ep - Math.floor(ep) - 0.75) / 0.25, 0, 1));
         [[-1, MAT.urblue], [1, MAT.copper]].forEach(([side, tint], k) => {
           const C = chain(T, place(scaleM(0.34 + 0.04 * sim), [side * 64 * sim, -50 * sim, -46 * sim]));
           scene(C, sim, sim, tint, sim, 0.85 * sim, 1.3 + epoch * 2.1 + k * 4.2);
@@ -2508,13 +2526,22 @@ export default function Flourish3D({ side = 'right' }) {
         submit(plate(96, 54, 48, 0, -0.5), P, MAT.neutral, 0.6 * sim); flush();
         stroke([rect(96, 54, 48, 0, 0)], P, slate, 0.45 * sim, 1);
         stroke([[[0, 24, 0], [96, 24, 0]], [[0, 24, 0], [0, -24, 0]]], P, slate, 0.5 * sim, 1);
-        const N = 24, upto = idleOn && t >= 1 ? clamp((idleT % 7) / 6, 0, 1) : 0.55;
+        // the curve climbs over the first six seconds and then HOLDS, its
+        // tail flickering the way a converged return does (it used to run
+        // 0 → 1 and snap back every seven seconds, a thousand episodes a
+        // cycle); the counter ticks at a rate a real run might
+        const live = idleOn && t >= 1;
+        const N = 24, upto = live ? clamp(idleT / 6, 0, 1) : 0.55;
         const pts = [];
-        for (let i = 0; i <= N; i++) { const x = i / N; if (x > upto) break; pts.push([2 + x * 92, 22 - 42 * (1 - Math.exp(-x * 3.2)) - Math.sin(x * 21) * 2.5 * (1 - x), 0.5]); }
+        for (let i = 0; i <= N; i++) {
+          const x = i / N; if (x > upto) break;
+          const tail = live ? Math.sin(idleT * 5 + x * 40) * 1.4 * smooth(win(x, 0.6, 0.4)) * smooth(win(upto, 0.9, 0.1)) : 0;
+          pts.push([2 + x * 92, 22 - 42 * (1 - Math.exp(-x * 3.2)) - Math.sin(x * 21) * 2.5 * (1 - x) + tail, 0.5]);
+        }
         if (pts.length > 1) stroke([pts], P, copper, 0.85 * sim, 1.6);
         caption('return · training in sim', P.t[0] + 2, P.t[1] - 34, 0, 0.6 * sim);
-        caption(`episode ${(idleOn && t >= 1 ? Math.floor(idleT / 7) : 0) * 1000 + Math.floor(upto * 1000)}`, P.t[0] + 2, P.t[1] + 34, 0, 0.5 * sim);
-        caption('domain randomisation', T.t[0] - 92 * sim, T.t[1] - 100 * sim, T.t[2], 0.55 * sim);
+        caption(`episode ${1000 + (live ? Math.floor(idleT * 14) : 0)}`, P.t[0] + 2, P.t[1] + 34, 0, 0.5 * sim);
+        caption('domain randomisation', T.t[0] - 92 * sim, T.t[1] - 116 * sim, T.t[2], 0.55 * sim);   // above the ground plane's far edge, not on it
       }
     }
 
@@ -2607,35 +2634,56 @@ export default function Flourish3D({ side = 'right' }) {
             unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
     };
     RB.so.rest = SO_W[0]; RB.fr.rest = FR_W[0]; RB.ur.restR = UR_W_R[0]; RB.ur.restL = UR_W_L[0];
-    // ── the Unitree G1, and its goodbye ─────────────────────────────────
-    // 29 joints in the MJCF's body order: left leg (hip pitch, roll, yaw,
-    // knee, ankle pitch, roll), right leg, waist (yaw, roll, pitch), left arm
-    // (shoulder pitch, roll, yaw, elbow, wrist roll, pitch, yaw), right arm.
-    // Signs, from rendering each: +elbow LOWERS the forearm (0 has it
-    // forward, 1.5 hanging); +left shoulder roll takes the arm out sideways;
-    // +left shoulder yaw turns the elbow's plane upright — so roll 1.25 / yaw
-    // 1.5 / elbow ~0 is a hand raised beside the head, and the elbow swinging
-    // -0.45..0.35 is the wave (at +0.6 the arm ran off the stage). The right
-    // arm mirrors roll, yaw and the wrist. It waves the LEFT hand: at yaw 255
-    // it faces the reader a little from its left, and that hand is toward the
-    // page, not the screen edge.
-    const g1Pose = (leg, waist, L, R) => [...leg, leg[0], -leg[1], -leg[2], leg[3], leg[4], -leg[5], ...waist, ...L, ...R];
-    const g1Mirror = A => [A[0], -A[1], -A[2], A[3], -A[4], A[5], -A[6]];
-    const G1_LEG = [-0.12, 0, 0, 0.25, -0.13, 0];
-    const G1_ARM = [0.2, 0.12, 0, 1.45, 0, 0, 0];
-    const G1_REST = g1Pose(G1_LEG, [0, 0, 0], G1_ARM, g1Mirror(G1_ARM));
-    const g1Wave = (elbow, wristYaw, waistYaw) => g1Pose(G1_LEG, [waistYaw, 0, -0.03], [-0.25, 1.25, 1.5, elbow, 0, 0, wristYaw], g1Mirror(G1_ARM));
-    const G1_UP = g1Wave(0.05, 0, -0.1), G1_A = g1Wave(-0.45, 0.25, -0.12), G1_B = g1Wave(0.35, -0.25, -0.12);
+    // Atlas joint signs, from rendering poses through ?dev (see CLAUDE.md)
+    // (l_arm_shx rolls the left arm in the frontal plane: -1.3 hangs it at
+    // the side, +1.3 puts it straight up; l_arm_elx bends the elbow in that
+    // same plane, so with the upper arm raised out at 45° the forearm swings
+    // toward and away from the head — which IS a wave)
+    const HUM_SHX_DOWN = -1.3;       // hanging at the side
+    const HUM_ELX_REST = 0.35;       // a little bend at the elbow, hanging
+    const HUM_ELX_FOLD = 0.9;        // bent a little more than at rest, packed (at 2.0 the forearms swung out sideways and the crouch was as wide as the stage)
+    const HUM_WAVE_SHZ = 0, HUM_WAVE_SHX = 0.75, HUM_WAVE_ELY = 0, HUM_WAVE_ELX = 1.6;   // upper arm out and up, forearm up beside the head
+    // ── the humanoid: Boston Dynamics' ATLAS, and its goodbye ───────────
+    // The DRC-era Atlas (v5), from Drake's model — thirty revolute joints,
+    // consumed by the forward kinematics in the bake's body order. A pose is
+    // written by JOINT, keyed by the joint's CHILD LINK (the body that turns):
+    // back_bkz → ltorso, back_bky → mtorso, back_bkx → utorso, neck_ay → head;
+    // arms shz → clav, shx → scap, ely → uarm, elx → larm, uwy → ufarm,
+    // mwx → lfarm, lwy → hand; legs hpz → uglut, hpx → lglut, hpy → uleg,
+    // kny → lleg, aky → talus, akx → foot. `humQ` turns a map into q. Its
+    // zero pose is a T: arms straight out to the sides; the root body is the
+    // PELVIS, 0.93 m above the soles with the legs straight, so the standing
+    // placement is lifted by that much off the floor point.
+    const HUM = 'atlas', HUM_PELVIS = 930;
+    const humQ = (robot, map) => { const q = []; for (const b of robot.bodies) if (b.axis) q.push(map[b.name] ?? 0); return q; };
+    const humMap = (legs, torso, L, R) => ({ ...legs, ...torso, ...L, ...R });
+    const legs = (hpy, kny, aky) => ({ l_uleg: hpy, r_uleg: hpy, l_lleg: kny, r_lleg: kny, l_talus: aky, r_talus: aky });
+    // arms: [shz, shx, ely, elx, uwy, mwx, lwy] for the LEFT; the right mirrors shz, shx and elx
+    const armL = ([shz, shx, ely, elx, uwy, mwx, lwy]) => ({ l_clav: shz, l_scap: shx, l_uarm: ely, l_larm: elx, l_ufarm: uwy, l_lfarm: mwx, l_hand: lwy });
+    const armR = ([shz, shx, ely, elx, uwy, mwx, lwy]) => ({ r_clav: -shz, r_scap: -shx, r_uarm: ely, r_larm: -elx, r_ufarm: uwy, r_lfarm: -mwx, r_hand: lwy });
+    const HUM_LEG = legs(-0.12, 0.25, -0.13);
+    const HUM_ARM = [0, HUM_SHX_DOWN, 0, HUM_ELX_REST, 0, 0, 0];
+    const HUM_REST = humMap(HUM_LEG, {}, armL(HUM_ARM), armR(HUM_ARM));
+    const humWave = (elx, lwy, bkz) => humMap(HUM_LEG, { ltorso: bkz }, armL([HUM_WAVE_SHZ, HUM_WAVE_SHX, HUM_WAVE_ELY, elx, 0, 0, lwy]), armR(HUM_ARM));
+    const HUM_UP = humWave(HUM_WAVE_ELX, 0, -0.1), HUM_A = humWave(HUM_WAVE_ELX - 0.45, 0.3, -0.12), HUM_B = humWave(HUM_WAVE_ELX + 0.35, -0.3, -0.12);
     // packed, as it comes out of the unit: crouched, arms folded in
-    const G1_FOLD_ARM = [0.7, 0.15, 0, 0.9, 0, 0, 0];
-    const G1_FOLDED = g1Pose([-1.25, 0, 0, 2.3, -1.05, 0], [0, 0, 0.35], G1_FOLD_ARM, g1Mirror(G1_FOLD_ARM));
-    RB.g1 = { k: 0.36, root: [10, 240], yaw: 255, rest: G1_REST, folded: G1_FOLDED,
-              // stand, raise the hand, three waves, lower it, stand: 8 s
-              wave: { period: 8, W: [G1_REST, G1_REST, G1_UP, G1_A, G1_B, G1_A, G1_B, G1_A, G1_B, G1_UP, G1_REST, G1_REST] } };
-    const g1Q = (t, u) => {
-      const task = RB.g1.wave, q = taskQ(task, taskPhase(task, t, task.W.length));
-      return u >= 0.999 ? q : u <= 0.001 ? RB.g1.rest : lerpQ(RB.g1.rest, q, u);
+    const HUM_FOLDED = humMap(legs(-1.2, 2.1, -0.9), { mtorso: 0.35 }, armL([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]), armR([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]));
+    RB.hum = { k: 0.25, root: [10, 236], yaw: 255, restMap: HUM_REST, foldedMap: HUM_FOLDED,
+               // stand, raise the hand, three waves, lower it, stand: 8 s
+               waveMaps: [HUM_REST, HUM_REST, HUM_UP, HUM_A, HUM_B, HUM_A, HUM_B, HUM_A, HUM_B, HUM_UP, HUM_REST, HUM_REST], period: 8 };
+    // the maps become q vectors once the robot is loaded (they need its body order)
+    const humPoses = () => {
+      if (RB.hum.rest) return RB.hum;
+      const R = ROBOTS[HUM];
+      RB.hum.rest = humQ(R, RB.hum.restMap); RB.hum.folded = humQ(R, RB.hum.foldedMap);
+      RB.hum.wave = { period: RB.hum.period, W: RB.hum.waveMaps.map(m => humQ(R, m)) };
+      return RB.hum;
     };
+    const humQAt = (t, u) => {
+      const H = humPoses(), q = taskQ(H.wave, taskPhase(H.wave, t, H.wave.W.length));
+      return u >= 0.999 ? q : u <= 0.001 ? H.rest : lerpQ(H.rest, q, u);
+    };
+    const humBase = () => standing([RB.hum.root[0], RB.hum.root[1] - HUM_PELVIS * RB.hum.k], RB.hum.k, RB.hum.yaw);
     // the inverse of a placement (rotation x uniform scale, then translation)
     const invT = T => {
       const s2 = detScale(T.m) ** 2, M = T.m;
@@ -3067,26 +3115,23 @@ export default function Flourish3D({ side = 'right' }) {
     // arrives. Its base is placed each frame so that its torso IS the
     // travelling frame (`gBase`), which is what makes it one object becoming
     // another rather than two fading past each other. Settled, it waves.
-    const G1_ORDER = ['torso_link', 'waist_roll_link', 'waist_yaw_link', 'pelvis',
-      'left_hip_pitch_link', 'right_hip_pitch_link', 'left_shoulder_pitch_link', 'right_shoulder_pitch_link',
-      'left_hip_roll_link', 'right_hip_roll_link', 'left_shoulder_roll_link', 'right_shoulder_roll_link',
-      'left_hip_yaw_link', 'right_hip_yaw_link', 'left_shoulder_yaw_link', 'right_shoulder_yaw_link',
-      'left_knee_link', 'right_knee_link', 'left_elbow_link', 'right_elbow_link',
-      'left_ankle_pitch_link', 'right_ankle_pitch_link', 'left_wrist_roll_link', 'right_wrist_roll_link',
-      'left_ankle_roll_link', 'right_ankle_roll_link', 'left_wrist_pitch_link', 'right_wrist_pitch_link',
-      'left_wrist_yaw_link', 'right_wrist_yaw_link'];
+    const HUM_ORDER = ['utorso', 'mtorso', 'ltorso', 'pelvis', 'head', 'hokuyo_link', 'l_clav', 'r_clav', 'l_scap', 'r_scap',
+      'l_uglut', 'r_uglut', 'l_uarm', 'r_uarm', 'l_lglut', 'r_lglut', 'l_larm', 'r_larm', 'l_uleg', 'r_uleg',
+      'l_ufarm', 'r_ufarm', 'l_lleg', 'r_lleg', 'l_lfarm', 'r_lfarm', 'l_talus', 'r_talus', 'l_hand', 'r_hand', 'l_foot', 'r_foot'];
+    // a faint ring on the floor under the feet: the pelvis frame's z is up,
+    // so the floor is HUM_PELVIS below it
     function drawFloorMark(base, a) {
       if (a <= 0.01) return;
-      submitLines([ringAt(340, 0, 0, 0, 40)], base, ink, LOOK.line * 0.45 * a, LOOK.width);
+      submitLines([ringAt(420, 0, 0, -HUM_PELVIS, 40)], base, ink, LOOK.line * 0.45 * a, LOOK.width);
     }
     function drawHumanoidAct(t) {
       const u = smooth(t);
       setCam((16 - 2 * u) * DEG, (-26 + 20 * u) * DEG, 0);   // from the OP1's (16, -26) to (14, -6): a standing figure is met near eye level, not looked down on
-      const base = standing(RB.g1.root, RB.g1.k, RB.g1.yaw);
-      const g1 = ROBOTS.g1, torso = g1.index.get('torso_link');
+      const base = humBase(), H = humPoses();
+      const g1 = ROBOTS[HUM], torso = g1.index.get('utorso');
       if (t >= 1) {
         drawFloorMark(base, 1);
-        drawRobot(g1, base, g1Q(idleT, settleU), 1);
+        drawRobot(g1, base, humQAt(idleT, settleU), 1);
         flush();
         return;
       }
@@ -3099,16 +3144,16 @@ export default function Flourish3D({ side = 'right' }) {
       const fa = 1 - smooth(win(t, 0.12, 0.4));
       if (fa > 0.01) drawRobot(ROBOTS.ultra, ulBase, lerpQ(RB.ul.rest, RB.ul.folded, smooth(win(t, 0.08, 0.45))), fa, { zed: 0 });
       const travel = smooth(win(t, 0.12, 0.6));
-      const Tt = bodyPlacements(g1, base, RB.g1.rest)[torso];
-      const TL = lerpT(TU, Tt, travel, RB.ul.k, RB.g1.k);
+      const Tt = bodyPlacements(g1, base, H.rest)[torso];
+      const TL = lerpT(TU, Tt, travel, RB.ul.k, RB.hum.k);
       const ua = 1 - smooth(win(t, 0.45, 0.3));
       if (ua > 0.01) drawUnit(TL, RB.ul.unit.R[0], RB.ul.unit.L[0], ua);
       const ga = smooth(win(t, 0.38, 0.25));
       if (ga > 0.01) {
-        const q = lerpQ(RB.g1.folded, RB.g1.rest, smooth(win(t, 0.3, 0.42)));
+        const q = lerpQ(H.folded, H.rest, smooth(win(t, 0.3, 0.42)));
         const Tq = bodyPlacements(g1, base, q)[torso];
         const gBase = chain(TL, invT(chain(invT(base), Tq)));
-        drawRobot(g1, gBase, q, ga, growOrder(G1_ORDER, t, 0.35, 0.38));
+        drawRobot(g1, gBase, q, ga, growOrder(HUM_ORDER, t, 0.35, 0.38));
       }
       drawFloorMark(base, smooth(win(t, 0.72, 0.28)));
       flush();

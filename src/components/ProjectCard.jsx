@@ -16,7 +16,7 @@ const posterFor = (src) => src.replace(/\.(mp4|webm)$/i, '-poster.webp');
 // Autoplaying every cover on mount used to fetch several MB of video for cards
 // far below the fold — <video> has no `loading="lazy"` equivalent, so playback
 // has to be driven manually.
-function CoverVideo({ src, title, placeholder }) {
+export function CoverVideo({ src, title, placeholder }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
   const onScreen = useRef(false);

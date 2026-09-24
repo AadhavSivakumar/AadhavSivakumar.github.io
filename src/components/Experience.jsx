@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import SectionTitle from './SectionTitle';
 import ErrorBoundary from './ErrorBoundary';
 import LiftCard from './LiftCard';
+import { CoverVideo } from './ProjectCard';
 import PageNext from './PageNext';
 import { experienceData } from '../data/siteData';
 import { badgeByName } from './badgeCards';
@@ -87,15 +88,21 @@ const toModal = item => ({
 
 const SHOWN = 2;        // highlights on the card; the rest are in the modal
 const SHOWN_TAGS = 5;
+const SHOWN_TAGS_MEDIA = 3;   // beside a video the tag row is narrower, and it must stay ONE row for the page to fit
 
+// Each card carries a VIDEO beside its text (the owner: "have a video for the
+// Roboflow card, the Starship card, the NYU card and the UCSC card"): the
+// same lazy, poster-first, pause-control-aware <video> the project covers
+// use. `item.video` is a root-relative .mp4 with a `-poster.webp` beside it.
 function ExperienceCard({ item, index, onCardClick }) {
   const more = item.bullets.length - SHOWN;
   return (
     <LiftCard
-      className={`exp-card exp-card--${index} project-modal-trigger`}
+      className={`exp-card exp-card--${index}${item.video ? ' exp-card--media' : ''} project-modal-trigger`}
       delay={index * 0.08}
       onClick={(e) => onCardClick(e.currentTarget, toModal(item), 'experience')}
     >
+     <div className="exp-body">
       {/* A <div>, not a <header>: App.css styles the bare `header` element as
           the fixed site header (position: fixed; top: 0), so a <header> inside
           a card is torn out of it and pinned to the top of the page. */}
@@ -118,7 +125,7 @@ function ExperienceCard({ item, index, onCardClick }) {
       <div className="exp-foot">
         {item.tags?.length > 0 && (
           <div className="project-tags-container exp-tags">
-            {item.tags.slice(0, SHOWN_TAGS).map((t, i) => <span key={i} className="project-tag">{t}</span>)}
+            {item.tags.slice(0, item.video ? SHOWN_TAGS_MEDIA : SHOWN_TAGS).map((t, i) => <span key={i} className="project-tag">{t}</span>)}
           </div>
         )}
         <span className="exp-more">
@@ -126,6 +133,12 @@ function ExperienceCard({ item, index, onCardClick }) {
           <span aria-hidden="true"> →</span>
         </span>
       </div>
+     </div>
+      {item.video && (
+        <div className="exp-media" aria-hidden="true">
+          <CoverVideo src={item.video} title={item.org} placeholder="" />
+        </div>
+      )}
     </LiftCard>
   );
 }

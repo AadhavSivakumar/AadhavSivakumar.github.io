@@ -69,6 +69,55 @@ function readSTL(file) {
   return [{ mtl: '', ...weld(tris) }];
 }
 
+// glTF 2.0 (a .gltf with a .bin beside it — Drake's Atlas), every mesh
+// primitive of every node, node transforms applied. glTF is +Y up; the
+// caller says whether to turn it +Z up (`yUp`), Drake's convention for
+// its own glTF geometry.
+function readGLTF(file, yUp) {
+  const g = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const dir = path.dirname(file);
+  const bufs = g.buffers.map(b => fs.readFileSync(path.join(dir, b.uri)));
+  const view = i => { const a = g.accessors[i], bv = g.bufferViews[a.bufferView]; return { a, buf: bufs[bv.buffer], off: (bv.byteOffset || 0) + (a.byteOffset || 0), stride: bv.byteStride || 0 }; };
+  const tris = [];
+  const matOf = n => {
+    if (n.matrix) return n.matrix;                            // column-major 4x4
+    const t = n.translation || [0, 0, 0], q = n.rotation || [0, 0, 0, 1], sc = n.scale || [1, 1, 1];
+    const [x, y, z, w] = q;
+    const R = [1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w), 0,
+               2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w), 0,
+               2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y), 0, t[0], t[1], t[2], 1];   // column-major
+    for (let c = 0; c < 3; c++) for (let r = 0; r < 3; r++) R[c * 4 + r] *= sc[c];
+    return R;
+  };
+  const mul4 = (A, B) => { const C = new Array(16).fill(0); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) C[c * 4 + r] += A[k * 4 + r] * B[c * 4 + k]; return C; };
+  const I4 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const walk = (ni, M) => {
+    const n = g.nodes[ni];
+    const m = mul4(M, matOf(n));
+    if (n.mesh != null) for (const p of g.meshes[n.mesh].primitives) {
+      if ((p.mode ?? 4) !== 4) continue;
+      const P = view(p.attributes.POSITION), st = P.stride || 12;
+      const pos = new Array(P.a.count * 3);
+      for (let i = 0; i < P.a.count; i++) {
+        const x = P.buf.readFloatLE(P.off + i * st), y = P.buf.readFloatLE(P.off + i * st + 4), z = P.buf.readFloatLE(P.off + i * st + 8);
+        let X = m[0] * x + m[4] * y + m[8] * z + m[12], Y = m[1] * x + m[5] * y + m[9] * z + m[13], Z = m[2] * x + m[6] * y + m[10] * z + m[14];
+        if (yUp) { const yy = Y; Y = -Z; Z = yy; }                  // +Y up -> +Z up
+        pos[i * 3] = X * 1000; pos[i * 3 + 1] = Y * 1000; pos[i * 3 + 2] = Z * 1000;   // m -> mm
+      }
+      let idx;
+      if (p.indices != null) {
+        const I = view(p.indices), ct = I.a.componentType, sz = ct === 5125 ? 4 : ct === 5123 ? 2 : 1;
+        idx = new Array(I.a.count);
+        for (let i = 0; i < I.a.count; i++) idx[i] = sz === 4 ? I.buf.readUInt32LE(I.off + i * 4) : sz === 2 ? I.buf.readUInt16LE(I.off + i * 2) : I.buf.readUInt8(I.off + i);
+      } else idx = Array.from({ length: P.a.count }, (_, i) => i);
+      for (let i = 0; i + 2 < idx.length; i += 3) for (const k of [idx[i], idx[i + 1], idx[i + 2]]) tris.push(pos[k * 3], pos[k * 3 + 1], pos[k * 3 + 2]);
+    }
+    for (const c of n.children || []) walk(c, m);
+  };
+  for (const ni of (g.scenes ? g.scenes[g.scene || 0].nodes : g.nodes.map((_, i) => i))) walk(ni, I4);
+  return [{ mtl: '', ...weld(tris) }];
+}
+
 // OBJ, split by `usemtl` group, vertices shared across the file
 function readOBJ(file) {
   const text = fs.readFileSync(file, 'utf8');
@@ -387,6 +436,59 @@ function bodiesFromMJCF(file, matMap, defaultMat) {
   return bodies;
 }
 
+// A body tree from a URDF (Drake's Atlas): links become bodies, each
+// revolute joint's origin (xyz, rpy) is its child body's frame and its axis
+// the joint axis; fixed joints are bodies without an axis (they consume no
+// q). Bodies are emitted parent-first by a depth-first walk from the root,
+// children in the order their joints appear in the file — which fixes the
+// q order; the bake prints it. Visual mesh geoms only, with their origins
+// (rpy → quat); `matFor(link)` names the material.
+function bodiesFromURDF(file, matFor) {
+  const xml = fs.readFileSync(file, 'utf8');
+  const attrs = str => { const o = {}; for (const m of str.matchAll(/(\w+)="([^"]*)"/g)) o[m[1]] = m[2]; return o; };
+  const nums = v => v.trim().split(/\s+/).map(Number);
+  const rpyQuat = ([r, p, y]) => {                          // URDF rpy (Rz·Ry·Rx) -> [w, x, y, z]
+    const cr = Math.cos(r / 2), sr = Math.sin(r / 2), cp = Math.cos(p / 2), sp = Math.sin(p / 2), cy = Math.cos(y / 2), sy = Math.sin(y / 2);
+    return [cr * cp * cy + sr * sp * sy, sr * cp * cy - cr * sp * sy, cr * sp * cy + sr * cp * sy, cr * cp * sy - sr * sp * cy];
+  };
+  const links = {};
+  for (const m of xml.matchAll(/<link name="([^"]+)"(?:\/>|>([\s\S]*?)<\/link>)/g)) {
+    const geoms = [];
+    for (const v of (m[2] || '').matchAll(/<visual>([\s\S]*?)<\/visual>/g)) {
+      const mesh = v[1].match(/<mesh\b([^>]*)\/?>/); if (!mesh) continue;
+      const ma = attrs(mesh[1]);
+      const o = v[1].match(/<origin\b([^>]*)\/>/); const oa = o ? attrs(o[1]) : {};
+      const pos = oa.xyz ? nums(oa.xyz) : [0, 0, 0], rpy = oa.rpy ? nums(oa.rpy) : [0, 0, 0];
+      const file = ma.filename.split('/').pop();
+      geoms.push(rpy.some(x => x) || pos.some(x => x) ? [file, matFor(m[1], file), pos, rpyQuat(rpy)] : [file, matFor(m[1], file)]);
+    }
+    links[m[1]] = { name: m[1], geoms, children: [] };
+  }
+  const joints = [];
+  for (const m of xml.matchAll(/<joint name="([^"]+)" type="([^"]+)">([\s\S]*?)<\/joint>/g)) {
+    const b = m[3];
+    const o = b.match(/<origin\b([^>]*)\/>/); const oa = o ? attrs(o[1]) : {};
+    const ax = b.match(/<axis\b([^>]*)\/>/);
+    const J = { name: m[1], type: m[2], parent: b.match(/<parent link="([^"]+)"/)[1], child: b.match(/<child link="([^"]+)"/)[1],
+      pos: oa.xyz ? nums(oa.xyz) : [0, 0, 0], rpy: oa.rpy ? nums(oa.rpy) : null, axis: m[2] === 'fixed' ? null : (ax ? nums(attrs(ax[1]).xyz) : [0, 0, 1]) };
+    joints.push(J); if (links[J.parent]) links[J.parent].children.push(J);
+  }
+  const hasParent = new Set(joints.map(j => j.child));
+  const root = Object.keys(links).find(n => !hasParent.has(n));
+  const bodies = [], order = [];
+  const walk = (name, J) => {
+    const L = links[name];
+    const B = { name, parent: J ? J.parent : null, pos: J ? J.pos : [0, 0, 0], geoms: L.geoms };
+    if (J && J.rpy && J.rpy.some(x => x)) B.rpy = J.rpy;
+    if (J && J.axis) { B.axis = J.axis; order.push(J.name); }
+    bodies.push(B);
+    for (const c of L.children) walk(c.child, c);
+  };
+  walk(root, null);
+  console.log(`URDF ${path.basename(file)}: ${bodies.length} bodies, q order: ${order.join(' ')}`);
+  return bodies;
+}
+
 const ROBOTS = {
   // The camera: one body, nine parts by material. Budget is generous — it is
   // the whole of the left side, drawn large, and it comes apart piece by
@@ -520,8 +622,17 @@ const ROBOTS = {
   // for the pelvis, hip and ankle links, the head and the logo. The last act
   // makes it out of the OP1 and it waves goodbye at the foot of the page.
   g1: {
-    dir: 'menagerie/unitree_g1', kind: 'stl', budget: 170,
+    dir: 'menagerie/unitree_g1', kind: 'stl', budget: 170, skip: true,     // replaced by the Atlas at the owner's request; kept for the record
     bodies: ROOT ? bodiesFromMJCF(path.join(ROOT, 'menagerie/unitree_g1/g1.xml'), { metal: 'linkgray', black: 'black' }, 'linkgray') : [],
+  },
+  // Boston Dynamics' ATLAS (the DRC-era v5, the only Atlas with a public
+  // model: Drake's drake_models/atlas, `atlas_minimal_contact.urdf` with
+  // glTF visuals, Y-up). Thirty revolute joints; the left arm is the right
+  // arm's meshes turned round (its joints carry rpy π), not mirrored.
+  atlas: {
+    dir: 'drake_models/atlas', meshdir: 'meshes', kind: 'gltf', gltfYUp: true, budget: 200,
+    bodies: ROOT ? bodiesFromURDF(path.join(ROOT, 'drake_models/atlas/atlas_minimal_contact.urdf'),
+      link => /torso|pelvis|glut|clav|scap|foot|hand|head|hokuyo/.test(link) ? 'black' : 'linkgray') : [],
   },
   ur5e: {
     dir: 'universal_robots_ur5e', kind: 'obj', budget: 285,
@@ -562,8 +673,8 @@ for (const [id, R] of Object.entries(ROBOTS)) {
   for (const B of R.bodies) {
     out.bodies.push({ name: B.name, parent: B.parent, pos: mm(B.pos), quat: B.quat || null, euler: B.euler || null, rpy: B.rpy || null, axis: B.axis || null, slide: !!B.slide });
     for (const [file, matName, gpos, gquat] of B.geoms) {
-      const p = path.join(ROOT, R.dir, 'assets', file);
-      const groups = R.kind === 'stl' ? readSTL(p) : readOBJ(p);
+      const p = path.join(ROOT, R.dir, R.meshdir || 'assets', file);
+      const groups = R.kind === 'stl' ? readSTL(p) : R.kind === 'gltf' ? readGLTF(p, !!R.gltfYUp) : readOBJ(p);
       for (const g of groups) transformInPlace(g, gpos, gquat);
       // budget shared across a file's groups, by face count
       const total = groups.reduce((s, g) => s + g.f.length / 3, 0);
@@ -583,6 +694,8 @@ for (const [id, R] of Object.entries(ROBOTS)) {
         // the G1: the torso and pelvis are most of what you see; the hands are what wave
         'torso_link_rev_1_0.STL': 400, 'pelvis.STL': 240, 'pelvis_contour_link.STL': 160, 'head_link.STL': 200, 'logo_link.STL': 40,
         'left_rubber_hand.STL': 240, 'right_rubber_hand.STL': 240, 'waist_yaw_link_rev_1_0.STL': 120, 'waist_roll_link_rev_1_0.STL': 120,
+        // the Atlas: the torso is most of what you see; the head and hands are what read
+        'utorso.gltf': 520, 'pelvis.gltf': 260, 'head.gltf': 260, 'r_hand.gltf': 220, 'head_camera.gltf': 80,
         'hand_2.obj': 240, 'hand_3.obj': 285, 'hand_1.obj': 140, 'hand_4.obj': 140, 'hand_0.obj': 50, 'finger_0.obj': 110, 'finger_1.obj': 90, 'link0.obj': 1350 };
       const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : (HAND_BUDGET[file] ?? budget);
       for (const g of groups) {
