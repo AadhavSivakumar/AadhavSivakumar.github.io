@@ -10,7 +10,7 @@
 // it; ProjectCard derives the poster URL by that convention.
 const baseProjectImagePath = '/Media/web/projects/';
 const baseProjectPdfPath = '/projectpdf/';
-const baseExperiencePath = '/Media/web/experience/';   // the experience cards' videos (and their -poster.webp)
+const baseExperiencePath = '/Media/web/experience/';   // the experience cards' videos (and their -poster.webp): clips of each organisation's own marketing video
 const baseSkillImagePath = '/Media/skills/';
 const deviconsBaseUrl = 'https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/';
 
@@ -46,7 +46,7 @@ export const experienceData = [
     id: 'exp-roboflow',
     group: 'industry',
     badge: 'Roboflow',
-    video: baseExperiencePath + 'roboflow-inspection.mp4',
+    video: baseExperiencePath + 'roboflow.mp4',
     org: 'Roboflow',
     role: 'AI Engineer',
     degree: 'Edge AI engineering team',
@@ -68,7 +68,7 @@ export const experienceData = [
     id: 'exp-starship',
     group: 'industry',
     badge: 'Starship',
-    video: baseExperiencePath + 'starship-fleet.mp4',
+    video: baseExperiencePath + 'starship.mp4',
     org: 'Starship Technologies',
     role: 'Robot Technician',
     location: 'Bronx, NY',
@@ -83,7 +83,7 @@ export const experienceData = [
     id: 'exp-nyu',
     group: 'research',
     badge: 'NYU',
-    video: baseExperiencePath + 'nyu-rl.mp4',
+    video: baseExperiencePath + 'nyu-tandon.mp4',
     org: 'NYU Tandon School of Engineering',
     role: 'Robotics Researcher',
     degree: 'MS, Mechatronics and Robotics',
@@ -101,7 +101,7 @@ export const experienceData = [
     id: 'exp-ucsc',
     group: 'research',
     badge: 'UCSC',
-    video: baseProjectImagePath + 'stockbot.mp4',
+    video: baseExperiencePath + 'ucsc-baskin.mp4',
     org: 'University of California, Santa Cruz',
     role: 'Undergraduate Researcher',
     degree: 'BS, Robotics Engineering · Minor in Electrical Engineering',

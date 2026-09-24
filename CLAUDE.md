@@ -128,21 +128,22 @@ All page content lives in `src/data/siteData.js`:
   the Roboflow card, the Starship card, the NYU card and the UCSC card"):
   `video` is a root-relative `.mp4` with a `-poster.webp` beside it, drawn by
   the same lazy, poster-first, pause-control-aware `CoverVideo` the project
-  covers use (exported from `ProjectCard.jsx`). NYU's is real footage (the
-  reinforcement-learning project's parallel quadrupeds,
-  `Media/web/experience/nyu-rl.mp4`, cut from `Media/projects/l_reinforcementlearning/1.mp4`
-  at 800 px, 10 s, no audio) and UCSC's is the Stockbot capstone cover it
-  already had. **Roboflow's and Starship's are DRAWN loops**, because the
-  repo holds no footage of either job: `roboflow-inspection.mp4` (trays of
-  parts riding a belt through an inspection station, a box and score on
-  every slot, a red MISSING on an empty one, the tally counting; RF-DETR-Seg
-  on Jetson named in its panel) and `starship-fleet.mp4` (a six-wheeled
-  delivery robot on a scrolling sidewalk under a fleet panel and a route
-  map) — Canvas2D scenes in the site's palette, rendered frame by frame
-  with Playwright from a scratch `anim.html` and encoded with ffmpeg
-  (8 s, 30 fps, 800×400, libx264 crf 27; 94 and 194 KB). They are
-  illustrations of the described work and say so by their manner; swap in
-  real clips when the owner supplies them, same filenames. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary and the first two bullets, each clamped, and five tags — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
+  covers use (exported from `ProjectCard.jsx`). **Each is a clip of that
+  organisation's OWN marketing video** — the owner rejected drawn loops and
+  project footage: "I want it to be a real video, taken from the marketing
+  pages". Sources, all from the organisation's own site: Roboflow's homepage
+  hero (`media.roboflow.com/webflow/video/hero-homepage-202-1440x810-short.mp4`,
+  0–12 s); Starship's homepage film
+  (`starshipvideos.lon1.cdn.digitaloceanspaces.com/starship_homepage.mp4`,
+  2–15 s); NYU Tandon's homepage film (the Vimeo progressive file on
+  engineering.nyu.edu, 3.6–14.5 s: robotics lab, humanoid, cleanroom); UCSC
+  Baskin Engineering's welcome film (the YuJa player embedded on
+  engineering.ucsc.edu, HLS pulled with ffmpeg; 43–58 s of its B-roll —
+  labs, the Baskin sign, campus — skipping the dean's talking head;
+  www.ucsc.edu itself is behind a Cloudflare check). Encoded silent, 960 px,
+  30 fps, libx264 crf 29, faststart, a poster from inside each clip: 0.8–1.3
+  MB each, fetched only when the card is on screen. Files:
+  `Media/web/experience/{roboflow,starship,nyu-tandon,ucsc-baskin}.mp4`. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary and the first two bullets, each clamped, and five tags — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
   **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
 - `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
@@ -1185,7 +1186,7 @@ Things learned by getting them wrong, in order:
   blinking edges (skip fix) and cleared the sort: `?exact` (exact-depth
   fills) changed nothing visible and cost 4x the draw calls, so the depth
   slabs stay.
-- **Chromium here cannot play the .mp4s** (no H.264), so in the SwiftShader
+- **Chromium here cannot play the .mp4s** (no H.264) — check card videos in Firefox, where they play — so in the SwiftShader
   harness every card video shows its POSTER — `CoverVideo`'s `onError` path —
   and the network log shows the four `.mp4` requests as failed. That is the
   environment, not the page; Firefox and production play them.
