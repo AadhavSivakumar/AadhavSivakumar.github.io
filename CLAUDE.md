@@ -229,7 +229,14 @@ and layout work verified by simulation held up. **They hang beside the
 Experience and Research cards** — one badge per card (Roboflow, Starship on
 Experience; NYU, UCSC on Research), each in its own small `<Canvas>`, mounted
 only once it comes within 600px of the viewport (`useNearViewport`) so four
-WebGL contexts are not created on page load. **The badges ZIG-ZAG**: on each
+WebGL contexts are not created on page load. **Since Sept 24 (the owner: "make the id cards higher up and slimmer, and
+the cards for Experience and Research wider") the badge columns are 180px,
+not 250, both badges hang from the TOP of their column (no longer one top-
+and one bottom-aligned), the canvas is `clamp(340px, 1.44 * row - 14px,
+432px)` — 72% of the old 600, the same ratio as the column, so the drag
+clamp's measured margins still fit — and `.page--wide.exp-page` is 1480px
+wide: cards 892px at 1440x900 (were ~670). What follows describes the
+earlier 250px layout.** **The badges ZIG-ZAG**: on each
 page the cards stack in the middle column, the first badge hangs in a 250px
 column on the RIGHT, top-aligned beside the first card, and the second in a
 250px column on the LEFT, bottom-aligned beside the second. Each canvas spans
@@ -1553,8 +1560,10 @@ took, in case something is added and a page grows past the screen:
 - **Experience cards are teasers** (see `experienceData`), with the card
   height taken from the viewport (`--exp-row-h`), not the content. **With a
   video beside the text** (`.exp-card--media`: a grid, the video in a
-  `clamp(170px, 29%, 250px)` column, absolutely positioned inside its cell
-  so it never adds to the row height) the text column is a third narrower,
+  `clamp(240px, 44%, 440px)` column as a 16:9 frame centred in the card's
+  height — the owner asked for it "more horizontal"; it was a tall strip
+  filling the height — absolutely positioned inside its cell so it never
+  adds to the row height) the text column is a third narrower,
   and the Research page ran 92px past one screen at 1440x900 from wrapping
   alone — so beside a video the type comes down a step, the organisation
   and degree keep to ONE line (the location is dropped from the card; it is

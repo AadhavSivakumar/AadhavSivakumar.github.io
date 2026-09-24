@@ -1222,12 +1222,15 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    it is ~330px, so the badges draw ~72% of the size they had in the old 460px
    column. */
 .exp-page { --exp-row-h: clamp(270px, calc((100svh - 80px - 56px - 96px - 16px) / 2), 400px); }
+/* wider than the other wide pages: the owner asked for wider Experience and
+   Research cards, and the badge columns beside them are slimmer (180px) */
+.page--wide.exp-page { max-width: 1480px; }
 /* Cards in the middle column, one per row; each badge in a side column
    spanning BOTH rows — the first on the right, top-aligned beside the first
    card, the second on the left, bottom-aligned beside the second. */
 .exp-grid {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr) 250px;
+  grid-template-columns: 180px minmax(0, 1fr) 180px;
   grid-template-rows: auto auto;
   column-gap: 22px;
   row-gap: 16px;
@@ -1236,7 +1239,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 .exp-card--0 { grid-column: 2; grid-row: 1; }
 .exp-card--1 { grid-column: 2; grid-row: 2; }
 .exp-lanyard--0 { grid-column: 3; grid-row: 1 / span 2; align-self: start; }
-.exp-lanyard--1 { grid-column: 1; grid-row: 1 / span 2; align-self: end; }
+.exp-lanyard--1 { grid-column: 1; grid-row: 1 / span 2; align-self: start; }   /* both badges hang from the top (the owner: "higher up"); it was bottom-aligned beside the second card */
 /* The canvas HEIGHT is the badge size. The camera's field of view is
    vertical, so everything in the scene — badge, strap, board — is drawn at a
    scale set by the canvas's height, and every physics constant (the drag
@@ -1252,12 +1255,15 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
      positions itself against the whole section and the badge hangs over the
      middle of the cards. */
   position: relative;
-  height: clamp(460px, calc(2 * var(--exp-row-h) - 20px), 600px);
+  /* 72% of the old 600: the column went 250 -> 180px and the badge is sized
+     by the canvas HEIGHT, so this keeps the same fit (and the drag clamp's
+     margins) in the narrower column — a smaller, slimmer badge */
+  height: clamp(340px, calc(1.44 * var(--exp-row-h) - 14px), 432px);
   border-radius: 10px;
   overflow: hidden;
   touch-action: pan-y;
 }
-@media (max-width: 1180px) { .exp-grid { grid-template-columns: 210px minmax(0, 1fr) 210px; column-gap: 16px; } }
+@media (max-width: 1180px) { .exp-grid { grid-template-columns: 160px minmax(0, 1fr) 160px; column-gap: 16px; } }
 @media (max-width: 991px) {
   /* No lanyard below 992px — the 3D stack is not downloaded there at all — so
      the cards take the whole width. */
@@ -1283,7 +1289,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    text in `.exp-body` on the left. The video is absolutely positioned inside
    its cell so it never adds to the row height — the page still has to fit
    one screen. On a phone it goes above the text at 16:9. */
-.exp-card--media { display: grid; grid-template-columns: minmax(0, 1fr) clamp(170px, 29%, 250px); column-gap: 18px; align-items: stretch; }
+.exp-card--media { display: grid; grid-template-columns: minmax(0, 1fr) clamp(240px, 44%, 440px); column-gap: 20px; align-items: stretch; }
 .exp-body { display: flex; flex-direction: column; min-width: 0; }
 /* The text column lost a third of its width to the video, so the type comes
    down a step and the tag row holds four: the UCSC card's organisation,
@@ -1307,7 +1313,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 .exp-card--media .exp-head > div { min-width: 0; }
 .exp-card--media .exp-tags { flex-wrap: nowrap; overflow: hidden; min-width: 0; mask-image: linear-gradient(to right, #000 82%, transparent); -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); }
 .exp-card--media .exp-tags .project-tag { flex: 0 0 auto; white-space: nowrap; }   /* a chip never wraps inside itself; the row fades at its edge instead (as the small cards' does) */
-.exp-media { position: relative; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--surface-color) 70%, var(--border-color)); min-height: 0; }
+.exp-media { position: relative; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--surface-color) 70%, var(--border-color)); min-height: 0; aspect-ratio: 16 / 9; align-self: center; }   /* horizontal, 16:9, centred in the card's height (it filled the height as a tall strip) */
 .exp-media video, .exp-media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 @media (max-width: 600px) {
   .exp-card--media { grid-template-columns: 1fr; }
