@@ -7,7 +7,7 @@ const EXPAND_EASE = [0.22, 1, 0.36, 1];
 // and stagger back out (quickly, in reverse) before it collapses.
 const contentContainer = {
   hidden: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
-  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.28 } },   // starts while the surface is still growing, as the card copy fades
 };
 const contentItem = {
   hidden: { opacity: 0, y: 24, transition: { duration: 0.18, ease: 'easeIn' } },
@@ -29,7 +29,7 @@ function finalRect() {
 // -> open (content staggers in). Close runs the same steps in reverse:
 // departing (content staggers out) -> collapse (shrinks back to the card)
 // -> settle (drops back onto the page and hands off to the real card).
-export default function Modal({ isOpen, itemData, itemType, cardRect, onClose }) {
+export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, onClose }) {
   const [phase, setPhase] = useState('closed');
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -117,7 +117,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
     settle: {
       top: r.top,
       scale: 1,
-      opacity: 0,
+      opacity: 1,                   // it lands AS the card (the ghost below), which is then un-hidden underneath
       boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
       transition: { duration: 0.24, ease: 'easeIn' },
     },
@@ -268,6 +268,11 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
                   {content.items.map((t, j) => <span key={j} className="project-tag">{t}</span>)}
                 </motion.div>
               );
+            } else if (content.type === 'video') {
+              return (
+                <motion.video key={i} variants={contentItem} className="modal-dynamic-video" src={content.value}
+                  poster={content.value.replace(/\.mp4$/i, '-poster.webp')} autoPlay muted loop playsInline controls />
+              );
             } else if (content.type === 'image') {
               return (
                 <motion.img key={i} variants={contentItem} src={content.value} alt={content.alt || ''} className="modal-dynamic-image" />
@@ -281,6 +286,16 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
   };
 
   const backdropOn = phase === 'lift' || phase === 'expand' || phase === 'open';
+  // The GHOST: the clicked card's own markup, at the card's size, filling the
+  // surface while it lifts, then scaling up with it and fading out as the
+  // real content fades in — and back again on close. The card turns into the
+  // modal instead of an empty panel appearing and filling. (The owner: "don't
+  // have the content just disappear and reappear. The card should lift off the
+  // page and turn into the modal.")
+  const ghostOn = phase === 'lift' || phase === 'collapse' || phase === 'settle';
+  const fr = finalRect();
+  const ghostScale = phase === 'expand' || phase === 'open' || phase === 'departing' ? Math.min(fr.width / r.width, fr.height / r.height) : 1;
+  const contentOn = phase === 'expand' || phase === 'open';
 
   return (
     <>
@@ -303,6 +318,17 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
         animate={animatorTargets[phase]}
         onAnimationComplete={advance}
       >
+        {cardHTML && (
+          <motion.div
+            className={`modal-ghost ${cardClass || ''}`}
+            aria-hidden="true"
+            style={{ width: r.width, height: r.height, transformOrigin: '0 0' }}
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: ghostOn ? 1 : 0, scale: ghostScale }}
+            transition={{ opacity: { duration: ghostOn ? 0.3 : 0.35, delay: ghostOn ? 0.15 : 0.1 }, scale: { duration: 0.6, ease: EXPAND_EASE } }}
+            dangerouslySetInnerHTML={{ __html: cardHTML }}
+          />
+        )}
         <div className="modal-content">
           <motion.button
             className="modal-close"
@@ -318,7 +344,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, onClose })
             className="modal-content-wrapper"
             variants={contentContainer}
             initial="hidden"
-            animate={phase === 'open' ? 'show' : 'hidden'}
+            animate={contentOn ? 'show' : 'hidden'}
           >
             {renderContent()}
           </motion.div>

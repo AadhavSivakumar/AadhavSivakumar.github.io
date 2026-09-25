@@ -33,6 +33,8 @@ function App() {
     itemData: null,
     itemType: null,
     cardRect: null,
+    cardHTML: null,
+    cardClass: '',
   });
 
   useEffect(() => {
@@ -59,6 +61,10 @@ function App() {
       itemData,
       itemType,
       cardRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+      // a copy of the card itself, so the modal can BE the card lifting off
+      // the page and growing, rather than an empty surface
+      cardHTML: cardElement.innerHTML,
+      cardClass: cardElement.className.replace('animating-out', ''),
     });
   }, []);
 
@@ -128,6 +134,8 @@ function App() {
         itemData={modalState.itemData}
         itemType={modalState.itemType}
         cardRect={modalState.cardRect}
+        cardHTML={modalState.cardHTML}
+        cardClass={modalState.cardClass}
         onClose={handleModalClose}
       />
     </MotionConfig>

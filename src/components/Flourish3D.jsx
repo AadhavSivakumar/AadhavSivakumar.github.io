@@ -1922,9 +1922,9 @@ export default function Flourish3D({ side = 'right' }) {
     // a crossbar, the UR bases bolted to its underside, a table below.
     const STAND_X = 12, FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, POST_X = 124;
     const MOUNT_Z = -46, LEAN = 28, TABLE_Y = 80;                    // the arms hang from a bar set back, leaning in
-    function drawFrame(u, alpha) {
+    function drawFrame(u, alpha, off = [0, 0, 0]) {
       if (u <= 0.01 || alpha <= 0.01) return;
-      const F = place(IDENT, [0, 0, 0]);
+      const F = place(IDENT, off);
       const a = alpha;
       // it grows and shrinks as ONE piece about the table's centre: each box
       // scaled about its own centre made the frame fall apart into floating
@@ -2010,9 +2010,9 @@ export default function Flourish3D({ side = 'right' }) {
     // elbow, forearm, wrist — ending in parallel grippers with orange tips.
     const CART_X = STAND_X + 24, FLOOR_Y = 158;
     const ULTRA_ROOT = [CART_X + 46, FLOOR_Y - 66];
-    function drawCart(u, alpha) {
+    function drawCart(u, alpha, off = [0, 0, 0]) {
       if (u <= 0.01 || alpha <= 0.01) return;
-      const F = place(IDENT, [0, 0, 0]); const a = alpha;
+      const F = place(IDENT, off); const a = alpha;
       const ax = ULTRA_ROOT[0], ay = FLOOR_Y, az = 0;       // one piece, about the pedestal's foot (see drawFrame)
       const box = (w, h, d, x, y, z, mat) => { const X = ax + (x - ax) * u, Y = ay + (y - ay) * u, Z = az + (z - az) * u; submit(boxFaces(w * u, h * u, d * u, X, Y, Z), F, mat, a); submitLines(boxWire(w * u, h * u, d * u, X, Y, Z), F, matLine[mat], LOOK.line * a, LOOK.width); };
       // the base frame: two rails and two cross members, casters at the corners
@@ -2792,7 +2792,7 @@ export default function Flourish3D({ side = 'right' }) {
     // travelling body starts at the size of the part it replaces and grows or
     // shrinks into its own. Interpolating the matrix scale alone drew the
     // Franka's links at twice their size half way through the morph.
-    function drawMorph(A, baseA, qA, B, baseB, qB, u) {
+    function drawMorph(A, baseA, qA, B, baseB, qB, u, skipIn = false) {
       const TA = bodyPlacements(A, baseA, qA), TB = bodyPlacements(B, baseB, qB);
       const pairAB = pairBodies(A, B), pairBA = pairBodies(B, A);
       const nA = A.bodies.length, nB = B.bodies.length;
@@ -2814,7 +2814,7 @@ export default function Flourish3D({ side = 'right' }) {
         submitMesh(part, a < 1 ? scaleT(T, a) : T, mat, 1, matLine[mat]);
       }
       // incoming bodies: arrive from their partner, fade in
-      for (const part of B.parts) {
+      if (!skipIn) for (const part of B.parts) {
         const j = B.index.get(part.body);
         const w = smooth(win(u, (j / Math.max(1, nB - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
         const a = smooth(win(w, 0.3, 0.4));
@@ -3149,8 +3149,9 @@ export default function Flourish3D({ side = 'right' }) {
       const m = smooth(win(t, 0.05, 0.5));
       // props GROW and SHRINK in place rather than fading: a half-transparent
       // frame and table showed everything behind them, ghost-like
-      drawFrame(1 - m, 1);
-      drawCart(m, 1);
+      // the frame slides onto the cart as it shrinks, the cart grows out of it
+      drawFrame(1 - m, 1, [(ULTRA_ROOT[0] - FRAME_X) * m, (FLOOR_Y - TABLE_Y) * m, 0]);
+      drawCart(m, 1, [(FRAME_X - ULTRA_ROOT[0]) * (1 - m), (TABLE_Y - FLOOR_Y) * (1 - m), 0]);
       const base = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
       const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
       // the unit's frame at REST: where the URs are heading, where the box goes
@@ -3170,10 +3171,10 @@ export default function Flourish3D({ side = 'right' }) {
       }
       const gr = growOrder(UL_ORDER, t, 0.12, 0.62);
       const q = lerpQ(RB.ul.folded, RB.ul.rest, smooth(win(t, 0.3, 0.6)));
-      const armIn = smooth(win(t, 0.62, 0.3));
+      const armIn = smooth(win(t, 0.5, 0.4));    // overlaps the URs shrinking onto the shoulders: one pair of arms becomes the other
       drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
       const travel = smooth(win(t, 0.25, 0.65));
-      const out = 1 - smooth(win(t, 0.6, 0.3));
+      const out = 1 - smooth(win(t, 0.55, 0.4));
       if (out > 0.01) {
         for (const [root, yaw, rest, side] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR, 1], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL, -1]]) {
           const sh = tpOf(TU, [0, side * UNIT.SY, UNIT.SZ]);
@@ -3204,6 +3205,71 @@ export default function Flourish3D({ side = 'right' }) {
       if (a <= 0.01) return;
       submitLines([ringAt(420, 0, 0, -HUM_PELVIS, 40)], base, ink, LOOK.line * 0.45 * a, LOOK.width);
     }
+    // ── the CURRENT Atlas (the electric one), drawn ─────────────────────
+    // The owner: "the humanoid at the end should look like the current
+    // implementation of atlas". Boston Dynamics has published no model of the
+    // electric Atlas, so it is DRAWN — smooth pale capsule limbs, dark joint
+    // drums, a slim torso and pelvis, and its round head with the ring light —
+    // on the DRC Atlas's real skeleton (the baked URDF's joints and link
+    // lengths), so the wave and the morph drive it unchanged. `grow` scales a
+    // body about its joint as drawRobot's does.
+    const segT = (p0, p1, k) => {
+      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], dz = p1[2] - p0[2];
+      const L = Math.hypot(dx, dy, dz) || 1e-6;
+      const z = [dx / L, dy / L, dz / L];
+      const h = Math.abs(z[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+      let x = [h[1] * z[2] - h[2] * z[1], h[2] * z[0] - h[0] * z[2], h[0] * z[1] - h[1] * z[0]];
+      const xl = Math.hypot(...x) || 1; x = x.map(v => v / xl);
+      const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+      return { T: place([x[0] * k, y[0] * k, z[0] * k, x[1] * k, y[1] * k, z[1] * k, x[2] * k, y[2] * k, z[2] * k], p0), L: L / k };
+    };
+    const ATLAS_BONES = [   // [from body, to body, radius mm, joint radius at `to`]
+      ['l_scap', 'l_larm', 62, 58], ['r_scap', 'r_larm', 62, 58],
+      ['l_larm', 'l_hand', 50, 44], ['r_larm', 'r_hand', 50, 44],
+      ['l_lglut', 'l_lleg', 88, 74], ['r_lglut', 'r_lleg', 88, 74],
+      ['l_lleg', 'l_talus', 66, 52], ['r_lleg', 'r_talus', 66, 52],
+    ];
+    function drawAtlasE(base, q, grow) {
+      const R = ROBOTS.atlas; if (!R) return;
+      const T = growPlacements(R, base, q, grow);
+      const at = n => T[R.index.get(n)];
+      const k = detScale(base.m);
+      const vis = n => growScale(at(n), base) > 0.04;
+      const box = (F, w, h, d, x, y, z, mat) => { submit(boxFaces(w, h, d, x, y, z), F, mat, 1); submitLines(boxWire(w, h, d, x, y, z), F, matLine[mat], LOOK.line, LOOK.width); };
+      // torso: a slim upright chest, a narrower waist, the pelvis
+      if (vis('utorso')) {
+        const U = at('utorso');
+        box(U, 230, 380, 290, 20, 0, 400, MAT.pla);           // chest: w along x (depth), h along y (width), d along z (height)
+        box(U, 190, 300, 80, 10, 0, 585, MAT.pla);            // shoulder yoke
+        box(U, 180, 250, 250, 10, 0, 130, MAT.pla);           // abdomen, narrower, down to the pelvis
+        drawDrum(chain(U, place(IDENT, [10, 0, -60])), 80, 0, 60, MAT.poly, 1);   // the waist joint
+        // shoulders
+        for (const sy of [-1, 1]) drawDrum(chain(U, place(rotX(90 * DEG), [0, sy * 205, 470])), 70, -40, 40, MAT.poly, 1);
+        // the head: a round disc on a short neck, facing forward (+x), with its ring light
+        const Hd = chain(U, place(rotY(90 * DEG), [60, 0, 720]));
+        drawDrum(chain(U, place(IDENT, [40, 0, 600])), 42, 0, 60, MAT.poly, 1);
+        drawDrum(Hd, 118, -55, 45, MAT.pla, 1);
+        drawDrum(Hd, 88, 45, 52, MAT.poly, 1);
+        submitLines([ringAt(70, 0, 0, 53, 32)], Hd, copper, 0.95, 2.2);
+      }
+      if (vis('pelvis')) {
+        const P = at('pelvis');
+        box(P, 200, 330, 150, 10, 0, -10, MAT.pla);
+        for (const sy of [-1, 1]) drawDrum(chain(P, place(rotX(90 * DEG), [0, sy * 110, -60])), 74, -48, 48, MAT.poly, 1);   // hips
+      }
+      for (const [a, b, r, jr] of ATLAS_BONES) {
+        if (!vis(a) || !vis(b)) continue;
+        const g = Math.min(growScale(at(a), base), growScale(at(b), base));
+        const { T: S, L } = segT(at(a).t, at(b).t, k * g);
+        drawDrum(S, r, 0, L, MAT.pla, 1);
+        drawDrum(chain(S, place(rotX(90 * DEG), [0, 0, L])), jr, -jr * 0.7, jr * 0.7, MAT.poly, 1);   // the joint at its end
+      }
+      for (const sd of ['l', 'r']) {
+        if (vis(sd + '_hand')) { const Hn = at(sd + '_hand'); box(Hn, 70, 50, 120, 0, sd === 'l' ? 40 : -40, -20, MAT.poly); }
+        if (vis(sd + '_foot')) { const F = at(sd + '_foot'); box(F, 250, 120, 55, 40, 0, -60, MAT.poly); }
+      }
+    }
+
     function drawHumanoidAct(t) {
       const u = smooth(t);
       setCam((16 - 2 * u) * DEG, (-26 + 20 * u) * DEG, 0);   // from the OP1's (16, -26) to (14, -6): a standing figure is met near eye level, not looked down on
@@ -3211,18 +3277,21 @@ export default function Flourish3D({ side = 'right' }) {
       const g1 = ROBOTS[HUM], torso = g1.index.get('utorso');
       if (t >= 1) {
         drawFloorMark(base, 1);
-        drawRobot(g1, base, humQAt(idleT, settleU), 1);
+        drawAtlasE(base, humQAt(idleT, settleU));
         flush();
         return;
       }
       const ulBase = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
       const gone = 1 - smooth(win(t, 0.02, 0.3));
-      drawCart(gone, 1);
+      drawCart(gone, 1, [(RB.hum.root[0] - ULTRA_ROOT[0]) * (1 - gone), 0, 0]);   // slides toward where the Atlas stands as it shrinks
       const Tf = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), RB.ul.k);
       growUnitProps(TU, unitTaskState(TU, 0), gone);
-      const fa = 1 - smooth(win(t, 0.12, 0.4));
-      if (fa > 0.01) drawRobot(ROBOTS.ultra, ulBase, lerpQ(RB.ul.rest, RB.ul.folded, smooth(win(t, 0.08, 0.45))), fa, { zed: 0 });
+      // the Fairino MORPHS into the Atlas: each of its links travels, turns
+      // and shrinks into the Atlas link it is paired with, while the Atlas
+      // grows out of the same places (below)
+      const qFinal = H.rest;
+      drawMorph(ROBOTS.ultra, ulBase, RB.ul.rest, g1, base, qFinal, smooth(win(t, 0.06, 0.6)), true);
       const travel = smooth(win(t, 0.12, 0.6));
       const Tt = bodyPlacements(g1, base, H.rest)[torso];
       const TL = lerpT(TU, Tt, travel, RB.ul.k, RB.hum.k);
@@ -3239,7 +3308,7 @@ export default function Flourish3D({ side = 'right' }) {
         // Atlas's root (the PELVIS) and the trunk above it must be whole
         // before a limb can show
         const gr = growOrder(HUM_ORDER.slice(6), t, 0.42, 0.34);
-        drawRobot(g1, scaleAbout(gBase, ga, TL.t), q, 1, gr);
+        drawAtlasE(scaleAbout(gBase, ga, TL.t), q, gr);
       }
       drawFloorMark(base, smooth(win(t, 0.72, 0.28)));
       flush();

@@ -38,7 +38,7 @@ const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 // A SHORT strap: three rope segments of ROPE_SEG each (it was 1.0 — the owner
 // asked for less string and a bigger badge). The spawn offsets step by the
 // same length, because the chain must start hanging at its own equilibrium.
-const ROPE_SEG = 0.62;
+const ROPE_SEG = 0.4;   // shorter again (the owner: "don't make the string too long")
 const J1_POS = [0, -ROPE_SEG, 0];
 const J2_POS = [0, -2 * ROPE_SEG, 0];
 const J3_POS = [0, -3 * ROPE_SEG, 0];
@@ -46,8 +46,8 @@ const CARD_POS = [0, -3 * ROPE_SEG - 1.4, 0];
 
 // Cursor-proximity sway: a moving pointer within SWAY_RADIUS (world units)
 // of a card nudges it away, strongest up close.
-const SWAY_RADIUS = 3;
-const SWAY_STRENGTH = 0.12;
+const SWAY_RADIUS = 4.5;
+const SWAY_STRENGTH = 0.4;   // the owner wanted it to react more to the mouse (was 0.12)
 
 // Click-to-flip: torque impulse that starts the card spinning toward the
 // yaw target on the other side.
@@ -55,7 +55,7 @@ const FLIP_KICK = 0.08;
 
 // Hover tilt: max lean (radians) toward the cursor while it rests on a card,
 // mirroring the 3D tilt the HTML cards used to have.
-const TILT_MAX = 0.35;
+const TILT_MAX = 0.6;
 
 // Recency gradient: `slot` 0 is the present badge (NYU / Roboflow) and renders
 // largest; each step into the past is a touch smaller. The gradient is gentle
@@ -396,22 +396,17 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
 
   // the board sits back far enough for this badge's own flip sweep
   const boardDepth = boardZ(sizeMul);
-  const shaftLen = 0.12 - boardDepth; // board face → just in front of the straps
+  const shaftLen = 0.35;
   const bezel = 0.28 * sizeMul;
   return (
     <group>
-      {/* mounting bezel/frame behind the panel so it reads as a mounted board */}
-      <mesh position={[geom.cx, geom.cy, boardDepth - 0.06]} material={frameMat}>
-        <planeGeometry args={[geom.w + bezel, geom.h + bezel]} />
-      </mesh>
-      <mesh position={[geom.cx, geom.cy, boardDepth]} material={boardMat}>
-        <planeGeometry args={[geom.w, geom.h]} />
-      </mesh>
+      {/* no board any more — the owner: "remove the pegboard, just make it a
+          single pin holding it". The pin is a short shaft and a ball head. */}
       {anchors.map((a, i) => (
         <group key={i} position={[a.x, a.y, 0]}>
           {/* pin shaft: a stub pushed through the board toward the viewer */}
           <mesh
-            position={[0, 0, boardDepth + shaftLen / 2]}
+            position={[0, 0, 0.16 - shaftLen / 2]}
             rotation={[Math.PI / 2, 0, 0]}
             material={shaftMat}
           >
@@ -549,19 +544,19 @@ export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false) {
   // on the card.
   ctx.textAlign = 'center';
   ctx.fillStyle = P.name;
-  ctx.font = `700 ${23 * u}px Poppins, sans-serif`;
+  ctx.font = `800 ${28 * u}px Poppins, sans-serif`;
   ctx.fillText(badge.name, cx, ry + 160 * u, rw - 10 * u);
   ctx.fillStyle = P.role;
-  ctx.font = `600 ${14 * u}px Poppins, sans-serif`;
+  ctx.font = `600 ${17 * u}px Poppins, sans-serif`;
   ctx.fillText(badge.role, cx, ry + 182 * u, rw - 10 * u);
 
   const drawRow = (label, value, y) => {
     ctx.textAlign = 'right';
-    ctx.font = `700 ${12.5 * u}px Poppins, sans-serif`;
+    ctx.font = `800 ${15 * u}px Poppins, sans-serif`;
     ctx.fillStyle = P.label;
     ctx.fillText(label, cx - 5 * u, y);
     ctx.textAlign = 'left';
-    ctx.font = `600 ${14 * u}px Poppins, sans-serif`;
+    ctx.font = `700 ${17 * u}px Poppins, sans-serif`;
     ctx.fillStyle = P.value;
     ctx.fillText(value, cx + 5 * u, y);
   };
@@ -971,7 +966,7 @@ function Band({
                 map-anisotropy={16}
                 emissiveMap={cardMap}
                 emissive="#ffffff"
-                emissiveIntensity={theme === 'dark' ? 0.18 : 0.55}
+                emissiveIntensity={theme === 'dark' ? 0.3 : 0.75}
                 envMapIntensity={0.12}
                 clearcoat={0}
                 roughness={0.95}

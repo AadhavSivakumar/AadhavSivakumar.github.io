@@ -229,7 +229,21 @@ and layout work verified by simulation held up. **They hang beside the
 Experience and Research cards** — one badge per card (Roboflow, Starship on
 Experience; NYU, UCSC on Research), each in its own small `<Canvas>`, mounted
 only once it comes within 600px of the viewport (`useNearViewport`) so four
-WebGL contexts are not created on page load. **Since Sept 25**: columns 200px, canvas `clamp(372px, 1.6 * row - 16px,
+WebGL contexts are not created on page load. **Since Sept 26** (the owner: badges beside their cards, all on the left,
+readable, more reactive, short string, no pegboard): ONE canvas in the left
+column spans both rows and holds both badges (`RowLanyard` with
+`badgeNames`), the second hung lower by the measured card-row height
+(`dropPx`), the canvas reaching 150px up beside the title; no pegboard, a
+single pin per badge (`LanyardRack` draws pins only); `ROPE_SEG` 0.4;
+`sizeMul` 1.1; the card is MATTE (envMapIntensity 0.12, no clearcoat,
+roughness 0.95) with the badge type a step larger and heavier and more
+emissive — the sheen washed the text out; hover reacts more (`SWAY_STRENGTH`
+0.4, `SWAY_RADIUS` 4.5, `TILT_MAX` 0.6). **The modal grows out of the card**:
+`App` passes the clicked card's markup (`cardHTML`) and the modal draws it as
+a ghost inside the surface, lifting with it, scaling as it expands and
+cross-fading into the content (which now starts during the expand), and the
+reverse on close; `settle` lands at full opacity as the card. Experience
+entries show their video in the modal too (`video` block). **Since Sept 25**: columns 200px, canvas `clamp(372px, 1.6 * row - 16px,
 480px)`, `.page--wide.exp-page` 1760px with 2.5vw side padding (the owner
 found 1480 "squished horizontally"); and when the browser has no WebGL, or a
 badge's context is lost later, the badge is drawn FLAT (`BadgeFallback` in
@@ -758,6 +772,25 @@ hand body at `pos 0 0 0.107, quat 0.9239 0 0 -0.3827` on link7, two fingers
 on SLIDE joints along the hand's y (0-40 mm). `bodyPlacements` takes a
 `slide` body as a translation of `q` metres along its axis (scaled to the
 bake's mm), so a Franka pose is nine values: seven hinges, two finger gaps.
+
+**Sept 26 round.** (1) The final humanoid is the CURRENT, electric Atlas
+("should look like the current implementation of atlas"). Boston Dynamics
+publishes no model of it, so `drawAtlasE` DRAWS it — pale capsule limbs, dark
+joint drums, slim chest over a narrower abdomen, pelvis, and the round head
+with its ring light (copper ring) — on the DRC Atlas's real skeleton from the
+bake (bones between body origins: scap→larm, larm→hand, lglut→lleg,
+lleg→talus), so the wave, the grow and the morph drive it unchanged. The DRC
+meshes (`atlas.json`) are still loaded for the skeleton and as the morph's
+target bodies. (2) UR pair → OP1 and OP1 → Atlas MORPH: the frame slides onto
+the cart while shrinking and the cart grows out of it (`drawFrame`/`drawCart`
+take an offset), the URs shrink onto the unit's shoulders while its arms grow
+(overlapping windows), and the Fairino's links travel into the Atlas's
+(`drawMorph(..., skipIn = true)`) while the Atlas grows. SO-ARM → Franka and
+Franka → UR are `drawMorph` again (the owner: "have it actually morph… just
+make it fluid"); drawHandover is kept but unused. (3) Measuring: another
+session on this box can run Chromium at 800%+ CPU; frame times taken then
+read p90 50-67 ms. Check `uptime` and wait for load < 4 before believing a
+regression — idle, the page measured p90 17.2 in every act.
 
 **Robot parts never FADE, and transitions are HANDOVERS** (Sept 25; the
 owner: "the Robot animations all have disappearing parts/discontinuities").

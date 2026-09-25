@@ -1439,3 +1439,9 @@ html[data-theme="dark"] .badge-flat__strap { background: #d9d4ca; }
   .nav-pill { border-radius: 10px; }
   header nav #theme-toggle { align-self: flex-start; margin: 8px 12px 0; }
 }
+
+/* the card copy the modal grows out of (see Modal.jsx): positioned in the
+   surface's corner at the card's size, scaled with it, no interaction */
+.modal-animator .modal-ghost { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 2; margin: 0; box-shadow: none !important; transform: none; }
+.modal-animator .modal-ghost.exp-card { min-height: 0; }
+.modal-dynamic-video { width: 100%; max-height: 52vh; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; background: #111; display: block; margin: 0 0 14px; }

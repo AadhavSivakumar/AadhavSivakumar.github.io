@@ -122,7 +122,7 @@ function RowLanyard({ badgeNames, wide }) {
               gravity={[0, -40, 0]}
               cards={cards.map((c, i) => ({ ...c, side: 'center', slot: 0, dropPx: i * rowPx - 45 }))}
               clearCenterPx={0}
-              sizeMul={0.9}
+              sizeMul={1.1}
               lanyardWidth={0.32}
             />
           </Suspense>
@@ -137,6 +137,7 @@ const toModal = item => ({
   id: item.id,
   title: item.role,
   modalContent: [
+    item.video && { type: 'video', value: item.video },
     { type: 'meta', value: [item.org, item.location, item.period].filter(Boolean).join('  ·  ') },
     item.degree && { type: 'meta', value: item.degree },
     item.summary && { type: 'text', value: item.summary },
