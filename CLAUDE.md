@@ -773,6 +773,24 @@ on SLIDE joints along the hand's y (0-40 mm). `bodyPlacements` takes a
 `slide` body as a translation of `q` metres along its axis (scaled to the
 bake's mm), so a Franka pose is nine values: seven hinges, two finger gaps.
 
+**Sept 28 — the Atlas matched to Boston Dynamics' photos**
+(bostondynamics.com/products/atlas: the hero, the "tri" photo and the
+warehouse render, saved in the session scratch). No usable model of the
+electric Atlas exists: Sketchfab's downloadable "Atlas" models are the old
+hydraulic one or AI scans. So `drawAtlasE` now draws what the photos show: a
+TALL BOXY white torso (a rounded-rectangle extrusion, not a barrel) with a
+raised dark lower front panel and a wordmark strip, a narrow dark waist
+actuator with a bright ring, big black BALL joints at the shoulders, hips,
+elbows, knees (`ballProf`), a round head disc with a dark face, an ochre ring
+light and a small antenna, on a thin neck. Panels sit 12 mm OFF the shell's
+face — flush, they traded places with it in the depth sort and blinked.
+**Two bugs found in its morph, both general**: `growPlacements` scaled an
+ungrown body to exactly 0, and `detScale()` falls back to 1 for a zero
+matrix, so the body was drawn at FULL size — a giant dark ball flashing
+across the act (it is clamped to 1e-3 now; this could have hit any act that
+grows a robot); and `drawMorph` drew the OP1's raw ZED mesh, blown up by the
+size fit — `zed` is skipped and `skipIn` morphs cap the fit at 1.5.
+
 **Sept 27.** The drawn Atlas is built from LATHE-TURNED solids (`solid` /
 `lathe`, cached by profile; `limbProf`, `jointProf`), not boxes and plain
 drums: tapered limbs swelling a third down and rounded at both ends, oval in

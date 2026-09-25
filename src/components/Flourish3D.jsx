@@ -1436,7 +1436,10 @@ export default function Flourish3D({ side = 'right' }) {
           T = b.slide ? chain(T, place(IDENT, [b.axis[0] * a * 1000, b.axis[1] * a * 1000, b.axis[2] * a * 1000])) : chain(T, place(axisM(b.axis, a), [0, 0, 0]));
         }
         const g = grow[b.name];
-        out[i] = g == null || g >= 1 ? T : scaleT(T, Math.max(0, g));
+        // never exactly 0: detScale() falls back to 1 for a zero matrix, and a
+        // body not yet grown was then drawn at full size — a giant dark ball
+        // that flashed across the Atlas's arrival
+        out[i] = g == null || g >= 1 ? T : scaleT(T, Math.max(1e-3, g));
       }
       return out;
     }
@@ -2797,9 +2800,10 @@ export default function Flourish3D({ side = 'right' }) {
       const pairAB = pairBodies(A, B), pairBA = pairBodies(B, A);
       const nA = A.bodies.length, nB = B.bodies.length;
       const kA = detScale(baseA.m), kB = detScale(baseB.m);
-      const fit = (r0, r1) => clamp(r0 / r1, 0.25, 4);
+      const fit = (r0, r1) => clamp(r0 / r1, 0.25, skipIn ? 1.5 : 4);   // morphing into a drawn robot there is no partner mesh to match, so never blow a part up
       // outgoing bodies: travel to their partner, fade out
       for (const part of A.parts) {
+        if (part.body === 'zed') continue;                 // the OP1 draws its eyes itself; the raw mesh here flew across the act as a blown-up dark blob
         const i = A.index.get(part.body);
         const w = smooth(win(u, (i / Math.max(1, nA - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
         // the crossfade is SHORT (w 0.35-0.65): while a body is half-way it
@@ -3243,6 +3247,8 @@ export default function Flourish3D({ side = 'right' }) {
     const limbProf = (L, r0, rMid, r1) => [[-r0 * 0.55, 0], [-r0 * 0.4, r0 * 0.72], [-r0 * 0.12, r0 * 0.96], [L * 0.12, r0 * 1.02], [L * 0.35, rMid], [L * 0.7, (rMid + r1) / 2], [L * 0.94, r1], [L + r1 * 0.2, r1 * 0.9], [L + r1 * 0.45, r1 * 0.55], [L + r1 * 0.55, 0]];
     // a joint: a short barrel with rounded rims
     const jointProf = (r, h) => [[-h, 0], [-h, r * 0.8], [-h * 0.8, r], [h * 0.8, r], [h, r * 0.8], [h, 0]];
+    // a ball joint: round from every side, so it reads the same whatever the pose
+    const ballProf = r => [[-r, 0], [-r * 0.92, r * 0.4], [-r * 0.7, r * 0.72], [-r * 0.38, r * 0.93], [0, r], [r * 0.38, r * 0.93], [r * 0.7, r * 0.72], [r * 0.92, r * 0.4], [r, 0]];
     const ATLAS_BONES = [   // [from, to, r at from, r mid, r at to, oval sx, joint r at `to`]
       ['l_scap', 'l_larm', 64, 70, 56, 1.0, 60], ['r_scap', 'r_larm', 64, 70, 56, 1.0, 60],
       ['l_larm', 'l_hand', 54, 58, 44, 1.0, 46], ['r_larm', 'r_hand', 54, 58, 44, 1.0, 46],
@@ -3255,44 +3261,63 @@ export default function Flourish3D({ side = 'right' }) {
       const at = n => T[R.index.get(n)];
       const k = detScale(base.m);
       const vis = n => growScale(at(n), base) > 0.04;
+      // Matched to Boston Dynamics' own photos of the 2026 Atlas
+      // (bostondynamics.com/products/atlas): a TALL, BOXY white torso with
+      // rounded edges and a dark lower front panel; a narrow dark waist
+      // actuator; big black ball joints at the shoulders and hips; a round
+      // head disc with a dark face and a glowing ring light on a thin neck.
       if (vis('utorso')) {
         const U = at('utorso');
-        // the torso: a barrel, wide across the shoulders, narrowing to the
-        // waist, oval in section (deeper front to back than a cylinder would
-        // be wide), with the seam lines of its shell panels
-        solid(chain(U, place(IDENT, [15, 0, 0])), [[-40, 0], [-38, 92], [0, 110], [90, 128], [200, 158], [330, 182], [440, 186], [520, 168], [575, 120], [600, 60], [606, 0]], MAT.pla, 0.78, 1.18, 26, [[200, 158], [440, 186]]);
-        // a darker belly band at the waist joint
-        solid(chain(U, place(IDENT, [15, 0, 0])), [[-70, 0], [-70, 104], [-20, 112], [-20, 0]], MAT.poly, 0.8, 1.1, 24);
-        // shoulders: a rounded cap on the torso's corner, a short link out to
-        // the arm's first joint, and a ball there — the arm used to float
+        // extrusion frame: silhouette x -> width (y), silhouette y -> height
+        // (z), extruded along depth (x)
+        const Xf = (F, x0) => chain(F, place([0, 0, 1, 1, 0, 0, 0, 1, 0], [x0, 0, 0]));
+        const rrect = (w, h, r, cy, n = 5) => {
+          const pts = [];
+          const c = [[w / 2 - r, cy + h / 2 - r, 0], [-w / 2 + r, cy + h / 2 - r, 90], [-w / 2 + r, cy - h / 2 + r, 180], [w / 2 - r, cy - h / 2 + r, 270]];
+          for (const [x, y, a0] of c) for (let i = 0; i <= n; i++) { const a = (a0 + (90 * i) / n) * DEG; pts.push([x + r * Math.cos(a), y + r * Math.sin(a)]); }
+          return pts;
+        };
+        const slab = (F, sil, x0, x1, mat) => { submit(extrude(sil, x0, x1), Xf(F, 0), mat, 1); submitLines([[...sil.map(([u, v]) => [u, v, x1]), [sil[0][0], sil[0][1], x1]]], Xf(F, 0), matLine[mat], LOOK.line, LOOK.width); };
+        slab(U, rrect(440, 560, 70, 330), -150, 120, MAT.pla);            // the torso shell
+        // raised clear of the shell's face: flush, the two sorted by centroid
+        // traded places as the robot moved and the panel blinked out
+        slab(U, rrect(360, 230, 40, 190), 132, 150, MAT.poly);            // the dark lower front panel
+        slab(U, rrect(300, 30, 12, 400), 132, 142, MAT.poly);             // the wordmark strip
+        // the waist: a narrow dark actuator down to the pelvis, a bright ring on it
+        solid(chain(U, place(IDENT, [0, 0, -30])), [[-90, 0], [-90, 62], [60, 62], [60, 0]], MAT.poly, 1, 1, 22);
+        solid(chain(U, place(IDENT, [0, 0, -30])), [[-20, 0], [-20, 78], [10, 78], [10, 0]], MAT.alu, 1, 1, 22);
+        // shoulders: big black balls on the torso's top corners, a short black
+        // link out to each arm's first joint
         for (const [sy, sd] of [[1, 'l'], [-1, 'r']]) {
-          const cap = tpOf(U, [5, sy * 185, 470]);
+          const cap = tpOf(U, [-10, sy * 245, 520]);
+          solid(chain(U, place(rotX(sy * 90 * DEG), [-10, sy * 205, 520])), [[-10, 0], [-6, 60], [20, 92], [60, 96], [95, 70], [110, 0]], MAT.poly, 1, 1, 24);
           if (vis(sd + '_scap')) {
             const g = growScale(at(sd + '_scap'), base);
             const { T: S, L } = segT(cap, at(sd + '_scap').t, k * g);
-            solid(S, limbProf(L, 72, 70, 66), MAT.poly, 1, 1, 20);
+            solid(S, limbProf(L, 70, 72, 66), MAT.poly, 1, 1, 20);
           }
         }
-        // the neck and the head: a domed disc facing forward (+x), a dark inset
-        // face, and the ring light round it
-        solid(chain(U, place(IDENT, [45, 0, 590])), [[0, 0], [0, 48], [60, 44], [90, 40], [90, 0]], MAT.poly, 1, 1, 16);
-        const Hd = chain(U, place(rotY(90 * DEG), [70, 0, 760]));
-        solid(Hd, [[-70, 0], [-66, 70], [-45, 112], [-10, 128], [30, 126], [52, 112], [60, 96], [62, 0]], MAT.pla, 1, 1, 30, [[30, 126]]);
-        solid(Hd, [[58, 0], [58, 90], [64, 88], [64, 0]], MAT.poly, 1, 1, 30);
-        submitLines([ring(80, 65, 40)], Hd, copper, 1, 2.6);
-        submitLines([ring(72, 65, 40)], Hd, copper, 0.5, 1.2);
+        // neck and head
+        solid(chain(U, place(IDENT, [0, 0, 610])), [[0, 0], [0, 40], [70, 36], [95, 50], [110, 0]], MAT.poly, 1, 1, 16);
+        const Hd = chain(U, place(rotY(90 * DEG), [0, 0, 830]));
+        solid(Hd, [[-70, 0], [-68, 90], [-50, 124], [-20, 138], [40, 138], [58, 128], [66, 110], [68, 0]], MAT.pla, 1, 1, 32, [[40, 138]]);
+        solid(Hd, [[64, 0], [64, 84], [70, 82], [70, 0]], MAT.poly, 1, 1, 32);                  // the dark face
+        solid(Hd, [[66, 86], [66, 118], [71, 118], [71, 86]], MAT.ochre, 1, 1, 36);            // the ring light
+        submitLines([ring(102, 72, 48)], Hd, copper, 1, 2.4);
+        solid(chain(U, place(IDENT, [-30, 60, 960])), [[0, 0], [0, 6], [60, 5], [62, 0]], MAT.ochre, 1, 1, 8);   // the antenna
       }
       if (vis('pelvis')) {
         const P = at('pelvis');
-        solid(chain(P, place(IDENT, [10, 0, -110])), [[0, 0], [0, 80], [40, 118], [110, 132], [160, 120], [175, 0]], MAT.alu, 0.8, 1.05, 24, [[110, 132]]);
-        for (const sy of [-1, 1]) solid(chain(P, place(rotX(90 * DEG), [0, sy * 100, -70])), jointProf(70, 40), MAT.poly, 1, 1, 22);
+        // a compact dark pelvis between two big black hip balls
+        solid(chain(P, place(IDENT, [0, 0, -120])), [[0, 0], [0, 70], [40, 110], [110, 118], [150, 96], [165, 0]], MAT.alu, 0.85, 1.25, 24, [[110, 118]]);
+        for (const sy of [-1, 1]) solid(chain(P, place(IDENT, [25, sy * 150, -60])), ballProf(108), MAT.poly, 1, 1, 24);   // the big hip balls, outboard and forward of the thighs
       }
       for (const [a, b, r0, rm, r1, sx, jr] of ATLAS_BONES) {
         if (!vis(a) || !vis(b)) continue;
         const g = Math.min(growScale(at(a), base), growScale(at(b), base));
         const { T: S, L } = segT(at(a).t, at(b).t, k * g);
         solid(S, limbProf(L, r0, rm, r1), MAT.pla, sx, 1, 22, [[L * 0.35, rm]]);
-        solid(chain(S, place(rotX(90 * DEG), [0, 0, L])), jointProf(jr, jr * 0.75), MAT.poly, 1, 1, 20);
+        solid(chain(S, place(IDENT, [0, 0, L])), ballProf(jr * 1.12), MAT.poly, 1, 1, 20);
       }
       for (const sd of ['l', 'r']) {
         if (vis(sd + '_hand')) {
