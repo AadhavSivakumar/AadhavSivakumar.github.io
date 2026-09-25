@@ -68,6 +68,19 @@ function App() {
     });
   }, []);
 
+  // The close lands a copy of the card exactly over the real one; the real
+  // card is revealed INSTANTLY underneath (its own un-hide transition — fade
+  // and grow from 95% — ran after the copy vanished and read as a jump), and
+  // the copy then fades out over it.
+  const revealCard = useCallback(() => {
+    const card = lastClickedCardRef.current;
+    if (!card) return;
+    card.style.transition = 'none';
+    card.classList.remove('animating-out');
+    void card.offsetWidth;
+    requestAnimationFrame(() => { card.style.transition = ''; });
+  }, []);
+
   const handleModalClose = useCallback(() => {
     if (lastClickedCardRef.current) {
       const card = lastClickedCardRef.current;
@@ -136,6 +149,7 @@ function App() {
         cardRect={modalState.cardRect}
         cardHTML={modalState.cardHTML}
         cardClass={modalState.cardClass}
+        onLanding={revealCard}
         onClose={handleModalClose}
       />
     </MotionConfig>

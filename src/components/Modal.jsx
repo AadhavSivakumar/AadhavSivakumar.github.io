@@ -29,7 +29,7 @@ function finalRect() {
 // -> open (content staggers in). Close runs the same steps in reverse:
 // departing (content staggers out) -> collapse (shrinks back to the card)
 // -> settle (drops back onto the page and hands off to the real card).
-export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, onClose }) {
+export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, onLanding, onClose }) {
   const [phase, setPhase] = useState('closed');
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -120,16 +120,16 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     settle: {
       top: r.top,
       scale: 1,
-      opacity: 1,                   // it lands AS the card (the ghost below), which is then un-hidden underneath
+      opacity: 0,                   // lands on the card, which is already revealed underneath (onLanding), and fades off it
       boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
-      transition: { duration: 0.3, ease: EXPAND_EASE },
+      transition: { top: { duration: 0.3, ease: EXPAND_EASE }, scale: { duration: 0.3, ease: EXPAND_EASE }, boxShadow: { duration: 0.3 }, opacity: { duration: 0.22, delay: 0.24 } },
     },
   };
 
   const advance = () => {
     if (phase === 'lift') setPhase('expand');
     else if (phase === 'expand') setPhase('open');
-    else if (phase === 'collapse') setPhase('settle');
+    else if (phase === 'collapse') { if (onLanding) onLanding(); setPhase('settle'); }
     else if (phase === 'settle') {
       document.body.style.overflow = '';
       setPhase('closed');

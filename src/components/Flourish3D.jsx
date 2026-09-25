@@ -930,6 +930,7 @@ export default function Flourish3D({ side = 'right' }) {
         if (host.clientWidth === lastW) return;
         lastW = host.clientWidth;
         sizeCanvas();
+        if (atlasGL) atlasGL.resize(fit, dpr);
         readHostA();
         publish();
         repaint();
@@ -956,7 +957,9 @@ export default function Flourish3D({ side = 'right' }) {
     // which is also 28% fewer pixels to fill per frame. Every ink box in
     // this file's history was measured at 1.0; multiply.
     const ZOOM = 0.85;
+    const camState = { yaw: 0, pitch: 0, dolly: 0 };      // the last setCam, for the GL Atlas
     const setCam = (yaw, pitch, dolly) => {
+      camState.yaw = yaw; camState.pitch = pitch; camState.dolly = dolly;
       const cy = Math.cos(yaw), sy = Math.sin(yaw), cx = Math.cos(pitch), sx = Math.sin(pitch);
       cam = (x, y, z) => {
         const X = x * cy + z * sy, Z0 = -x * sy + z * cy;
@@ -3255,9 +3258,23 @@ export default function Flourish3D({ side = 'right' }) {
       ['l_lglut', 'l_lleg', 96, 104, 74, 1.15, 78], ['r_lglut', 'r_lleg', 96, 104, 74, 1.15, 78],
       ['l_lleg', 'l_talus', 74, 80, 52, 1.1, 54], ['r_lleg', 'r_talus', 74, 80, 52, 1.1, 54],
     ];
+    // The GL Atlas (atlasGL.js): real per-pixel shading over this canvas,
+    // loaded lazily for the right stage once the page is near the end. When it
+    // is up, drawAtlasE hands it the placements and draws nothing itself.
+    let atlasGL = null, atlasGLLoading = false, atlasDrawn = false;
+    const wantAtlasGL = () => {
+      if (isLeft || atlasGL || atlasGLLoading) return;
+      atlasGLLoading = true;
+      import('./atlasGL.js').then(m => { atlasGL = m.createAtlasGL(host); if (atlasGL) { atlasGL.resize(fit, dpr); if (lastY >= 0) draw(lastY); } }).catch(() => {});
+    };
     function drawAtlasE(base, q, grow) {
       const R = ROBOTS.atlas; if (!R) return;
       const T = growPlacements(R, base, q, grow);
+      if (atlasGL && !cap) {
+        atlasDrawn = true;
+        atlasGL.render(n => { const i = R.index.get(n); return i == null ? null : T[i]; }, detScale(base.m), camState, dark);
+        return;
+      }
       const at = n => T[R.index.get(n)];
       const k = detScale(base.m);
       const vis = n => growScale(at(n), base) > 0.04;
@@ -3482,6 +3499,7 @@ export default function Flourish3D({ side = 'right' }) {
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       segs = 0; calls = 0; flushMs = 0; flips = 0;
+      atlasDrawn = false;
       const s = reduce ? Infinity : heroPhase(y);
       if (s < S_ART) prelude(s);
       else if (reduce) art();
@@ -3497,6 +3515,7 @@ export default function Flourish3D({ side = 'right' }) {
           else if (i === 3) drawWorldAct(t);
           else drawWorldAct(1);          // the simulator holds through the last act; the goodbye is the right's
         } else if (ROBOTS) {
+          if (i >= 3) wantAtlasGL();     // fetch the GL Atlas a page before it is needed
           if (i === 0) drawSoArmAct(t);
           else if (i === 1) drawFrankaAct(t);
           else if (i === 2) drawURPairAct(t);
@@ -3506,6 +3525,7 @@ export default function Flourish3D({ side = 'right' }) {
         else if (i === 1) drawArm6Act(t);
         else drawBimanualAct(i === 2 ? t : 1);
       }
+      if (atlasGL && !atlasDrawn) atlasGL.hide();
       ctx.globalAlpha = 1;
       // A debug read-out, and a DOM write: skipped while the settled loop is
       // running so "hold still and count mutations" still measures the page
@@ -3630,6 +3650,7 @@ export default function Flourish3D({ side = 'right' }) {
       if (trailing) cancelAnimationFrame(trailing);
       sizeRO?.disconnect();
       themeWatch.disconnect();
+      atlasGL?.dispose();
     };
   }, [isLeft]);
 

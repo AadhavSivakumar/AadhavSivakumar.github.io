@@ -1299,6 +1299,38 @@ Things learned by getting them wrong, in order:
 - The morph's capture (`cap`) records mesh lines too, so the hero's waves fly
   into the real camera's outline.
 
+### The ATLAS is the exception: rendered in WebGL (`atlasGL.js`), Sept 29
+
+The owner, after two rounds of a drawn Atlas: "Is there a different way of 3d
+modeling it without having the triangles show up? I feel like the current
+method isn't working properly." They were right about the method: Canvas2D
+fills each triangle with ONE flat tone, so any curved surface shows facets
+however many triangles it has. The final humanoid is therefore rendered by
+three.js on a second canvas (`.f3d-gl`) laid exactly over the right stage's
+drawing box: rounded boxes, lathed shells, tapered cylinders and spheres, lit
+per pixel (hemisphere fill, warm key, cool rim, ACES), a glowing ring light.
+**It owns no kinematics**: `drawAtlasE` still computes every Atlas body's
+placement (`growPlacements` — the wave, the grow-in and the Fairino morph
+drive it unchanged) and hands them over with the stage camera (`camState`:
+yaw, pitch, dolly). The mapping: stage space is x right, y DOWN, z toward the
+viewer with a divide at 600 and ZOOM 0.85, so the GL world is (x, −y, z), the
+camera sits at z 600 with fov `2·atan((H/2)/0.85/600)`, and the stage camera
+becomes `rotation.x = −pitch` on an outer group and `rotation.y = yaw` inside
+it. The robot is modelled per body in the URDF body frames (mm, z up, x
+forward); limbs are bones between body origins. The module is lazy (6.5 KB;
+three.js is already the badges' chunk), fetched from act 4, hidden whenever
+a frame does not draw the Atlas, resized with the stage, disposed with it,
+and absent where WebGL is not (the drawn `solid()` Atlas is the fallback).
+This IS verifiable here — SwiftShader Chromium renders it (see the top of
+this file) — which is the condition the rule below was waiting for. The rest
+of the page stays line art. Harness note: a stage can now hold two canvases;
+select `.f3d canvas:not(.f3d-gl)` for the 2D one.
+
+**The modal close lands without a jump**: `collapse` → `onLanding` (App
+reveals the real card INSTANTLY, transition suppressed — its own un-hide
+transition, a fade and grow from 95%, ran after the copy vanished and was the
+jump) → `settle` fades the copy off the card.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
