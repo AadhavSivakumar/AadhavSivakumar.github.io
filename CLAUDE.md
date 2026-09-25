@@ -229,7 +229,15 @@ and layout work verified by simulation held up. **They hang beside the
 Experience and Research cards** — one badge per card (Roboflow, Starship on
 Experience; NYU, UCSC on Research), each in its own small `<Canvas>`, mounted
 only once it comes within 600px of the viewport (`useNearViewport`) so four
-WebGL contexts are not created on page load. **Since Sept 24 (the owner: "make the id cards higher up and slimmer, and
+WebGL contexts are not created on page load. **Since Sept 25**: columns 200px, canvas `clamp(372px, 1.6 * row - 16px,
+480px)`, `.page--wide.exp-page` 1760px with 2.5vw side padding (the owner
+found 1480 "squished horizontally"); and when the browser has no WebGL, or a
+badge's context is lost later, the badge is drawn FLAT (`BadgeFallback` in
+`Experience.jsx`: photo, name, role, ID, EXP on a strap) instead of the error
+boundary's old `null` — the owner reported "I can no longer see the
+lanyards", which could not be reproduced here (they render in SwiftShader at
+every size and theme), so the likeliest cause, a browser without working
+WebGL, now degrades visibly. **Since Sept 24 (the owner: "make the id cards higher up and slimmer, and
 the cards for Experience and Research wider") the badge columns are 180px,
 not 250, both badges hang from the TOP of their column (no longer one top-
 and one bottom-aligned), the canvas is `clamp(340px, 1.44 * row - 14px,
@@ -751,7 +759,32 @@ on SLIDE joints along the hand's y (0-40 mm). `bodyPlacements` takes a
 `slide` body as a translation of `q` metres along its axis (scaled to the
 bake's mm), so a Franka pose is nine values: seven hinges, two finger gaps.
 
-**A transition is a MORPH, not a swap** (`drawMorph`). The owner: "don't just
+**Robot parts never FADE, and transitions are HANDOVERS** (Sept 25; the
+owner: "the Robot animations all have disappearing parts/discontinuities").
+Found by scanning every act at 41 steps (`actscan.mjs` + `montage.mjs` in the
+scratch harnesses) and looking. Three causes, three rules: (1) a
+half-transparent mesh shows its own far side and whatever is behind it, so
+arriving and leaving are SCALE, not alpha — `drawRobot(robot, base, q, alpha,
+grow)` draws every part opaque; `grow` (per body) scales a body about its own
+joint and carries into its children (`growPlacements`), so a chain grows out
+of its base still connected, and `alpha` < 1 shrinks the whole robot into its
+base; the UR gripper, the OP1's unit and small arms, the packing table, the
+frame and the cart grow the same way (`scaleT`, `scaleAbout`, `growUnitProps`;
+the frame and cart about ONE anchor each — scaled about their own centres they
+fell apart into floating bars). (2) `drawMorph` flew each link of A to where a
+link of B stands; between different robots the links' ends never agree mid-
+flight, and the arm came apart for half the act. `drawHandover` replaced it:
+A folds and (optionally) slides its base onto B's while retracting tip-first,
+B grows base-first out of the same place, unfolding — both always whole FK
+chains (SO-ARM → Franka slides; Franka → UR retracts in place, `slideTo` 0,
+because sliding up to the overhead mount left the stage). (3) The Generalist
+table was a dark top over a slightly larger steel slab whose top face sat
+0.5 mm under it; sorted by centroid the two traded places and the table
+flickered grey / pale blue — it is one slab now. The frame arrives after the
+Franka has folded away (it rose through the growing table). drawMorph is kept
+for the record. Seams after: ≤23 px.
+
+**A transition WAS a MORPH, not a swap** (`drawMorph`). The owner: "don't just
 have each one shrink away and then the next one reappear". Each body of the
 outgoing robot is paired with the body at the same fraction along the
 incoming chain (`pairBodies`); over the act the outgoing body TRAVELS from

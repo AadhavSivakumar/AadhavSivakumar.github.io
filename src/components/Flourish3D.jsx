@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
 import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actAt } from '../waveField';
 import { onSettle } from '../scrollSnap';
-import { loadRobots, standing, facing, bodyPlacements } from '../robots/index.js';
+import { loadRobots, standing, facing, bodyPlacements, axisM } from '../robots/index.js';
 
 // Two line-art pieces fixed to the viewport, one per side: a CAMERA on the
 // left and an IEC-proportioned electric MOTOR on the right. Both are FORMED
@@ -1413,15 +1413,44 @@ export default function Flourish3D({ side = 'right' }) {
     const MESH_MAT = { white: MAT.pla, black: MAT.poly, gray: MAT.steel, jointgray: MAT.steel, linkgray: MAT.alu, urblue: MAT.urblue, green: MAT.steel };
     // Draw a whole robot at joint angles q (radians), with an optional
     // per-body alpha (for parts arriving or leaving) and a global alpha.
-    function drawRobot(robot, base, q, alpha, bodyAlpha) {
+    // A robot's parts never FADE: a half-transparent mesh shows its own far
+    // side and whatever stands behind it, and a body fading in before its
+    // neighbour read as parts floating loose — the "disappearing parts /
+    // discontinuities" the owner saw in every act. Arriving and leaving are
+    // SCALE instead: `grow` (0..1 per body) scales a body about its own joint,
+    // and a body's scale carries into its children's placements, so a chain
+    // grows out of its base still connected, and every part is opaque.
+    // `alpha` below 1 shrinks the whole robot into its base the same way.
+    const scaleT = (T, s) => place(T.m.map(x => x * s), T.t);
+    const scaleAbout = (T, s, p) => place(T.m.map(x => x * s), [p[0] + (T.t[0] - p[0]) * s, p[1] + (T.t[1] - p[1]) * s, p[2] + (T.t[2] - p[2]) * s]);
+    function growPlacements(robot, base, q, grow) {
+      if (!grow) return bodyPlacements(robot, base, q);
+      const out = new Array(robot.bodies.length);
+      let qi = 0;
+      for (let i = 0; i < robot.bodies.length; i++) {
+        const b = robot.bodies[i];
+        const parent = b.parent == null ? base : out[robot.index.get(b.parent)];
+        let T = chain(parent, place(b.m, b.pos));
+        if (b.axis) {
+          const a = q[qi++] || 0;
+          T = b.slide ? chain(T, place(IDENT, [b.axis[0] * a * 1000, b.axis[1] * a * 1000, b.axis[2] * a * 1000])) : chain(T, place(axisM(b.axis, a), [0, 0, 0]));
+        }
+        const g = grow[b.name];
+        out[i] = g == null || g >= 1 ? T : scaleT(T, Math.max(0, g));
+      }
+      return out;
+    }
+    const growScale = (T, base) => detScale(T.m) / (detScale(base.m) || 1);
+    function drawRobot(robot, base, q, alpha, grow) {
       if (!robot) return;
-      const T = bodyPlacements(robot, base, q);
+      if (alpha <= 0.03) return;
+      const B = alpha < 1 ? scaleT(base, alpha) : base;
+      const T = growPlacements(robot, B, q, grow);
       for (const part of robot.parts) {
         const bi = robot.index.get(part.body);
-        const a = alpha * (bodyAlpha ? (bodyAlpha[part.body] ?? 1) : 1);
-        if (a <= 0.004) continue;
+        if (growScale(T[bi], B) < 0.04) continue;          // not arrived yet (or gone)
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
-        submitMesh(part, T[bi], mat, a, matLine[mat]);
+        submitMesh(part, T[bi], mat, 1, matLine[mat]);
       }
     }
 
@@ -1897,9 +1926,14 @@ export default function Flourish3D({ side = 'right' }) {
       if (u <= 0.01 || alpha <= 0.01) return;
       const F = place(IDENT, [0, 0, 0]);
       const a = alpha;
+      // it grows and shrinks as ONE piece about the table's centre: each box
+      // scaled about its own centre made the frame fall apart into floating
+      // bars mid-act
+      const ax = FRAME_X, ay = TABLE_Y, az = 18;
       const box = (w, h, d, x, y, z, mat) => {
-        submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a);
-        submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width);
+        const X = ax + (x - ax) * u, Y = ay + (y - ay) * u, Z = az + (z - az) * u;
+        submit(boxFaces(w * u, h * u, d * u, X, Y, Z), F, mat, a);
+        submitLines(boxWire(w * u, h * u, d * u, X, Y, Z), F, matLine[mat], LOOK.line * a, LOOK.width);
       };
       // a heavy black frame: posts up from the table's back corners, the
       // crossbar, a canted mount block under it for each arm
@@ -1907,14 +1941,17 @@ export default function Flourish3D({ side = 'right' }) {
       box(14, TABLE_Y - BAR_Y + 10, 14, FRAME_X + POST_X, (TABLE_Y + BAR_Y) / 2, MOUNT_Z, MAT.poly);
       box(2 * POST_X + 14, 14, 14, FRAME_X, BAR_Y, MOUNT_Z, MAT.poly);
       for (const x of [FRAME_X - UR_DX, FRAME_X + UR_DX]) {
-        const M = place(mul(rotX(LEAN * DEG), scaleM(u)), [x, BAR_Y + 8, MOUNT_Z]);
+        const M = place(mul(rotX(LEAN * DEG), scaleM(u)), [ax + (x - ax) * u, ay + (BAR_Y + 8 - ay) * u, az + (MOUNT_Z - az) * u]);
         submit(boxFaces(36, 10, 36, 0, 3, 0), M, MAT.poly, a);
         submitLines(boxWire(36, 10, 36, 0, 3, 0), M, matLine[MAT.poly], LOOK.line * a, LOOK.width);
       }
       // the table: a dark top on a black frame, its back edge under the bar.
       // Narrower than the frame: its near edge grows ~15% in perspective.
-      box(2 * POST_X - 24, 6, 150, FRAME_X, TABLE_Y + 3, 18, MAT.poly);
-      box(2 * POST_X - 18, 5, 156, FRAME_X, TABLE_Y + 9, 18, MAT.steel);
+      // ONE slab. It was a dark top over a slightly larger steel slab whose
+      // top face sat half a millimetre below the dark top's underside: the
+      // two big faces sorted by centroid depth traded places as the camera
+      // moved, and the table flickered grey / pale blue through the act.
+      box(2 * POST_X - 24, 11, 150, FRAME_X, TABLE_Y + 5.5, 18, MAT.poly);
     }
     const drawStand = (u, alpha) => drawFrame(u, alpha);   // the procedural fallback still calls it by this name
     // The UR's gripper is Generalist's: a black body on the flange, two long
@@ -1946,9 +1983,11 @@ export default function Flourish3D({ side = 'right' }) {
     const hanging = (root, k, yaw) => leaning(root, k, yaw, 0);
     // a UR with its gripper; the gap rides in q[6] (mm), 90 when absent
     function drawUR(base, q, a, ga = a) {
+      if (a <= 0.03) return;
       drawRobot(ROBOTS.ur5e, base, q, a);
-      const Tw = bodyPlacements(ROBOTS.ur5e, base, q)[ROBOTS.ur5e.index.get('wrist3')];
-      drawURGripper(Tw, q[6] ?? 90, ga);
+      const B = a < 1 ? scaleT(base, a) : base;
+      const Tw = bodyPlacements(ROBOTS.ur5e, B, q)[ROBOTS.ur5e.index.get('wrist3')];
+      if (ga > 0.03) drawURGripper(ga < a ? scaleT(Tw, ga / a) : Tw, q[6] ?? 90, 1);   // the gripper grows on its flange, opaque
     }
     // the cardboard box the pair packs, on the table between them: an open
     // box under the right arm's drop point, world-upright
@@ -1974,11 +2013,12 @@ export default function Flourish3D({ side = 'right' }) {
     function drawCart(u, alpha) {
       if (u <= 0.01 || alpha <= 0.01) return;
       const F = place(IDENT, [0, 0, 0]); const a = alpha;
-      const box = (w, h, d, x, y, z, mat) => { submit(boxFaces(w * u, h * u, d * u, x, y, z), F, mat, a); submitLines(boxWire(w * u, h * u, d * u, x, y, z), F, matLine[mat], LOOK.line * a, LOOK.width); };
+      const ax = ULTRA_ROOT[0], ay = FLOOR_Y, az = 0;       // one piece, about the pedestal's foot (see drawFrame)
+      const box = (w, h, d, x, y, z, mat) => { const X = ax + (x - ax) * u, Y = ay + (y - ay) * u, Z = az + (z - az) * u; submit(boxFaces(w * u, h * u, d * u, X, Y, Z), F, mat, a); submitLines(boxWire(w * u, h * u, d * u, X, Y, Z), F, matLine[mat], LOOK.line * a, LOOK.width); };
       // the base frame: two rails and two cross members, casters at the corners
       box(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly); box(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly);
       box(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly); box(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) drawDrum(place(mul(rotY(90 * DEG), scaleM(u)), [CART_X + sx * 74, FLOOR_Y + 2, sz * 46]), 6, -4, 4, MAT.poly, a);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) drawDrum(place(mul(rotY(90 * DEG), scaleM(u)), [ax + (CART_X + sx * 74 - ax) * u, ay + (FLOOR_Y + 2 - ay) * u, az + (sz * 46 - az) * u]), 6, -4, 4, MAT.poly, a);
       // the pedestal the arm stands on, the electronics box beside it
       box(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly);
       box(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly);
@@ -2076,17 +2116,24 @@ export default function Flourish3D({ side = 'right' }) {
       // the coupling to the Fairino's flange: the 12 mm between the torso's
       // back and the flange face, orange-ringed, touching both and inside neither
       drawDrum(chain(TU, place(rotY(90 * DEG), [-UNIT.D / 2, 0, 210])), 44, -12, 0, MAT.alu, a, matLine[MAT.orange]);
-      drawSmallArm(TU, PR, 1, a * ga);
-      drawSmallArm(TU, PL, -1, a * ga);
+      // arms arriving grow out of their shoulders rather than fading in
+      if (ga > 0.03) for (const [P, sd] of [[PR, 1], [PL, -1]]) {
+        const sh = [TU.m[1] * sd * UNIT.SY + TU.m[2] * UNIT.SZ + TU.t[0], TU.m[4] * sd * UNIT.SY + TU.m[5] * UNIT.SZ + TU.t[1], TU.m[7] * sd * UNIT.SY + TU.m[8] * UNIT.SZ + TU.t[2]];
+        drawSmallArm(ga < 1 ? scaleAbout(TU, ga, sh) : TU, P, sd, a);
+      }
     }
     // the whole machine: the Fairino (mesh) with the unit hanging from its
     // flange; returns the unit's frame
     function drawUltraRobot(base, q, PR, PL, alpha, bodyAlpha, armAlpha = 1) {
       const robot = ROBOTS.ultra;
-      drawRobot(robot, base, q, alpha, { ...(bodyAlpha || {}), zed: 0 });
-      const Tf = bodyPlacements(robot, base, q)[robot.index.get('wrist3_link')];
-      const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(base.m));
-      drawUnit(TU, PR, PL, alpha * (bodyAlpha ? (bodyAlpha.unit ?? 1) : 1), armAlpha);
+      const grow = { ...(bodyAlpha || {}), zed: 0 };
+      drawRobot(robot, base, q, alpha, grow);
+      const B = alpha < 1 ? scaleT(base, alpha) : base;
+      const Tf = bodyPlacements(robot, B, q)[robot.index.get('wrist3_link')];
+      const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(B.m));
+      // the unit grows out of the flange, its arms out of its shoulders — opaque
+      const gu = bodyAlpha ? (bodyAlpha.unit ?? 1) : 1;
+      if (gu > 0.03) drawUnit(gu < 1 ? scaleAbout(TU, gu, Tf.t) : TU, PR, PL, 1, armAlpha);
       return TU;
     }
     const UL_ORDER = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link', 'unit', 'zed'];
@@ -2738,7 +2785,7 @@ export default function Flourish3D({ side = 'right' }) {
     // draw robot A turning into robot B. `u` 0..1 over the act; each body gets
     // its own window, base first (BODY_STAGGER of the act), so the machine
     // changes from the ground up.
-    const BODY_STAGGER = 0.45;
+    const BODY_STAGGER = 0.12;   // was 0.45: with the base already at B and the tip still at A, links travelled apart and floated loose
     // SIZE is matched on screen, not in the matrix: an SO-ARM servo at 0.66
     // px/mm and a Franka link at 0.33 are a similar size on the stage, so the
     // travelling body starts at the size of the part it replaces and grows or
@@ -2757,24 +2804,47 @@ export default function Flourish3D({ side = 'right' }) {
         // the crossfade is SHORT (w 0.35-0.65): while a body is half-way it
         // is drawn twice, and the act with two arms becoming two arms was the
         // page's most expensive frame
-        const a = 1 - smooth(win(w, 0.35, 0.3));
-        if (a <= 0.02) continue;
+        // it SHRINKS away (about its own joint), opaque, as its partner grows
+        const a = 1 - smooth(win(w, 0.3, 0.4));
+        if (a <= 0.04) continue;
         const j = pairAB[i];
         const T = w > 0 ? lerpT(TA[i], TB[j], w, kA, kB * fit(B.bodyRadius[j], A.bodyRadius[i])) : TA[i];
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
-        submitMesh(part, T, mat, a, matLine[mat]);
+        submitMesh(part, a < 1 ? scaleT(T, a) : T, mat, 1, matLine[mat]);
       }
       // incoming bodies: arrive from their partner, fade in
       for (const part of B.parts) {
         const j = B.index.get(part.body);
         const w = smooth(win(u, (j / Math.max(1, nB - 1)) * BODY_STAGGER, 1 - BODY_STAGGER));
-        const a = smooth(win(w, 0.35, 0.3));
-        if (a <= 0.02) continue;
+        const a = smooth(win(w, 0.3, 0.4));
+        if (a <= 0.04) continue;
         const i = pairBA[j];
         const T = w < 1 ? lerpT(TA[i], TB[j], w, kA * fit(A.bodyRadius[i], B.bodyRadius[j]), kB) : TB[j];
         const mat = MESH_MAT[part.mat] ?? MAT.neutral;
-        submitMesh(part, T, mat, a, matLine[mat]);
+        submitMesh(part, a < 1 ? scaleT(T, a) : T, mat, 1, matLine[mat]);
       }
+    }
+
+    // A HANDOVER, the morph used now (drawMorph above is kept for the record).
+    // drawMorph flew each link of A to where a link of B stands; between two
+    // different robots the links' ends never agree mid-flight, so the arm
+    // came apart into floating pieces for half the act ("disappearing parts
+    // / discontinuities"). Here both robots are ALWAYS whole chains drawn by
+    // forward kinematics: A folds and slides its base onto B's while it
+    // retracts tip-first into its base; B grows out of that same base,
+    // base-first, unfolding into its pose. They overlap in time and place,
+    // so one machine turns into the other without a gap, and every part is
+    // opaque (see drawRobot).
+    function drawHandover(A, baseA, qA0, qA1, B, baseB, qB0, qB1, u, slideTo = 1) {
+      const nA = A.bodies.length, nB = B.bodies.length;
+      const slide = slideTo * smooth(win(u, 0.0, 0.55));   // slideTo 0: A retracts where it stands (the UR hangs from a bar; a Franka sliding up to it left the stage)
+      const bA = place(baseA.m, [baseA.t[0] + (baseB.t[0] - baseA.t[0]) * slide, baseA.t[1] + (baseB.t[1] - baseA.t[1]) * slide, baseA.t[2] + (baseB.t[2] - baseA.t[2]) * slide]);
+      const gA = {};
+      A.bodies.forEach((b, i) => { gA[b.name] = 1 - smooth(win(u, 0.38 + (1 - i / Math.max(1, nA - 1)) * 0.22, 0.2)); });
+      drawRobot(A, bA, lerpQ(qA0, qA1, smooth(win(u, 0.0, 0.5))), 1, gA);
+      const gB = {};
+      B.bodies.forEach((b, j) => { gB[b.name] = smooth(win(u, 0.45 + (j / Math.max(1, nB - 1)) * 0.3, 0.2)); });
+      drawRobot(B, baseB, lerpQ(qB0, qB1, smooth(win(u, 0.5, 0.5))), 1, gB);
     }
 
     // ── the robots WORK while the page is settled ───────────────────────
@@ -2911,6 +2981,12 @@ export default function Flourish3D({ side = 'right' }) {
                itemPos: rest.itemPos.map((x, j) => mix(x, live.itemPos[j])), q: lerpQ(rest.q, live.q, u),
                flaps: { R: mix(rest.flaps.R, live.flaps.R), F: mix(rest.flaps.F, live.flaps.F), L: mix(rest.flaps.L, live.flaps.L), B: mix(rest.flaps.B, live.flaps.B) } };
     }
+    // arriving / leaving, the packing table and its box GROW about the table
+    // top's centre, opaque, instead of fading in as a ghost
+    function growUnitProps(TU, st, g) {
+      if (g <= 0.03) return;
+      drawUnitProps(g < 1 ? scaleAbout(TU, g, tpOf(TU, [OPB.BX, 0, OPB.BZ - 24])) : TU, st, 1);
+    }
     function drawUnitProps(TU, st, alpha) {
       if (alpha <= 0.01) return;
       const { BZ, BX, BW, BD, BH } = OPB;
@@ -3017,9 +3093,7 @@ export default function Flourish3D({ side = 'right' }) {
         drawRobot(ROBOTS.fr3, frBase, st.q, 1);
         drawCubes(st, 1);
       } else {
-        const m = smooth(win(t, 0.04, 0.9));
-        const qf = lerpQ(RB.fr.folded, RB.fr.rest, smooth(win(t, 0.3, 0.6)));
-        drawMorph(ROBOTS.soarm, soBase, RB.so.rest, ROBOTS.fr3, frBase, qf, m);
+        drawHandover(ROBOTS.soarm, soBase, RB.so.rest, RB.so.folded, ROBOTS.fr3, frBase, RB.fr.folded, RB.fr.rest, win(t, 0.02, 0.96));
         drawCubes(taskState(ROBOTS.soarm, soBase, RB.so.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
         drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), smooth(win(t, 0.78, 0.2)));
       }
@@ -3036,7 +3110,7 @@ export default function Flourish3D({ side = 'right' }) {
       // Settled, each arm packs its item into the box.
       const frBase = standing(RB.fr.root, RB.fr.k, RB.fr.yaw);
       const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
-      drawFrame(smooth(win(t, 0.1, 0.4)), 1);
+      drawFrame(smooth(win(t, 0.4, 0.4)), 1);            // after the Franka has folded away (it rose through the growing table)
       const live = t >= 1 ? settleU : 0;
       const stR = taskState(ROBOTS.ur5e, rBase, RB.ur.taskR, idleT, live), stL = taskState(ROBOTS.ur5e, lBase, RB.ur.taskL, idleT, live);
       const propsA = t >= 1 ? 1 : smooth(win(t, 0.7, 0.3));
@@ -3045,12 +3119,12 @@ export default function Flourish3D({ side = 'right' }) {
         drawUR(rBase, stR.q, 1); drawUR(lBase, stL.q, 1);
         drawCubes(stR, 1); drawCubes(stL, 1);
       } else {
-        const m = smooth(win(t, 0.04, 0.72));
-        const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(t, 0.3, 0.5)));
-        drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, qr, m);
-        // the gripper appears on the arriving arm's wrist
-        const ga = smooth(win(t, 0.62, 0.25));
-        if (ga > 0.01) drawURGripper(bodyPlacements(ROBOTS.ur5e, rBase, qr)[ROBOTS.ur5e.index.get('wrist3')], 90, ga);
+        const h = win(t, 0.02, 0.8);
+        drawHandover(ROBOTS.fr3, frBase, RB.fr.rest, RB.fr.folded, ROBOTS.ur5e, rBase, RB.ur.folded, RB.ur.restR, h, 0);
+        // the gripper grows on the arriving arm's wrist once the wrist is there
+        const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(h, 0.5, 0.5)));
+        const ga = smooth(win(h, 0.8, 0.2));
+        if (ga > 0.03) drawURGripper(scaleT(bodyPlacements(ROBOTS.ur5e, rBase, qr)[ROBOTS.ur5e.index.get('wrist3')], ga), 90, 1);
         const gL = smooth(win(t, 0.5, 0.4));
         if (gL > 0.01) drawUR(leaning(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), lerpQ(RB.ur.folded, RB.ur.restL, smooth(win(t, 0.6, 0.4))), gL);
         drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
@@ -3069,8 +3143,10 @@ export default function Flourish3D({ side = 'right' }) {
       const u = smooth(t);
       setCam((18 - 2 * u) * DEG, (-22 - 4 * u) * DEG, 0);    // from (18, -22); down to -26 over the box on the table
       const m = smooth(win(t, 0.05, 0.5));
-      drawFrame(1, 1 - m);
-      drawCart(0.5 + 0.5 * m, m);
+      // props GROW and SHRINK in place rather than fading: a half-transparent
+      // frame and table showed everything behind them, ghost-like
+      drawFrame(1 - m, 1);
+      drawCart(m, 1);
       const base = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
       const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
       // the unit's frame at REST: where the URs are heading, where the box goes
@@ -3101,7 +3177,7 @@ export default function Flourish3D({ side = 'right' }) {
           drawUR(leaning(pos, RB.ur.k * (1 - 0.7 * travel), yaw, LEAN * (1 - travel)), rest, out);
         }
       }
-      drawUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
+      growUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
       flush();
     }
 
@@ -3137,23 +3213,29 @@ export default function Flourish3D({ side = 'right' }) {
       }
       const ulBase = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
       const gone = 1 - smooth(win(t, 0.02, 0.3));
-      drawCart(1, gone);
+      drawCart(gone, 1);
       const Tf = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), RB.ul.k);
-      if (gone > 0.01) drawUnitProps(TU, unitTaskState(TU, 0), gone);
+      growUnitProps(TU, unitTaskState(TU, 0), gone);
       const fa = 1 - smooth(win(t, 0.12, 0.4));
       if (fa > 0.01) drawRobot(ROBOTS.ultra, ulBase, lerpQ(RB.ul.rest, RB.ul.folded, smooth(win(t, 0.08, 0.45))), fa, { zed: 0 });
       const travel = smooth(win(t, 0.12, 0.6));
       const Tt = bodyPlacements(g1, base, H.rest)[torso];
       const TL = lerpT(TU, Tt, travel, RB.ul.k, RB.hum.k);
       const ua = 1 - smooth(win(t, 0.45, 0.3));
-      if (ua > 0.01) drawUnit(TL, RB.ul.unit.R[0], RB.ul.unit.L[0], ua);
+      if (ua > 0.03) drawUnit(scaleT(TL, ua), RB.ul.unit.R[0], RB.ul.unit.L[0], 1);
       const ga = smooth(win(t, 0.38, 0.25));
-      if (ga > 0.01) {
+      if (ga > 0.03) {
         const q = lerpQ(H.folded, H.rest, smooth(win(t, 0.3, 0.42)));
         const Tq = bodyPlacements(g1, base, q)[torso];
         const gBase = chain(TL, invT(chain(invT(base), Tq)));
-        drawRobot(g1, gBase, q, ga, growOrder(HUM_ORDER, t, 0.35, 0.38));
+        // the trunk grows about the torso (where the unit is shrinking), and
+        // the limbs grow out of it joint by joint, parent first — scale, not
+        // fade: a growing body's scale carries into its children, so the
+        // Atlas's root (the PELVIS) and the trunk above it must be whole
+        // before a limb can show
+        const gr = growOrder(HUM_ORDER.slice(6), t, 0.42, 0.34);
+        drawRobot(g1, scaleAbout(gBase, ga, TL.t), q, 1, gr);
       }
       drawFloorMark(base, smooth(win(t, 0.72, 0.28)));
       flush();

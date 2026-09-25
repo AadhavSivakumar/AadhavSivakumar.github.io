@@ -46,17 +46,60 @@ function useNearViewport(ref, margin = '600px') {
   return near;
 }
 
+// Can this browser make a WebGL context at all? Checked once. Where it cannot
+// (GPU blocklisted, hardware acceleration off, a remote session) the 3D badge
+// used to render NOTHING — the error boundary's fallback was null — and the
+// owner reported "I can no longer see the lanyards". Now the badge is drawn
+// flat instead (BadgeFallback), so it is never silently missing.
+let webglOK = null;
+const canWebGL = () => {
+  if (webglOK !== null) return webglOK;
+  try { const c = document.createElement('canvas'); webglOK = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webglOK = false; }
+  return webglOK;
+};
+
+// The flat badge: the same card, photo, name, role, ID and EXP, on a strap.
+function BadgeFallback({ card }) {
+  const b = card.badge;
+  return (
+    <div className="badge-flat">
+      <span className="badge-flat__strap" />
+      <div className="badge-flat__card">
+        <img src={card.image} alt="" className="badge-flat__photo" />
+        <strong className="badge-flat__name">{b.name}</strong>
+        <span className="badge-flat__role">{b.role}</span>
+        <span className="badge-flat__meta"><b>ID</b> {b.id}<br /><b>EXP</b> {b.exp}</span>
+      </div>
+    </div>
+  );
+}
+
 function RowLanyard({ badgeName, wide, index }) {
   const ref = useRef(null);
   const near = useNearViewport(ref);
+  const [lost, setLost] = useState(false);
   const card = badgeByName[badgeName];
+  // a context LOST later (the GPU process resets, too many contexts) is not
+  // an exception, so the error boundary never sees it; watch the canvas
+  useEffect(() => {
+    if (!wide || !near) return undefined;
+    let canvas = null;
+    const onLost = () => setLost(true);
+    const t = setInterval(() => {
+      canvas = ref.current && ref.current.querySelector('canvas');
+      if (canvas) { canvas.addEventListener('webglcontextlost', onLost); clearInterval(t); }
+    }, 500);
+    return () => { clearInterval(t); if (canvas) canvas.removeEventListener('webglcontextlost', onLost); };
+  }, [wide, near]);
   if (!card) return null;
+  const flat = !canWebGL() || lost;
   return (
     <div ref={ref} className={`exp-lanyard exp-lanyard--${index}`} aria-hidden="true">
-      {wide && near && (
+      {wide && near && flat && <BadgeFallback card={card} />}
+      {wide && near && !flat && (
         // The boundary sits OUTSIDE the Suspense so it catches both a WebGL
         // context that cannot be created and a failed fetch of the lazy chunk.
-        <ErrorBoundary label={`Lanyard (${badgeName})`}>
+        <ErrorBoundary label={`Lanyard (${badgeName})`} fallback={<BadgeFallback card={card} />}>
           <Suspense fallback={null}>
             <Lanyard
               position={[0, 0, 30]}

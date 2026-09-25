@@ -1224,13 +1224,13 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 .exp-page { --exp-row-h: clamp(270px, calc((100svh - 80px - 56px - 96px - 16px) / 2), 400px); }
 /* wider than the other wide pages: the owner asked for wider Experience and
    Research cards, and the badge columns beside them are slimmer (180px) */
-.page--wide.exp-page { max-width: 1480px; }
+.page--wide.exp-page { max-width: 1760px; padding-left: clamp(16px, 2.5vw, 48px); padding-right: clamp(16px, 2.5vw, 48px); }   /* wider still, and less side padding: at 1480 with 5% padding the owner found it "squished horizontally" */
 /* Cards in the middle column, one per row; each badge in a side column
    spanning BOTH rows — the first on the right, top-aligned beside the first
    card, the second on the left, bottom-aligned beside the second. */
 .exp-grid {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr) 180px;
+  grid-template-columns: 200px minmax(0, 1fr) 200px;
   grid-template-rows: auto auto;
   column-gap: 22px;
   row-gap: 16px;
@@ -1258,7 +1258,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   /* 72% of the old 600: the column went 250 -> 180px and the badge is sized
      by the canvas HEIGHT, so this keeps the same fit (and the drag clamp's
      margins) in the narrower column — a smaller, slimmer badge */
-  height: clamp(340px, calc(1.44 * var(--exp-row-h) - 14px), 432px);
+  height: clamp(372px, calc(1.6 * var(--exp-row-h) - 16px), 480px);   /* 0.8 of the 600px it was tuned at, as the column is 0.8 of 250 */
   border-radius: 10px;
   overflow: hidden;
   touch-action: pan-y;
@@ -1289,7 +1289,18 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    text in `.exp-body` on the left. The video is absolutely positioned inside
    its cell so it never adds to the row height — the page still has to fit
    one screen. On a phone it goes above the text at 16:9. */
-.exp-card--media { display: grid; grid-template-columns: minmax(0, 1fr) clamp(240px, 44%, 440px); column-gap: 20px; align-items: stretch; }
+.exp-card--media { display: grid; grid-template-columns: minmax(0, 1fr) clamp(240px, 42%, 460px); column-gap: 22px; align-items: stretch; }
+/* the flat badge (no WebGL, or a lost context): same card, on a strap */
+.badge-flat { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; padding-top: 18px; }
+.badge-flat__strap { width: 3px; height: 70px; background: #1b1b1b; border-radius: 2px; }
+.badge-flat__card { width: 72%; max-width: 150px; aspect-ratio: 5 / 7; background: #2b2b2b; color: #f3efe7; border-radius: 10px; padding: 12px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; box-shadow: 0 10px 22px rgba(0,0,0,0.25); transform: rotate(-2deg); }
+html[data-theme="dark"] .badge-flat__card { background: #eeeae2; color: #1d1d1d; }
+html[data-theme="dark"] .badge-flat__strap { background: #d9d4ca; }
+.badge-flat__photo { width: 62%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; background: #fff; }
+.badge-flat__name { font-size: 1rem; margin-top: 4px; }
+.badge-flat__role { font-size: 0.66rem; opacity: 0.8; text-align: center; }
+.badge-flat__meta { font-size: 0.62rem; line-height: 1.5; margin-top: auto; align-self: flex-end; }
+.badge-flat__meta b { color: #c5a35c; margin-right: 4px; }
 .exp-body { display: flex; flex-direction: column; min-width: 0; }
 /* The text column lost a third of its width to the video, so the type comes
    down a step and the tag row holds four: the UCSC card's organisation,
