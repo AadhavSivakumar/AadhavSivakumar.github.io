@@ -2715,7 +2715,8 @@ export default function Flourish3D({ side = 'right' }) {
     const HUM_UP = humWave(HUM_WAVE_ELX, 0, -0.1), HUM_A = humWave(HUM_WAVE_ELX - 0.45, 0.3, -0.12), HUM_B = humWave(HUM_WAVE_ELX + 0.35, -0.3, -0.12);
     // packed, as it comes out of the unit: crouched, arms folded in
     const HUM_FOLDED = humMap(legs(-1.2, 2.1, -0.9), { mtorso: 0.35 }, armL([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]), armR([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]));
-    RB.hum = { k: 0.25, root: [10, 236], yaw: 255, restMap: HUM_REST, foldedMap: HUM_FOLDED,
+    RB.hum = { k: 0.25, root: [10, 236], yaw: 255,   // 255 faces the reader (the head's sensor face shows); 75 showed the back of the cage
+               restMap: HUM_REST, foldedMap: HUM_FOLDED,
                // stand, raise the hand, three waves, lower it, stand: 8 s
                waveMaps: [HUM_REST, HUM_REST, HUM_UP, HUM_A, HUM_B, HUM_A, HUM_B, HUM_A, HUM_B, HUM_UP, HUM_REST, HUM_REST], period: 8 };
     // the maps become q vectors once the robot is loaded (they need its body order)
@@ -2785,7 +2786,7 @@ export default function Flourish3D({ side = 'right' }) {
     // draw robot A turning into robot B. `u` 0..1 over the act; each body gets
     // its own window, base first (BODY_STAGGER of the act), so the machine
     // changes from the ground up.
-    const BODY_STAGGER = 0.12;   // was 0.45: with the base already at B and the tip still at A, links travelled apart and floated loose
+    const BODY_STAGGER = 0.25;   // was 0.45: with the base already at B and the tip still at A, links travelled apart and floated loose
     // SIZE is matched on screen, not in the matrix: an SO-ARM servo at 0.66
     // px/mm and a Franka link at 0.33 are a similar size on the stage, so the
     // travelling body starts at the size of the part it replaces and grows or
@@ -3093,7 +3094,10 @@ export default function Flourish3D({ side = 'right' }) {
         drawRobot(ROBOTS.fr3, frBase, st.q, 1);
         drawCubes(st, 1);
       } else {
-        drawHandover(ROBOTS.soarm, soBase, RB.so.rest, RB.so.folded, ROBOTS.fr3, frBase, RB.fr.folded, RB.fr.rest, win(t, 0.02, 0.96));
+        // a real MORPH (the owner: "have it actually morph into the next one…
+        // just make it fluid"): each link travels, turns and resizes into its
+        // partner, opaque, crossfading by scale
+        drawMorph(ROBOTS.soarm, soBase, RB.so.rest, ROBOTS.fr3, frBase, lerpQ(RB.fr.folded, RB.fr.rest, smooth(win(t, 0.3, 0.6))), smooth(win(t, 0.04, 0.9)));
         drawCubes(taskState(ROBOTS.soarm, soBase, RB.so.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
         drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), smooth(win(t, 0.78, 0.2)));
       }
@@ -3120,7 +3124,7 @@ export default function Flourish3D({ side = 'right' }) {
         drawCubes(stR, 1); drawCubes(stL, 1);
       } else {
         const h = win(t, 0.02, 0.8);
-        drawHandover(ROBOTS.fr3, frBase, RB.fr.rest, RB.fr.folded, ROBOTS.ur5e, rBase, RB.ur.folded, RB.ur.restR, h, 0);
+        drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(h, 0.3, 0.6))), smooth(h));
         // the gripper grows on the arriving arm's wrist once the wrist is there
         const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(h, 0.5, 0.5)));
         const ga = smooth(win(h, 0.8, 0.2));

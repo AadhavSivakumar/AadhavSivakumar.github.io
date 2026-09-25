@@ -229,12 +229,15 @@ function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, .
   const anchorXOf = c => (c.side === 'center' ? 0 : (inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1));
   // Staggered hang height (see slotRise/hangJitter). The delta scales with the
   // badge size so the cascade stays proportional across sizeMul values.
-  const anchorYOf = c => SLOT_BASE_Y + (slotRise(c.slot || 0) + hangJitter(c.badge?.name)) * sizeMul;
+  // `drop` hangs a badge that many ROWS lower: the Experience canvas spans two
+  // card rows (+ the gap), so one row is ~0.51 of its height
+  const anchorYOf = c => SLOT_BASE_Y + (slotRise(c.slot || 0) + hangJitter(c.badge?.name)) * sizeMul - (c.dropPx || 0) * (viewport.height / size.height);
   const anchors = shown.map(c => ({ x: anchorXOf(c), y: anchorYOf(c) }));
 
   return (
     <>
-      <LanyardRack anchors={anchors} sizeMul={sizeMul} />
+      {/* a small board per pin: one board spanning a column of badges read as a wall */}
+      {anchors.map((a, i) => <LanyardRack key={i} anchors={[a]} sizeMul={sizeMul} />)}
       {shown.map((c, i) => (
         <Band
           key={`${c.badge?.name || i}@${stamp}`}
@@ -969,10 +972,9 @@ function Band({
                 emissiveMap={cardMap}
                 emissive="#ffffff"
                 emissiveIntensity={theme === 'dark' ? 0.18 : 0.55}
-                envMapIntensity={0.45}
-                clearcoat={isMobile ? 0 : 0.10}
-                clearcoatRoughness={0.5}
-                roughness={0.72}
+                envMapIntensity={0.12}
+                clearcoat={0}
+                roughness={0.95}
                 metalness={0.04}
               />
             </mesh>

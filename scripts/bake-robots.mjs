@@ -630,9 +630,9 @@ const ROBOTS = {
   // glTF visuals, Y-up). Thirty revolute joints; the left arm is the right
   // arm's meshes turned round (its joints carry rpy π), not mirrored.
   atlas: {
-    dir: 'drake_models/atlas', meshdir: 'meshes', kind: 'gltf', gltfYUp: true, budget: 200,
+    dir: 'drake_models/atlas', meshdir: 'meshes', kind: 'gltf', gltfYUp: true, budget: 480,
     bodies: ROOT ? bodiesFromURDF(path.join(ROOT, 'drake_models/atlas/atlas_minimal_contact.urdf'),
-      link => /torso|pelvis|glut|clav|scap|foot|hand|head|hokuyo/.test(link) ? 'black' : 'linkgray') : [],
+      link => /torso|pelvis|glut|clav|scap|foot|hand|head|hokuyo/.test(link) ? 'black' : 'black') : [],   // all dark metal, like the real robot: pale limbs read as ghosts
   },
   ur5e: {
     dir: 'universal_robots_ur5e', kind: 'obj', budget: 285,
@@ -695,7 +695,7 @@ for (const [id, R] of Object.entries(ROBOTS)) {
         'torso_link_rev_1_0.STL': 400, 'pelvis.STL': 240, 'pelvis_contour_link.STL': 160, 'head_link.STL': 200, 'logo_link.STL': 40,
         'left_rubber_hand.STL': 240, 'right_rubber_hand.STL': 240, 'waist_yaw_link_rev_1_0.STL': 120, 'waist_roll_link_rev_1_0.STL': 120,
         // the Atlas: the torso is most of what you see; the head and hands are what read
-        'utorso.gltf': 520, 'pelvis.gltf': 260, 'head.gltf': 260, 'r_hand.gltf': 220, 'head_camera.gltf': 80,
+        'utorso.gltf': 1800, 'pelvis.gltf': 700, 'head.gltf': 800, 'r_hand.gltf': 500, 'head_camera.gltf': 200,
         'hand_2.obj': 240, 'hand_3.obj': 285, 'hand_1.obj': 140, 'hand_4.obj': 140, 'hand_0.obj': 50, 'finger_0.obj': 110, 'finger_1.obj': 90, 'link0.obj': 1350 };
       const fileBudget = id === 'd435i' ? (CAM_BUDGET[file] ?? 110) : (HAND_BUDGET[file] ?? budget);
       for (const g of groups) {

@@ -74,11 +74,27 @@ function BadgeFallback({ card }) {
   );
 }
 
-function RowLanyard({ badgeName, wide, index }) {
+// ONE canvas in the left column, spanning both rows, holding BOTH badges:
+// the first hangs beside the first card, the second is hung one row lower so
+// it sits beside the second card (the owner: "make the starship id badge align
+// with the starship card… put all of the lanyards on the left side"). One tall
+// canvas rather than one per row, because the canvas HEIGHT sets the badge's
+// size, and a row-high canvas drew each badge at half its size.
+function RowLanyard({ badgeNames, wide }) {
   const ref = useRef(null);
   const near = useNearViewport(ref);
   const [lost, setLost] = useState(false);
-  const card = badgeByName[badgeName];
+  const cards = badgeNames.map(n => badgeByName[n]).filter(Boolean);
+  const card = cards[0];
+  // one card row + the grid gap, in px: how far below the first badge the
+  // second hangs, so each is level with its own card
+  const [rowPx, setRowPx] = useState(0);
+  useEffect(() => {
+    const grid = ref.current && ref.current.parentElement;
+    const measure = () => { const c = grid && grid.querySelectorAll('.exp-card'); if (c && c.length > 1) setRowPx(c[1].getBoundingClientRect().top - c[0].getBoundingClientRect().top); };
+    measure(); window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   // a context LOST later (the GPU process resets, too many contexts) is not
   // an exception, so the error boundary never sees it; watch the canvas
   useEffect(() => {
@@ -94,19 +110,19 @@ function RowLanyard({ badgeName, wide, index }) {
   if (!card) return null;
   const flat = !canWebGL() || lost;
   return (
-    <div ref={ref} className={`exp-lanyard exp-lanyard--${index}`} aria-hidden="true">
-      {wide && near && flat && <BadgeFallback card={card} />}
-      {wide && near && !flat && (
+    <div ref={ref} className="exp-lanyard exp-lanyard--pair" aria-hidden="true">
+      {wide && near && flat && cards.map((c, i) => <div key={i} className="badge-flat-slot">{<BadgeFallback card={c} />}</div>)}
+      {wide && near && !flat && rowPx > 0 && (
         // The boundary sits OUTSIDE the Suspense so it catches both a WebGL
         // context that cannot be created and a failed fetch of the lazy chunk.
-        <ErrorBoundary label={`Lanyard (${badgeName})`} fallback={<BadgeFallback card={card} />}>
+        <ErrorBoundary label={`Lanyard (${badgeNames.join(', ')})`} fallback={cards.map((c, i) => <div key={i} className="badge-flat-slot"><BadgeFallback card={c} /></div>)}>
           <Suspense fallback={null}>
             <Lanyard
               position={[0, 0, 30]}
               gravity={[0, -40, 0]}
-              cards={[{ ...card, side: 'center', slot: 0 }]}
+              cards={cards.map((c, i) => ({ ...c, side: 'center', slot: 0, dropPx: i * rowPx - 45 }))}
               clearCenterPx={0}
-              sizeMul={2.05}
+              sizeMul={0.9}
               lanyardWidth={0.32}
             />
           </Suspense>
@@ -199,12 +215,8 @@ export default function Experience({ id, title, group, onCardClick, next }) {
           IS the badge size — see .exp-lanyard) while two rows share one
           screen. */}
       <div className="exp-grid">
-        {rows.map((item, i) => (
-          <React.Fragment key={item.id}>
-            <ExperienceCard item={item} index={i} onCardClick={onCardClick} />
-            <RowLanyard badgeName={item.badge} wide={wide} index={i} />
-          </React.Fragment>
-        ))}
+        {rows.map((item, i) => <ExperienceCard key={item.id} item={item} index={i} onCardClick={onCardClick} />)}
+        <RowLanyard badgeNames={rows.map(r => r.badge)} wide={wide} />
       </div>
       {next && <PageNext to={next.to} label={next.label} />}
     </section>

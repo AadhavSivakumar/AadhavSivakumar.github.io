@@ -1224,19 +1224,25 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
 .exp-page { --exp-row-h: clamp(270px, calc((100svh - 80px - 56px - 96px - 16px) / 2), 400px); }
 /* wider than the other wide pages: the owner asked for wider Experience and
    Research cards, and the badge columns beside them are slimmer (180px) */
-.page--wide.exp-page { max-width: 1760px; padding-left: clamp(16px, 2.5vw, 48px); padding-right: clamp(16px, 2.5vw, 48px); }   /* wider still, and less side padding: at 1480 with 5% padding the owner found it "squished horizontally" */
+.page--wide.exp-page { max-width: 1440px; padding-left: clamp(16px, 2.5vw, 48px); padding-right: clamp(16px, 2.5vw, 48px); }   /* wider still, and less side padding: at 1480 with 5% padding the owner found it "squished horizontally" */
 /* Cards in the middle column, one per row; each badge in a side column
    spanning BOTH rows — the first on the right, top-aligned beside the first
    card, the second on the left, bottom-aligned beside the second. */
 .exp-grid {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr) 200px;
+  grid-template-columns: 210px minmax(0, 1fr);
   grid-template-rows: auto auto;
   column-gap: 22px;
   row-gap: 16px;
   width: 100%;
 }
 .exp-card--0 { grid-column: 2; grid-row: 1; }
+/* all badges on the LEFT, one canvas spanning both rows, each badge level
+   with its card (see RowLanyard) */
+/* the canvas reaches up into the empty space beside the title, so the pins
+   sit above the cards and each badge hangs level with its card */
+.exp-lanyard.exp-lanyard--pair { grid-column: 1; grid-row: 1 / span 2; align-self: stretch; height: auto; margin-top: -150px; overflow: visible; }
+.exp-lanyard--pair .badge-flat-slot { position: relative; height: 50%; }
 .exp-card--1 { grid-column: 2; grid-row: 2; }
 .exp-lanyard--0 { grid-column: 3; grid-row: 1 / span 2; align-self: start; }
 .exp-lanyard--1 { grid-column: 1; grid-row: 1 / span 2; align-self: start; }   /* both badges hang from the top (the owner: "higher up"); it was bottom-aligned beside the second card */
@@ -1263,7 +1269,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   overflow: hidden;
   touch-action: pan-y;
 }
-@media (max-width: 1180px) { .exp-grid { grid-template-columns: 160px minmax(0, 1fr) 160px; column-gap: 16px; } }
+@media (max-width: 1180px) { .exp-grid { grid-template-columns: 170px minmax(0, 1fr); column-gap: 16px; } }
 @media (max-width: 991px) {
   /* No lanyard below 992px — the 3D stack is not downloaded there at all — so
      the cards take the whole width. */
