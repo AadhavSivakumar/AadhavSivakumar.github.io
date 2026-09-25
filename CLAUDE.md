@@ -1326,6 +1326,25 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 30: the GL Atlas is the current PRODUCT Atlas** (the product page's
+collage and warehouse render): graphite body, blue shells (chest front panel,
+side panels, upper arms, thighs, head shell), graphite forearms and shins,
+huge black rounded shoulder blocks, a ribbed black waist, lateral black hip,
+knee and ankle drums, three-finger dark grippers, long black feet with a round
+heel, and a warm-white ring light round a glossy black visor with a sensor
+slot. The visor sits PROUD of the head shell's face (inside it, the lathe's
+closed front hid it). **The modal's media is SHARED**: App passes the card's
+picture/video rect, src and playback time (`mediaOf`); the modal lays its
+content out at the FINAL size from the start (`.modal-content` sized to
+`finalRect()`), measures its own `.modal-image` slot, and flies a copy
+(`.modal-flyer`, still playing) from the card's slot to the modal's on open
+and back on close, both originals hidden while it is in the air. Experience
+rows put their video in `imageUrl` so it is that top slot. The close now
+shrinks the surface straight onto the card's exact rectangle with the card
+copy at its TRUE size (it used to scale the copy uniformly against a
+non-uniform surface, then drop from a lifted pose), reveals the card, and
+fades off it in 0.12s.
+
 **The modal close lands without a jump**: `collapse` → `onLanding` (App
 reveals the real card INSTANTLY, transition suppressed — its own un-hide
 transition, a fade and grow from 95%, ran after the copy vanished and was the

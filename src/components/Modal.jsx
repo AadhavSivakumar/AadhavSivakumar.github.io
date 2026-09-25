@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 
 const EXPAND_EASE = [0.22, 1, 0.36, 1];
@@ -29,7 +29,7 @@ function finalRect() {
 // -> open (content staggers in). Close runs the same steps in reverse:
 // departing (content staggers out) -> collapse (shrinks back to the card)
 // -> settle (drops back onto the page and hands off to the real card).
-export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, onLanding, onClose }) {
+export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, onLanding, onClose }) {
   const [phase, setPhase] = useState('closed');
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -57,6 +57,20 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }, []);
   const savedRect = useRef(null);
+  const contentRef = useRef(null);
+  const wrapRef = useRef(null);
+  const flyVid = useRef(null);
+  // where the modal's own media sits, in viewport px, once the modal is at its
+  // final size (the content is laid out at that size from the start)
+  const mediaTarget = () => {
+    const el = contentRef.current && contentRef.current.querySelector('.modal-image');
+    if (!el) return null;
+    let x = 0, y = 0, n = el;
+    while (n && n !== contentRef.current) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+    const fr = finalRect();
+    const sc = wrapRef.current ? wrapRef.current.scrollTop : 0;
+    return { top: fr.top + y - sc, left: fr.left + x, width: el.offsetWidth, height: el.offsetHeight };
+  };
 
   useEffect(() => {
     if (isOpen && cardRect && phase === 'closed') {
@@ -66,12 +80,21 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     }
   }, [isOpen, cardRect, phase]);
 
+  const closeFrom = useRef(null);
+  // the flight's target needs the content mounted: re-render once after the
+  // first (lift) paint so the flyer starts with the lift, not after it
+  const [, force] = useState(0);
+  useLayoutEffect(() => { if (phase === 'lift') force(x => x + 1); if (phase === 'open' || phase === 'closed') flyVid.current = null; }, [phase]);
   const handleClose = useCallback(() => {
+    // where the modal's media is right now (it may have been scrolled)
+    const el = contentRef.current && contentRef.current.querySelector('.modal-image');
+    if (el) { const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height }; if (media && el.tagName === 'VIDEO') media.time = el.currentTime; }
+    flyVid.current = null;
     // straight to collapse: the content fades out WHILE the surface shrinks and
     // the card copy fades back in, instead of an empty modal waiting 260ms for
     // its content to leave first (the close "isn't fully smooth")
     setPhase((p) => (p === 'open' ? 'collapse' : p));
-  }, []);
+  }, [media]);
 
   // Give the content stagger-out a moment before collapsing the surface.
   useEffect(() => {
@@ -116,13 +139,16 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     expand: expanded,
     open: expanded,
     departing: expanded,
-    collapse: { ...lifted, transition: { duration: 0.55, ease: EXPAND_EASE } },
+    // CLOSE: shrink straight onto the card's own rectangle (no lifted stop on
+    // the way), the card copy inside at its true size, so the surface and the
+    // copy arrive together and match the real card pixel for pixel
+    collapse: { top: r.top, left: r.left, width: r.width, height: r.height, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0.12)', transition: { duration: 0.48, ease: EXPAND_EASE } },
     settle: {
       top: r.top,
       scale: 1,
-      opacity: 0,                   // lands on the card, which is already revealed underneath (onLanding), and fades off it
+      opacity: 0,                   // already ON the card, which is revealed underneath (onLanding): a quick fade, no movement
       boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
-      transition: { top: { duration: 0.3, ease: EXPAND_EASE }, scale: { duration: 0.3, ease: EXPAND_EASE }, boxShadow: { duration: 0.3 }, opacity: { duration: 0.22, delay: 0.24 } },
+      transition: { duration: 0.12, ease: 'linear' },
     },
   };
 
@@ -297,8 +323,19 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // page and turn into the modal.")
   const ghostOn = phase === 'lift' || phase === 'collapse' || phase === 'settle';
   const fr = finalRect();
+  // on open the copy grows with the surface; on close it is at its TRUE size
+  // from the start (the surface shrinks onto it), so the two never disagree
   const ghostScale = phase === 'expand' || phase === 'open' || phase === 'departing' ? Math.min(fr.width / r.width, fr.height / r.height) : 1;
   const contentOn = phase === 'expand' || phase === 'open';
+  // THE SHARED MEDIA: a copy of the card's picture/video flies from the card's
+  // media rectangle to the modal's (open) and back (close), still playing,
+  // while both the card copy's media and the modal's own are hidden. (The
+  // owner: "The video section from the card should just transition into the
+  // video section of the modal, not just disappear and reappear.")
+  const flying = !!media && (phase === 'lift' || phase === 'expand' || phase === 'collapse');
+  const tgt = flying ? mediaTarget() : null;
+  const flyTo = phase === 'collapse' ? media && media.rect : tgt;
+  const flyFrom = phase === 'collapse' ? (closeFrom.current || tgt) : media && media.rect;
 
   return (
     <>
@@ -331,11 +368,13 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             // the scale runs on the SAME clock as the surface (0.6 open, 0.55
             // close) so the copy never over- or under-fills it; on close it
             // fades in at once, as the content fades out
-            transition={{ opacity: { duration: 0.28, delay: phase === 'collapse' ? 0 : ghostOn ? 0.15 : 0.1 }, scale: { duration: phase === 'collapse' ? 0.55 : 0.6, ease: EXPAND_EASE } }}
+            transition={phase === 'collapse' || phase === 'settle'
+              ? { opacity: { duration: 0.3, delay: 0.08 }, scale: { duration: 0 } }
+              : { opacity: { duration: 0.28, delay: ghostOn ? 0.15 : 0.1 }, scale: { duration: 0.6, ease: EXPAND_EASE } }}
             dangerouslySetInnerHTML={{ __html: cardHTML }}
           />
         )}
-        <div className="modal-content">
+        <div className={`modal-content${flying ? ' is-flying' : ''}`} ref={contentRef} style={{ width: fr.width, height: fr.height }}>
           <motion.button
             className="modal-close"
             ref={closeRef}
@@ -347,6 +386,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             &times;
           </motion.button>
           <motion.div
+            ref={wrapRef}
             className="modal-content-wrapper"
             variants={contentContainer}
             initial="hidden"
@@ -356,6 +396,20 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
           </motion.div>
         </div>
       </motion.div>
+      {flying && flyFrom && flyTo && (
+        <motion.div
+          key={phase === 'collapse' ? 'fly-close' : 'fly-open'}
+          className="modal-flyer"
+          style={{ borderRadius: media.radius }}
+          initial={flyFrom}
+          animate={flyTo}
+          transition={{ duration: phase === 'collapse' ? 0.48 : 0.85, ease: EXPAND_EASE }}
+        >
+          {media.isVideo
+            ? <video ref={v => { if (v && !flyVid.current) { flyVid.current = v; try { v.currentTime = media.time || 0; } catch {} } }} src={media.src} poster={media.poster} autoPlay muted loop playsInline />
+            : <img src={media.src} alt="" />}
+        </motion.div>
+      )}
     </>
   );
 }

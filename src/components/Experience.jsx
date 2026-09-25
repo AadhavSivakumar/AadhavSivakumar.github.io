@@ -136,8 +136,8 @@ function RowLanyard({ badgeNames, wide }) {
 const toModal = item => ({
   id: item.id,
   title: item.role,
+  imageUrl: item.video,             // the card's video is the modal's top media (and flies into it)
   modalContent: [
-    item.video && { type: 'video', value: item.video },
     { type: 'meta', value: [item.org, item.location, item.period].filter(Boolean).join('  ·  ') },
     item.degree && { type: 'meta', value: item.degree },
     item.summary && { type: 'text', value: item.summary },

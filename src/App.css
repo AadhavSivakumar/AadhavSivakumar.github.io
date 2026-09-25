@@ -1445,3 +1445,12 @@ html[data-theme="dark"] .badge-flat__strap { background: #d9d4ca; }
 .modal-animator .modal-ghost { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 2; margin: 0; box-shadow: none !important; transform: none; }
 .modal-animator .modal-ghost.exp-card { min-height: 0; }
 .modal-dynamic-video { width: 100%; max-height: 52vh; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; background: #111; display: block; margin: 0 0 14px; }
+
+/* the shared media (Modal.jsx): the flying copy, and both originals hidden
+   while it is in the air */
+.modal-flyer { position: fixed; z-index: 2003; overflow: hidden; pointer-events: none; background: #111; }
+.modal-flyer video, .modal-flyer img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.modal-content.is-flying .modal-image { visibility: hidden; }
+.modal-animator .modal-ghost .exp-media, .modal-animator .modal-ghost video, .modal-animator .modal-ghost img { visibility: hidden; }
+/* a stable 16:9 slot for the media, so the flight's target is known before it loads */
+.modal-animator .modal-image { aspect-ratio: 16 / 9; object-fit: cover; }

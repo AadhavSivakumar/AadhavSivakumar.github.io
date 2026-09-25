@@ -51,6 +51,19 @@ function App() {
   useEffect(() => (new URLSearchParams(window.location.search).has('nosnap') ? undefined : startScrollSnap()), []);
 
 
+  // the card's picture or video, where it is on screen and what it shows, so
+  // the modal can fly it into its own media slot (and back on close)
+  const mediaOf = el => {
+    const m = el.querySelector('.exp-media video, .exp-media img, video, img');
+    if (!m) return null;
+    const r = m.getBoundingClientRect();
+    if (r.width < 20 || r.height < 20) return null;
+    const isVideo = m.tagName === 'VIDEO';
+    return { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
+             src: isVideo ? (m.currentSrc || m.getAttribute('src')) : m.currentSrc || m.src, poster: isVideo ? m.poster : '', time: isVideo ? m.currentTime : 0,
+             radius: getComputedStyle(m.closest('.exp-media') || m).borderRadius || '8px' };
+  };
+
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
     const rect = cardElement.getBoundingClientRect();
     // Add animating-out class to card for visual effect
@@ -65,6 +78,7 @@ function App() {
       // the page and growing, rather than an empty surface
       cardHTML: cardElement.innerHTML,
       cardClass: cardElement.className.replace('animating-out', ''),
+      media: mediaOf(cardElement),
     });
   }, []);
 
@@ -149,6 +163,7 @@ function App() {
         cardRect={modalState.cardRect}
         cardHTML={modalState.cardHTML}
         cardClass={modalState.cardClass}
+        media={modalState.media}
         onLanding={revealCard}
         onClose={handleModalClose}
       />
