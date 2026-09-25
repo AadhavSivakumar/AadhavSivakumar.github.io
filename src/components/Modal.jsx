@@ -6,11 +6,11 @@ const EXPAND_EASE = [0.22, 1, 0.36, 1];
 // Content population: children stagger in once the modal is fully expanded,
 // and stagger back out (quickly, in reverse) before it collapses.
 const contentContainer = {
-  hidden: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
+  hidden: { transition: { staggerChildren: 0.01, staggerDirection: -1 } },
   show: { transition: { staggerChildren: 0.06, delayChildren: 0.28 } },   // starts while the surface is still growing, as the card copy fades
 };
 const contentItem = {
-  hidden: { opacity: 0, y: 24, transition: { duration: 0.18, ease: 'easeIn' } },
+  hidden: { opacity: 0, y: 12, transition: { duration: 0.16, ease: 'easeIn' } },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EXPAND_EASE } },
 };
 
@@ -67,7 +67,10 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   }, [isOpen, cardRect, phase]);
 
   const handleClose = useCallback(() => {
-    setPhase((p) => (p === 'open' ? 'departing' : p));
+    // straight to collapse: the content fades out WHILE the surface shrinks and
+    // the card copy fades back in, instead of an empty modal waiting 260ms for
+    // its content to leave first (the close "isn't fully smooth")
+    setPhase((p) => (p === 'open' ? 'collapse' : p));
   }, []);
 
   // Give the content stagger-out a moment before collapsing the surface.
@@ -113,13 +116,13 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     expand: expanded,
     open: expanded,
     departing: expanded,
-    collapse: { ...lifted, transition: { duration: 0.5, ease: EXPAND_EASE } },
+    collapse: { ...lifted, transition: { duration: 0.55, ease: EXPAND_EASE } },
     settle: {
       top: r.top,
       scale: 1,
       opacity: 1,                   // it lands AS the card (the ghost below), which is then un-hidden underneath
       boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
-      transition: { duration: 0.24, ease: 'easeIn' },
+      transition: { duration: 0.3, ease: EXPAND_EASE },
     },
   };
 
@@ -325,7 +328,10 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             style={{ width: r.width, height: r.height, transformOrigin: '0 0' }}
             initial={{ opacity: 1, scale: 1 }}
             animate={{ opacity: ghostOn ? 1 : 0, scale: ghostScale }}
-            transition={{ opacity: { duration: ghostOn ? 0.3 : 0.35, delay: ghostOn ? 0.15 : 0.1 }, scale: { duration: 0.6, ease: EXPAND_EASE } }}
+            // the scale runs on the SAME clock as the surface (0.6 open, 0.55
+            // close) so the copy never over- or under-fills it; on close it
+            // fades in at once, as the content fades out
+            transition={{ opacity: { duration: 0.28, delay: phase === 'collapse' ? 0 : ghostOn ? 0.15 : 0.1 }, scale: { duration: phase === 'collapse' ? 0.55 : 0.6, ease: EXPAND_EASE } }}
             dangerouslySetInnerHTML={{ __html: cardHTML }}
           />
         )}

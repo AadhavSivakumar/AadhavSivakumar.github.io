@@ -3223,11 +3223,31 @@ export default function Flourish3D({ side = 'right' }) {
       const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
       return { T: place([x[0] * k, y[0] * k, z[0] * k, x[1] * k, y[1] * k, z[1] * k, x[2] * k, y[2] * k, z[2] * k], p0), L: L / k };
     };
-    const ATLAS_BONES = [   // [from body, to body, radius mm, joint radius at `to`]
-      ['l_scap', 'l_larm', 62, 58], ['r_scap', 'r_larm', 62, 58],
-      ['l_larm', 'l_hand', 50, 44], ['r_larm', 'r_hand', 50, 44],
-      ['l_lglut', 'l_lleg', 88, 74], ['r_lglut', 'r_lleg', 88, 74],
-      ['l_lleg', 'l_talus', 66, 52], ['r_lleg', 'r_talus', 66, 52],
+    // Lathe-turned solids, cached by profile: tapered, rounded limbs and a
+    // barrel chest instead of boxes and plain cylinders (the owner: "why is the
+    // atlas model so low poly… improve it a lot"). `sx`/`sy` flatten a solid
+    // into an oval section (normals are not re-derived for the squash; the
+    // shading error at 1.3:1 is invisible).
+    const LATHE = new Map();
+    const lathe = (prof, segs = 22) => {
+      const key = segs + ':' + prof.map(p => p.join(',')).join(';');
+      let f = LATHE.get(key); if (!f) { f = surface(prof, segs); LATHE.set(key, f); }
+      return f;
+    };
+    const solid = (F, prof, mat, sx = 1, sy = 1, segs = 22, seams = []) => {
+      const G = sx === 1 && sy === 1 ? F : chain(F, place([sx, 0, 0, 0, sy, 0, 0, 0, 1], [0, 0, 0]));
+      submit(lathe(prof, segs), G, mat, 1);
+      if (seams.length) submitLines(seams.map(([z, r]) => ring(r, z, 28)), G, matLine[mat], LOOK.line * 0.8, LOOK.width);
+    };
+    // a limb of length L: rounded at both ends, swelling to rMid a third down
+    const limbProf = (L, r0, rMid, r1) => [[-r0 * 0.55, 0], [-r0 * 0.4, r0 * 0.72], [-r0 * 0.12, r0 * 0.96], [L * 0.12, r0 * 1.02], [L * 0.35, rMid], [L * 0.7, (rMid + r1) / 2], [L * 0.94, r1], [L + r1 * 0.2, r1 * 0.9], [L + r1 * 0.45, r1 * 0.55], [L + r1 * 0.55, 0]];
+    // a joint: a short barrel with rounded rims
+    const jointProf = (r, h) => [[-h, 0], [-h, r * 0.8], [-h * 0.8, r], [h * 0.8, r], [h, r * 0.8], [h, 0]];
+    const ATLAS_BONES = [   // [from, to, r at from, r mid, r at to, oval sx, joint r at `to`]
+      ['l_scap', 'l_larm', 64, 70, 56, 1.0, 60], ['r_scap', 'r_larm', 64, 70, 56, 1.0, 60],
+      ['l_larm', 'l_hand', 54, 58, 44, 1.0, 46], ['r_larm', 'r_hand', 54, 58, 44, 1.0, 46],
+      ['l_lglut', 'l_lleg', 96, 104, 74, 1.15, 78], ['r_lglut', 'r_lleg', 96, 104, 74, 1.15, 78],
+      ['l_lleg', 'l_talus', 74, 80, 52, 1.1, 54], ['r_lleg', 'r_talus', 74, 80, 52, 1.1, 54],
     ];
     function drawAtlasE(base, q, grow) {
       const R = ROBOTS.atlas; if (!R) return;
@@ -3235,38 +3255,56 @@ export default function Flourish3D({ side = 'right' }) {
       const at = n => T[R.index.get(n)];
       const k = detScale(base.m);
       const vis = n => growScale(at(n), base) > 0.04;
-      const box = (F, w, h, d, x, y, z, mat) => { submit(boxFaces(w, h, d, x, y, z), F, mat, 1); submitLines(boxWire(w, h, d, x, y, z), F, matLine[mat], LOOK.line, LOOK.width); };
-      // torso: a slim upright chest, a narrower waist, the pelvis
       if (vis('utorso')) {
         const U = at('utorso');
-        box(U, 230, 380, 290, 20, 0, 400, MAT.pla);           // chest: w along x (depth), h along y (width), d along z (height)
-        box(U, 190, 300, 80, 10, 0, 585, MAT.pla);            // shoulder yoke
-        box(U, 180, 250, 250, 10, 0, 130, MAT.pla);           // abdomen, narrower, down to the pelvis
-        drawDrum(chain(U, place(IDENT, [10, 0, -60])), 80, 0, 60, MAT.poly, 1);   // the waist joint
-        // shoulders
-        for (const sy of [-1, 1]) drawDrum(chain(U, place(rotX(90 * DEG), [0, sy * 205, 470])), 70, -40, 40, MAT.poly, 1);
-        // the head: a round disc on a short neck, facing forward (+x), with its ring light
-        const Hd = chain(U, place(rotY(90 * DEG), [60, 0, 720]));
-        drawDrum(chain(U, place(IDENT, [40, 0, 600])), 42, 0, 60, MAT.poly, 1);
-        drawDrum(Hd, 118, -55, 45, MAT.pla, 1);
-        drawDrum(Hd, 88, 45, 52, MAT.poly, 1);
-        submitLines([ringAt(70, 0, 0, 53, 32)], Hd, copper, 0.95, 2.2);
+        // the torso: a barrel, wide across the shoulders, narrowing to the
+        // waist, oval in section (deeper front to back than a cylinder would
+        // be wide), with the seam lines of its shell panels
+        solid(chain(U, place(IDENT, [15, 0, 0])), [[-40, 0], [-38, 92], [0, 110], [90, 128], [200, 158], [330, 182], [440, 186], [520, 168], [575, 120], [600, 60], [606, 0]], MAT.pla, 0.78, 1.18, 26, [[200, 158], [440, 186]]);
+        // a darker belly band at the waist joint
+        solid(chain(U, place(IDENT, [15, 0, 0])), [[-70, 0], [-70, 104], [-20, 112], [-20, 0]], MAT.poly, 0.8, 1.1, 24);
+        // shoulders: a rounded cap on the torso's corner, a short link out to
+        // the arm's first joint, and a ball there — the arm used to float
+        for (const [sy, sd] of [[1, 'l'], [-1, 'r']]) {
+          const cap = tpOf(U, [5, sy * 185, 470]);
+          if (vis(sd + '_scap')) {
+            const g = growScale(at(sd + '_scap'), base);
+            const { T: S, L } = segT(cap, at(sd + '_scap').t, k * g);
+            solid(S, limbProf(L, 72, 70, 66), MAT.poly, 1, 1, 20);
+          }
+        }
+        // the neck and the head: a domed disc facing forward (+x), a dark inset
+        // face, and the ring light round it
+        solid(chain(U, place(IDENT, [45, 0, 590])), [[0, 0], [0, 48], [60, 44], [90, 40], [90, 0]], MAT.poly, 1, 1, 16);
+        const Hd = chain(U, place(rotY(90 * DEG), [70, 0, 760]));
+        solid(Hd, [[-70, 0], [-66, 70], [-45, 112], [-10, 128], [30, 126], [52, 112], [60, 96], [62, 0]], MAT.pla, 1, 1, 30, [[30, 126]]);
+        solid(Hd, [[58, 0], [58, 90], [64, 88], [64, 0]], MAT.poly, 1, 1, 30);
+        submitLines([ring(80, 65, 40)], Hd, copper, 1, 2.6);
+        submitLines([ring(72, 65, 40)], Hd, copper, 0.5, 1.2);
       }
       if (vis('pelvis')) {
         const P = at('pelvis');
-        box(P, 200, 330, 150, 10, 0, -10, MAT.pla);
-        for (const sy of [-1, 1]) drawDrum(chain(P, place(rotX(90 * DEG), [0, sy * 110, -60])), 74, -48, 48, MAT.poly, 1);   // hips
+        solid(chain(P, place(IDENT, [10, 0, -110])), [[0, 0], [0, 80], [40, 118], [110, 132], [160, 120], [175, 0]], MAT.alu, 0.8, 1.05, 24, [[110, 132]]);
+        for (const sy of [-1, 1]) solid(chain(P, place(rotX(90 * DEG), [0, sy * 100, -70])), jointProf(70, 40), MAT.poly, 1, 1, 22);
       }
-      for (const [a, b, r, jr] of ATLAS_BONES) {
+      for (const [a, b, r0, rm, r1, sx, jr] of ATLAS_BONES) {
         if (!vis(a) || !vis(b)) continue;
         const g = Math.min(growScale(at(a), base), growScale(at(b), base));
         const { T: S, L } = segT(at(a).t, at(b).t, k * g);
-        drawDrum(S, r, 0, L, MAT.pla, 1);
-        drawDrum(chain(S, place(rotX(90 * DEG), [0, 0, L])), jr, -jr * 0.7, jr * 0.7, MAT.poly, 1);   // the joint at its end
+        solid(S, limbProf(L, r0, rm, r1), MAT.pla, sx, 1, 22, [[L * 0.35, rm]]);
+        solid(chain(S, place(rotX(90 * DEG), [0, 0, L])), jointProf(jr, jr * 0.75), MAT.poly, 1, 1, 20);
       }
       for (const sd of ['l', 'r']) {
-        if (vis(sd + '_hand')) { const Hn = at(sd + '_hand'); box(Hn, 70, 50, 120, 0, sd === 'l' ? 40 : -40, -20, MAT.poly); }
-        if (vis(sd + '_foot')) { const F = at(sd + '_foot'); box(F, 250, 120, 55, 40, 0, -60, MAT.poly); }
+        if (vis(sd + '_hand')) {
+          const Hn = at(sd + '_hand');
+          // a closed hand: a rounded mitt below the wrist
+          solid(chain(Hn, place(rotX(90 * DEG), [0, sd === 'l' ? 20 : -20, 0])), [[-10, 0], [-6, 34], [30, 44], [85, 40], [115, 28], [122, 0]], MAT.poly, 0.75, 1, 18);
+        }
+        if (vis(sd + '_foot')) {
+          const F = at(sd + '_foot');
+          // a long rounded sole, flattened
+          solid(chain(F, place(rotY(90 * DEG), [-60, 0, -70])), [[-10, 0], [0, 52], [60, 62], [200, 60], [250, 48], [268, 0]], MAT.poly, 0.55, 1.05, 20);
+        }
       }
     }
 

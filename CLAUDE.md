@@ -773,6 +773,17 @@ on SLIDE joints along the hand's y (0-40 mm). `bodyPlacements` takes a
 `slide` body as a translation of `q` metres along its axis (scaled to the
 bake's mm), so a Franka pose is nine values: seven hinges, two finger gaps.
 
+**Sept 27.** The drawn Atlas is built from LATHE-TURNED solids (`solid` /
+`lathe`, cached by profile; `limbProf`, `jointProf`), not boxes and plain
+drums: tapered limbs swelling a third down and rounded at both ends, oval in
+section, a barrel chest wide at the shoulders and narrowing to a dark waist
+band, shoulder links from the torso's corners out to the arms' first joints
+(the arms used to float), a slimmer grey pelvis, rounded mitts and soles, and
+a domed head with a dark inset face and a double ring light. The modal now
+CLOSES straight into `collapse` (no 260ms `departing` wait with an empty
+surface); the content fades out while the card copy fades in and scales on
+the surface's own clock (0.55s), then `settle` lands it as the card.
+
 **Sept 26 round.** (1) The final humanoid is the CURRENT, electric Atlas
 ("should look like the current implementation of atlas"). Boston Dynamics
 publishes no model of it, so `drawAtlasE` DRAWS it — pale capsule limbs, dark
