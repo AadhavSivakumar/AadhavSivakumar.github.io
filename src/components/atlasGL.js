@@ -8,7 +8,9 @@
 // Here every surface is lit per pixel with smooth normals: rounded boxes,
 // capsules, lathed shells, a glowing ring light.
 //
-// It draws NOTHING of its own kinematics. Each frame Flourish3D hands over the
+// THE MODEL is the owner's own Atlas (Blender, 181 parts, baked by
+// scripts/bake-atlas26.mjs into src/robots/atlas26.bin, fetched lazily). It
+// draws NOTHING of its own kinematics. Each frame Flourish3D hands over the
 // placement of every Atlas body (the same growPlacements the Canvas2D drawer
 // used, so the wave, the grow-in and the morph drive it unchanged) and its
 // camera (yaw, pitch, dolly). This module maps stage space — x right, y DOWN,
@@ -19,7 +21,6 @@
 // The three.js stack is already on the site (the lanyard badges); this module
 // is imported lazily, so it is only fetched near the last page.
 import * as THREE from 'three';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 const PERSP = 600, ZOOM = 0.85, W = 340, H = 660;
 
@@ -58,174 +59,103 @@ export function createAtlasGL(host) {
   const pitchG = new THREE.Group(), yawG = new THREE.Group();
   scene.add(pitchG); pitchG.add(yawG);
 
-  // materials, after Boston Dynamics' current product Atlas (the product
-  // page's collage and render): a graphite body, blue shells, satin-black
-  // joints, a glossy black visor and a warm-white ring light
-  const blue = new THREE.MeshStandardMaterial({ color: 0x3f72b8, roughness: 0.42, metalness: 0.12 });   // the reference model's saturated blue
-  const white = blue;                                      // the limb shells (name kept for the bone code below)
-  const dark = new THREE.MeshStandardMaterial({ color: 0x2c2e33, roughness: 0.55, metalness: 0.25 });
-  const black = new THREE.MeshStandardMaterial({ color: 0x17181b, roughness: 0.6, metalness: 0.2 });
-  const grey = dark;
-  const face = new THREE.MeshStandardMaterial({ color: 0x08090b, roughness: 0.08, metalness: 0.4 });
-  const glow = new THREE.MeshStandardMaterial({ color: 0xbff8ff, emissive: 0x5fe8ff, emissiveIntensity: 1.7, roughness: 0.5 });   // cyan ring
-  const mats = [blue, dark, black, face, glow];
+  // ── the owner's model, rigged onto the DRC skeleton ─────────────────
+  // Model space: metres, x = the robot's LEFT, y up, z forward. Skeleton
+  // (URDF body frames): mm, x forward, y left, z up. conv() maps a model
+  // point, relative to a reference, into skeleton mm; S puts the model's
+  // pelvis (0.80 m) at the skeleton's 930 mm.
+  const S = 1160;
+  const conv = (p, r) => [(p[2] - r[2]) * S, (p[0] - r[0]) * S, (p[1] - r[1]) * S];
+  const PELVIS = [0, 0.80, -0.01], TORSO = [0, 0.983, -0.01];
+  // which piece each part belongs to
+  const pieceOf = name => {
+    const sd = /\.L$/.test(name) ? 'l' : /\.R$/.test(name) ? 'r' : '';
+    if (/^(Head_|Neck|Torso|Shoulder_Pitch|Shoulder_Band|Waist_)/.test(name)) return 'torso';
+    if (/^(Pelvis_|Hip_Actuator|Hip_Band|Hip_Cap|Hip_Bolts)/.test(name)) return 'pelvis';
+    if (/^(Shoulder_Bracket|Shoulder_Roll|UpperArm)/.test(name)) return sd + 'upper';
+    if (/^(Elbow|Forearm)/.test(name)) return sd + 'fore';
+    if (/^(Wrist_|Hand_)/.test(name)) return sd + 'hand';
+    if (/^(Hip_Yaw|Thigh)/.test(name)) return sd + 'thigh';
+    if (/^(Knee|Shin)/.test(name)) return sd + 'shin';
+    if (/^(Ankle|Foot)/.test(name)) return sd + 'foot';
+    return 'torso';
+  };
+  // limb pieces: model pivot P and child C; the skeleton bone (from, to)
+  // they aim along; the body whose forward keeps their front forward; the
+  // body whose scale grows them. Each hangs from the END of the piece
+  // before it (the torso/pelvis for the first), so a limb never parts.
+  const LIMBS = [];
+  for (const [sd, sx] of [['l', 1], ['r', -1]]) {
+    const X = v => v * sx;
+    LIMBS.push(
+      { id: sd + 'upper', P: [X(0.250), 1.240, -0.005], C: [X(0.252), 0.985, -0.005], from: sd + '_scap', to: sd + '_larm', fwd: 'utorso', root: 'torso' },
+      { id: sd + 'fore', P: [X(0.252), 0.985, -0.005], C: [X(0.252), 0.782, -0.003], from: sd + '_larm', to: sd + '_hand', fwd: 'utorso', root: sd + 'upper' },
+      { id: sd + 'hand', P: [X(0.252), 0.782, -0.003], C: [X(0.252), 0.66, -0.003], from: sd + '_larm', to: sd + '_hand', fwd: 'utorso', root: sd + 'fore' },
+      { id: sd + 'thigh', P: [X(0.140), 0.800, -0.010], C: [X(0.140), 0.465, -0.012], from: sd + '_uleg', to: sd + '_lleg', fwd: 'pelvis', root: 'pelvis' },
+      { id: sd + 'shin', P: [X(0.140), 0.465, -0.012], C: [X(0.140), 0.095, -0.005], from: sd + '_lleg', to: sd + '_talus', fwd: 'pelvis', root: sd + 'thigh' },
+      { id: sd + 'foot', P: [X(0.140), 0.095, -0.005], C: null, body: sd + '_foot', root: sd + 'shin' },
+    );
+  }
+  const RIGID = { torso: { body: 'utorso', ref: TORSO }, pelvis: { body: 'pelvis', ref: PELVIS } };
+  const refOf = id => (RIGID[id] ? RIGID[id].ref : LIMBS.find(l => l.id === id).P);
+  // each limb's rest frame (fwd, left, up columns → a bone-aligned basis)
+  const norm = v => { const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const frame = (axis, fwd) => {        // e2 along the bone, e0 the forward made perpendicular, e1 = e2 x e0
+    const e2 = norm(axis);
+    const e0 = norm(fwd.map((v, i) => v - dot(fwd, e2) * e2[i]));
+    return [e0, cross(e2, e0), e2];
+  };
+  for (const L of LIMBS) if (L.C) { L.len = Math.hypot(...conv(L.C, L.P)); L.rest = frame(conv(L.C, L.P), [1, 0, 0]); }
 
-  // body-local parts, in mm, z UP (the URDF body frames), x forward
-  const bodies = new Map();            // name -> Group (its matrix set per frame)
-  const part = (name, geo, mat, pos, rot) => {
-    let g = bodies.get(name);
-    if (!g) { g = new THREE.Group(); g.matrixAutoUpdate = false; yawG.add(g); bodies.set(name, g); }
-    const m = new THREE.Mesh(geo, mat);
-    if (pos) m.position.set(...pos);
-    if (rot) m.rotation.set(...rot);
-    g.add(m);
+  const groups = new Map();              // piece id -> Group (matrix set per frame)
+  const mats = [], geos = [];
+  let ready = false;
+  const matFor = (name, def) => {
+    const kd = def.kd, ke = def.ke;
+    const lin = new THREE.Color().setRGB(kd[0], kd[1], kd[2], THREE.LinearSRGBColorSpace);
+    const isMetal = /Metal/.test(name), isGrille = /Grille/.test(name);
+    const m = new THREE.MeshStandardMaterial({
+      color: isGrille ? new THREE.Color(0x1a1c20) : lin,
+      roughness: isGrille ? 0.7 : Math.max(0.12, Math.min(0.85, 1 - Math.sqrt(def.ns / 1000))),
+      metalness: isMetal ? 0.85 : /Glass/.test(name) ? 0.3 : 0.08,
+    });
+    const e = Math.max(ke[0], ke[1], ke[2]);
+    if (e > 0) { m.emissive = new THREE.Color().setRGB(ke[0] / e, ke[1] / e, ke[2] / e, THREE.LinearSRGBColorSpace); m.emissiveIntensity = Math.min(2.2, e * 0.55); }
+    mats.push(m);
     return m;
   };
-  const geos = [];
-  const G = geo => { geos.push(geo); return geo; };
-  const Z_UP = [Math.PI / 2, 0, 0];     // cylinders are Y-up in three; body frames are Z-up
-  const X_AX = [0, 0, Math.PI / 2];     // an axis along x (the head faces +x)
-  const box = (w, d, h, r) => G(new RoundedBoxGeometry(d, w, h, 5, r));   // (width y, depth x, height z, corner radius)
-
-  // ── DETAIL PASS 2, after the 2026 Atlas reference model (Sketchfab,
-  // RandomRepresent — viewed only, it is not downloadable) ──
-  const shellMat = blue.clone(); shellMat.side = THREE.DoubleSide;
-  const steel = new THREE.MeshStandardMaterial({ color: 0x9aa1aa, roughness: 0.28, metalness: 0.85 });
-  const silver = new THREE.MeshStandardMaterial({ color: 0xdadde2, roughness: 0.3, metalness: 0.6 });
-  const ribbed = new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: 0.5, metalness: 0.2 });
-  mats.push(shellMat, steel, silver, ribbed);
-  const cyl = (r0, r1, h, seg = 40) => G(new THREE.CylinderGeometry(r1, r0, h, seg));
-  const tor = (R, r, seg = 48) => G(new THREE.TorusGeometry(R, r, 14, seg));
-  const LAT = [Math.PI / 2, 0, 0];   // three's Y axis -> body z; for a LATERAL (y) axis use no rotation
-  // a stack of rings round an axis: the ribbed collars and the knurled bars
-  const ribs = (name, R, r, n, step, at, axis, mat) => {
-    for (let i = 0; i < n; i++) {
-      const o = (i - (n - 1) / 2) * step;
-      const pos = axis === 'y' ? [at[0], at[1] + o, at[2]] : axis === 'z' ? [at[0], at[1], at[2] + o] : [at[0] + o, at[1], at[2]];
-      part(name, tor(R, r, 40), mat, pos, axis === 'y' ? [Math.PI / 2, 0, 0] : axis === 'z' ? undefined : [0, Math.PI / 2, 0]);
+  fetch(new URL('../robots/atlas26.bin', import.meta.url)).then(r => r.arrayBuffer()).then(buf => {
+    const dv = new DataView(buf);
+    const hl = dv.getUint32(0, true);
+    const hdr = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, hl)));
+    let o = 4 + hl; o += (4 - (o % 4)) % 4;
+    const nV = hdr.parts.reduce((s, p) => s + p.vCount, 0);
+    const P = new Int16Array(buf, o, nV * 3); o += nV * 6; o += (4 - (o % 4)) % 4;
+    const Nn = new Int8Array(buf, o, nV * 4); o += nV * 4;
+    const I = new Uint16Array(buf, o, hdr.parts.reduce((s, p) => s + p.iCount, 0));
+    const mcache = {};
+    for (const p of hdr.parts) {
+      const id = pieceOf(p.name), ref = refOf(id);
+      const pos = new Float32Array(p.vCount * 3), nor = new Float32Array(p.vCount * 3);
+      for (let i = 0; i < p.vCount; i++) {
+        const k = (p.v0 + i) * 3, n = (p.v0 + i) * 4;
+        const c = conv([P[k] / 1e4, P[k + 1] / 1e4, P[k + 2] / 1e4], ref);
+        pos[i * 3] = c[0]; pos[i * 3 + 1] = c[1]; pos[i * 3 + 2] = c[2];
+        nor[i * 3] = Nn[n + 2] / 127; nor[i * 3 + 1] = Nn[n] / 127; nor[i * 3 + 2] = Nn[n + 1] / 127;   // same axis shuffle
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+      g.setIndex(new THREE.BufferAttribute(I.slice(p.i0, p.i0 + p.iCount), 1));
+      geos.push(g);
+      let grp = groups.get(id);
+      if (!grp) { grp = new THREE.Group(); grp.matrixAutoUpdate = false; grp.visible = false; yawG.add(grp); groups.set(id, grp); }
+      grp.add(new THREE.Mesh(g, mcache[p.mat] || (mcache[p.mat] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }))));
     }
-  };
-  // a blue HUB: a lateral donut with a dark bore, the knee and ankle of the reference
-  const hub = (name, R, w, pos) => {
-    part(name, cyl(R, R, w, 48), blue, pos);                       // Y axis = lateral
-    for (const sgn of [-1, 1]) {
-      part(name, tor(R * 0.78, R * 0.22, 48), blue, [pos[0], pos[1] + sgn * w / 2, pos[2]], [Math.PI / 2, 0, 0]);
-      part(name, cyl(R * 0.45, R * 0.45, 8, 32), black, [pos[0], pos[1] + sgn * (w / 2 + 2), pos[2]]);
-    }
-  };
-  const texOf = draw => { const c = document.createElement('canvas'); c.width = 512; c.height = 512; draw(c.getContext('2d')); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
-
-  // HEAD: blue rear shell with a fin on top; a dark MESH face (a grille
-  // texture) with a sensor slot across its lower part; a cyan ring light
-  const headShell = new THREE.LatheGeometry([[0, -100], [70, -99], [118, -88], [145, -62], [152, -20], [152, 40], [146, 66], [130, 80], [0, 80]].map(([r, y]) => new THREE.Vector2(r, y)), 80);
-  part('utorso', G(headShell), blue, [0, 0, 830], [0, 0, -Math.PI / 2]);   // -90: the lathe's open (y+) end forward; +90 put its closed dome over the face
-  part('utorso', box(30, 70, 60, 12), blue, [-60, 0, 975]);                  // the fin on top of the head
-  const grilleTex = texOf(x => { x.fillStyle = '#121418'; x.fillRect(0, 0, 512, 512); x.fillStyle = '#2b2f36'; for (let yy = 8; yy < 512; yy += 14) for (let xx = (yy / 14 % 2) * 7 + 4; xx < 512; xx += 14) { x.beginPath(); x.arc(xx, yy, 4, 0, 7); x.fill(); } });
-  const faceMat = new THREE.MeshStandardMaterial({ map: grilleTex, roughness: 0.35, metalness: 0.3 }); mats.push(faceMat);
-  part('utorso', cyl(112, 112, 12, 80), faceMat, [92, 0, 830], X_AX);
-  part('utorso', G(new THREE.TorusGeometry(122, 13, 24, 96)), glow, [92, 0, 830], [0, Math.PI / 2, 0]);
-  part('utorso', box(150, 14, 34, 12), black, [100, 0, 776]);                // the sensor slot
-  for (const sy of [-1, 1]) part('utorso', cyl(10, 10, 6, 20), steel, [108, sy * 48, 776], X_AX);
-  // NECK: a slim dark column with a steel ring
-  part('utorso', cyl(40, 46, 150, 32), dark, [-10, 0, 650], Z_UP);
-  part('utorso', tor(46, 7), steel, [-10, 0, 600]);
-  // CHEST: a black upper block (the logos) over a big rounded BLUE block
-  // that is the chest's lower two thirds, wrapping front and sides
-  part('utorso', box(320, 220, 180, 55), black, [-15, 0, 500]);
-  part('utorso', box(330, 240, 380, 70), blue, [-5, 0, 250]);
-  part('utorso', box(290, 50, 300, 34), black, [-140, 0, 300]);             // the back
-  { const tex = texOf(x => { x.fillStyle = '#0c0d0f'; x.fillRect(0, 0, 512, 512); x.fillStyle = '#e8ecf2'; x.strokeStyle = '#e8ecf2'; x.lineWidth = 10; x.beginPath(); x.ellipse(256, 170, 70, 42, 0, 0, 7); x.stroke(); x.font = 'bold 64px Arial'; x.textAlign = 'center'; x.fillText('H', 256, 194); x.font = '600 58px Arial'; x.fillText('BostonDynamics', 256, 330); });
-    tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1;
-    const m = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: false }); mats.push(m);
-    part('utorso', G(new THREE.PlaneGeometry(170, 170)), m, [107, 0, 500], [Math.PI / 2, Math.PI / 2, 0]); }   // inside the black block's front face
-  // WAIST: a horizontal ribbed bar across the chest's foot, a short black
-  // column down to the pelvis
-  part('utorso', cyl(52, 52, 250, 40), black, [0, 0, 40]);                   // lateral bar (Y axis)
-  ribs('utorso', 54, 5, 9, 24, [0, 0, 40], 'y', dark);
-  part('utorso', cyl(80, 74, 260, 36), black, [0, 0, -110], Z_UP);          // reaches the pelvis bar
-  ribs('utorso', 82, 5, 8, 26, [0, 0, -110], 'z', dark);
-  // SHOULDERS: black balls on the chest's top corners, a white ribbed collar
-  // below each, before the blue upper arm
-  for (const sy of [-1, 1]) {
-    part('utorso', box(130, 150, 140, 46), black, [-10, sy * 215, 520]);          // shoulder block (the reference's shoulders are blocks, not balls)
-  }
-  // PELVIS: a horizontal black bar with round drum ends, ribbed at the
-  // middle, white ribbed collars where the thighs hang
-  part('pelvis', cyl(58, 58, 280, 40), black, [0, 0, -70]);
-  ribs('pelvis', 60, 5, 6, 22, [0, 0, -70], 'y', dark);
-  for (const sy of [-1, 1]) {
-    part('pelvis', cyl(78, 78, 60, 48), black, [0, sy * 165, -70]);
-    part('pelvis', cyl(34, 34, 66, 24), steel, [0, sy * 165, -70]);
-  }
-  // LEGS in their body frames. Thigh (uleg): a black core, a blue rounded
-  // front shell over its upper two thirds. Knee (lleg origin) and ankle
-  // (talus): blue hubs. Shin (lleg): a long flat black slab. Foot: a black
-  // plate on a steel sole.
-  const thighTilt = Math.atan2(50, 374);
-  for (const sd of ['l', 'r']) {
-    const out = sd === 'l' ? 1 : -1;
-    const add = (grp, geo, mat, pos, rot) => { const m = new THREE.Mesh(geo, mat); if (pos) m.position.set(...pos); if (rot) m.rotation.set(...rot); grp.add(m); };
-    const th = new THREE.Group(); th.rotation.y = thighTilt; th.position.set(-25, 0, -187);
-    add(th, box(100, 125, 374, 42), black);
-    add(th, box(118, 100, 350, 42), blue, [30, 0, 0]);                        // the blue thigh shell, down to the knee hub
-    part(sd + '_uleg', G(new THREE.BufferGeometry()), dark).add(th);
-    ribs(sd + '_uleg', 56, 6, 4, 15, [0, 0, -18], 'z', ribbed);            // the white ribbed collar at the hip, on the thigh
-    hub(sd + '_lleg', 64, 100, [0, 0, 0]);
-    const sh = new THREE.Group(); sh.position.set(0, 0, -211);
-    add(sh, box(84, 125, 390, 40), black);                                   // the flat shin slab
-    add(sh, box(56, 24, 250, 12), dark, [66, 0, 0]);                           // its front ridge
-    part(sd + '_lleg', G(new THREE.BufferGeometry()), dark).add(sh);
-    hub(sd + '_talus', 50, 84, [0, 0, 0]);
-    part(sd + '_foot', box(120, 280, 40, 16), black, [45, 0, -75]);
-    part(sd + '_foot', box(110, 290, 12, 5), steel, [45, 0, -100]);
-    // ELBOW: a black drum; HAND: a silver gripper with three fingers
-    part(sd + '_larm', cyl(54, 54, 104, 40), black, [0, 0, 0], X_AX);
-    ribs(sd + '_hand', 44, 6, 3, 14, [0, 0, 40], 'z', black);                 // the ribbed wrist
-    part(sd + '_hand', box(80, 100, 100, 18), silver, [0, 0, -30]);
-    for (const f of [-1, 0, 1]) {
-      part(sd + '_hand', box(22, 30, 90, 8), silver, [f * 26, out * 12, -128]);
-      part(sd + '_hand', box(8, 20, 60, 3), black, [f * 26, out * 12 + 16, -128]);   // the finger's dark pad
-    }
-  }
-
-  // LIMBS are bones between body origins (as the Canvas2D drawer had them):
-  // a tapered white shell, rounded ends, a black ball at the far joint
-  const BONES = [   // from, to, radius at from, radius at to, joint ball radius (0 = none; the drums are the joints)
-    ['l_scap', 'l_larm', 62, 56, 0, 'blue'], ['r_scap', 'r_larm', 62, 56, 0, 'blue'],
-    ['l_larm', 'l_hand', 48, 42, 0, 'dark'], ['r_larm', 'r_hand', 48, 42, 0, 'dark'],     // forearms black (the reference)
-    // (the legs are modelled in their body frames above)
-  ];
-  const unitSphere = G(new THREE.SphereGeometry(1, 32, 20));
-  // Limbs are ROUNDED SLABS (the listing's clay render and the Sketchfab
-  // views: rectangular-section shells with big fillets, not tubes), oriented
-  // each frame so their flat face points the way the parent body faces, plus
-  // a BLOCK joint at the far end (the elbow; the knee/ankle hubs are parts)
-  const slabGeo = G(new RoundedBoxGeometry(1, 1, 1, 5, 0.32));
-  const bones = BONES.map(([a, b, r0, r1, jr, mn]) => {
-    const M = mn === 'dark' ? black : blue;
-    const shell = new THREE.Mesh(slabGeo, M); shell.matrixAutoUpdate = false;
-    const capA = new THREE.Mesh(unitSphere, M), capB = new THREE.Mesh(unitSphere, M), ball = new THREE.Mesh(unitSphere, black);
-    capA.visible = capB.visible = false;
-    [shell, ball].forEach(m => yawG.add(m));
-    return { a, b, r0, r1, jr, shell, capA, capB, ball };
-  });
-  const bx = new THREE.Vector3(), bz = new THREE.Vector3(), fwd = new THREE.Vector3();
-  const placeSlab = (mesh, A, p0, p1, w, d) => {
-    dir.subVectors(p1, p0); const L = dir.length();
-    if (L < 0.01) { mesh.visible = false; return; }
-    dir.divideScalar(L);
-    fwd.set(A.m[0], -A.m[3], A.m[6]).normalize();                 // the parent body's forward (+x), in GL space
-    bz.crossVectors(fwd, dir).normalize(); bx.crossVectors(dir, bz).normalize();
-    mesh.matrix.makeBasis(bx.multiplyScalar(d), dir.clone().multiplyScalar(L + w * 0.35), bz.multiplyScalar(w));
-    mesh.matrix.setPosition((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2);
-    mesh.matrixWorldNeedsUpdate = true; mesh.visible = true;
-  };
-  // the shoulder links: from the torso's corner ball out to each arm's first joint
-  const links = ['l', 'r'].map(sd => {
-    const m = new THREE.Mesh(G(new THREE.CylinderGeometry(1, 1, 1, 32)), blue);    // the blue upper-arm shell starts right under the shoulder block (the reference)
-    yawG.add(m);
-    return { sd, m, sy: sd === 'l' ? 1 : -1 };
-  });
+    ready = true;
+  }).catch(() => {});
 
   // stage matrix {m (3x3 row-major, carries scale), t} -> three, y flipped
   const toM4 = (T, out) => out.set(
@@ -233,62 +163,60 @@ export function createAtlasGL(host) {
     -T.m[3], -T.m[4], -T.m[5], -T.t[1],
     T.m[6], T.m[7], T.m[8], T.t[2],
     0, 0, 0, 1);
-  const tmpM = new THREE.Matrix4(), va = new THREE.Vector3(), vb = new THREE.Vector3(), dir = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const tmpM = new THREE.Matrix4();
   const scaleOf = T => Math.cbrt(Math.abs(T.m[0] * (T.m[4] * T.m[8] - T.m[5] * T.m[7]) - T.m[1] * (T.m[3] * T.m[8] - T.m[5] * T.m[6]) + T.m[2] * (T.m[3] * T.m[7] - T.m[4] * T.m[6])));
-  const posOf = (T, v) => v.set(T.t[0], -T.t[1], T.t[2]);
-  const place = (mesh, p0, p1, r0, r1) => {
-    dir.subVectors(p1, p0); const L = dir.length();
-    mesh.visible = L > 0.01 && r0 > 0.05;
-    if (!mesh.visible) return;
-    mesh.position.addVectors(p0, p1).multiplyScalar(0.5);
-    mesh.quaternion.setFromUnitVectors(up, dir.normalize());
-    mesh.scale.set(r0, L, r0);
-  };
+  const apply = (T, v) => [T.m[0] * v[0] + T.m[1] * v[1] + T.m[2] * v[2] + T.t[0], T.m[3] * v[0] + T.m[4] * v[1] + T.m[5] * v[2] + T.t[1], T.m[6] * v[0] + T.m[7] * v[1] + T.m[8] * v[2] + T.t[2]];
+  const setGroup = (id, T, vis) => { const g = groups.get(id); if (!g) return; g.visible = vis; if (vis) { toM4(T, tmpM); g.matrix.copy(tmpM); g.matrixWorldNeedsUpdate = true; } };
 
   let shown = false;
   return {
+    get ready() { return ready; },
     // size the GL canvas to the Canvas2D drawing's box (W x H at `fit`)
     resize(fit, dpr) {
       renderer.setPixelRatio(dpr);
       renderer.setSize(Math.round(W * fit), Math.round(H * fit), false);
       canvas.style.width = `${W * fit}px`; canvas.style.height = `${H * fit}px`;
     },
-    // at(name) -> {m, t} for every Atlas body; k0 the robot's base scale
-    // (px/mm); cam {yaw, pitch, dolly} in radians/units; dark theme flag
-    render(at, k0, cam, dark) {
+    // at(name) -> {m, t} for every skeleton body; k0 the base scale (px/mm);
+    // cam {yaw, pitch, dolly}; dark theme flag
+    render(at, k0, cam) {
+      if (!ready) return;
       if (!shown) { canvas.style.visibility = 'visible'; shown = true; }
       pitchG.rotation.x = -cam.pitch;          // stage pitch: positive looks UP
       yawG.rotation.y = cam.yaw;
       pitchG.position.z = cam.dolly || 0;
-      for (const [name, g] of bodies) {
-        const T = at(name);
-        const s = T ? scaleOf(T) / k0 : 0;
-        g.visible = !!T && s > 0.03;
-        if (g.visible) { toM4(T, tmpM); g.matrix.copy(tmpM); g.matrixWorldNeedsUpdate = true; }
+      const placed = {};                       // piece id -> {T, end}
+      for (const [id, R] of Object.entries(RIGID)) {
+        const T = at(R.body);
+        const vis = !!T && scaleOf(T) / k0 > 0.03;
+        setGroup(id, T, vis);
+        placed[id] = T;
       }
-      for (const B of bones) {
-        const A = at(B.a), Bt = at(B.b);
-        const ga = A ? scaleOf(A) : 0, gb = Bt ? scaleOf(Bt) : 0;
-        const k = Math.min(ga, gb);
-        const vis = !!A && !!Bt && k / k0 > 0.03;
-        B.shell.visible = B.capA.visible = B.capB.visible = B.ball.visible = vis;
-        if (!vis) continue;
-        posOf(A, va); posOf(Bt, vb);
-        placeSlab(B.shell, A, va, vb, 2 * B.r0 * k, 1.7 * B.r0 * k);
-        B.capA.visible = B.capB.visible = false;
-        B.ball.visible = B.jr > 0; B.ball.position.copy(vb); B.ball.scale.setScalar(Math.max(1e-3, B.jr * k * 1.08));
-      }
-      const U = at('utorso');
-      for (const L of links) {
-        const S = at(L.sd + '_scap');
-        const vis = !!U && !!S && scaleOf(S) / k0 > 0.03;
-        L.m.visible = vis;
-        if (!vis) continue;
-        // the torso's corner, in stage space, then flipped
-        const c = [-10, L.sy * 205, 520];
-        va.set(U.m[0] * c[0] + U.m[1] * c[1] + U.m[2] * c[2] + U.t[0], -(U.m[3] * c[0] + U.m[4] * c[1] + U.m[5] * c[2] + U.t[1]), U.m[6] * c[0] + U.m[7] * c[1] + U.m[8] * c[2] + U.t[2]);
-        posOf(S, vb);
-        place(L.m, va, vb, 50 * scaleOf(S), 50 * scaleOf(S));
+      for (const L of LIMBS) {
+        const root = placed[L.root];
+        if (!root) { setGroup(L.id, null, false); continue; }
+        // the pivot: the model's joint point carried by the piece above
+        const rootRef = refOf(L.root);
+        const pivot = apply(root, conv(L.P, rootRef));
+        if (!L.C) {                            // the foot: its skeleton body's orientation, at the ankle
+          const F = at(L.body);
+          const k = F ? scaleOf(F) : 0;
+          const T = F ? { m: F.m, t: pivot } : null;
+          setGroup(L.id, T, !!F && k / k0 > 0.03);
+          continue;
+        }
+        const A = at(L.from), B = at(L.to), Fw = at(L.fwd);
+        if (!A || !B || !Fw) { setGroup(L.id, null, false); continue; }
+        const k = Math.min(scaleOf(A), scaleOf(B));
+        const axis = [B.t[0] - A.t[0], B.t[1] - A.t[1], B.t[2] - A.t[2]];
+        const fwd = [Fw.m[0], Fw.m[3], Fw.m[6]];
+        const E = frame(axis, fwd), E0 = L.rest;
+        // R = E · E0ᵀ (columns e0 e1 e2), times the scale
+        const m = new Array(9);
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) m[r * 3 + c] = k * (E[0][r] * E0[0][c] + E[1][r] * E0[1][c] + E[2][r] * E0[2][c]);
+        const T = { m, t: pivot };
+        setGroup(L.id, T, k / k0 > 0.03);
+        placed[L.id] = T;
       }
       renderer.render(scene, camera);
     },

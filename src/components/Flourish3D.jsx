@@ -3367,7 +3367,7 @@ export default function Flourish3D({ side = 'right' }) {
     function drawAtlasE(base, q, grow) {
       const R = ROBOTS.atlas; if (!R) return;
       const T = growPlacements(R, base, q, grow);
-      if (atlasGL && !cap) {
+      if (atlasGL && atlasGL.ready && !cap) {
         atlasDrawn = true;
         atlasGL.render(n => { const i = R.index.get(n); return i == null ? null : T[i]; }, detScale(base.m), camState, dark);
         return;

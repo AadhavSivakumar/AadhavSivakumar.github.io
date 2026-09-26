@@ -1326,6 +1326,28 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**THE ATLAS IS NOW THE OWNER'S OWN MODEL** (Sept 26; "scrap the previous
+robot, use this instead"): a Blender scene they supplied (OBJ + MTL; 181
+named parts, metres, Y up, +Z forward, arms hanging, 1.74 m). Baked by
+`scripts/bake-atlas26.mjs <obj> <mtl>` into `src/robots/atlas26.bin` (1.46
+MB, 587 KB gzipped; int16 positions at 0.1 mm, int8 normals, uint16 indices
+per part, a JSON header with the materials; the studio backdrop dropped),
+fetched lazily by `atlasGL.js`. The source OBJ/.blend stay out of the repo
+(re-bake from the owner's upload). **Rigged onto the DRC skeleton**, so the
+grow-in, the Fairino morph and the wave are unchanged: parts are grouped by
+name into pieces (`pieceOf`: torso incl. head, pelvis, and per side upper
+arm, forearm, hand, thigh, shin, foot); model → skeleton coordinates are
+`(z, x, y)` about a reference point, ×1160 (puts the model pelvis at the
+skeleton's 930 mm); the torso and pelvis ride the `utorso` / `pelvis`
+bodies; each limb piece HANGS from the end of the piece above (so a limb
+never parts) and is turned onto the skeleton's bone (scap→larm, larm→hand,
+uleg→lleg, lleg→talus) with its front kept on the parent's forward
+(`frame()` / rest frames); the foot takes the `foot` body's orientation at
+the ankle. `drawAtlasE` uses it only once loaded (`atlasGL.ready`); until
+then, and with no WebGL, the drawn fallback shows. Everything below about
+the hand-built GL Atlas is history. Harness note: `taskzoom.mjs` copies only
+the 2D canvas — screenshot the page to see the Atlas.
+
 **Oct 4 (Sept 26 by the calendar).** Atlas remodelled from the owner's Fab
 listing (fab.com/listings/56263696-…, the same RandomRepresent 2026 model):
 only its GALLERY renders were used — three small ones of this robot (blue,
