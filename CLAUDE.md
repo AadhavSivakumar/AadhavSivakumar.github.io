@@ -1326,6 +1326,27 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Oct 1: detail passes, iterated by photograph.** `atlasshots.mjs` (scratch)
+shoots the settled Atlas at 3x from four yaws via the dev hook `?atlasyaw=`
+and montages them; three rounds against the product collage added: a
+two-block chest with rounded shoulders, a proud blue front panel with seams,
+blue side panels with vent slots, a back battery pack, a WIDE ribbed waist
+with a belt block (narrow, it read as a spring), shoulder blocks with an
+outboard drum, a head with a front lip, a sensor bar with two lenses and
+recessed side vents, a "Boston Dynamics" wordmark (a CanvasTexture — its
+plane faces +x from behind its normal, so the texture is mirrored back with
+`repeat.x = -1`), joint drums with bevel rings and steel caps (`drumJ`), a
+pelvis front plate, and LEGS modelled in their own body frames so shells can
+face a direction: a blue thigh shell over the front and outside (three's
+cylinder puts theta 0 on +z, which the Z-up turn sends to −y, so +x is theta
+π/2), a blue calf plate behind a graphite shin, a shin guard, jointed
+three-finger hands with a thumb, soles and heel rollers. **UR pair → OP1 now
+TURNS** (the owner: "it should be TURNING into the arms on the ultra robot"):
+each UR link travels, turns and resizes onto the matching link of the small
+arm on its side (base and shoulder → the mount, upper arm → S, forearm → E,
+wrist → Wr, via `smallArmFrames`), base first, and only then gives way to
+the small arm's own drawing in the same place.
+
 **Sept 30: the GL Atlas is the current PRODUCT Atlas** (the product page's
 collage and warehouse render): graphite body, blue shells (chest front panel,
 side panels, upper arms, thighs, head shell), graphite forearms and shins,

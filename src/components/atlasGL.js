@@ -87,53 +87,124 @@ export function createAtlasGL(host) {
   const X_AX = [0, 0, Math.PI / 2];     // an axis along x (the head faces +x)
   const box = (w, d, h, r) => G(new RoundedBoxGeometry(d, w, h, 5, r));   // (width y, depth x, height z, corner radius)
 
-  // CHEST: a graphite block, wider at the top, with a big blue front panel
-  // over its lower two thirds, a dark label band above it, side panels
-  part('utorso', box(420, 260, 330, 50), dark, [-15, 0, 420]);
-  part('utorso', box(360, 240, 250, 45), dark, [-15, 0, 150]);
-  part('utorso', box(330, 30, 300, 26), blue, [112, 0, 230]);               // the blue front panel
-  part('utorso', box(300, 16, 50, 10), black, [112, 0, 440]);               // the label band
-  for (const sy of [-1, 1]) part('utorso', box(24, 170, 220, 10), blue, [-20, sy * 185, 280]);   // blue side panels
-  // WAIST: a ribbed black column down to the pelvis
-  for (let i = 0; i < 5; i++) part('utorso', G(new THREE.CylinderGeometry(96 - i * 3, 96 - i * 3, 24, 36)), black, [-10, 0, -4 - i * 30], Z_UP);
-  part('utorso', G(new THREE.CylinderGeometry(78, 78, 150, 36)), dark, [-10, 0, -60], Z_UP);
-  // SHOULDERS: huge black rounded blocks on the chest's top corners
-  for (const sy of [-1, 1]) part('utorso', box(150, 190, 170, 60), black, [-15, sy * 250, 520]);
-  // NECK and HEAD: a short dark neck; a round head, blue-shelled, facing +x,
-  // with a thick warm ring light round a glossy black visor, and an antenna
-  part('utorso', G(new THREE.CylinderGeometry(48, 56, 110, 32)), dark, [-5, 0, 640], Z_UP);
-  const headShell = new THREE.LatheGeometry([[0, -95], [110, -92], [140, -70], [150, -30], [150, 40], [140, 70], [120, 82], [0, 82]].map(([r, y]) => new THREE.Vector2(r, y)), 72);
-  part('utorso', G(headShell), blue, [0, 0, 830], X_AX);
-  part('utorso', G(new THREE.TorusGeometry(116, 20, 24, 80)), glow, [88, 0, 830], [0, Math.PI / 2, 0]);   // the ring light
-  part('utorso', G(new THREE.CylinderGeometry(98, 98, 14, 72)), face, [92, 0, 830], X_AX);                 // the visor, proud of the shell's face
-  part('utorso', box(120, 12, 36, 10), dark, [101, 0, 824]);                                               // the sensor slot across it
-  part('utorso', G(new THREE.CylinderGeometry(5, 6, 90, 10)), black, [-40, 70, 1000], Z_UP);               // the antenna
-  // PELVIS: a dark block between two big black lateral hip drums
-  part('pelvis', box(300, 200, 150, 50), dark, [0, 0, -50]);
+  // ── DETAIL PASS (iterated against Boston Dynamics' product collage) ──
+  const shellMat = blue.clone(); shellMat.side = THREE.DoubleSide;        // open half-shells
+  const darkShell = dark.clone(); darkShell.side = THREE.DoubleSide;
+  const steel = new THREE.MeshStandardMaterial({ color: 0x8a9099, roughness: 0.3, metalness: 0.8 });
+  mats.push(shellMat, darkShell, steel);
+  const cyl = (r0, r1, h, seg = 40) => G(new THREE.CylinderGeometry(r1, r0, h, seg));
+  // a half-shell round an axis (Y in three, Z once turned), `arc` radians
+  // wide, centred on `face` (0 = +x, PI = -x)
+  const halfShell = (r0, r1, h, arc, faceAng) => { const g = new THREE.CylinderGeometry(r1, r0, h, 40, 1, true, faceAng - arc / 2 + Math.PI / 2 - Math.PI / 2 + (Math.PI / 2 - 0), arc); return G(g); };
+  // a grille: n small dark slots in a row along an axis
+  const grille = (name, n, at, step, size, mat = black) => { for (let i = 0; i < n; i++) part(name, box(...size, 2), mat, [at[0] + step[0] * i, at[1] + step[1] * i, at[2] + step[2] * i]); };
+  // a joint drum: black barrel, a bevel ring on each face, a steel cap
+  const drumJ = (name, r, w, pos, axis) => {
+    const rot = axis === 'x' ? X_AX : axis === 'z' ? Z_UP : undefined;
+    part(name, cyl(r, r, w, 48), black, pos, rot);
+    for (const sgn of [-1, 1]) {
+      const o = axis === 'x' ? [sgn * w / 2, 0, 0] : axis === 'z' ? [0, 0, sgn * w / 2] : [0, sgn * w / 2, 0];
+      const trot = axis === 'x' ? [0, Math.PI / 2, 0] : axis === 'z' ? undefined : [Math.PI / 2, 0, 0];
+      part(name, G(new THREE.TorusGeometry(r * 0.72, r * 0.07, 10, 40)), dark, [pos[0] + o[0], pos[1] + o[1], pos[2] + o[2]], trot);
+      const cap = axis === 'x' ? [sgn * (w / 2 + 2), 0, 0] : axis === 'z' ? [0, 0, sgn * (w / 2 + 2)] : [0, sgn * (w / 2 + 2), 0];
+      part(name, cyl(r * 0.28, r * 0.28, 6, 24), steel, [pos[0] + cap[0], pos[1] + cap[1], pos[2] + cap[2]], rot);
+    }
+  };
+
+  // CHEST: an upper graphite block with rounded shoulders, a narrower lower
+  // block, a proud blue front panel with a seam, side vents, a label band
+  part('utorso', box(430, 250, 300, 60), dark, [-15, 0, 430]);
+  part('utorso', box(370, 235, 250, 45), dark, [-15, 0, 170]);
+  part('utorso', box(340, 34, 290, 30), blue, [110, 0, 225]);                // the blue front panel
+  part('utorso', box(300, 6, 4, 2), black, [128, 0, 150]);                  // its lower seam
+  part('utorso', box(300, 6, 4, 2), black, [128, 0, 300]);                  // its upper seam
+  part('utorso', box(300, 18, 46, 10), black, [108, 0, 450]);               // the label band
+  { // the wordmark on the band
+    const c = document.createElement('canvas'); c.width = 512; c.height = 64; const x = c.getContext('2d');
+    x.fillStyle = '#0d0e10'; x.fillRect(0, 0, 512, 64); x.fillStyle = '#d8dce4'; x.font = '600 34px Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('Boston Dynamics', 256, 34);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1;   // the plane faces +x from behind its own normal: unmirror
+    const m = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }); mats.push(m);
+    part('utorso', G(new THREE.PlaneGeometry(240, 30)), m, [118, 0, 450], [Math.PI / 2, Math.PI / 2, 0]);
+  }
   for (const sy of [-1, 1]) {
-    part('pelvis', G(new THREE.CylinderGeometry(112, 112, 110, 48)), black, [15, sy * 165, -80]);          // axis lateral (y)
-    part('pelvis', G(new THREE.CylinderGeometry(70, 70, 114, 36)), dark, [15, sy * 165, -80]);
+    part('utorso', box(22, 180, 230, 10), blue, [-15, sy * 190, 270]);     // blue side panels
+    grille('utorso', 6, [-80, sy * 202, 360], [26, 0, 0], [6, 14, 70]);   // side vents
   }
-  // KNEES and ELBOWS: lateral black drums at the joints, with a dark face disc
+  // back: a dark battery pack
+  part('utorso', box(300, 60, 300, 30), black, [-165, 0, 300]);
+  // WAIST: a ribbed black barrel, knurled rings, a steel belt ring
+  // (wide, as in the photos: the ribbed section is nearly as wide as the
+  // lower chest and joins it to the pelvis — narrow, it read as a spring)
+  part('utorso', box(300, 200, 60, 24), black, [-15, 0, 25]);                // a belt block under the chest
+  part('utorso', G(new THREE.CylinderGeometry(118, 118, 170, 48)).scale(1, 1, 1), dark, [-10, 0, -80], Z_UP);
+  for (let i = 0; i < 7; i++) part('utorso', G(new THREE.TorusGeometry(120, 8, 10, 56)), black, [-10, 0, -10 - i * 22]);
+  part('utorso', G(new THREE.TorusGeometry(124, 7, 12, 56)), steel, [-10, 0, 0]);
+  // SHOULDERS: huge black rounded blocks, a bevel line round each, the pitch drum outboard
+  for (const sy of [-1, 1]) {
+    part('utorso', box(150, 200, 175, 62), black, [-15, sy * 252, 522]);
+    drumJ('utorso', 70, 40, [-15, sy * 335, 510]);
+  }
+  // NECK and HEAD: a short neck with a collar; a blue-shelled round head
+  // (rear vents, a rounded rear cap), a thick warm ring light round a glossy
+  // black visor carrying a sensor bar with two lenses, an antenna
+  part('utorso', cyl(46, 52, 110, 32), dark, [-5, 0, 640], Z_UP);
+  part('utorso', G(new THREE.TorusGeometry(56, 8, 10, 32)), black, [-5, 0, 600]);
+  const headShell = new THREE.LatheGeometry([[0, -100], [70, -99], [118, -88], [145, -62], [152, -20], [152, 40], [146, 66], [130, 80], [0, 80]].map(([r, y]) => new THREE.Vector2(r, y)), 80);
+  part('utorso', G(headShell), blue, [0, 0, 830], X_AX);
+  part('utorso', G(new THREE.TorusGeometry(118, 21, 28, 96)), glow, [86, 0, 830], [0, Math.PI / 2, 0]);
+  part('utorso', G(new THREE.TorusGeometry(142, 5, 10, 96)), dark, [70, 0, 830], [0, Math.PI / 2, 0]);   // the shell's front lip
+  part('utorso', cyl(98, 98, 14, 80), face, [93, 0, 830], X_AX);
+  part('utorso', box(150, 12, 40, 14), black, [102, 0, 822]);
+  for (const sy of [-1, 1]) part('utorso', cyl(11, 11, 6, 24), steel, [109, sy * 42, 822], X_AX);   // its lenses
+  for (const sy of [-1, 1]) grille('utorso', 5, [-60, sy * 128, 798], [0, 0, 16], [34, 8, 8]);   // head side vents, set into the rear shell (at the rim they stuck out like ears)
+  part('utorso', cyl(5, 6, 90, 10), black, [-40, 75, 1000], Z_UP);
+  part('utorso', G(new THREE.SphereGeometry(9, 12, 10)), black, [-40, 75, 1048]);
+  // PELVIS: a dark block with a front plate between two big lateral hip drums
+  part('pelvis', box(300, 210, 150, 55), dark, [0, 0, -50]);
+  part('pelvis', box(220, 20, 90, 18), black, [106, 0, -60]);
+  for (const sy of [-1, 1]) drumJ('pelvis', 108, 110, [15, sy * 168, -80]);
+  // LEGS, modelled in their own body frames (so shells face forward):
+  // thigh (uleg): a dark core to the knee at (-50, 0, -374), a blue shell over
+  // its front and outside; knee (lleg origin): a lateral drum; shin (lleg):
+  // a dark core to the ankle at (0, 0, -422), a blue calf plate behind;
+  // ankle (talus): a lateral drum; foot: a long black sole, a heel roller
+  const thighTilt = Math.atan2(50, 374);
   for (const sd of ['l', 'r']) {
-    part(sd + '_lleg', G(new THREE.CylinderGeometry(84, 84, 186, 48)), black, [0, 0, 0]);     // proud of the leg on both sides
-    part(sd + '_lleg', G(new THREE.CylinderGeometry(52, 52, 190, 36)), dark, [0, 0, 0]);
-    part(sd + '_talus', G(new THREE.CylinderGeometry(60, 60, 110, 36)), black, [0, 0, 0]);
-    part(sd + '_larm', G(new THREE.CylinderGeometry(72, 72, 130, 40)), black, [0, 0, 0], X_AX);
-    // HANDS: a dark palm with three fingers; FEET: long black soles, rounded heel
-    part(sd + '_hand', box(70, 90, 110, 22), dark, [0, 0, -30]);
-    for (const f of [-1, 0, 1]) part(sd + '_hand', box(20, 26, 80, 9), black, [f * 28, sd === 'l' ? 15 : -15, -120]);
-    part(sd + '_foot', box(130, 280, 70, 28), black, [40, 0, -65]);
-    part(sd + '_foot', G(new THREE.CylinderGeometry(60, 60, 128, 32)), black, [-80, 0, -40]);
+    const out = sd === 'l' ? 1 : -1;
+    const th = new THREE.Group(); th.rotation.y = thighTilt; th.position.set(-25, 0, -187);
+    const addTo = (grp, geo, mat, pos, rot) => { const m = new THREE.Mesh(geo, mat); if (pos) m.position.set(...pos); if (rot) m.rotation.set(...rot); grp.add(m); };
+    addTo(th, cyl(74, 64, 374), dark, null, Z_UP);
+    addTo(th, G(new THREE.CylinderGeometry(92, 102, 330, 40, 1, true, Math.PI / 2 - Math.PI * 0.62, Math.PI * 1.24)), shellMat, [0, 0, 10], Z_UP);   // centred on +x (theta PI/2 after the Z-up turn)
+    addTo(th, box(8, 6, 250, 2), black, [101, 0, 0]);                         // the shell's seam
+    part(sd + '_uleg', G(new THREE.BufferGeometry()), dark).add(th);
+    drumJ(sd + '_lleg', 86, 176, [0, 0, 0]);
+    const sh = new THREE.Group(); sh.position.set(0, 0, -211);
+    addTo(sh, cyl(66, 52, 422), dark, null, Z_UP);
+    addTo(sh, G(new THREE.CylinderGeometry(70, 86, 260, 40, 1, true, -Math.PI / 2 - Math.PI * 0.5, Math.PI * 1.0)), shellMat, [0, 0, 40], Z_UP);   // calf plate, behind (-x)
+    addTo(sh, box(120, 40, 60, 14), black, [60, 0, 120]);                     // the shin's front guard
+    part(sd + '_lleg', G(new THREE.BufferGeometry()), dark).add(sh);
+    drumJ(sd + '_talus', 58, 120, [0, 0, 0]);
+    part(sd + '_foot', box(135, 290, 62, 26), black, [45, 0, -70]);
+    part(sd + '_foot', box(120, 200, 14, 6), dark, [70, 0, -104]);            // the sole
+    part(sd + '_foot', cyl(52, 52, 132, 32), black, [-85, 0, -60]);
+    // ELBOW: a lateral drum; HAND: a dark palm, a thumb and two jointed fingers
+    drumJ(sd + '_larm', 70, 128, [0, 0, 0], 'x');
+    part(sd + '_hand', box(78, 96, 110, 24), dark, [0, 0, -30]);
+    part(sd + '_hand', G(new THREE.TorusGeometry(46, 7, 10, 32)), black, [0, 0, 20]);   // wrist ring
+    for (const f of [-1, 1]) {
+      part(sd + '_hand', box(24, 30, 70, 10), black, [f * 22, out * 18, -120]);
+      part(sd + '_hand', box(22, 28, 60, 10), black, [f * 22, out * 26, -178], [out * 0.35, 0, 0]);
+    }
+    part(sd + '_hand', box(26, 30, 70, 10), black, [0, -out * 40, -100], [-out * 0.4, 0, 0]);   // thumb
   }
+  // a blue shell over each upper arm, a blue plate on each forearm, as bones below
 
   // LIMBS are bones between body origins (as the Canvas2D drawer had them):
   // a tapered white shell, rounded ends, a black ball at the far joint
   const BONES = [   // from, to, radius at from, radius at to, joint ball radius (0 = none; the drums are the joints)
     ['l_scap', 'l_larm', 78, 70, 0, 'blue'], ['r_scap', 'r_larm', 78, 70, 0, 'blue'],
     ['l_larm', 'l_hand', 60, 50, 0, 'dark'], ['r_larm', 'r_hand', 60, 50, 0, 'dark'],     // forearms graphite (the photos)
-    ['l_lglut', 'l_lleg', 92, 84, 0, 'blue'], ['r_lglut', 'r_lleg', 92, 84, 0, 'blue'],
-    ['l_lleg', 'l_talus', 80, 58, 0, 'dark'], ['r_lleg', 'r_talus', 80, 58, 0, 'dark'],     // shins graphite
+    // (the legs are modelled in their body frames above)
   ];
   const unitSphere = G(new THREE.SphereGeometry(1, 32, 20));
   const bones = BONES.map(([a, b, r0, r1, jr, mn]) => {
@@ -145,7 +216,7 @@ export function createAtlasGL(host) {
   });
   // the shoulder links: from the torso's corner ball out to each arm's first joint
   const links = ['l', 'r'].map(sd => {
-    const m = new THREE.Mesh(G(new THREE.CylinderGeometry(1, 1, 1, 32)), black);   // the shoulder link: the black shoulder block continues down
+    const m = new THREE.Mesh(G(new THREE.CylinderGeometry(1, 1, 1, 32)), blue);    // the upper arm's shell starts at the shoulder block (the photos)
     yawG.add(m);
     return { sd, m, sy: sd === 'l' ? 1 : -1 };
   });
@@ -212,7 +283,7 @@ export function createAtlasGL(host) {
         const c = [-10, L.sy * 215, 520];
         va.set(U.m[0] * c[0] + U.m[1] * c[1] + U.m[2] * c[2] + U.t[0], -(U.m[3] * c[0] + U.m[4] * c[1] + U.m[5] * c[2] + U.t[1]), U.m[6] * c[0] + U.m[7] * c[1] + U.m[8] * c[2] + U.t[2]);
         posOf(S, vb);
-        place(L.m, va, vb, 58 * scaleOf(S), 58 * scaleOf(S));
+        place(L.m, va, vb, 76 * scaleOf(S), 76 * scaleOf(S));
       }
       renderer.render(scene, camera);
     },

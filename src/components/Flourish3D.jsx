@@ -2737,7 +2737,9 @@ export default function Flourish3D({ side = 'right' }) {
       const H = humPoses(), q = taskQ(H.wave, taskPhase(H.wave, t, H.wave.W.length));
       return u >= 0.999 ? q : u <= 0.001 ? H.rest : lerpQ(H.rest, q, u);
     };
-    const humBase = () => standing([RB.hum.root[0], RB.hum.root[1] - HUM_PELVIS * RB.hum.k], RB.hum.k, RB.hum.yaw);
+    // dev: ?atlasyaw=<deg> turns the humanoid for shooting it from the side
+    const HUM_YAW_DEV = typeof location !== 'undefined' && new URLSearchParams(location.search).has('atlasyaw') ? +new URLSearchParams(location.search).get('atlasyaw') : null;
+    const humBase = () => standing([RB.hum.root[0], RB.hum.root[1] - HUM_PELVIS * RB.hum.k], RB.hum.k, HUM_YAW_DEV ?? RB.hum.yaw);
     // the inverse of a placement (rotation x uniform scale, then translation)
     const invT = T => {
       const s2 = detScale(T.m) ** 2, M = T.m;
@@ -3178,15 +3180,39 @@ export default function Flourish3D({ side = 'right' }) {
       }
       const gr = growOrder(UL_ORDER, t, 0.12, 0.62);
       const q = lerpQ(RB.ul.folded, RB.ul.rest, smooth(win(t, 0.3, 0.6)));
-      const armIn = smooth(win(t, 0.5, 0.4));    // overlaps the URs shrinking onto the shoulders: one pair of arms becomes the other
+      // The two URs TURN INTO the unit's two arms (the owner: "it should be
+      // TURNING into the arms on the ultra robot"): each UR link travels,
+      // turns and resizes onto the matching link of the small arm on its side
+      // — base and shoulder onto the shoulder mount, upper arm onto the upper
+      // arm, forearm onto the forearm, the wrist onto the wrist — base first,
+      // tip last; only once every link is in place does the UR's shell give
+      // way to the small arm's own drawing, in the same place.
+      const armIn = smooth(win(t, 0.72, 0.2));
       drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
-      const travel = smooth(win(t, 0.25, 0.65));
-      const out = 1 - smooth(win(t, 0.55, 0.4));
-      if (out > 0.01) {
-        for (const [root, yaw, rest, side] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR, 1], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL, -1]]) {
-          const sh = tpOf(TU, [0, side * UNIT.SY, UNIT.SZ]);
-          const pos = [root[0] + (sh[0] - root[0]) * travel, root[1] + (sh[1] - root[1]) * travel, root[2] + (sh[2] - root[2]) * travel];
-          drawUR(leaning(pos, RB.ur.k * (1 - 0.7 * travel), yaw, LEAN * (1 - travel)), rest, out);
+      const urOut = 1 - smooth(win(t, 0.74, 0.2));
+      if (urOut > 0.03) {
+        const UR = ROBOTS.ur5e, kU = RB.ul.k;
+        const shR = tpOf(TU, [0, UNIT.SY, UNIT.SZ]), shL = tpOf(TU, [0, -UNIT.SY, UNIT.SZ]);
+        for (const [root, yaw, rest] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL]]) {
+          const Bu = leaning(root, RB.ur.k, yaw);
+          const TA = bodyPlacements(UR, Bu, rest);
+          const d = sh => Math.hypot(sh[0] - Bu.t[0], sh[1] - Bu.t[1]);
+          const side = d(shR) <= d(shL) ? 1 : -1;
+          const P = side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0];
+          const F = smallArmFrames(TU, P, side);
+          const mount = chain(TU, place(IDENT, [0, side * UNIT.SY, UNIT.SZ]));
+          const tgt = [mount, mount, F.S, F.E, F.Wr, F.Wr, F.Wr];      // base shoulder upperarm forearm wrist1 wrist2 wrist3
+          const TB = [];
+          for (const part of UR.parts) {
+            const i = UR.index.get(part.body);
+            const w = smooth(win(t, 0.18 + i * 0.05, 0.42));
+            const T = w > 0 ? lerpT(TA[i], tgt[i], w, detScale(Bu.m), kU * 0.85) : TA[i];   // ends at about the small arm's own thickness
+            TB[i] = T;
+            const mat = MESH_MAT[part.mat] ?? MAT.neutral;
+            submitMesh(part, urOut < 1 ? scaleT(T, urOut) : T, mat, 1, matLine[mat]);
+          }
+          const Tw = TB[UR.index.get('wrist3')];
+          if (Tw) drawURGripper(urOut < 1 ? scaleT(Tw, urOut) : Tw, 90, 1);
         }
       }
       growUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
