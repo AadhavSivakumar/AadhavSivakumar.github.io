@@ -1326,6 +1326,26 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Oct 3.** UR → Ultra arms, reviewed frame by frame at 3x until seamless:
+the tube stand-in is gone (it popped in at 0.2 and out at 0.8). Each UR link
+keeps its OWN mesh and is carried by a similarity transform that sends its
+two joint ends (body origins, plus a tool tip 230 mm down wrist3) onto the
+matching Ultra-arm joints (a mount above the shoulder, S, S, E, Wr, two
+stations down the tool axis, tcp), squeezed across its axis to 0.72 so it
+lands at the servo chain's width, blended ELEMENT-WISE (lerpT
+re-orthonormalises and would undo the squeeze), darkening in steps
+alu → steel → iron → poly; the gripper closes and slims. Three causes of the
+earlier jump, each seen: aiming at the unit's REST frame while it was still
+unfolding with the Fairino (aim at `drawUltraRobot`'s return, which is now
+the unit AS DRAWN, growth included); the unit still growing at the swap (its
+`growOrder` span is 0.45, whole by ~0.78); fat links landing on a thin chain.
+The frame now stays until the arms are leaving it (0.3–0.75). Atlas: slimmed
+to the reference's build (narrower chest and waist bar, smaller shoulder
+balls and hubs, thinner limbs), the hip collars moved onto the thighs (they
+floated beside the body), a ribbed dark waist column. The linked 2024 and
+2026 Sketchfab Atlases are both NOT downloadable (Standard licence, sold on
+Fab); they were captured from the embed viewer as references only.
+
 **Oct 2.** Atlas reworked after the owner's reference, the Sketchfab "Atlas
 Boston Dynamics 2026" (RandomRepresent; NOT downloadable, viewed only —
 captured spinning in its embed viewer): saturated blue #3f72b8, a CYAN ring

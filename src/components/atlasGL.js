@@ -131,32 +131,31 @@ export function createAtlasGL(host) {
   part('utorso', tor(46, 7), steel, [-10, 0, 600]);
   // CHEST: a black upper block (the logos) over a big rounded BLUE block
   // that is the chest's lower two thirds, wrapping front and sides
-  part('utorso', box(400, 240, 180, 60), black, [-15, 0, 500]);
-  part('utorso', box(420, 270, 360, 80), blue, [-5, 0, 250]);
-  part('utorso', box(360, 60, 300, 40), black, [-150, 0, 300]);             // the back
+  part('utorso', box(320, 220, 180, 55), black, [-15, 0, 500]);
+  part('utorso', box(330, 240, 380, 70), blue, [-5, 0, 250]);
+  part('utorso', box(290, 50, 300, 34), black, [-140, 0, 300]);             // the back
   { const tex = texOf(x => { x.fillStyle = '#0c0d0f'; x.fillRect(0, 0, 512, 512); x.fillStyle = '#e8ecf2'; x.strokeStyle = '#e8ecf2'; x.lineWidth = 10; x.beginPath(); x.ellipse(256, 170, 70, 42, 0, 0, 7); x.stroke(); x.font = 'bold 64px Arial'; x.textAlign = 'center'; x.fillText('H', 256, 194); x.font = '600 58px Arial'; x.fillText('BostonDynamics', 256, 330); });
     tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1;
     const m = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: false }); mats.push(m);
     part('utorso', G(new THREE.PlaneGeometry(170, 170)), m, [107, 0, 500], [Math.PI / 2, Math.PI / 2, 0]); }   // inside the black block's front face
   // WAIST: a horizontal ribbed bar across the chest's foot, a short black
   // column down to the pelvis
-  part('utorso', cyl(62, 62, 300, 40), black, [0, 0, 40]);                   // lateral bar (Y axis)
-  ribs('utorso', 64, 5, 11, 24, [0, 0, 40], 'y', dark);
-  part('utorso', cyl(58, 58, 260, 32), black, [0, 0, -110], Z_UP);          // reaches the pelvis bar
+  part('utorso', cyl(52, 52, 250, 40), black, [0, 0, 40]);                   // lateral bar (Y axis)
+  ribs('utorso', 54, 5, 9, 24, [0, 0, 40], 'y', dark);
+  part('utorso', cyl(80, 74, 260, 36), black, [0, 0, -110], Z_UP);          // reaches the pelvis bar
+  ribs('utorso', 82, 5, 8, 26, [0, 0, -110], 'z', dark);
   // SHOULDERS: black balls on the chest's top corners, a white ribbed collar
   // below each, before the blue upper arm
   for (const sy of [-1, 1]) {
-    part('utorso', G(new THREE.SphereGeometry(86, 40, 28)), black, [-10, sy * 245, 520]);
-    ribs('utorso', 62, 7, 5, 18, [-10, sy * 245, 405], 'z', ribbed);
+    part('utorso', G(new THREE.SphereGeometry(72, 40, 28)), black, [-10, sy * 205, 520]);
   }
   // PELVIS: a horizontal black bar with round drum ends, ribbed at the
   // middle, white ribbed collars where the thighs hang
-  part('pelvis', cyl(70, 70, 330, 40), black, [0, 0, -70]);
-  ribs('pelvis', 72, 5, 7, 22, [0, 0, -70], 'y', dark);
+  part('pelvis', cyl(58, 58, 280, 40), black, [0, 0, -70]);
+  ribs('pelvis', 60, 5, 6, 22, [0, 0, -70], 'y', dark);
   for (const sy of [-1, 1]) {
-    part('pelvis', cyl(94, 94, 70, 48), black, [0, sy * 190, -70]);
-    part('pelvis', cyl(40, 40, 76, 24), steel, [0, sy * 190, -70]);
-    ribs('pelvis', 60, 7, 4, 16, [0, sy * 150, -170], 'z', ribbed);
+    part('pelvis', cyl(78, 78, 60, 48), black, [0, sy * 165, -70]);
+    part('pelvis', cyl(34, 34, 66, 24), steel, [0, sy * 165, -70]);
   }
   // LEGS in their body frames. Thigh (uleg): a black core, a blue rounded
   // front shell over its upper two thirds. Knee (lleg origin) and ankle
@@ -167,19 +166,20 @@ export function createAtlasGL(host) {
     const out = sd === 'l' ? 1 : -1;
     const add = (grp, geo, mat, pos, rot) => { const m = new THREE.Mesh(geo, mat); if (pos) m.position.set(...pos); if (rot) m.rotation.set(...rot); grp.add(m); };
     const th = new THREE.Group(); th.rotation.y = thighTilt; th.position.set(-25, 0, -187);
-    add(th, box(120, 150, 374, 50), black);
-    add(th, box(150, 110, 250, 46), blue, [42, 0, 50]);                        // the blue thigh shell, front
+    add(th, box(100, 125, 374, 42), black);
+    add(th, box(118, 95, 260, 40), blue, [34, 0, 50]);                        // the blue thigh shell, front
     part(sd + '_uleg', G(new THREE.BufferGeometry()), dark).add(th);
-    hub(sd + '_lleg', 78, 120, [0, 0, 0]);
+    ribs(sd + '_uleg', 56, 6, 4, 15, [0, 0, -18], 'z', ribbed);            // the white ribbed collar at the hip, on the thigh
+    hub(sd + '_lleg', 64, 100, [0, 0, 0]);
     const sh = new THREE.Group(); sh.position.set(0, 0, -211);
-    add(sh, box(100, 150, 380, 48), black);                                   // the flat shin slab
-    add(sh, box(70, 30, 250, 14), dark, [78, 0, 0]);                           // its front ridge
+    add(sh, box(84, 125, 390, 40), black);                                   // the flat shin slab
+    add(sh, box(56, 24, 250, 12), dark, [66, 0, 0]);                           // its front ridge
     part(sd + '_lleg', G(new THREE.BufferGeometry()), dark).add(sh);
-    hub(sd + '_talus', 60, 100, [0, 0, 0]);
+    hub(sd + '_talus', 50, 84, [0, 0, 0]);
     part(sd + '_foot', box(120, 280, 40, 16), black, [45, 0, -75]);
     part(sd + '_foot', box(110, 290, 12, 5), steel, [45, 0, -100]);
     // ELBOW: a black drum; HAND: a silver gripper with three fingers
-    part(sd + '_larm', cyl(66, 66, 124, 40), black, [0, 0, 0], X_AX);
+    part(sd + '_larm', cyl(54, 54, 104, 40), black, [0, 0, 0], X_AX);
     ribs(sd + '_hand', 44, 6, 3, 14, [0, 0, 40], 'z', black);                 // the ribbed wrist
     part(sd + '_hand', box(80, 100, 100, 18), silver, [0, 0, -30]);
     for (const f of [-1, 0, 1]) {
@@ -191,8 +191,8 @@ export function createAtlasGL(host) {
   // LIMBS are bones between body origins (as the Canvas2D drawer had them):
   // a tapered white shell, rounded ends, a black ball at the far joint
   const BONES = [   // from, to, radius at from, radius at to, joint ball radius (0 = none; the drums are the joints)
-    ['l_scap', 'l_larm', 78, 70, 0, 'blue'], ['r_scap', 'r_larm', 78, 70, 0, 'blue'],
-    ['l_larm', 'l_hand', 58, 50, 0, 'dark'], ['r_larm', 'r_hand', 58, 50, 0, 'dark'],     // forearms black (the reference)
+    ['l_scap', 'l_larm', 62, 56, 0, 'blue'], ['r_scap', 'r_larm', 62, 56, 0, 'blue'],
+    ['l_larm', 'l_hand', 48, 42, 0, 'dark'], ['r_larm', 'r_hand', 48, 42, 0, 'dark'],     // forearms black (the reference)
     // (the legs are modelled in their body frames above)
   ];
   const unitSphere = G(new THREE.SphereGeometry(1, 32, 20));
@@ -269,10 +269,10 @@ export function createAtlasGL(host) {
         L.m.visible = vis;
         if (!vis) continue;
         // the torso's corner, in stage space, then flipped
-        const c = [-10, L.sy * 215, 520];
+        const c = [-10, L.sy * 205, 520];
         va.set(U.m[0] * c[0] + U.m[1] * c[1] + U.m[2] * c[2] + U.t[0], -(U.m[3] * c[0] + U.m[4] * c[1] + U.m[5] * c[2] + U.t[1]), U.m[6] * c[0] + U.m[7] * c[1] + U.m[8] * c[2] + U.t[2]);
         posOf(S, vb);
-        place(L.m, va, vb, 60 * scaleOf(S), 60 * scaleOf(S));
+        place(L.m, va, vb, 50 * scaleOf(S), 50 * scaleOf(S));
       }
       renderer.render(scene, camera);
     },

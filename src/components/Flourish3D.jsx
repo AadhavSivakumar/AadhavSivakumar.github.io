@@ -2165,8 +2165,9 @@ export default function Flourish3D({ side = 'right' }) {
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(B.m));
       // the unit grows out of the flange, its arms out of its shoulders — opaque
       const gu = bodyAlpha ? (bodyAlpha.unit ?? 1) : 1;
-      if (gu > 0.03) drawUnit(gu < 1 ? scaleAbout(TU, gu, Tf.t) : TU, PR, PL, 1, armAlpha);
-      return TU;
+      const TUd = gu < 1 ? scaleAbout(TU, gu, Tf.t) : TU;
+      if (gu > 0.03) drawUnit(TUd, PR, PL, 1, armAlpha);
+      return TUd;                                   // the unit AS DRAWN (the arm morph aims at it)
     }
     const UL_ORDER = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link', 'unit', 'zed'];
 
@@ -3185,7 +3186,8 @@ export default function Flourish3D({ side = 'right' }) {
       // props GROW and SHRINK in place rather than fading: a half-transparent
       // frame and table showed everything behind them, ghost-like
       // the frame slides onto the cart as it shrinks, the cart grows out of it
-      drawFrame(1 - m, 1, [(ULTRA_ROOT[0] - FRAME_X) * m, (FLOOR_Y - TABLE_Y) * m, 0]);
+      const mF = smooth(win(t, 0.3, 0.45));              // the frame goes once the arms are leaving it
+      drawFrame(1 - mF, 1, [(ULTRA_ROOT[0] - FRAME_X) * mF, (FLOOR_Y - TABLE_Y) * mF, 0]);
       drawCart(m, 1, [(FRAME_X - ULTRA_ROOT[0]) * (1 - m), (TABLE_Y - FLOOR_Y) * (1 - m), 0]);
       const base = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
       const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
@@ -3204,7 +3206,7 @@ export default function Flourish3D({ side = 'right' }) {
         const stR0 = taskState(ROBOTS.ur5e, rBase, RB.ur.taskR, 0), stL0 = taskState(ROBOTS.ur5e, lBase, RB.ur.taskL, 0);
         drawPackBox(rBase, gone); drawCubes(stR0, gone); drawCubes(stL0, gone);
       }
-      const gr = growOrder(UL_ORDER, t, 0.12, 0.62);
+      const gr = growOrder(UL_ORDER, t, 0.12, 0.45);   // the unit is whole by ~0.78, before the arms land on it
       const q = lerpQ(RB.ul.folded, RB.ul.rest, smooth(win(t, 0.3, 0.6)));
       // The two URs TURN INTO the unit's two arms (the owner: "it should be
       // TURNING into the arms on the ultra robot"): each UR link travels,
@@ -3213,43 +3215,75 @@ export default function Flourish3D({ side = 'right' }) {
       // arm, forearm onto the forearm, the wrist onto the wrist — base first,
       // tip last; only once every link is in place does the UR's shell give
       // way to the small arm's own drawing, in the same place.
-      // THE ARMS MORPH (the owner, twice: the URs "TURN into the arms on the
-      // ultra robot", not shrink): each UR is drawn whole until it becomes a
-      // jointed TUBE laid exactly along its own skeleton — mount, shoulder,
-      // elbow, wrist, tool tip — in its own white at its own thickness. The
-      // tube's joints then travel, joint by joint, onto the small arm's
-      // skeleton on the same side, thinning and darkening on the way, until
-      // it lies exactly along the small arm, which takes over there.
-      const TUBE_ON = 0.2, TUBE_OFF = 0.8;
-      const armIn = t >= TUBE_OFF ? 1 : 0;
-      drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
-      if (t < TUBE_OFF) {
-        const UR = ROBOTS.ur5e, kU = RB.ul.k;
+      // THE ARMS MORPH (the owner, three times: the URs must TURN INTO the
+      // Ultra's arms, not shrink away). Each UR link keeps its own mesh and is
+      // carried by a similarity transform that sends its two joint ends onto
+      // the two joints of the matching Ultra-arm segment — rotated so its
+      // axis lies along the segment, scaled so its length fits — and eased
+      // there link by link, base first. On the way it darkens in steps from
+      // the UR's white to the Ultra's black. When every link has landed the
+      // chain IS the Ultra arm's skeleton, and the Ultra arm's own drawing
+      // takes over in exactly that place and colour.
+      const SWAP = 0.9;
+      const armIn = t >= SWAP ? 1 : 0;
+      // aim at the unit WHERE IT IS NOW (it is still unfolding with the
+      // Fairino); aiming at its rest pose landed the arms beside it
+      const TUn = drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
+      if (t < SWAP) {
+        const TU = TUn;
+        const UR = ROBOTS.ur5e, names = ['base', 'shoulder', 'upperarm', 'forearm', 'wrist1', 'wrist2', 'wrist3'];
         const shR = tpOf(TU, [0, UNIT.SY, UNIT.SZ]), shL = tpOf(TU, [0, -UNIT.SY, UNIT.SZ]);
+        const rotBetween = (u, v) => {                    // row-major 3x3 turning unit u onto unit v
+          const c = u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+          let ax = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+          const sn = Math.hypot(...ax);
+          if (sn < 1e-6) return c > 0 ? IDENT : [1, 0, 0, 0, -1, 0, 0, 0, -1];
+          ax = ax.map(x => x / sn);
+          const [x, y, z] = ax, C = 1 - c;
+          return [c + x * x * C, x * y * C - z * sn, x * z * C + y * sn, y * x * C + z * sn, c + y * y * C, y * z * C - x * sn, z * x * C - y * sn, z * y * C + x * sn, c + z * z * C];
+        };
+        const sub = (p, q2) => [p[0] - q2[0], p[1] - q2[1], p[2] - q2[2]];
+        const nrm = v => { const L = Math.hypot(...v) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
+        const steps = [MAT.alu, MAT.steel, MAT.iron, MAT.poly];
         for (const [root, yaw, rest] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL]]) {
           const Bu = leaning(root, RB.ur.k, yaw);
-          if (t < TUBE_ON) { drawUR(Bu, rest, 1); continue; }
           const TA = bodyPlacements(UR, Bu, rest), ix = n => UR.index.get(n);
-          const d = sh => Math.hypot(sh[0] - Bu.t[0], sh[1] - Bu.t[1]);
-          const side = d(shR) <= d(shL) ? 1 : -1;
+          const side = Math.hypot(shR[0] - Bu.t[0], shR[1] - Bu.t[1]) <= Math.hypot(shL[0] - Bu.t[0], shL[1] - Bu.t[1]) ? 1 : -1;
           const F = smallArmFrames(TU, side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0], side);
-          const tip = tpOf(TA[ix('wrist3')], [0, 230, 0]);
-          const from = [TA[ix('base')].t, TA[ix('upperarm')].t, TA[ix('forearm')].t, TA[ix('wrist1')].t, tip];
-          const to = [tpOf(TU, [0, side * UNIT.SY, UNIT.SZ + 60]), F.S.t, F.E.t, F.Wr.t, F.tcp];
-          const kUR = detScale(Bu.m);
-          const u = (t - TUBE_ON) / (TUBE_OFF - TUBE_ON);
-          const P = from.map((p0, j) => { const w = smooth(win(u, j * 0.06, 0.7)); return p0.map((v, c) => v + (to[j][c] - v) * w); });
-          const wAll = smooth(win(u, 0.1, 0.8));
-          const r0 = [62, 62, 55, 45, 40].map(r => r * kUR), r1 = [30, 30, 26, 22, 18].map(r => r * kU);
-          const mat = wAll < 0.5 ? MAT.pla : MAT.poly;
-          for (let j = 0; j < 4; j++) {
-            const { T: Sg, L } = segT(P[j], P[j + 1], 1);
-            if (L < 0.5) continue;
-            const r = r0[j] + (r1[j] - r0[j]) * wAll;
-            drawDrum(Sg, r, 0, L, mat, 1);
-            const J = chain(Sg, place(rotX(90 * DEG), [0, 0, L]));
-            drawDrum(J, r * 1.15, -r * 0.9, r * 0.9, wAll < 0.5 ? MAT.urblue : MAT.poly, 1);   // the joint at its end
+          // joint points: the UR's (body origins + the tool tip) and the
+          // Ultra arm's (mount, shoulder, elbow, wrist, and three stations
+          // down the tool axis to its tip)
+          const Pu = [...names.map(n => TA[ix(n)].t), tpOf(TA[ix('wrist3')], [0, 230, 0])];
+          const td = nrm(sub(F.tcp, F.Wr.t)), L3 = Math.hypot(...sub(F.tcp, F.Wr.t));
+          const Pt = [tpOf(TU, [0, side * UNIT.SY, UNIT.SZ + 70]), F.S.t, F.S.t, F.E.t, F.Wr.t,
+                      F.Wr.t.map((v, c) => v + td[c] * L3 * 0.3), F.Wr.t.map((v, c) => v + td[c] * L3 * 0.6), F.tcp];
+          let lastS = 1;
+          const TB = [];
+          for (let i = 0; i < names.length; i++) {
+            const A = TA[ix(names[i])];
+            const du = sub(Pu[i + 1], Pu[i]), dt = sub(Pt[i + 1], Pt[i]);
+            const Lu = Math.hypot(...du), Lt = Math.hypot(...dt);
+            let R = IDENT, sc = lastS;
+            if (Lu > 1 && Lt > 1) { R = rotBetween(nrm(du), nrm(dt)); sc = Lt / Lu; lastS = sc; }
+            // squeeze the link ACROSS its axis to the servo chain's slim
+            // width (lengthwise it already fits): the fat UR links landing at
+            // full girth made the handover to the thin Ultra arm a jump
+            const RA = mul(R, A.m).map(v => v * sc);
+            const d = Lt > 1 ? nrm(dt) : [0, 0, 1], perp = 0.72;
+            const Sq = [0, 1, 2].flatMap(r => [0, 1, 2].map(c => (r === c ? perp : 0) + (1 - perp) * d[r] * d[c]));
+            const Tt = place(mul(Sq, RA), Pt[i]);
+            const w = smooth(win(t, 0.1 + i * 0.045, 0.5));
+            // element-wise blend (lerpT re-orthonormalises, which would undo the squeeze)
+            TB[i] = w <= 0 ? A : w >= 1 ? Tt : place(A.m.map((v, k) => v + (Tt.m[k] - v) * w), A.t.map((v, k) => v + (Tt.t[k] - v) * w));
+            const mw = Math.min(3, Math.floor(w * 4.4) - 1);
+            for (const part of UR.parts) if (part.body === names[i]) {
+              const own = MESH_MAT[part.mat] ?? MAT.neutral;
+              const mat = mw < 0 ? own : steps[mw];
+              submitMesh(part, TB[i], mat, 1, matLine[mat]);
+            }
           }
+          const gw = smooth(win(t, 0.55, 0.3));
+          drawURGripper(gw > 0 ? scaleT(TB[6], 1 - 0.45 * gw) : TB[6], 90 - 40 * gw, 1);   // closes and slims toward the Ultra's small gripper
         }
       }
       growUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
