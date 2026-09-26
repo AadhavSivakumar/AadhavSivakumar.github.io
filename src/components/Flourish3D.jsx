@@ -2083,13 +2083,32 @@ export default function Flourish3D({ side = 'right' }) {
       const cable = [];
       for (let i = 0; i <= 6; i++) { const u = i / 6; cable.push([-UNIT.D / 2 - 6 + 6 * u, side * (70 + (UNIT.SY - 70) * u), UNIT.H - 60 + 84 * u - Math.sin(Math.PI * u) * 34]); }
       submitLines([cable], TU, matLine[MAT.poly], LOOK.line * a * 0.8, 1.3);
-      // the arm: joint modules as drums, links as thinner drums between them
-      drawDrum(S, 28, -UNIT.L1 + 14, -12, MAT.poly, a);                                                  // upper arm
-      line([ring(28.5, -UNIT.L1 / 2, 18)], S, MAT.steel);                                                // its module seam
-      drawDrum(chain(E, place(rotX(90 * DEG), [0, 0, 0])), 32, -28, 28, MAT.poly, a, matLine[MAT.orange]);   // elbow
-      drawDrum(E, 24, -UNIT.L2 + 14, -12, MAT.poly, a);                                                  // forearm
-      drawDrum(chain(Wr, place(rotX(90 * DEG), [0, 0, 0])), 28, -24, 24, MAT.poly, a, matLine[MAT.orange]);  // wrist pitch
-      drawDrum(Wr, 21, -30, -2, MAT.poly, a);                                                             // wrist roll, down the tool axis
+      // the arm, as in Ultra's footage: a chain of small square black SERVO
+      // MODULES (a horn disc on the joint face), joined by pairs of thin steel
+      // BRACKETS, with a cable looping along it
+      const servo = (F, z, rotAx) => {
+        const G = rotAx ? chain(F, place(rotAx, [0, 0, z])) : chain(F, place(IDENT, [0, 0, z]));
+        box(G, 46, 40, 56, 0, 0, 0, MAT.poly);
+        drawDrum(chain(G, place(rotX(90 * DEG), [0, 0, 0])), 15, -24, 24, MAT.steel, a);   // the horns on both faces
+        line([[[-23, -20.5, 18], [23, -20.5, 18]]], G, MAT.steel);                       // the case seam
+      };
+      const brackets = (F, z0, z1) => {
+        for (const sy of [-1, 1]) box(F, 30, 4, Math.abs(z1 - z0), 0, sy * 24, (z0 + z1) / 2, MAT.steel);
+      };
+      servo(S, -30);                                  // shoulder pitch
+      servo(S, -86, rotZ(90 * DEG));                  // shoulder roll, turned
+      brackets(S, -114, -UNIT.L1 + 30);
+      servo(S, -UNIT.L1 * 0.62);                      // upper-arm module
+      servo(E, 0);                                    // elbow
+      brackets(E, -28, -UNIT.L2 + 30);
+      servo(E, -UNIT.L2 * 0.55, rotZ(90 * DEG));      // forearm module
+      servo(Wr, 0);                                   // wrist pitch
+      box(Wr, 40, 40, 22, 0, 0, -22, MAT.poly);       // wrist roll
+      // the cable: along the outside of the chain, sagging between clips
+      const cab = [];
+      const pts = [tpOf(S, [30, 0, -30]), tpOf(S, [34, 0, -UNIT.L1 * 0.62]), tpOf(E, [34, 0, 0]), tpOf(E, [30, 0, -UNIT.L2 * 0.55]), tpOf(Wr, [28, 0, 0])];
+      for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k <= 6; k++) { const u = k / 6; const p0 = pts[i], p1 = pts[i + 1]; cab.push([p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u + Math.sin(Math.PI * u) * 4 * detScale(TU.m), p0[2] + (p1[2] - p0[2]) * u]); }
+      submitLines([cab], place(IDENT, [0, 0, 0]), matLine[MAT.poly], LOOK.line * a * 0.9, 1.2);
       // the gripper: a body, its camera on the front, two fingers with pads
       // on their inner faces, orange tips — the parallel grippers in the photos
       box(Wr, 62, 38, 34, 0, 0, -47, MAT.poly);
@@ -2111,6 +2130,13 @@ export default function Flourish3D({ side = 'right' }) {
       line(boxWire(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, MAT.poly);
       submit(boxFaces(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly, a);
       line(boxWire(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly);
+      // the SHOULDER YOKE (Ultra's footage): a horizontal black beam across the
+      // torso's top, out to both shoulders, with a steel edge
+      submit(boxFaces(56, 2 * UNIT.SY + 40, 44, 0, 0, UNIT.SZ + 32), TU, MAT.poly, a);
+      line(boxWire(56, 2 * UNIT.SY + 40, 44, 0, 0, UNIT.SZ + 32), TU, MAT.poly);
+      line([[[28.5, -UNIT.SY - 20, UNIT.SZ + 18], [28.5, UNIT.SY + 20, UNIT.SZ + 18]]], TU, MAT.steel);
+      // vent slots on the torso's side
+      for (const sy of [-1, 1]) line(Array.from({ length: 5 }, (_, i) => [[-30 + i * 14, sy * (UNIT.W / 2 + 0.5), UNIT.H * 0.3], [-30 + i * 14, sy * (UNIT.W / 2 + 0.5), UNIT.H * 0.55]]), TU, MAT.steel);
       line([[[UNIT.D / 2 + 0.4, -UNIT.W / 2 + 10, UNIT.H * 0.66], [UNIT.D / 2 + 0.4, UNIT.W / 2 - 10, UNIT.H * 0.66]]], TU, MAT.steel);
       submit(plate(64, 64, 0, 0, 0), chain(TU, place(rotY(90 * DEG), [UNIT.D / 2 + 0.6, 0, UNIT.H * 0.42])), MAT.orange, a * 0.9);
       drawDrum(chain(TU, place(IDENT, [-40, -70, UNIT.H + 6])), 9, 0, 10, MAT.orange, a);
@@ -3187,32 +3213,43 @@ export default function Flourish3D({ side = 'right' }) {
       // arm, forearm onto the forearm, the wrist onto the wrist — base first,
       // tip last; only once every link is in place does the UR's shell give
       // way to the small arm's own drawing, in the same place.
-      const armIn = smooth(win(t, 0.72, 0.2));
+      // THE ARMS MORPH (the owner, twice: the URs "TURN into the arms on the
+      // ultra robot", not shrink): each UR is drawn whole until it becomes a
+      // jointed TUBE laid exactly along its own skeleton — mount, shoulder,
+      // elbow, wrist, tool tip — in its own white at its own thickness. The
+      // tube's joints then travel, joint by joint, onto the small arm's
+      // skeleton on the same side, thinning and darkening on the way, until
+      // it lies exactly along the small arm, which takes over there.
+      const TUBE_ON = 0.2, TUBE_OFF = 0.8;
+      const armIn = t >= TUBE_OFF ? 1 : 0;
       drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
-      const urOut = 1 - smooth(win(t, 0.74, 0.2));
-      if (urOut > 0.03) {
+      if (t < TUBE_OFF) {
         const UR = ROBOTS.ur5e, kU = RB.ul.k;
         const shR = tpOf(TU, [0, UNIT.SY, UNIT.SZ]), shL = tpOf(TU, [0, -UNIT.SY, UNIT.SZ]);
         for (const [root, yaw, rest] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL]]) {
           const Bu = leaning(root, RB.ur.k, yaw);
-          const TA = bodyPlacements(UR, Bu, rest);
+          if (t < TUBE_ON) { drawUR(Bu, rest, 1); continue; }
+          const TA = bodyPlacements(UR, Bu, rest), ix = n => UR.index.get(n);
           const d = sh => Math.hypot(sh[0] - Bu.t[0], sh[1] - Bu.t[1]);
           const side = d(shR) <= d(shL) ? 1 : -1;
-          const P = side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0];
-          const F = smallArmFrames(TU, P, side);
-          const mount = chain(TU, place(IDENT, [0, side * UNIT.SY, UNIT.SZ]));
-          const tgt = [mount, mount, F.S, F.E, F.Wr, F.Wr, F.Wr];      // base shoulder upperarm forearm wrist1 wrist2 wrist3
-          const TB = [];
-          for (const part of UR.parts) {
-            const i = UR.index.get(part.body);
-            const w = smooth(win(t, 0.18 + i * 0.05, 0.42));
-            const T = w > 0 ? lerpT(TA[i], tgt[i], w, detScale(Bu.m), kU * 0.85) : TA[i];   // ends at about the small arm's own thickness
-            TB[i] = T;
-            const mat = MESH_MAT[part.mat] ?? MAT.neutral;
-            submitMesh(part, urOut < 1 ? scaleT(T, urOut) : T, mat, 1, matLine[mat]);
+          const F = smallArmFrames(TU, side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0], side);
+          const tip = tpOf(TA[ix('wrist3')], [0, 230, 0]);
+          const from = [TA[ix('base')].t, TA[ix('upperarm')].t, TA[ix('forearm')].t, TA[ix('wrist1')].t, tip];
+          const to = [tpOf(TU, [0, side * UNIT.SY, UNIT.SZ + 60]), F.S.t, F.E.t, F.Wr.t, F.tcp];
+          const kUR = detScale(Bu.m);
+          const u = (t - TUBE_ON) / (TUBE_OFF - TUBE_ON);
+          const P = from.map((p0, j) => { const w = smooth(win(u, j * 0.06, 0.7)); return p0.map((v, c) => v + (to[j][c] - v) * w); });
+          const wAll = smooth(win(u, 0.1, 0.8));
+          const r0 = [62, 62, 55, 45, 40].map(r => r * kUR), r1 = [30, 30, 26, 22, 18].map(r => r * kU);
+          const mat = wAll < 0.5 ? MAT.pla : MAT.poly;
+          for (let j = 0; j < 4; j++) {
+            const { T: Sg, L } = segT(P[j], P[j + 1], 1);
+            if (L < 0.5) continue;
+            const r = r0[j] + (r1[j] - r0[j]) * wAll;
+            drawDrum(Sg, r, 0, L, mat, 1);
+            const J = chain(Sg, place(rotX(90 * DEG), [0, 0, L]));
+            drawDrum(J, r * 1.15, -r * 0.9, r * 0.9, wAll < 0.5 ? MAT.urblue : MAT.poly, 1);   // the joint at its end
           }
-          const Tw = TB[UR.index.get('wrist3')];
-          if (Tw) drawURGripper(urOut < 1 ? scaleT(Tw, urOut) : Tw, 90, 1);
         }
       }
       growUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));

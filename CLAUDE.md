@@ -1326,6 +1326,27 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Oct 2.** Atlas reworked after the owner's reference, the Sketchfab "Atlas
+Boston Dynamics 2026" (RandomRepresent; NOT downloadable, viewed only —
+captured spinning in its embed viewer): saturated blue #3f72b8, a CYAN ring
+light, a black upper chest carrying the Hyundai and Boston Dynamics marks over
+a big rounded blue lower block, a horizontal ribbed bar at the waist and one
+at the pelvis with drum ends, white ribbed collars under the shoulders and at
+the hips, black shoulder balls and actuators, blue upper arms, black
+forearms, silver three-finger grippers, blue thigh fronts, blue donut HUBS at
+knees and ankles, long flat black shin slabs, black feet on steel soles, a
+mesh-grille face with a sensor slot, and a fin on top of the head. The head
+lathe is turned −90° about z so its OPEN end faces forward (at +90 its closed
+dome covered the face). **Ultra** reworked after Ultra's own videos
+(ultra.tech HERO / ORDER PACKAGING, in the session scratch): each arm is a
+chain of small square black SERVO modules with steel horns, joined by pairs
+of steel brackets, with a cable along it; a shoulder yoke beam across the
+torso's top; side vents. **UR → Ultra arms is a TUBE MORPH**: each UR becomes
+a jointed tube along its own skeleton (mount, shoulder, elbow, wrist, tip) in
+its own white, whose joints travel one by one onto the small arm's skeleton
+(`smallArmFrames`: mount, S, E, Wr, tcp), thinning and darkening, and the
+small arm takes over exactly there (t 0.8).
+
 **Oct 1: detail passes, iterated by photograph.** `atlasshots.mjs` (scratch)
 shoots the settled Atlas at 3x from four yaws via the dev hook `?atlasyaw=`
 and montages them; three rounds against the product collage added: a
