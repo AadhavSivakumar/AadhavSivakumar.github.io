@@ -147,7 +147,7 @@ export function createAtlasGL(host) {
   // SHOULDERS: black balls on the chest's top corners, a white ribbed collar
   // below each, before the blue upper arm
   for (const sy of [-1, 1]) {
-    part('utorso', G(new THREE.SphereGeometry(72, 40, 28)), black, [-10, sy * 205, 520]);
+    part('utorso', box(130, 150, 140, 46), black, [-10, sy * 215, 520]);          // shoulder block (the reference's shoulders are blocks, not balls)
   }
   // PELVIS: a horizontal black bar with round drum ends, ribbed at the
   // middle, white ribbed collars where the thighs hang
@@ -167,7 +167,7 @@ export function createAtlasGL(host) {
     const add = (grp, geo, mat, pos, rot) => { const m = new THREE.Mesh(geo, mat); if (pos) m.position.set(...pos); if (rot) m.rotation.set(...rot); grp.add(m); };
     const th = new THREE.Group(); th.rotation.y = thighTilt; th.position.set(-25, 0, -187);
     add(th, box(100, 125, 374, 42), black);
-    add(th, box(118, 95, 260, 40), blue, [34, 0, 50]);                        // the blue thigh shell, front
+    add(th, box(118, 100, 350, 42), blue, [30, 0, 0]);                        // the blue thigh shell, down to the knee hub
     part(sd + '_uleg', G(new THREE.BufferGeometry()), dark).add(th);
     ribs(sd + '_uleg', 56, 6, 4, 15, [0, 0, -18], 'z', ribbed);            // the white ribbed collar at the hip, on the thigh
     hub(sd + '_lleg', 64, 100, [0, 0, 0]);
@@ -196,16 +196,33 @@ export function createAtlasGL(host) {
     // (the legs are modelled in their body frames above)
   ];
   const unitSphere = G(new THREE.SphereGeometry(1, 32, 20));
+  // Limbs are ROUNDED SLABS (the listing's clay render and the Sketchfab
+  // views: rectangular-section shells with big fillets, not tubes), oriented
+  // each frame so their flat face points the way the parent body faces, plus
+  // a BLOCK joint at the far end (the elbow; the knee/ankle hubs are parts)
+  const slabGeo = G(new RoundedBoxGeometry(1, 1, 1, 5, 0.32));
   const bones = BONES.map(([a, b, r0, r1, jr, mn]) => {
     const M = mn === 'dark' ? black : blue;
-    const shell = new THREE.Mesh(G(new THREE.CylinderGeometry(r1 / r0, 1, 1, 40, 1, false)), M);
+    const shell = new THREE.Mesh(slabGeo, M); shell.matrixAutoUpdate = false;
     const capA = new THREE.Mesh(unitSphere, M), capB = new THREE.Mesh(unitSphere, M), ball = new THREE.Mesh(unitSphere, black);
-    [shell, capA, capB, ball].forEach(m => yawG.add(m));
+    capA.visible = capB.visible = false;
+    [shell, ball].forEach(m => yawG.add(m));
     return { a, b, r0, r1, jr, shell, capA, capB, ball };
   });
+  const bx = new THREE.Vector3(), bz = new THREE.Vector3(), fwd = new THREE.Vector3();
+  const placeSlab = (mesh, A, p0, p1, w, d) => {
+    dir.subVectors(p1, p0); const L = dir.length();
+    if (L < 0.01) { mesh.visible = false; return; }
+    dir.divideScalar(L);
+    fwd.set(A.m[0], -A.m[3], A.m[6]).normalize();                 // the parent body's forward (+x), in GL space
+    bz.crossVectors(fwd, dir).normalize(); bx.crossVectors(dir, bz).normalize();
+    mesh.matrix.makeBasis(bx.multiplyScalar(d), dir.clone().multiplyScalar(L + w * 0.35), bz.multiplyScalar(w));
+    mesh.matrix.setPosition((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2);
+    mesh.matrixWorldNeedsUpdate = true; mesh.visible = true;
+  };
   // the shoulder links: from the torso's corner ball out to each arm's first joint
   const links = ['l', 'r'].map(sd => {
-    const m = new THREE.Mesh(G(new THREE.CylinderGeometry(1, 1, 1, 32)), black);   // the shoulder actuator between the ball and the blue upper arm (the reference)
+    const m = new THREE.Mesh(G(new THREE.CylinderGeometry(1, 1, 1, 32)), blue);    // the blue upper-arm shell starts right under the shoulder block (the reference)
     yawG.add(m);
     return { sd, m, sy: sd === 'l' ? 1 : -1 };
   });
@@ -257,9 +274,8 @@ export function createAtlasGL(host) {
         B.shell.visible = B.capA.visible = B.capB.visible = B.ball.visible = vis;
         if (!vis) continue;
         posOf(A, va); posOf(Bt, vb);
-        place(B.shell, va, vb, B.r0 * k, B.r1 * k);
-        B.capA.position.copy(va); B.capA.scale.setScalar(B.r0 * k);
-        B.capB.position.copy(vb); B.capB.scale.setScalar(B.r1 * k);
+        placeSlab(B.shell, A, va, vb, 2 * B.r0 * k, 1.7 * B.r0 * k);
+        B.capA.visible = B.capB.visible = false;
         B.ball.visible = B.jr > 0; B.ball.position.copy(vb); B.ball.scale.setScalar(Math.max(1e-3, B.jr * k * 1.08));
       }
       const U = at('utorso');

@@ -1326,6 +1326,18 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Oct 4 (Sept 26 by the calendar).** Atlas remodelled from the owner's Fab
+listing (fab.com/listings/56263696-…, the same RandomRepresent 2026 model):
+only its GALLERY renders were used — three small ones of this robot (blue,
+white variant, grey clay front/back; the other four are the seller's other
+products). The listing's 3D previewer also loads the model's own texture
+maps; those belong to the paid asset and were deliberately not used. From
+the clay render: limbs are ROUNDED SLABS, not tubes (`placeSlab`: a unit
+`RoundedBoxGeometry` given a basis per frame whose depth axis follows the
+parent body's forward, so the flat face stays forward), shoulders are black
+BLOCKS, the blue upper arm starts right under the shoulder block, the blue
+thigh runs down to the knee hub.
+
 **Oct 3.** UR → Ultra arms, reviewed frame by frame at 3x until seamless:
 the tube stand-in is gone (it popped in at 0.2 and out at 0.8). Each UR link
 keeps its OWN mesh and is carried by a similarity transform that sends its
