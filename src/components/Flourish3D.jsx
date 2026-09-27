@@ -1054,12 +1054,13 @@ export default function Flourish3D({ side = 'right' }) {
         }
         segs += poly.length - 1;
       }
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * GMUL;
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.stroke();
     }
 
+    let GMUL = 1;                                  // whole-drawing fade (the last act fades the simulator out as one)
     function fill(polys, T, color, alpha) {
       if (alpha <= 0.004 || !polys.length || cap) return;
       const m = T.m, t = T.t;
@@ -1078,7 +1079,7 @@ export default function Flourish3D({ side = 'right' }) {
         ctx.closePath();
         segs += poly.length - 1;
       }
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * GMUL;
       ctx.fillStyle = color;
       ctx.fill();
     }
@@ -1240,7 +1241,7 @@ export default function Flourish3D({ side = 'right' }) {
           for (let q = o + 2; q < last; q += 2) ctx.lineTo(PTS[q], PTS[q + 1]);
           if (!e.line) ctx.closePath();
         }
-        ctx.globalAlpha = f.a;
+        ctx.globalAlpha = f.a * GMUL;
         calls++;
         if (f.line) {
           ctx.strokeStyle = f.c;
@@ -2346,7 +2347,7 @@ export default function Flourish3D({ side = 'right' }) {
       if (cap || alpha <= 0.01) return;
       const p = cam(x, y, z);
       ctx.save();
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * GMUL;
       ctx.fillStyle = ink;
       // the type scales with the stage (ZOOM): the token chips are geometry
       ctx.font = `600 ${(9.5 * ZOOM).toFixed(2)}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
@@ -2448,7 +2449,6 @@ export default function Flourish3D({ side = 'right' }) {
       }
       for (let b = 0; b < 4; b++) fill(buckets[b], I0, pxColor(b), (0.18 + 0.7 * ((b + 1) / 4)) * alpha);
       stroke(objs, I0, ink, 0.8 * alpha, 1.2);
-      caption('vision tokens · 12 patches + 1 object', tokX(0) - TOK / 2, ROW_V - 13, 0, 0.6 * alpha * smooth(win(travel, 0.5, 0.5)));
     }
     // the instruction, one chip per word
     const WORDS = ['put', 'the', 'red', 'cube', 'in', 'the', 'box'];
@@ -2461,7 +2461,6 @@ export default function Flourish3D({ side = 'right' }) {
         const w = WORD_W[i], on = smooth(clamp(alpha * 1.8 - i * 0.1, 0, 1));
         if (on > 0.01) {
           stroke([rect(w, 11, x + w / 2, ROW_L, 1)], I0, ink, on * (hot === i ? 1 : 0.6), hot === i ? 1.6 : 1);
-          caption(word, x + w / 2, ROW_L, 1, on * (hot === i ? 1 : 0.75), 'center');
         }
         x += w + 4;
       });
@@ -2555,17 +2554,16 @@ export default function Flourish3D({ side = 'right' }) {
         stroke(SENSOR_PADS, T, LINE, 0.5 * pkg, 1);
       }
       drawPatchGrid(T, smooth(win(t, 0.1, 0.2)) * (1 - smooth(win(t, 0.45, 0.25))));   // the cut shows while the patches leave, then the picture is whole
-      { const c = at3(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55 * smooth(win(t, 0.25, 0.3))); }
       const hot = live ? Math.floor(idleT * 2.4) % NTOK : -1;
       drawVisionTokens(T, 1, smooth(win(t, 0.18, 0.4)), hot);
       drawLang(smooth(win(t, 0.34, 0.3)), live ? Math.floor(idleT * 1.4) % WORDS.length : -1);
       const run = live ? (idleT % 2.2) / 2.2 : win(t, 0.55, 0.45);
       drawLayers(i => smooth(win(t, 0.44 + i * 0.07, 0.25)), run, 1, hot, 0);
-      caption('VLA · vision-language-action transformer', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * smooth(win(t, 0.55, 0.3)));
+      caption('VLA · vision + language → action', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * smooth(win(t, 0.55, 0.3)));
       const act = smooth(win(t, 0.7, 0.3));
       if (act > 0.01) {
         stroke([[[0, LAYER_Y[3] + 7, -9], [0, ACT_P0.y - 33, 0]]], I0, slate, 0.45 * act, 1);
-        drawActionBars(act, pu, ACT_P0, 'action chunk · 16 steps → the gripper');
+        drawActionBars(act, pu, ACT_P0, 'action chunk');
       }
     }
     function drawPatchGrid(T, a) {
@@ -2603,7 +2601,6 @@ export default function Flourish3D({ side = 'right' }) {
         [[d.x - cx, d.y + cy - tk, 3], [d.x - cx, d.y + cy, 3], [d.x - cx + tk, d.y + cy, 3]],
         [[d.x + cx - tk, d.y + cy, 3], [d.x + cx, d.y + cy, 3], [d.x + cx, d.y + cy - tk, 3]],
       ], T, RED, 0.9 * alpha, 1.6);
-      { const c = at3(T, [d.x - cx, d.y - cy - 7, 3]); caption(`red cube · ${d.conf.toFixed(2)}`, c[0], c[1], c[2], 0.85 * alpha * f); }
       // the rollouts, dashed — the dashes CRAWL while settled, so the futures
       // read as being computed rather than printed
       const crawl = adv > 0 ? (adv * 2) % (2 / 12) : 0;
@@ -2616,7 +2613,6 @@ export default function Flourish3D({ side = 'right' }) {
         }
         stroke(dashes, T, r === 0 ? ink : slate, (r === 0 ? 0.7 : 0.35) * alpha, r === 0 ? 1.5 : 1);
       }
-      { const c = at3(T, [60, 8, 0]); caption('3 rollouts', c[0], c[1] - 6, c[2], 0.55 * alpha * f); caption('1 kept', c[0], c[1] + 6, c[2], 0.55 * alpha * f); }
       if (adv > 0) {
         const p = rollAt(0, adv);
         const ma = smooth(win(adv, 0, 0.12)) * (1 - smooth(win(adv, 0.84, 0.16)));
@@ -2639,9 +2635,8 @@ export default function Flourish3D({ side = 'right' }) {
         const conf = 1 - (k - 1) * 0.14;
         stroke([rect(112, 86, 0, 0, 0)], G, slate, 0.55 * g * alpha, 1);
         drawScene(G, g * alpha * conf, pickAt(phase + k * 0.075));
-        caption(`t+${k}`, x - 26, y - 29, 0, 0.6 * g * alpha);
       }
-      caption('world model · imagined frames', 0, FILM_Y + 34, 0, 0.6 * alpha * grow(4), 'center');
+      caption('imagined futures', 0, FILM_Y + 34, 0, 0.6 * alpha * grow(4), 'center');
     }
     // everything act 3 ends with apart from the picture, the patch grid and
     // the futures: act 4 draws it too, fading, or the boundary jumps
@@ -2649,9 +2644,9 @@ export default function Flourish3D({ side = 'right' }) {
       const hot = live ? Math.floor(idleT * 2.4) % NTOK : -1;
       drawVisionTokens(sensorPlace(SENSOR_VLA), alpha, 1, hot);
       drawLayers(() => 1, live ? (idleT % 2.2) / 2.2 : 1, alpha, hot, 5);
-      caption('world model · frames + actions → next frames', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * alpha);
+      caption('world model', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * alpha);
       stroke([[[0, ROW_L + 16, 0], [0, LAYER_Y[0] - 7, 0]]], I0, slate, 0.45 * alpha, 1);
-      drawActionBars(alpha, pickU(live), ACT_P1, 'actions in', 1);
+      drawActionBars(alpha, pickU(live), ACT_P1, 'actions', 1);
       drawFilmstrip(alpha, () => 1, pickU(live));
     }
     function drawDetectAct(t) {
@@ -2660,8 +2655,7 @@ export default function Flourish3D({ side = 'right' }) {
         const T = sensorPlace(SENSOR_DET), live = idleOn;
         drawScene(T, 1, pickAt(pickU(live)));
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
-        { const c = at3(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55); }
-        drawWMRest(1, live);
+          drawWMRest(1, live);
         drawFutures(T, 1, 1, live ? smooth((idleT % 4) / 4) : 0, pickAt(pickU(live)).cube);
         return;
       }
@@ -2670,21 +2664,20 @@ export default function Flourish3D({ side = 'right' }) {
       const T = sensorPlace(SENSOR_DET);
       drawScene(T, 1, pickAt(0));
       stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
-      { const c = at3(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55); }
       const was = 1 - smooth(win(t, 0, 0.35));
       drawVisionTokens(T, 1, 1, -1);
       drawLang(was, -1);
       drawLayers(() => 1, 1, 1, -1, 5 * smooth(win(t, 0.3, 0.1)) >= 2.5 ? 5 : 0);
-      caption('VLA · vision-language-action transformer', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * was);
+      caption('VLA · vision + language → action', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * was);
       const now = smooth(win(t, 0.35, 0.3));
-      caption('world model · frames + actions → next frames', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * now);
+      caption('world model', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * now);
       // the action chunk rises into the instruction's place: it conditions
       // the model now instead of leaving it
       const m = smooth(win(t, 0.12, 0.45));
       const P = lerpP2(ACT_P0, ACT_P1, m);
       if (m < 0.5) stroke([[[0, LAYER_Y[3] + 7, -9], [0, P.y - 33 * P.s, 0]]], I0, slate, 0.45 * (1 - m * 2), 1);
       stroke([[[0, ROW_L + 16, 0], [0, LAYER_Y[0] - 7, 0]]], I0, slate, 0.45 * smooth(win(t, 0.5, 0.2)), 1);
-      drawActionBars(1, 0, P, m < 0.5 ? 'action chunk · 16 steps → the gripper' : 'actions in', Math.abs(1 - m * 2));
+      drawActionBars(1, 0, P, m < 0.5 ? 'action chunk' : 'actions', Math.abs(1 - m * 2));
       drawFutures(T, 1, smooth(win(t, 0.3, 0.45)), 0);
       drawFilmstrip(1, k => smooth(win(t, 0.5 + k * 0.08, 0.2)), 0);
     }
@@ -2707,7 +2700,6 @@ export default function Flourish3D({ side = 'right' }) {
       const flat = 1 - smooth(win(t, 0, 0.4));
       if (flat > 0.01) {
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55 * flat, 1);
-        { const c = tpOf(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55 * flat); }
         drawFutures(T, flat, 1, 0);
         drawWMRest(flat, false);
       }
@@ -2756,7 +2748,7 @@ export default function Flourish3D({ side = 'right' }) {
           }
           fill(pts, Bx, i === 0 ? RED : slate, 0.5 * spl);
         });
-        caption('3D Gaussian splat → sim twin', T.t[0] - 80, T.t[1] + 70, T.t[2], 0.6 * spl);
+        caption('real2sim', T.t[0] - 80, T.t[1] + 70, T.t[2], 0.6 * spl);
       }
       // the camera that saw it, as a frustum over the scene
       const fr = smooth(win(t, 0.45, 0.4));
@@ -2798,10 +2790,47 @@ export default function Flourish3D({ side = 'right' }) {
           pts.push([2 + x * 92, 22 - 42 * (1 - Math.exp(-x * 3.2)) - Math.sin(x * 21) * 2.5 * (1 - x) + tail, 0.5]);
         }
         if (pts.length > 1) stroke([pts], P, copper, 0.85 * sim, 1.6);
-        caption('success · policy trained in sim', P.t[0] + 2, P.t[1] - 34, 0, 0.6 * sim);
-        caption(`demos ${1000 + (live ? Math.floor(idleT * 14) : 0)}`, P.t[0] + 2, P.t[1] + 34, 0, 0.5 * sim);
-        caption('real2sim twins · randomised', T.t[0] - 92 * sim, T.t[1] - 116 * sim, T.t[2], 0.55 * sim);   // above the ground plane's far edge, not on it
+        caption('training in sim', P.t[0] + 2, P.t[1] - 34, 0, 0.6 * sim);
+        caption('domain randomization', T.t[0] - 92 * sim, T.t[1] - 116 * sim, T.t[2], 0.55 * sim);   // above the ground plane's far edge, not on it
       }
+    }
+
+    // ── act 5 (left): SIM2REAL ──────────────────────────────────────────
+    // The simulator fades as one; the ground it stood on rises back up into
+    // an upright camera frame — the real world again — and the gripper runs
+    // the policy trained in sim on the real scene.
+    const SENSOR_REAL = { x: 0, y: -30, z: 0, s: 2.1, ry: 0, rx: 0 };
+    function drawSim2RealAct(t) {
+      const live = idleOn && t >= 1;
+      const fade = 1 - smooth(win(t, 0.05, 0.4));
+      if (fade > 0.01) { GMUL = fade; drawWorldAct(1); flush(); GMUL = 1; }
+      const u = smooth(win(t, 0.1, 0.6));
+      setCam(10 * (1 - u) * DEG, -16 * (1 - u) * DEG, 0);   // from where the simulator's view ended, to square on
+      const T = sensorPlace(lerpS(SENSOR_WORLD, SENSOR_REAL, u));
+      const a = smooth(win(t, 0.15, 0.4));
+      if (a <= 0.01) return;
+      GMUL = a;
+      drawScene(T, 1, pickAt(pickU(live)));
+      stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.6, 1.2);
+      flush();
+      const c = tpOf(T, [-56, -50, 0]);
+      caption('sim2real', c[0], c[1] - 6, c[2], 0.7);
+      GMUL = 1;
+    }
+    // the arc marker: three stops, the dot travelling between them
+    function drawArc(p, a) {
+      if (a <= 0.01 || cap) return;
+      setCam(0, 0, 0);
+      const Y = -238, X = [-64, 0, 64], L = ['real', 'sim', 'real'];
+      stroke([[[X[0], Y, 0], [X[2], Y, 0]]], I0, slate, 0.35 * a, 1);
+      const x = X[0] + clamp(p, 0, 2) * 64;
+      stroke([[[X[0], Y, 0], [x, Y, 0]]], I0, copper, 0.8 * a, 1.6);
+      X.forEach((cx, i) => {
+        const on = Math.abs(p - i) < 0.5;
+        stroke([ringAt(4, cx, Y, 0, 16)], I0, on ? copper : slate, (on ? 0.9 : 0.5) * a, 1.2);
+        caption(L[i], cx, Y + 12, 0, (on ? 0.85 : 0.45) * a, 'center');
+      });
+      fill([ringAt(3, x, Y, 0.5, 16)], I0, copper, 0.95 * a);
     }
 
     // ── the machines, from their real models ────────────────────────────
@@ -4013,7 +4042,11 @@ export default function Flourish3D({ side = 'right' }) {
           else if (i === 1) drawInferAct(t);
           else if (i === 2) drawDetectAct(t);
           else if (i === 3) drawWorldAct(t);
-          else drawWorldAct(1);          // the simulator holds through the last act; the goodbye is the right's
+          else drawSim2RealAct(t);       // and back to the real world
+          // the ARC, over the whole left side: real → sim → real (the owner:
+          // "just go from real 2 sim to real over the course of all the
+          // animations"); the dot is where the story is
+          if (i >= 1) { flush(); drawArc(i <= 2 ? 0 : i === 3 ? smooth(t) : 1 + smooth(t), i === 1 ? smooth(win(t, 0, 0.3)) : 1); }
         } else if (ROBOTS) {
           if (i >= 3) wantAtlasGL();     // fetch the GL Atlas a page before it is needed
           if (i === 0) drawSoArmAct(t);

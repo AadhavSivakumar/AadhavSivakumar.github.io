@@ -31,6 +31,7 @@ function finalRect() {
 // -> settle (drops back onto the page and hands off to the real card).
 export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, onLanding, onClose }) {
   const [phase, setPhase] = useState('closed');
+  const [pick, setPick] = useState(0);            // which gallery item is in the media slot
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
 
@@ -75,6 +76,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   useEffect(() => {
     if (isOpen && cardRect && phase === 'closed') {
       savedRect.current = { ...cardRect };
+      setPick(0);
       document.body.style.overflow = 'hidden';
       setPhase('lift');
     }
@@ -88,13 +90,13 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   const handleClose = useCallback(() => {
     // where the modal's media is right now (it may have been scrolled)
     const el = contentRef.current && contentRef.current.querySelector('.modal-image');
-    if (el) { const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height }; if (media && el.tagName === 'VIDEO') media.time = el.currentTime; }
+    if (el) { const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height }; if (media && el.tagName === 'VIDEO' && pick === 0) media.time = el.currentTime; }
     flyVid.current = null;
     // straight to collapse: the content fades out WHILE the surface shrinks and
     // the card copy fades back in, instead of an empty modal waiting 260ms for
     // its content to leave first (the close "isn't fully smooth")
     setPhase((p) => (p === 'open' ? 'collapse' : p));
-  }, [media]);
+  }, [media, pick]);
 
   // Give the content stagger-out a moment before collapsing the surface.
   useEffect(() => {
@@ -109,10 +111,14 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // this document, and the close button is always reachable), but it is why
   // this handler cannot be the only way out.
   useEffect(() => {
-    const handleEsc = (e) => { if (e.key === 'Escape') handleClose(); };
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') handleClose();
+      const n = itemData && itemData.gallery ? itemData.gallery.length + 1 : 0;
+      if (n > 1 && phase === 'open' && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) setPick(i => (i + (e.key === 'ArrowRight' ? 1 : n - 1)) % n);
+    };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [handleClose]);
+  }, [handleClose, itemData, phase]);
 
   if (phase === 'closed') return null;
 
@@ -219,41 +225,52 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     const isResume = itemType === 'resume';
     const isMp4 = itemData.imageUrl?.toLowerCase().endsWith('.mp4');
 
+    // THE GALLERY (the owner: "I can't scroll through the other pieces of
+    // media associated with each project, like I can at /portfolio"): the
+    // cover first, then `gallery` — web-sized copies of the originals under
+    // Media/web/gallery/. The picked item fills the media slot (it stays
+    // `.modal-image`, which the flight measures); thumbnails, arrows and the
+    // arrow keys step through it. Items other than the cover are fitted, not
+    // cropped: many are portrait phone clips.
+    const items = !isResume && itemData.imageUrl ? [itemData.imageUrl, ...(itemData.gallery || [])] : [];
+    const cur = items[Math.min(pick, items.length - 1)];
+    const isVid = u => /\.(mp4|webm)$/i.test(u);
+    const posterOf = u => u.replace(/\.(mp4|webm)$/i, '-poster.webp');
     let mediaEl = null;
     // An entry with no cover (an Experience row) gets no media block at all —
     // an <img> with no src fell through to the "Img Error" placeholder.
-    if (!isResume && itemData.imageUrl) {
-      if (isMp4) {
+    if (cur) {
+      const fit = pick > 0 ? ' modal-image--fit' : '';
+      mediaEl = isVid(cur)
         // `muted` is required or the browser blocks the autoplay outright.
-        mediaEl = (
-          <video
-            src={itemData.imageUrl}
-            poster={itemData.imageUrl.replace(/\.(mp4|webm)$/i, '-poster.webp')}
-            className="modal-image"
-            controls
-            autoPlay
-            loop
-            muted
-            playsInline
-          />
-        );
-      } else {
-        mediaEl = (
-          <img
-            src={itemData.imageUrl}
-            alt={title}
-            className="modal-image"
-            onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error'; }}
-          />
-        );
-      }
+        ? <video key={cur} src={cur} poster={posterOf(cur)} className={`modal-image${fit}`} controls autoPlay loop muted playsInline />
+        : <img key={cur} src={cur} alt={title} className={`modal-image${fit}`}
+            onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error'; }} />;
     }
+    const step = d => setPick(i => (i + d + items.length) % items.length);
+    const gallery = items.length > 1 && (
+      <div className="modal-gallery">
+        <button className="modal-gallery-arrow" onClick={() => step(-1)} aria-label="Previous media">‹</button>
+        <div className="modal-gallery-strip" role="tablist" aria-label="Project media">
+          {items.map((u, i) => (
+            <button key={u} role="tab" aria-selected={i === pick} aria-label={`Media ${i + 1} of ${items.length}`}
+              className={`modal-gallery-thumb${i === pick ? ' is-on' : ''}`} onClick={() => setPick(i)}>
+              <img src={isVid(u) ? posterOf(u) : u} alt="" loading="lazy" />
+              {isVid(u) && <span className="modal-gallery-play" aria-hidden="true">▶</span>}
+            </button>
+          ))}
+        </div>
+        <button className="modal-gallery-arrow" onClick={() => step(1)} aria-label="Next media">›</button>
+        <span className="modal-gallery-count">{pick + 1} / {items.length}</span>
+      </div>
+    );
 
     return (
       <>
         {mediaEl && (
           <motion.div variants={contentItem} className="modal-image-container">
             {mediaEl}
+            {gallery}
           </motion.div>
         )}
         <div className="modal-text-content">
@@ -334,8 +351,19 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // video section of the modal, not just disappear and reappear.")
   const flying = !!media && (phase === 'lift' || phase === 'expand' || phase === 'collapse');
   const tgt = flying ? mediaTarget() : null;
-  const flyTo = phase === 'collapse' ? media && media.rect : tgt;
+  // the flight runs on the SURFACE's clock, not its own: during the lift it
+  // rises and scales with the card (about the card's centre, like the
+  // surface), during the expand it grows on the same 0.6s ease (the owner: "the
+  // gif/video and the modal itself are expanding at different times" — it
+  // used to fly straight to the final slot over 0.85s from the first frame)
+  const liftedMedia = (() => {
+    if (!media || !media.rect) return null;
+    const m = media.rect, cx = r.left + r.width / 2, cy = r.top + r.height / 2, k = 1.05;
+    return { top: cy - 12 + (m.top - cy) * k, left: cx + (m.left - cx) * k, width: m.width * k, height: m.height * k };
+  })();
+  const flyTo = phase === 'collapse' ? media && media.rect : phase === 'lift' ? liftedMedia : tgt;
   const flyFrom = phase === 'collapse' ? (closeFrom.current || tgt) : media && media.rect;
+  const flyTransition = phase === 'collapse' ? { duration: 0.48, ease: EXPAND_EASE } : phase === 'lift' ? { duration: 0.28, ease: 'easeOut' } : { duration: 0.6, ease: EXPAND_EASE };
 
   return (
     <>
@@ -403,7 +431,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
           style={{ borderRadius: media.radius }}
           initial={flyFrom}
           animate={flyTo}
-          transition={{ duration: phase === 'collapse' ? 0.48 : 0.85, ease: EXPAND_EASE }}
+          transition={flyTransition}
         >
           {media.isVideo
             ? <video ref={v => { if (v && !flyVid.current) { flyVid.current = v; try { v.currentTime = media.time || 0; } catch {} } }} src={media.src} poster={media.poster} autoPlay muted loop playsInline />

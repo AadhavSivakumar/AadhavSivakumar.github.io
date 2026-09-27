@@ -1352,6 +1352,29 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28.** (1) The left side is ONE STORY, real → sim → real (the owner:
+"too many words… just go from real 2 sim to real over the course of all the
+animations, and include the most crucial terminology"): a tracker at the
+top of the stage (`drawArc`: real · sim · real, a copper dot travelling —
+real through acts 1-3, to sim over act 4, back to real over act 5); the
+captions are only the key terms — "VLA · vision + language → action",
+"action chunk", "world model", "imagined futures", "real2sim", "domain
+randomization", "training in sim", "sim2real" — every other label is gone
+(the instruction chips are blank). Act 5 is new on the left
+(`drawSim2RealAct`): the simulator fades as one (`GMUL`, a whole-drawing
+alpha multiplier honoured by fill, stroke, flush and caption) while its
+ground rises back into an upright camera frame and the gripper runs the
+pick loop on the real scene. (2) Modal: `html { scrollbar-gutter: stable }`
+— the scrollbar vanishing under the modal's lock and returning on close
+shifted the page; the media flight runs on the surface's clock (lifted and
+scaled with the card, then grown over the same 0.6 s ease — it used to fly
+over 0.85 s from the first frame); and a GALLERY per project like
+/portfolio's: `gallery` in siteData (web-sized copies under
+`Media/web/gallery/<dir>/`, from `Media/projects/<dir>`, 720 px, 20 s max,
+crf 30, silent, a poster each — ~11 MB for 32 items), a thumbnail strip,
+arrows and the arrow keys; items after the cover are letterboxed, not
+cropped (portrait phone clips). The build's asset check walks `gallery` too.
+
 **Sept 27, third round.** (1) "The texture changes between morphs is too
 jarring": nothing SWAPS look any more. In act 5 the OP1 parts fade out over
 a short window while the Atlas pieces fade in on top of them wearing the
