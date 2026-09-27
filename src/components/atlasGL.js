@@ -110,6 +110,7 @@ export function createAtlasGL(host) {
   for (const L of LIMBS) if (L.C) { L.len = Math.hypot(...conv(L.C, L.P)); L.rest = frame(conv(L.C, L.P), [1, 0, 0]); }
 
   const groups = new Map();              // piece id -> Group (matrix set per frame)
+  const bbox = new Map();                // piece id -> local bounding box (mm)
   const mats = [], geos = [];
   let ready = false;
   const matFor = (name, def) => {
@@ -150,6 +151,8 @@ export function createAtlasGL(host) {
       g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
       g.setIndex(new THREE.BufferAttribute(I.slice(p.i0, p.i0 + p.iCount), 1));
       geos.push(g);
+      const bb = bbox.get(id) || bbox.set(id, { min: [1e9, 1e9, 1e9], max: [-1e9, -1e9, -1e9] }).get(id);
+      for (let i = 0; i < p.vCount; i++) for (let c = 0; c < 3; c++) { const v = pos[i * 3 + c]; if (v < bb.min[c]) bb.min[c] = v; if (v > bb.max[c]) bb.max[c] = v; }
       let grp = groups.get(id);
       if (!grp) { grp = new THREE.Group(); grp.matrixAutoUpdate = false; grp.visible = false; yawG.add(grp); groups.set(id, grp); }
       grp.add(new THREE.Mesh(g, mcache[p.mat] || (mcache[p.mat] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }))));
@@ -168,24 +171,12 @@ export function createAtlasGL(host) {
   const apply = (T, v) => [T.m[0] * v[0] + T.m[1] * v[1] + T.m[2] * v[2] + T.t[0], T.m[3] * v[0] + T.m[4] * v[1] + T.m[5] * v[2] + T.t[1], T.m[6] * v[0] + T.m[7] * v[1] + T.m[8] * v[2] + T.t[2]];
   const setGroup = (id, T, vis) => { const g = groups.get(id); if (!g) return; g.visible = vis; if (vis) { toM4(T, tmpM); g.matrix.copy(tmpM); g.matrixWorldNeedsUpdate = true; } };
 
-  let shown = false;
-  return {
-    get ready() { return ready; },
-    // size the GL canvas to the Canvas2D drawing's box (W x H at `fit`)
-    resize(fit, dpr) {
-      renderer.setPixelRatio(dpr);
-      renderer.setSize(Math.round(W * fit), Math.round(H * fit), false);
-      canvas.style.width = `${W * fit}px`; canvas.style.height = `${H * fit}px`;
-    },
-    // at(name) -> {m, t} for every skeleton body; k0 the base scale (px/mm);
-    // cam {yaw, pitch, dolly}; dark theme flag
-    render(at, k0, cam) {
-      if (!ready) return;
-      if (!shown) { canvas.style.visibility = 'visible'; shown = true; }
-      pitchG.rotation.x = -cam.pitch;          // stage pitch: positive looks UP
-      yawG.rotation.y = cam.yaw;
-      pitchG.position.z = cam.dolly || 0;
-      const placed = {};                       // piece id -> {T, end}
+  // Solve every piece's stage placement from the skeleton (no drawing).
+  // Returns id -> { T, vis }.
+  const solve = (at, k0) => {
+    const out = {};
+    const setGroup = (id, T, vis) => { out[id] = { T, vis: !!T && vis }; };
+      const placed = {};
       for (const [id, R] of Object.entries(RIGID)) {
         const T = at(R.body);
         const vis = !!T && scaleOf(T) / k0 > 0.03;
@@ -218,7 +209,46 @@ export function createAtlasGL(host) {
         setGroup(L.id, T, k / k0 > 0.03);
         placed[L.id] = T;
       }
+    return out;
+  };
+  const setGroupReal = setGroup;
+  let shown = false;
+  return {
+    get ready() { return ready; },
+    // size the GL canvas to the Canvas2D drawing's box (W x H at `fit`)
+    resize(fit, dpr) {
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(Math.round(W * fit), Math.round(H * fit), false);
+      canvas.style.width = `${W * fit}px`; canvas.style.height = `${H * fit}px`;
+    },
+    // at(name) -> {m, t} for every skeleton body; k0 the base scale (px/mm);
+    // cam {yaw, pitch, dolly}; dark theme flag
+    render(at, k0, cam, dark, vis) {
+      if (!ready) return;
+      if (!shown) { canvas.style.visibility = 'visible'; shown = true; }
+      pitchG.rotation.x = -cam.pitch;          // stage pitch: positive looks UP
+      yawG.rotation.y = cam.yaw;
+      pitchG.position.z = cam.dolly || 0;
+      const sol = solve(at, k0);
+      for (const [id, P] of Object.entries(sol)) setGroupReal(id, P.T, P.vis && (!vis || vis[id] !== false));
       renderer.render(scene, camera);
+    },
+    // where each piece is, for the morphs that turn other robots into this
+    // one: its placement, its local box, and two stage points along it
+    // (pivot and far end for limbs; bottom and top for the rigid pieces)
+    pieces(at, k0) {
+      if (!ready) return null;
+      const sol = solve(at, k0), out = {};
+      for (const [id, P] of Object.entries(sol)) {
+        if (!P.T) continue;
+        const bb = bbox.get(id); if (!bb) continue;
+        const L = LIMBS.find(l => l.id === id);
+        const c = [(bb.min[0] + bb.max[0]) / 2, (bb.min[1] + bb.max[1]) / 2];
+        const p0 = L && L.C ? P.T.t : apply(P.T, [c[0], c[1], L ? bb.max[2] : bb.min[2]]);
+        const p1 = L && L.C ? apply(P.T, conv(L.C, L.P)) : apply(P.T, [c[0], c[1], L ? bb.min[2] : bb.max[2]]);
+        out[id] = { T: P.T, bb, p0, p1 };
+      }
+      return out;
     },
     hide() {
       if (!shown) return;

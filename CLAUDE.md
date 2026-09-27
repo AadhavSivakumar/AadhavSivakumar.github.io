@@ -1326,6 +1326,26 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Workcell → OP1 → Atlas are PART-FOR-PART MORPHS** (Sept 26; the owner:
+"it's just shrinking and reappearing... It should also morph from the ultra
+to the atlas"). Shared helpers before `drawUltraAct`: oriented boxes (`OB`,
+`obAxis`, `obIn`, `obLerp`, `obDraw`), `simOnto` (carries a mesh link so its
+joint ends land on a target segment, optionally thinned across it),
+`lerpEl`, `matStep`. **Act 4:** the table is cut into six strips (no overlap
+at t=0) → the cart's rails, cross members, electronics box, and the unit's
+TORSO; the left post → the signal pole and lamp; the canted mounts → the
+pedestal; the RIGHT POST and CROSSBAR → the FAIRINO (its seven links laid
+along them, squeezed to beam thickness, unfolding into the arm); the pack
+box → the packing-table top; the URs → the unit's arms (as before). Each
+hands over to its real drawing where it lands; the settled state draws the
+cart. **Act 5:** `atlasGL.pieces(at, k0)` reports every Atlas piece's
+placement, local box and two stage points; `atlasGL.render(..., vis)` shows
+only the pieces whose sources have landed. The unit's box → the torso piece's
+box; each small-arm segment (a drum) → the matching upper arm / forearm /
+hand (the two arms take OPPOSITE sides); the Fairino's seven links → pelvis,
+thighs, shins, feet; the cart and packing table flatten onto a floor plate.
+Reviewed by `glscan.mjs` (page screenshots — the Atlas is WebGL).
+
 **THE ATLAS IS NOW THE OWNER'S OWN MODEL** (Sept 26; "scrap the previous
 robot, use this instead"): a Blender scene they supplied (OBJ + MTL; 181
 named parts, metres, Y up, +Z forward, arms hanging, 1.74 m). Baked by

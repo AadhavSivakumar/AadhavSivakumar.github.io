@@ -3179,6 +3179,47 @@ export default function Flourish3D({ side = 'right' }) {
     // unfolding to hold its flange out level; the two UR arms travel to the
     // unit's shoulders, shrinking, and the unit's own arms fade in as they
     // arrive. The packing table and the flat box arrive last.
+    // ── shared morph helpers (acts 4 and 5) ─────────────────────────────
+    // An ORIENTED BOX {R unit rotation, c centre, d dims px, mat}: the frame,
+    // the cart, the table, the unit's torso all reduce to these, so one can
+    // travel, turn and resize into another. And `simOnto` carries a mesh
+    // link so its joint ends (pa → pb) land on a target segment (qa → qb).
+    const OB = (R, c, d, mat) => ({ R, c, d, mat });
+    const obAxis = (w, h, dd, x, y, z, mat) => OB(IDENT, [x, y, z], [w, h, dd], mat);
+    const obIn = (T, w, h, dd, x, y, z, mat) => { const k = detScale(T.m); return OB(T.m.map(v => v / k), tpOf(T, [x, y, z]), [w * k, h * k, dd * k], mat); };
+    const obLerp = (a, b, w) => w <= 0 ? a : w >= 1 ? b : OB(lerpM(a.R, b.R, w, 1, 1), a.c.map((v, i) => v + (b.c[i] - v) * w), a.d.map((v, i) => v + (b.d[i] - v) * w), w < 0.5 ? a.mat : b.mat);
+    const obDraw = o => { const F = place(o.R, o.c); submit(boxFaces(o.d[0], o.d[1], o.d[2], 0, 0, 0), F, o.mat, 1); submitLines(boxWire(o.d[0], o.d[1], o.d[2], 0, 0, 0), F, matLine[o.mat], LOOK.line, LOOK.width); };
+    const v3sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const v3nrm = v => { const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
+    const rotOnto = (u, v) => {                          // row-major 3x3 turning unit u onto unit v
+      const c = u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
+      let ax = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      const sn = Math.hypot(...ax);
+      if (sn < 1e-6) return c > 0 ? IDENT : [1, 0, 0, 0, -1, 0, 0, 0, -1];
+      ax = ax.map(x => x / sn);
+      const [x, y, z] = ax, C = 1 - c;
+      return [c + x * x * C, x * y * C - z * sn, x * z * C + y * sn, y * x * C + z * sn, c + y * y * C, y * z * C - x * sn, z * x * C - y * sn, z * y * C + x * sn, c + z * z * C];
+    };
+    // T carried so that its segment pa→pb lies on qa→qb; `fallS` for a
+    // zero-length segment (a joint with no offset)
+    const simOnto = (T, pa, pb, qa, qb, fallS = 1, perp = 1) => {
+      const du = v3sub(pb, pa), dt = v3sub(qb, qa);
+      const Lu = Math.hypot(...du), Lt = Math.hypot(...dt);
+      let R = IDENT, sc = fallS;
+      if (Lu > 1 && Lt > 1) { R = rotOnto(v3nrm(du), v3nrm(dt)); sc = Lt / Lu; }
+      let m = mul(R, T.m).map(v => v * sc);
+      if (perp !== 1 && Lt > 1) {                         // thinned across the segment (a beam is thinner than an arm)
+        const d = v3nrm(dt);
+        const Sq = [0, 1, 2].flatMap(r => [0, 1, 2].map(c => (r === c ? perp : 0) + (1 - perp) * d[r] * d[c]));
+        m = mul(Sq, m);
+      }
+      const off = v3sub(T.t, pa);                        // where T's origin sits relative to pa
+      const Ro = [R[0] * off[0] + R[1] * off[1] + R[2] * off[2], R[3] * off[0] + R[4] * off[1] + R[5] * off[2], R[6] * off[0] + R[7] * off[1] + R[8] * off[2]].map(v => v * sc);
+      return { T: place(m, [qa[0] + Ro[0], qa[1] + Ro[1], qa[2] + Ro[2]]), sc: Lu > 1 && Lt > 1 ? sc : fallS };
+    };
+    const lerpEl = (A, B, w) => w <= 0 ? A : w >= 1 ? B : place(A.m.map((v, k) => v + (B.m[k] - v) * w), A.t.map((v, k) => v + (B.t[k] - v) * w));
+    const matStep = (own, w) => { const st = [MAT.poly, MAT.iron, MAT.steel, MAT.alu]; const i = Math.floor(w * 5); return i >= 4 ? own : st[Math.max(0, i)]; };
+
     function drawUltraAct(t) {
       const u = smooth(t);
       setCam((18 - 2 * u) * DEG, (-22 - 4 * u) * DEG, 0);    // from (18, -22); down to -26 over the box on the table
@@ -3186,9 +3227,8 @@ export default function Flourish3D({ side = 'right' }) {
       // props GROW and SHRINK in place rather than fading: a half-transparent
       // frame and table showed everything behind them, ghost-like
       // the frame slides onto the cart as it shrinks, the cart grows out of it
-      const mF = smooth(win(t, 0.3, 0.45));              // the frame goes once the arms are leaving it
-      drawFrame(1 - mF, 1, [(ULTRA_ROOT[0] - FRAME_X) * mF, (FLOOR_Y - TABLE_Y) * mF, 0]);
-      drawCart(m, 1, [(FRAME_X - ULTRA_ROOT[0]) * (1 - m), (TABLE_Y - FLOOR_Y) * (1 - m), 0]);
+      // (the frame, the cart, the Fairino and the unit's torso are drawn
+      // by the morph further down, once the unit's frame is known)
       const base = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
       const rBase = leaning(RB.ur.rootR, RB.ur.k, RB.ur.yawR), lBase = leaning(RB.ur.rootL, RB.ur.k, RB.ur.yawL);
       // the unit's frame at REST: where the URs are heading, where the box goes
@@ -3196,6 +3236,7 @@ export default function Flourish3D({ side = 'right' }) {
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), RB.ul.k);
       if (t >= 1) {
         const st = unitTaskState(TU, idleT, settleU);
+        drawCart(1, 1);
         drawUltraRobot(base, st.q, st.PR, st.PL, 1);
         drawUnitProps(TU, st, 1);
         flush();
@@ -3204,7 +3245,7 @@ export default function Flourish3D({ side = 'right' }) {
       const gone = 1 - smooth(win(t, 0.02, 0.25));
       if (gone > 0.01) {
         const stR0 = taskState(ROBOTS.ur5e, rBase, RB.ur.taskR, 0), stL0 = taskState(ROBOTS.ur5e, lBase, RB.ur.taskL, 0);
-        drawPackBox(rBase, gone); drawCubes(stR0, gone); drawCubes(stL0, gone);
+        drawCubes(stR0, gone); drawCubes(stL0, gone);
       }
       const gr = growOrder(UL_ORDER, t, 0.12, 0.45);   // the unit is whole by ~0.78, before the arms land on it
       const q = lerpQ(RB.ul.folded, RB.ul.rest, smooth(win(t, 0.3, 0.6)));
@@ -3228,7 +3269,64 @@ export default function Flourish3D({ side = 'right' }) {
       const armIn = t >= SWAP ? 1 : 0;
       // aim at the unit WHERE IT IS NOW (it is still unfolding with the
       // Fairino); aiming at its rest pose landed the arms beside it
-      const TUn = drawUltraRobot(base, q, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, gr, armIn);
+      // ── THE WORKCELL BECOMES THE OP1, part for part (the owner: "it's
+      // just shrinking and reappearing"). Nothing grows from nothing:
+      //  · the table is cut in six strips — four become the cart's rails and
+      //    cross members, one its electronics box, one the unit's TORSO;
+      //  · the left post becomes the signal pole and its lamp;
+      //  · the two canted mounts become the Fairino's pedestal;
+      //  · the RIGHT POST and the CROSSBAR become the FAIRINO: its links
+      //    start laid end to end along them and unfold into the arm;
+      //  · the URs become the unit's arms (below).
+      // Each part hands over to its real drawing, in place, when it lands.
+      const TF = bodyPlacements(ROBOTS.ultra, base, q);
+      const Tfl = TF[ROBOTS.ultra.index.get('wrist3_link')];
+      const TUn = unitFrame(chain(Tfl, place(IDENT, [0, 0, 120])), RB.ul.k);
+      const mw = (i, span = 0.5) => smooth(win(t, 0.06 + i * 0.03, span));
+      {
+        const W6 = (2 * POST_X - 24) / 6, TY = TABLE_Y + 5.5;
+        const strip = i => obAxis(W6, 11, 150, FRAME_X - (2 * POST_X - 24) / 2 + W6 / 2 + i * W6, TY, 18, MAT.poly);
+        const Hp = TABLE_Y - BAR_Y + 10, cyP = (TABLE_Y + BAR_Y) / 2, topP = cyP - Hp / 2;
+        const mount = x => { const R = rotX(LEAN * DEG); return OB(R, [x + R[1] * 3, BAR_Y + 8 + R[4] * 3, MOUNT_Z + R[7] * 3], [36, 10, 36], MAT.poly); };
+        const pairs = [
+          [strip(0), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly)],
+          [strip(1), obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly)],
+          [strip(4), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly)],
+          [strip(5), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly)],
+          [strip(3), obAxis(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly)],
+          [obAxis(14, Hp - 20, 14, FRAME_X - POST_X, cyP + 10, MOUNT_Z, MAT.poly), obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel)],
+          [obAxis(14, 20, 14, FRAME_X - POST_X, topP + 10, MOUNT_Z, MAT.poly), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu)],
+          [mount(FRAME_X - UR_DX), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+          [mount(FRAME_X + UR_DX), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+        ];
+        const cartDone = mw(pairs.length - 1) >= 1;
+        if (cartDone) drawCart(1, 1);
+        else pairs.forEach(([a, b], i) => obDraw(obLerp(a, b, mw(i))));
+        // the torso: strip 2 of the table becomes the unit's box, then the unit
+        const wU = mw(4, 0.55);
+        if (wU < 1) obDraw(obLerp(strip(2), obIn(TUn, UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2, MAT.poly), wU));
+        else drawUnit(TUn, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, t >= 0.9 ? 1 : 0);
+        // the Fairino: its links laid along the right post (up) and the
+        // crossbar (across), unfolding into the arm
+        const UL = ROBOTS.ultra, fn = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link'];
+        const J = [...fn.map(n => TF[UL.index.get(n)].t), tpOf(Tfl, [0, 0, 120])];
+        const segL = J.slice(1).map((p, i) => Math.hypot(...v3sub(p, J[i])));
+        const tot = segL.reduce((a, b) => a + b, 0) || 1;
+        const PL = [[FRAME_X + POST_X, TABLE_Y, MOUNT_Z], [FRAME_X + POST_X, BAR_Y, MOUNT_Z], [FRAME_X - POST_X, BAR_Y, MOUNT_Z]];
+        const plen = [Math.hypot(...v3sub(PL[1], PL[0])), Math.hypot(...v3sub(PL[2], PL[1]))];
+        const along = f => { let d = f * (plen[0] + plen[1]); if (d <= plen[0]) return PL[0].map((v, c) => v + (PL[1][c] - v) * d / plen[0]); d -= plen[0]; return PL[1].map((v, c) => v + (PL[2][c] - v) * Math.min(1, d / plen[1])); };
+        let acc = 0, lastS = 1;
+        const fDone = mw(10, 0.5) >= 1;
+        if (fDone) drawRobot(UL, base, q, 1, { zed: 0 });
+        else fn.forEach((name, i) => {
+          const a = along(acc / tot), b = along((acc + segL[i]) / tot); acc += segL[i];
+          const A = TF[UL.index.get(name)];
+          const src = simOnto(A, J[i], J[i + 1], a, b, lastS, 0.4); lastS = src.sc;   // squeezed to the beam's thickness
+          const w = mw(4 + i, 0.5);
+          const T = lerpEl(src.T, A, w);
+          for (const part of UL.parts) if (part.body === name) { const own = MESH_MAT[part.mat] ?? MAT.neutral; const mt = matStep(own, w); submitMesh(part, T, mt, 1, matLine[mt]); }
+        });
+      }
       if (t < SWAP) {
         const TU = TUn;
         const UR = ROBOTS.ur5e, names = ['base', 'shoulder', 'upperarm', 'forearm', 'wrist1', 'wrist2', 'wrist3'];
@@ -3286,7 +3384,15 @@ export default function Flourish3D({ side = 'right' }) {
           drawURGripper(gw > 0 ? scaleT(TB[6], 1 - 0.45 * gw) : TB[6], 90 - 40 * gw, 1);   // closes and slims toward the Ultra's small gripper
         }
       }
-      growUnitProps(TU, unitTaskState(TU, 0), smooth(win(t, 0.75, 0.25)));
+      // the packing box becomes the OP1's packing-table top, then the table
+      {
+        const dP = toolPoint(ROBOTS.ur5e, rBase, UR_W_R[6], RB.ur.taskR.tcp), kP = detScale(rBase.m);
+        const src = OB(R_UP, [dP[0], dP[1] + 80 * kP, dP[2]], [240 * kP, 240 * kP, 160 * kP], MAT.iron);
+        const TUn2 = unitFrame(chain(bodyPlacements(ROBOTS.ultra, base, q)[ROBOTS.ultra.index.get('wrist3_link')], place(IDENT, [0, 0, 120])), RB.ul.k);
+        const wB = smooth(win(t, 0.2, 0.6));
+        if (wB < 1) obDraw(obLerp(src, obIn(TUn2, 340, 500, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly), wB));
+        else growUnitProps(TUn2, unitTaskState(TUn2, 0), 1);
+      }
       flush();
     }
 
@@ -3459,6 +3565,84 @@ export default function Flourish3D({ side = 'right' }) {
         return;
       }
       const ulBase = standing(RB.ul.root, RB.ul.k, RB.ul.yaw);
+      // ── THE OP1 BECOMES THE ATLAS, part for part (the owner: "It should
+      // also morph from the ultra to the atlas robot"). Every Atlas piece has
+      // a source in the OP1 that travels, turns and resizes onto it, and the
+      // piece appears only when its source lands:
+      //   the unit's torso → the torso;   the small arms → the arms;
+      //   the Fairino's seven links → pelvis, thighs, shins, feet;
+      //   the cart and the packing table → flattened onto the floor.
+      if (atlasGL && atlasGL.ready) {
+        const TA = growPlacements(g1, base, H.rest, null);
+        const atA = n => { const i = g1.index.get(n); return i == null ? null : TA[i]; };
+        const Pc = atlasGL.pieces(atA, detScale(base.m));
+        if (Pc) {
+          const k0 = detScale(base.m), vis = Object.fromEntries(Object.keys(Pc).map(id => [id, false]));   // every piece hidden until its source lands
+          const mwA = (i, span = 0.5) => smooth(win(t, 0.04 + i * 0.045, span));
+          const bbOB = (P, mat) => { const b = P.bb; return obIn(P.T, b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2], (b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2, mat); };
+          // unit → torso (its whole box carried onto the torso's box)
+          const Tf5 = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
+          const TU5 = unitFrame(chain(Tf5, place(IDENT, [0, 0, 120])), RB.ul.k);
+          const wT = mwA(3, 0.55);
+          if (wT < 1) {
+            if (wT <= 0) drawUnit(TU5, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, 0);
+            else obDraw(obLerp(obIn(TU5, UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2, MAT.poly), bbOB(Pc.torso, MAT.blue), wT));
+          }
+          vis.torso = wT >= 1;
+          // small arms → arms: each segment a drum from its own joints to the piece's
+          const shR = tpOf(TU5, [0, UNIT.SY, UNIT.SZ]);
+          const rNear = Math.hypot(...v3sub(Pc.lupper.p0, shR)) <= Math.hypot(...v3sub(Pc.rupper.p0, shR)) ? 'l' : 'r';
+          for (const side of [1, -1]) {
+            const F = smallArmFrames(TU5, side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0], side);
+            const near = side > 0 ? rNear : (rNear === 'l' ? 'r' : 'l');     // the two arms take opposite sides
+            const segs = [[F.S.t, F.E.t, near + 'upper'], [F.E.t, F.Wr.t, near + 'fore'], [F.Wr.t, F.tcp, near + 'hand']];
+            segs.forEach(([a, b, id], j) => {
+              const w = mwA(1 + j, 0.55);
+              vis[id] = w >= 1;
+              if (w >= 1) return;
+              const P = Pc[id];
+              const pa = a.map((v, c) => v + (P.p0[c] - v) * w), pb = b.map((v, c) => v + (P.p1[c] - v) * w);
+              const { T: Sg, L } = segT(pa, pb, 1);
+              if (L < 0.5) return;
+              const r = (22 * RB.ul.k) + ((50 * k0) - 22 * RB.ul.k) * w;
+              drawDrum(Sg, r, 0, L, w < 0.5 ? MAT.poly : MAT.blue, 1);
+            });
+          }
+          // Fairino links → lower body
+          const UL = ROBOTS.ultra, TF5 = bodyPlacements(UL, ulBase, RB.ul.rest);
+          const fn = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link'];
+          const to = ['pelvis', 'lthigh', 'rthigh', 'lshin', 'rshin', 'lfoot', 'rfoot'];
+          const J = [...fn.map(n => TF5[UL.index.get(n)].t), tpOf(Tf5, [0, 0, 120])];
+          let lastS = 1;
+          fn.forEach((name, i) => {
+            const P = Pc[to[i]], w = mwA(2 + i, 0.55);
+            vis[to[i]] = w >= 1;
+            if (w >= 1 || !P) return;
+            const A = TF5[UL.index.get(name)];
+            const tg = simOnto(A, J[i], J[i + 1], P.p0, P.p1, lastS, 0.8); lastS = tg.sc;
+            const T = lerpEl(A, tg.T, w);
+            for (const part of UL.parts) if (part.body === name) { const own = MESH_MAT[part.mat] ?? MAT.neutral; const mt = w > 0.6 ? MAT.blue : own; submitMesh(part, T, mt, 1, matLine[mt]); }
+          });
+          // the cart and the packing table flatten onto the floor under the Atlas
+          const floorC = tpOf(base, [0, 0, -HUM_PELVIS]);
+          const plate = OB(IDENT, floorC, [180, 2, 80], MAT.poly);
+          const wF = smooth(win(t, 0.05, 0.6));
+          if (wF < 1) {
+            const cartOB = [obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly),
+              obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly),
+              obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly), obAxis(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly),
+              obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu),
+              obIn(TU5, 340, 500, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly)];
+            if (wF <= 0) { drawCart(1, 1); growUnitProps(TU5, unitTaskState(TU5, 0), 1); }
+            else cartOB.forEach((o, i) => obDraw(obLerp(o, plate, smooth(win(wF, i * 0.04, 0.7)))));
+          }
+          drawFloorMark(base, smooth(win(t, 0.6, 0.3)));
+          flush();
+          atlasDrawn = true;
+          atlasGL.render(atA, k0, camState, dark, vis);
+          return;
+        }
+      }
       const gone = 1 - smooth(win(t, 0.02, 0.3));
       drawCart(gone, 1, [(RB.hum.root[0] - ULTRA_ROOT[0]) * (1 - gone), 0, 0]);   // slides toward where the Atlas stands as it shrinks
       const Tf = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
