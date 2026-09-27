@@ -23,7 +23,8 @@ export const aboutMeData = {
   modalTitle: 'Aadhav Sivakumar',
   modalContent: [
     { type: 'text', value: "Hello! My name is Aadhav Sivakumar, and this website is meant to showcase projects I've worked on in the past, and projects that I'm currently working on. You're also able to view my resume, an extended CV, or look through the different skills, software, and hardware I have worked with previously." },
-    { type: 'text', value: "I'm an AI Engineer on Roboflow's Edge AI engineering team in New York, where I deploy production computer-vision systems on NVIDIA Jetson at pharmaceutical, food and automotive manufacturing sites, build the robotics demos Roboflow shows at GTC and CVPR, and work on synthetic data and vision-language-action models for robotic manipulation. Alongside that I'm a researcher in NYU Tandon's CREO lab. Before Roboflow I was a robotics researcher at NYU Tandon, where I earned my Master's in Mechatronics and Robotics and TA'd the Foundations of Robotics and Mathematics for Robotics courses with Professor Peng. Earlier I was a Robot Technician at Starship Technologies, working out of the Fordham University hub in the Bronx. I was born and raised in the Bay Area in California, and I went to undergrad at the University of California, Santa Cruz campus, where I studied Robotics Engineering with a minor in Electrical Engineering." },
+    { type: 'text', value: "I'm a robotics engineer working toward embodied AI — vision-language-action models, world models, reinforcement learning and simulation — from the vision side in. At Roboflow (Edge AI engineering team, New York, Jan–Sep 2026) I trained and shipped detection and segmentation models on NVIDIA Jetson for manufacturing lines, built the vision-guided xArm 5 demos Roboflow showed at NVIDIA GTC and CVPR 2026, generated synthetic training data with NVIDIA's Cosmos-based AnomalyGen, evaluated NVIDIA's Cosmos world models for on-device use, and proposed Detection-Grounded Action Models, a VLA built on a frozen perception stack. In parallel I was a graduate researcher in NYU Tandon's LAIR lab under Professor Christopher Clark, fine-tuning π0 and π0.5 policies and building a Gaussian-splat Real2Sim pipeline in Isaac Sim." },
+    { type: 'text', value: "I earned my MS in Mechatronics and Robotics at NYU Tandon and TA'd Math for Robotics, Foundations of Robotics and Mechatronics there. Before that I was a Robot Technician at Starship Technologies, keeping a delivery-robot fleet running out of the Fordham University hub in the Bronx, and I did my BS in Robotics Engineering with a minor in Electrical Engineering at UC Santa Cruz, including tactile-sensing research in the Tactile Manipulation Lab. I grew up in the Bay Area." },
     { type: 'text', value: "I believe that the most effective engineering happens at the intersection of rigorous theory and reliable application. My experiences, ranging from deep academic research to maintaining active robot fleets in the field, have taught me that building intelligent systems requires not just understanding the algorithms, but also the environmental and societal impact of new technologies. I am driven by the challenge of bridging this gap, ensuring that complex robots are robust, efficient, and capable of solving real-world problems." },
     { type: 'button', text: 'Connect on LinkedIn', link: 'https://www.linkedin.com/in/aadhav-s/' },
     { type: 'button', text: 'Connect on GitHub', link: 'https://github.com/AadhavSivakumar' }
@@ -49,20 +50,23 @@ export const experienceData = [
     video: baseExperiencePath + 'roboflow.mp4',
     org: 'Roboflow',
     role: 'AI Engineer',
-    degree: 'Edge AI engineering team',
+    degree: 'Edge AI engineering team · Solutions R&D',
     location: 'New York, NY',
-    period: 'Jan 2026 – Present',
-    summary: 'Bridging industrial machine vision and robot learning: production vision systems on NVIDIA Jetson at manufacturing sites, the robotics demos Roboflow shows at major conferences, and research pipelines from teleoperation hardware through VLA policy fine-tuning.',
+    period: 'Jan 2026 – Sep 2026',
+    summary: 'Vision at the edge and the robotics built on it: detection and segmentation models trained and shipped on NVIDIA Jetson, vision-guided manipulation, synthetic data from NVIDIA\'s world models, and a proposal for VLAs grounded in detection.',
     bullets: [
-      'Deploy production computer-vision inspection systems on NVIDIA Jetson (AGX Orin, AGX Thor) at pharmaceutical, food and automotive manufacturing sites — encoder-triggered line-scan and area-scan GigE Vision cameras, industrial lighting, Allen-Bradley PLC integration over EtherNet/IP, and custom operator HMIs.',
-      'Designed and built Roboflow\'s NVIDIA GTC 2026 and CVPR 2026 booth demos: vision-guided xArm 5 pick-and-place with RealSense on Jetson AGX Orin, a line-scan conveyor inspection station, real-time defect detection, and a multi-vendor camera kit — including every camera, optics, lighting and networking BOM.',
-      'Trained and optimized an RF-DETR-Seg part-presence model to 94.2% mAP@50 and roughly doubled per-stream edge throughput with neural architecture search + TensorRT; presented it in a public webinar on quality-control vision.',
-      'Robot learning: built a four-arm bimanual SO-ARM101 LeRobot teleoperation rig on Jetson and a GELLO leader arm for xArm 5 to collect imitation-learning data; fine-tune VLA policies (π0, ACT); automated multi-view RGB-D reconstruction with Open3D TSDF using robot kinematics as the pose source.',
-      'Work on synthetic data generation for industrial defect detection with NVIDIA tooling (Isaac Sim / Replicator, Cosmos), evaluating generative defect models and building the train/eval pipeline around them.',
-      'Technical lead for a collaborative-robot vendor integration that runs Roboflow inference fully offline and air-gapped on the robot after an online warm-up, with the field kit and runbooks for onsite engineering.',
-      'Provision, network and support a fleet of Jetson edge devices across industrial carrier boards (Advantech, ASUS, Seeed) — JetPack/BSP work, Docker and container registries, Tailscale fleet networking, GigE Vision subnets, PoE and 10GbE.',
+      'Trained and shipped detection, instance-segmentation and keypoint models for production — including an RF-DETR-Seg part-presence model at 94.2% mAP@50 and 93.8% F1 over 11 classes, tuned through a 560-candidate neural architecture search and taken from ~5 to 9.5–11.5 FPS per stream with TensorRT.',
+      'Proposed Detection-Grounded Action Models: a VLA whose learned vision encoder is replaced by a frozen detection, segmentation and depth stack emitting per-object tokens (class, mask, 3D pose, affordance keypoints) to a language-conditioned action decoder; wrote the v0.1 plan on an xArm 5 with GELLO teleoperation and ACT-style chunked actions.',
+      'Evaluated NVIDIA\'s Cosmos world-model family — architecture, training scale, benchmarks, licensing — and planned its on-device evaluation on Jetson Thor and DGX Spark, including the distill-down deployment path.',
+      'Co-led synthetic defect-data generation with NVIDIA\'s AnomalyGen (few-shot diffusion inpainting on a frozen Cosmos-Predict2 2B DiT with a DINOv2 mask encoder): owned defect injection, dataset packaging and train/eval scorecards, and established iteration count, not dataset size, as the dominant training variable.',
+      'Designed a robot-control container for the edge stack, so an arm is driven directly from Roboflow Workflows — perception outputs mapped to motion commands — demonstrated as vision-guided pick-and-place on an xArm 5.',
+      'Built the booth demos and enablement: a vision-guided xArm 5 pick-and-place demo for NVIDIA GTC 2026, the CVPR 2026 industrial demo kit, a public quality-control webinar, and study guides for the edge stack.',
+      'Delivered industrial computer-vision systems end to end in healthcare manufacturing, food and beverage, poultry and automotive: camera and lens selection, deployment architecture, PLC and controls integration, commissioning and onsite support.',
+      'Owned edge deployment across the Jetson Orin and Thor lines: BSP/JetPack image work on industrial carriers, a five-container device-manager stack, fleet networking, PoE camera networks, and on-device latency, memory and power profiling.',
+      'Technical lead for a robot-arm partner\'s integration: root-caused offline and air-gapped inference failures and produced the onsite field kit — architecture diagrams, verified x86 and Jetson commands, the air-gap warm-up procedure.',
+      'Specified a metrology-grade rivet and seam inspection rig for vehicles in motion (±1 mm over 1,524 mm): a sensor trade study across structured light, ToF, line-scan and monocular depth, then a 16.2 MP camera at 0.343 mm/px with cross-polarized lighting.',
     ],
-    tags: ['NVIDIA Jetson', 'TensorRT', 'RF-DETR', 'PyTorch', 'GigE Vision', 'LeRobot', 'Isaac Sim', 'ROS 2', 'Open3D'],
+    tags: ['RF-DETR', 'VLA', 'Cosmos', 'NVIDIA Jetson', 'TensorRT', 'xArm 5', 'LeRobot', 'PyTorch'],
   },
   {
     id: 'exp-starship',
@@ -71,13 +75,20 @@ export const experienceData = [
     video: baseExperiencePath + 'starship.mp4',
     org: 'Starship Technologies',
     role: 'Robot Technician',
+    degree: 'Fordham University hub',
     location: 'Bronx, NY',
-    period: '2025',
-    summary: 'Kept an active fleet of autonomous sidewalk-delivery robots running in the field at the Fordham University hub.',
+    period: 'Aug 2025 – Jan 2026',
+    summary: 'Kept a live fleet of autonomous sidewalk-delivery robots running: root-causing faults, repairing and calibrating perception sensors, and bringing new units into service.',
     bullets: [
-      'Field maintenance, diagnostics and repair on a live fleet of autonomous delivery robots — the hands-on side of keeping autonomy running in the real world.',
+      'Ran root-cause analysis on recurring hardware and software faults and put in long-term fixes that cut specific error rates and kept the fleet healthy.',
+      'Wrote Python and Bash diagnostic scripts to triage faults in the field, cutting robot downtime by 50%.',
+      'Calibrated camera and lidar sensors after repair and re-verified obstacle detection and localization before returning units to autonomous operation.',
+      'Replaced components down to the board level — circuit boards, lidar and camera sensors, power systems — to restore full function.',
+      'Assembled, tested and calibrated new robots to specification before they joined the active fleet.',
+      'Ran preventive maintenance and pre-deployment inspections across the hub\'s fleet to sustain daily delivery operations.',
+      'Documented recurring failure modes and escalated issues to the engineering teams with logs and reproduction steps.',
     ],
-    tags: ['Autonomous Robots', 'Field Operations'],
+    tags: ['Fleet Robotics', 'Lidar & Camera Calibration', 'Root-Cause Analysis', 'Python', 'Bash'],
   },
   {
     id: 'exp-nyu',
@@ -85,17 +96,20 @@ export const experienceData = [
     badge: 'NYU',
     video: baseExperiencePath + 'nyu-tandon.mp4',
     org: 'NYU Tandon School of Engineering',
-    role: 'Robotics Researcher',
-    degree: 'MS, Mechatronics and Robotics',
+    role: 'Graduate Robotics Researcher · LAIR',
+    degree: 'MS, Mechatronics and Robotics · GPA 3.95',
     location: 'Brooklyn, NY',
     period: '2024 – 2026',
-    summary: 'Research on vision-language-action models for robotic manipulation in the CREO lab, alongside the master\'s degree and teaching.',
+    summary: 'Robot learning in the LAIR lab, advised by Professor Christopher Clark — VLA fine-tuning, Real2Sim digital twins, teleoperation data — alongside the master\'s degree and three courses as a graduate TA.',
     bullets: [
-      'Research on vision-language-action models for robotic manipulation (xArm 5), including the inference and fine-tuning hardware analysis for the lab.',
-      'Co-authored a Google TPU Research Award proposal on bimanual VLA fine-tuning and Real2Sim (Isaac Sim + 3D Gaussian Splatting), with an 86.7% π0 task-success preliminary result.',
-      'Teaching assistant for Foundations of Robotics and Mathematics for Robotics; developed STM32-based exam and project specifications for the Mechatronics course.',
+      'Helped fine-tune π0 and π0.5 VLA policies (openpi / JAX) on bimanual teleoperation data, reaching 86.7% success on cube-in-box against 13% for an ACT baseline, with an evaluation protocol, a data-scaling sweep and out-of-distribution evals.',
+      'Built an Isaac Sim Real2Sim pipeline that turns 3D Gaussian Splatting scans of the lab into simulation-ready digital twins, then used scripted planners to generate 1,000+ randomized demonstrations at 100% in-sim success.',
+      'Built a bimanual SO-ARM101 teleoperation and data-collection pipeline on Jetson Orin Nano (LeRobot, Feetech servos, per-arm calibration, persistent device naming).',
+      'Built and deployed a BlueROV2 for 3D reconstruction of underwater shipwrecks, with an Isaac Sim and OceanSim environment for mission planning.',
+      'Contributed the technical write-up for the lab\'s Google TPU research award application (openpi, Tunix, vLLM on TPU).',
+      'Graduate TA for Math for Robotics, Foundations of Robotics and Mechatronics (50+ students): wrote the UR10e MuJoCo kinematics final project and the STM32 (NUCLEO-H503RB) Mechatronics midterm practical.',
     ],
-    tags: ['VLA', 'openpi / JAX', 'Isaac Sim', 'xArm 5', 'STM32'],
+    tags: ['π0 / π0.5', 'Isaac Sim', 'Gaussian Splatting', 'LeRobot', 'openpi / JAX'],
   },
   {
     id: 'exp-ucsc',
@@ -103,25 +117,27 @@ export const experienceData = [
     badge: 'UCSC',
     video: baseExperiencePath + 'ucsc-baskin.mp4',
     org: 'University of California, Santa Cruz',
-    role: 'Undergraduate Researcher',
-    degree: 'BS, Robotics Engineering · Minor in Electrical Engineering',
+    role: 'Undergraduate Research Assistant',
+    degree: 'BS, Robotics Engineering · Minor in EE · GPA 3.8',
     location: 'Santa Cruz, CA',
     period: '2020 – 2024',
-    summary: 'Robotics Engineering with an electrical-engineering minor, undergraduate research in the Tactile Manipulation Lab, and a MuJoCo grocery-robot capstone.',
+    summary: 'Soft-robotics sensing in the Tactile Manipulation Lab with Professor Tae Myung Huh, a vision-guided compost-sorting capstone, and Robotics Engineering with an electrical-engineering minor.',
     bullets: [
-      'Undergraduate research with the Tactile Manipulation Lab: designed and fabricated a flexible-PCB tactile sensor (Altium) that reports grip force and shear direction for robotic manipulation.',
-      'Senior capstone — Stockbot: a MuJoCo simulation of an autonomous grocery-restocking robot, with kinematic modelling and path planning in Python.',
-      'Mechatronics, embedded and controls coursework built into hardware: an STM32 competition robot with PID targeting, a Verilog VGA game on a Basys 3 FPGA, and the electronics subsystem of a MATE ROV.',
+      'Engineered a complete sensing solution for a soft robotic end-effector — flexible PCB, Infineon CapSense and custom-molded silicone — detecting shear and normal forces for pressure-sensitive grasping.',
+      'Senior capstone, SMART compost sorting: OpenCV and DexNet tell compost from contaminant, and the depth camera\'s 3D output is mapped into the arm\'s joint space to pick contaminants out.',
+      'Stockbot (Models of Robotic Manipulation): PID control on every joint of a 7-DOF Franka Panda for multi-item pick-and-place, with telemetry benchmarking cycle time and success against human trials.',
+      'Set up the lab: laser cutters, robot arms, 3D and stereolithography printers, silicone molding, and a CUDA workstation (RTX 3090) for computer vision.',
+      'Tutored and graded 100+ students in circuits, logic design and mechatronics, and taught a 3-credit electronics elective through the Sustainability Lab.',
     ],
-    tags: ['Robotics Engineering', 'Tactile Sensing', 'MuJoCo', 'STM32', 'FPGA'],
+    tags: ['Tactile Sensing', 'Soft Robotics', 'OpenCV', 'Franka Panda', 'PID Control'],
   },
 ];
 
 export const majorProjectsData = [
-  { id: 3, title: 'Glass-2-Bot', cardDescription: 'Telerobotic manipulation driven by Google Glass: computer vision turns the wearer\'s gaze and gestures into arm commands for remote object manipulation. Python, real-time vision, human-robot interface design.', imageUrl: baseProjectImagePath + 'glass2bot.mp4', tags: ['Google Glass', 'Computer Vision', 'Python', 'Telerobotics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Architected a telerobotic system integrating Google Glass with a robot arm, enabling intuitive remote object manipulation. Leveraged Python and AI vision to translate user gaze and gestures into precise robotic actions, demonstrating a novel human-robot interface.' }, { type: 'embed', value: baseProjectPdfPath + 'Adv__Mechatronics_Final_Report.pdf', title: 'Project Documentation PDF' }] },
-  { id: 4, title: 'SMART compost sorting', cardDescription: 'Robotic compost sorting on a Franka Emika arm: RGB-D computer vision identifies contaminants in a waste stream and the arm removes them, all within a ROS framework. Undergraduate capstone.', imageUrl: baseProjectImagePath + 'smartsort.mp4', tags: ['Franka Emika Robot', 'Computer Vision', 'ROS'], status: 'Completed', modalContent: [{ type: 'text', value: 'Designed and implemented a robotic compost sorting system using a Franka Emika arm and depth-sensing AI vision. Developed within a ROS framework, this project successfully automated the identification and separation of contaminants from organic waste streams.' }, { type: 'embed', value: baseProjectPdfPath + 'Capstone_final_report.pdf', title: 'Project Documentation PDF' }] },
-  { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'MuJoCo simulation of an autonomous grocery-restocking robot: kinematic modelling and path planning in Python for a retail environment.', imageUrl: baseProjectImagePath + 'stockbot.mp4', tags: ['Python', 'MuJoCo', 'Kinematics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Developed a comprehensive simulation in Mujoco for an autonomous grocery restocking robot. Engineered kinematic models and path-planning algorithms in Python to optimize efficiency and accuracy in a dynamic retail environment.' }, { type: 'text', value: "This project was a capstone for my undergraduate studies, showcasing the integration of advanced simulation with robotic control theory. The final system demonstrated a significant potential for reducing manual labor and improving inventory management in a simulated retail setting." }, { type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home' }] },
-  { id: 'h', title: 'MuJoCo simulation for forward/inverse kinematics for 6DOF arm', cardDescription: "Forward and inverse kinematics — position and velocity — for a 6-DOF Universal Robots UR10e arm, simulated in MuJoCo with Python, then put to work as a 3D 'Fruit Ninja' in which the end effector strikes fruit. A Foundations of Robotics project at NYU.", imageUrl: baseProjectImagePath + 'fruitninja.mp4', tags: ['Python', 'MuJoCo', 'Kinematics', 'UR10e'], status: 'In Progress', modalContent: [{ type: 'text', value: "Built a MuJoCo simulation of a 6-DOF Universal Robots UR10e arm in Python, implementing forward and inverse kinematics for both position and velocity. The same model then drives a 3D 'Fruit Ninja': fruit is spawned in the arm's workspace and the end effector is steered to strike it. A final project for Foundations of Robotics at NYU." }, { type: 'button', text: 'View on GitHub', link: 'https://github.com/AadhavSivakumar/MujocoSim' }] },
+  { id: 3, title: 'Glass-2-Bot', cardDescription: 'Hands-free robot control from a Google Glass: 720p video streams from a Glass Explorer Edition to a Raspberry Pi, where object detection lets the wearer choose an item in real time, and a 3D-printed mobile manipulator drives to it and grasps it. The Advanced Mechatronics final project at NYU.', imageUrl: baseProjectImagePath + 'glass2bot.mp4', tags: ['Google Glass', 'Object Detection', 'Raspberry Pi', 'Arduino'], status: 'Completed', modalContent: [{ type: 'text', value: 'A hands-free interface for a mobile manipulator: 720p video streams from a (deprecated) Google Glass Explorer Edition to a Raspberry Pi, where object detection lets the wearer select an item in real time.' }, { type: 'text', value: 'The robot is a modified, 3D-printed open-source mobile manipulator with a dual-microcontroller architecture: the Raspberry Pi handles computer vision, and an Arduino programmed in C++ runs a state machine for autonomous navigation and grasping. The last project of the Advanced Mechatronics course at NYU.' }, { type: 'embed', value: baseProjectPdfPath + 'Adv__Mechatronics_Final_Report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 4, title: 'SMART compost sorting', cardDescription: 'Robotic sorting for contaminated compost streams on the UC Santa Cruz campus: OpenCV and DexNet tell compost from contaminant, and transformation matrices map the depth camera\'s 3D output into the arm\'s joint space so it can pick contaminants out. Senior capstone.', imageUrl: baseProjectImagePath + 'smartsort.mp4', tags: ['OpenCV', 'DexNet', 'Depth Camera', 'Franka Emika Robot'], status: 'Completed', modalContent: [{ type: 'text', value: 'A solution for contaminated compost streams on the UC Santa Cruz campus. OpenCV with DexNet decides compost versus contaminant, and a robot arm removes what does not belong.' }, { type: 'text', value: 'The depth camera\'s output is mapped into 3D space and, through transformation matrices, into the robot\'s joint space, so a detection in the image becomes a grasp. My senior capstone.' }, { type: 'embed', value: baseProjectPdfPath + 'Capstone_final_report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 6, title: 'Stockbot: Grocery Robotics', cardDescription: 'A grocery-restocking pick-and-place workcell on a 7-DOF Franka Panda: PID control on every joint, multi-item picking, and telemetry that benchmarks cycle time and task success against human trials. The final project for Models of Robotic Manipulation at UCSC.', imageUrl: baseProjectImagePath + 'stockbot.mp4', tags: ['Franka Panda', 'PID Control', 'Python', 'MuJoCo'], status: 'Completed', modalContent: [{ type: 'text', value: 'A multi-item pick-and-place testing environment for grocery restocking, built on a 7-degree-of-freedom Franka Panda with a PID-based feedback controller in each joint.' }, { type: 'text', value: 'The workcell logs and analyzes real-time performance telemetry — cycle times and task success rates — as a validation framework that benchmarks the system against human trials. The final project for ECE215, Models of Robotic Manipulation, at UC Santa Cruz.' }, { type: 'button', text: 'View Project', link: 'https://sites.google.com/ucsc.edu/stockbot/home' }] },
+  { id: 'h', title: 'MuJoCo simulation for forward/inverse kinematics for 6DOF arm', cardDescription: "Forward and inverse kinematics — position and velocity — for a 6-DOF Universal Robots UR10e arm, simulated in MuJoCo with Python, then put to work as a 3D 'Fruit Ninja' in which the end effector strikes fruit. Created as the final project for Foundations of Robotics students while I was the course's TA at NYU.", imageUrl: baseProjectImagePath + 'fruitninja.mp4', tags: ['Python', 'MuJoCo', 'Kinematics', 'UR10e'], status: 'In Progress', modalContent: [{ type: 'text', value: "Built a MuJoCo simulation of a 6-DOF Universal Robots UR10e arm in Python, implementing forward and inverse kinematics for both position and velocity. The same model then drives a 3D 'Fruit Ninja': fruit is spawned in the arm's workspace and the end effector is steered to strike it. MuJoCo handles control and collisions. I created it as the final project for Foundations of Robotics students while TA'ing the course at NYU." }, { type: 'button', text: 'View on GitHub', link: 'https://github.com/AadhavSivakumar/MujocoSim' }] },
 ];
 
 export const smallProjectsData = [
@@ -131,24 +147,34 @@ export const smallProjectsData = [
   // with one missing); the recording is on Roboflow's channel.
   { id: 'k', title: 'Roboflow Webinar: Part-Presence Inspection', imageUrl: baseProjectImagePath + 'webinar.webp', tags: ['RF-DETR-Seg', 'NVIDIA Jetson', 'Roboflow'], status: 'Completed', modalContent: [
     { type: 'text', value: 'A public Roboflow webinar on quality-control vision for manufacturing: checking that every component is present on an assembly, in real time, at the edge. It walks the whole pipeline — capturing images on the line, annotating parts and missing parts, training a custom model, running inference on NVIDIA Jetson, verifying part presence automatically and flagging what is missing for inspection.' },
-    { type: 'text', value: 'The model behind it is an RF-DETR-Seg part-presence detector trained to 94.2% mAP@50, with per-stream edge throughput roughly doubled through neural architecture search and TensorRT.' },
+    { type: 'text', value: 'The demo behind it is a two-camera inspection cell (a LUCID Triton and a Basler ace 2 on an NVIDIA Jetson) that verifies every component is present on an automotive intake manifold and carburetor kit, alerting through a custom HMI. Its RF-DETR-Seg model covers 11 classes, trained on 536 labeled images and 6,063 annotations (augmented to 1,238 images), and reaches 94.2% mAP@50, 94.2% precision and 93.4% recall.' },
+    { type: 'text', value: 'Throughput went from ~5 FPS to 9.5–11.5 FPS per stream with TensorRT, a 432×432 input, sensor-side ROI cropping and cheaper mask visualization. The bench hardware was designed for it too: a single-axis belt-drive motion stage, telecentric lens selection with a coverage calculator, and coaxial lighting.' },
     // The recording's own URL is not anywhere public that could be reached
     // (Roboflow's channel, blog and Luma page were all checked); until the
     // owner supplies it, the button goes to the series it was part of.
     { type: 'button', text: 'Roboflow webinars', link: 'https://luma.com/roboflow' },
   ] },
-  { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'A tactile sensor on a flexible PCB (Altium) for robotic manipulation, reporting grip force and shear direction for delicate grasping. Built with the Tactile Manipulation Lab at UCSC.', imageUrl: baseProjectImagePath + 'tacmanipHQ.mp4', tags: ['C', 'Altium Designer'], status: 'Completed', modalContent: [{ type: 'text', value: "Designed and fabricated a novel tactile sensor on a flexible PCB using Altium Designer for advanced robotic manipulation. This sensor provides nuanced data on grip force and shear direction, enhancing a robot's ability to handle delicate objects." }, { type: 'button', text: 'View Organization', link: 'https://tml.engineering.ucsc.edu/' }, { type: 'button', text: 'View Previous Research', link: 'https://tml.engineering.ucsc.edu/research/dexterous-manipulation/' }] },
-  { id: 1, title: 'Project Millet', cardDescription: 'ROS-based autonomous drone on a Pixhawk 6x for precision agriculture: PID flight control and targeted payload delivery. In progress.', imageUrl: baseProjectImagePath + 'Millet.mp4', tags: ['C++', 'ROS', 'Pixhawk 6x', 'PID Control'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Developing a ROS-based autonomous drone utilizing a Pixhawk 6x for precise agricultural applications. This ongoing project focuses on implementing robust PID control for stable flight and targeted payload delivery, aiming to enhance farming efficiency.' }] },
-  { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data.', imageUrl: baseProjectImagePath + 'solegaitvidmute.mp4', tags: ['Python', 'Arduino', 'Comm Protocols'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Engineering an IoT-enabled foot sensor using an Arduino for real-time, high-fidelity gait analysis. This work-in-progress integrates custom communication protocols to provide actionable biometric data for healthcare and athletic performance.' }, { type: 'text', value: 'This project showcases my skills in embedded systems design, sensor integration, and data transmission. The goal is to create a low-cost, effective tool for physical therapists and athletes to monitor and improve gait patterns, preventing injuries and enhancing performance.' }, { type: 'embed', value: baseProjectPdfPath + 'Biomedical_devices_research_paper.pdf', title: 'Project Documentation PDF' }, { type: 'button', text: 'View on GitHub', link: 'https://github.com/AadhavSivakumar/SoleGait' }] },
+  // Detection-Grounded Action Models: the owner's VLA architecture proposal,
+  // from the CV. Its cover is a DIAGRAM of the architecture (drawn, like the
+  // webinar's), not a picture of a robot — there is no footage of a proposal.
+  { id: 'l', title: 'Detection-Grounded Action Models', imageUrl: baseProjectImagePath + 'dgam.webp', tags: ['VLA', 'RF-DETR', 'xArm 5'], status: 'In Progress', modalContent: [
+    { type: 'text', value: 'An architecture concept that replaces a vision-language-action model\'s learned vision encoder with a frozen computer-vision stack — detector, instance segmenter, depth — emitting structured per-object tokens: class, mask shape, 3D pose, affordance keypoints and spatial relations.' },
+    { type: 'text', value: 'A lightweight language-conditioned action decoder consumes those tokens, trading end-to-end pixel learning for perception that is interpretable and swappable. Positioned against object-centric and language-conditioned policies (ObjectVLA, Oat-VLA, SVLR, VoxPoser, SayCan, Point Policy, Afford2Act).' },
+    { type: 'text', value: 'The v0.1 plan: an xArm 5 with wrist and scene cameras, an RF-DETR detector, GELLO teleoperation, ACT-style chunked actions (chunk 16, L1 loss), and a four-task pick-and-place domain in LeRobot dataset format, trained on a DGX Spark. Roboflow R&D, Jul–Sep 2026.' },
+  ] },
+  { id: 5, title: 'Tactile Manipulation sensor', cardDescription: 'A tactile sensor for a soft gripper: flexible PCB, Infineon CapSense and custom-molded silicone, detecting shear and normal forces so an arm can grasp with controlled pressure. Tactile Manipulation Lab, UCSC.', imageUrl: baseProjectImagePath + 'tacmanipHQ.mp4', tags: ['Soft Robotics', 'Capacitive Sensing', 'Altium Designer'], status: 'Completed', modalContent: [{ type: 'text', value: 'Research in the UC Santa Cruz Tactile Manipulation Lab under Professor Tae Myung Huh: a complete sensing solution for a soft robotic end-effector, mounted on a robot arm so objects can be sensed and grasped at the same time, with varying pressure.' }, { type: 'text', value: 'The sensor is a flexible PCB with an Infineon (Cypress) CapSense chip under custom-molded, cured silicone, and it detects both shear and normal forces.' }, { type: 'button', text: 'View Organization', link: 'https://tml.engineering.ucsc.edu/' }, { type: 'button', text: 'View Previous Research', link: 'https://tml.engineering.ucsc.edu/research/dexterous-manipulation/' }] },
+  { id: 1, title: 'Project Millet', cardDescription: 'A 3D-SLAM drone with autonomous landing for orchard spraying, paired with a ground vehicle carrying the liquid payload. Master\'s project, in progress.', imageUrl: baseProjectImagePath + 'Millet.mp4', tags: ['Pixhawk', 'NVIDIA Jetson', 'RealSense', 'SLAM'], status: 'In Progress', modalContent: [{ type: 'text', value: 'A Pixhawk drone to test auto-administering pesticides through an orchard, working with a ground vehicle (UGV) that carries the liquid payload and a drone with a high-powered sprayer.' }, { type: 'text', value: 'A small drone for planning and a large one for experiments are both in development. An NVIDIA Jetson with an Intel RealSense 3D camera handles 3D SLAM, path planning, object recognition and autonomous landing. My master\'s project at NYU.' }] },
+  { id: 2, title: 'SoleGait Foot Sensor', cardDescription: 'A smart shoe sole that tracks the gait and pressure of your foot as you walk or run. Won best design at the NYU 2025 capstone competition.', imageUrl: baseProjectImagePath + 'solegaitvidmute.mp4', tags: ['nRF54L15', 'Zephyr', 'IMU', 'MATLAB'], status: 'Completed', modalContent: [{ type: 'text', value: 'A smart shoe sole that tracks gait and foot pressure while walking or running. Force sensors feed an Arduino Uno, which streams force and gyroscope data over UART to a computer for a real-time MATLAB display.' }, { type: 'text', value: 'The sensing node was then ported to a Seeed XIAO nRF54L15 Sense running Zephyr under the nRF Connect SDK, streaming 104 Hz IMU data to a MATLAB viewer with a complementary filter for real-time 3D attitude. It won the final prize for best design at the NYU 2025 capstone competition (NYU Vertically Integrated Projects).' }, { type: 'embed', value: baseProjectPdfPath + 'Biomedical_devices_research_paper.pdf', title: 'Project Documentation PDF' }, { type: 'button', text: 'View on GitHub', link: 'https://github.com/AadhavSivakumar/SoleGait' }] },
   { id: 'i', title: 'Point cloud visualization with 2D lidar', imageUrl: baseProjectImagePath + '2dlidar.mp4', tags: ['Python', 'Matplotlib', 'Lidar'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Interfaced an hls_lfcd lidar with Python to capture and visualize 2D point cloud data in real-time using Matplotlib, demonstrating foundational skills in sensor integration and data representation.' }] },
   { id: 'j', title: '3D space mapping with depth camera', imageUrl: baseProjectImagePath + '3dcamera.mp4', tags: ['Python', 'Open3D', 'Depth Camera'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Developing a system to capture and stitch together depth data from a camera to create a 3D map of an environment. This project explores point cloud processing and 3D reconstruction techniques.' }] },
-  { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath + 'deskrobarm.webp', tags: ['Python', 'Computer Vision', 'Raspberry Pi'], status: 'In Progress', modalContent: [{ type: 'text', value: 'Building a desktop robotic arm controlled by AI vision running on a Raspberry Pi. This project explores real-time object recognition and manipulation, creating an interactive and intelligent automated workspace assistant.' }, { type: 'button', text: 'View on GitHub', link: 'https://github.com/AadhavSivakumar/CV-controlled-mini-servo-arm' }] },
-  { id: 'a', title: 'Sand Table', imageUrl: baseProjectImagePath + '2rplanarstraight.mp4', tags: ['Parallax Propeller', 'C++', 'Kinematics'], status: 'Completed', modalContent: [{ type: 'text', value: 'Engineered a 2R planar manipulator controlled by a Parallax Propeller MCU to draw intricate patterns in sand. Applied C++ and kinematic principles to translate digital designs into precise, physical motion.' }, { type: 'embed', value: baseProjectPdfPath + 'Advanced_mechatronics_Project_2_report.pdf', title: 'Project Documentation PDF' }] },
-  { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath + 'PONG.mp4', tags: ['Arduino', 'LED matrix'], status: 'Completed', modalContent: [{ type: 'text', value: 'Constructed a standalone version of the classic game PONG using an Arduino and an LED matrix. This project involved low-level hardware interfacing and efficient programming to create a responsive and engaging game.' }, { type: 'embed', value: baseProjectPdfPath + 'Advanced_Mechatronics_Project_1_report.pdf', title: 'Project Documentation PDF' }] },
-  { id: 'c', title: 'MATE ROV', imageUrl: baseProjectImagePath + 'MATEROV.webp', tags: ['C++', 'EAGLE', 'Ultrasonic'], status: 'Completed', modalContent: [{ type: 'text', value: 'Contributed to a competitive MATE ROV team by designing and building electronic subsystems for an underwater drone. Utilized EAGLE for PCB design and integrated ultrasonic sensors for complex subsea navigation and task execution.' }] },
+  { id: 'g', title: 'CV controlled Desktop Robot arm', imageUrl: baseProjectImagePath + 'deskrobarm.webp', tags: ['OpenCV', 'MediaPipe', 'Raspberry Pi'], status: 'In Progress', modalContent: [{ type: 'text', value: 'A small custom-built robot arm controlled by hand gestures. A Raspberry Pi with a Pi camera runs OpenCV and MediaPipe to recognize hands, arms and gestures, and the arm — 3D-printed parts driven by a mix of servo and stepper motors — follows them.' }, { type: 'button', text: 'View on GitHub', link: 'https://github.com/AadhavSivakumar/CV-controlled-mini-servo-arm' }] },
+  { id: 'a', title: 'Sand Table', imageUrl: baseProjectImagePath + '2rplanarstraight.mp4', tags: ['Parallax Propeller', 'C', 'Inverse Kinematics'], status: 'Completed', modalContent: [{ type: 'text', value: 'A low-cost kinetic sand-art table: a 3D-printed 2R manipulator and a C state machine on a Parallax Propeller turn joystick input into stepper commands through inverse kinematics, for both user-drawn and autonomous patterns.' }, { type: 'text', value: 'The assembly was designed in Fusion 360 and the manipulator\'s motion simulated in MATLAB before the arm links and wooden housing were fabricated. The second project of Advanced Mechatronics at NYU.' }, { type: 'embed', value: baseProjectPdfPath + 'Advanced_mechatronics_Project_2_report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 'b', title: 'PONG', imageUrl: baseProjectImagePath + 'PONG.mp4', tags: ['Arduino Mega', 'LED Matrix', 'Fusion 360'], status: 'Completed', modalContent: [{ type: 'text', value: 'A portable Pong game on an Arduino Mega, with code optimized around LED-matrix mapping and memory limits, in a custom console chassis with ergonomic controllers designed in Fusion 360, laser-cut and 3D-printed — from validation to final testing in three weeks. The first project of Advanced Mechatronics at NYU.' }, { type: 'embed', value: baseProjectPdfPath + 'Advanced_Mechatronics_Project_1_report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 'm', title: 'ASL Glove Interpreter', imageUrl: baseProjectImagePath + 'aslglove.webp', tags: ['BASIC Stamp 2', 'Flex Sensors', 'LCD'], status: 'Completed', modalContent: [{ type: 'text', value: 'A glove that reads American Sign Language: flex sensors on each finger feed a BASIC Stamp 2, which recognizes every number, lets the signer enter multi-digit numbers and does basic arithmetic on them, showing the result on an LCD. The final project of the Mechatronics class at NYU.' }] },
+  { id: 'c', title: 'MATE ROV', imageUrl: baseProjectImagePath + 'MATEROV.webp', tags: ['PCB Design', 'CAD', 'Underwater Robotics'], status: 'Completed', modalContent: [{ type: 'text', value: 'With Slugbotics at UC Santa Cruz, built the electronics for a MATE competition underwater drone: PCBs and circuits controlling its movement and sensors, the CAD for the inside of the waterproof enclosure that houses the main electronics, and troubleshooting and maintenance of the power equipment.' }] },
   { id: 'd', title: 'Automated Dog Feeder', imageUrl: baseProjectImagePath + 'dogfeeder.webp', tags: ['C', 'Raspberry Pi'], status: 'Completed', modalContent: [{ type: 'text', value: "Designed and built an internet-enabled pet feeder powered by a Raspberry Pi and Firebase. This system allows for remote and scheduled feeding with precise portion control, ensuring a pet's dietary needs are met." }, { type: 'button', text: 'View on Instructables', link: 'https://www.instructables.com/Internet-Enabled-Raspberry-Pi-Pet-Feeder/' }] },
   { id: 'e', title: 'FPGA VGA Game', imageUrl: baseProjectImagePath + 'fpgaVGA.webp', tags: ['Verilog', 'Basys 3 FPGA'], status: 'Completed', modalContent: [{ type: 'text', value: "Developed a 'Flappy Bird' style game on a Basys 3 FPGA using Verilog. This project involved designing digital logic circuits from the ground up to handle game state, player input, and VGA signal generation." }] },
-  { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath + 'mechcomp.mp4', tags: ['STM32', 'C++', 'PID Control'], status: 'Completed', modalContent: [{ type: 'text', value: 'Built and programmed an autonomous robot on an STM32 platform for a mechatronics competition. Implemented C++ and fine-tuned PID control algorithms to achieve precise targeting and win a ping pong ball shooting tournament.' }, { type: 'embed', value: baseProjectPdfPath + 'ECE_118_Final_Project_Report.pdf', title: 'Project Documentation PDF' }] },
+  { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath + 'mechcomp.mp4', tags: ['STM32', 'SolidWorks', 'PID Control'], status: 'Completed', modalContent: [{ type: 'text', value: 'The final project of the mechatronics course at UC Santa Cruz: a ping-pong-ball-shooting robot, fully prototyped in SolidWorks and built with a laser cutter and power tools. It competed against the other teams in the class and scored the most points in a single round.' }, { type: 'embed', value: baseProjectPdfPath + 'ECE_118_Final_Project_Report.pdf', title: 'Project Documentation PDF' }] },
 ];
 
 // The four documents from the live /portfolio "Resume, CV, and Transcripts"
@@ -165,14 +191,30 @@ export const skillGroupsData = [
   // come first. Every item is something the owner has actually shipped with;
   // the stack was confirmed from their own resume material, not inferred.
   {
+    id: 'robot-learning',
+    title: 'Robot Learning: VLAs & World Models',
+    cardImageUrl: 'https://api.iconify.design/mdi/robot-happy-outline.svg',
+    items: [
+      { name: 'π0 / π0.5 (openpi)', imageUrl: 'https://api.iconify.design/mdi/robot-industrial-outline.svg', description: 'Fine-tuned π0 and π0.5 on bimanual teleoperation data: 86.7% cube-in-box success against 13% for an ACT baseline, with data-scaling and out-of-distribution evals.' },
+      { name: 'NVIDIA Cosmos', imageUrl: 'https://api.iconify.design/mdi/earth.svg', description: 'World models: evaluated the Cosmos family for on-device use on Jetson Thor and DGX Spark; generated synthetic defect data with AnomalyGen on Cosmos-Predict2.' },
+      { name: 'Isaac Sim / Isaac Lab', imageUrl: 'https://api.iconify.design/mdi/cube-outline.svg', description: 'Real2Sim digital twins and 1,000+ randomized scripted demonstrations; OceanSim for underwater mission planning.' },
+      { name: '3D Gaussian Splatting', imageUrl: 'https://api.iconify.design/mdi/blur.svg', description: 'Scans of the lab turned into simulation-ready digital twins.' },
+      { name: 'LeRobot', imageUrl: 'https://api.iconify.design/mdi/database-arrow-right-outline.svg', description: 'Bimanual SO-ARM101 teleoperation and data collection on Jetson Orin Nano; LeRobot dataset format.' },
+      { name: 'ACT & GR00T', imageUrl: 'https://api.iconify.design/mdi/transit-connection-variant.svg', description: 'Chunked-action imitation-learning baselines and generalist robot policies.' },
+      { name: 'JAX', imageUrl: 'https://api.iconify.design/mdi/function-variant.svg', description: 'openpi-based VLA fine-tuning.' },
+      { name: 'Teleoperation', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg', description: 'A GELLO leader arm for the xArm 5 (Dynamixel XL330 servos, xArm 7 STLs mapped onto xArm 5 kinematics) and bimanual leader-follower rigs.' },
+      { name: 'MuJoCo', imageUrl: 'https://api.iconify.design/mdi/cube-send.svg', description: 'Kinematics and dynamics simulation; the UR10e final project for Foundations of Robotics.' },
+      { name: 'Detection-Grounded Action Models', imageUrl: 'https://api.iconify.design/mdi/vector-polygon.svg', description: 'A VLA architecture proposal: frozen detection, segmentation and depth feeding per-object tokens to a language-conditioned action decoder.' },
+    ]
+  },
+  {
     id: 'ai-ml-data',
     title: 'Machine Learning & Computer Vision',
     cardImageUrl: 'https://api.iconify.design/mdi/brain.svg',
     items: [
       { name: 'PyTorch', imageUrl: deviconsBaseUrl + 'pytorch/pytorch-original.svg', description: 'Training and fine-tuning detection, segmentation and policy models; LoRA fine-tuning.' },
-      { name: 'RF-DETR / YOLO / SAM', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg', description: 'Detection and segmentation: RF-DETR & RF-DETR-Seg, RT-DETR, YOLO11/v8/v9, SAM2/SAM3, DINOv2, ByteTrack.' },
-      { name: 'Vision-Language-Action', imageUrl: 'https://api.iconify.design/mdi/robot-industrial-outline.svg', description: 'Robot policies: π0/π0.5 (openpi), OpenVLA, SmolVLA, GR00T, ACT, Diffusion Policy — data collection through fine-tuning.' },
-      { name: 'JAX / Flax', imageUrl: 'https://api.iconify.design/mdi/function-variant.svg', description: 'openpi-based VLA fine-tuning.' },
+      { name: 'RF-DETR / YOLO / SAM2', imageUrl: 'https://api.iconify.design/mdi/eye-check-outline.svg', description: 'Detection, segmentation and keypoints: RF-DETR & RF-DETR-Seg (94.2% mAP@50 in production), YOLO, SAM2, DINOv2, Depth Anything.' },
+      { name: 'TensorFlow & scikit-learn', imageUrl: 'https://api.iconify.design/mdi/chart-scatter-plot.svg', description: 'Taught supervised and unsupervised learning and neural networks with them in NYU\'s K-12 AI program.' },
       { name: 'OpenCV', imageUrl: deviconsBaseUrl + 'opencv/opencv-original.svg', description: 'Image processing, camera calibration (ChArUco / ArUco / AprilTag), visual servoing.' },
       { name: 'Open3D', imageUrl: 'https://api.iconify.design/mdi/cube-scan.svg', description: 'Point clouds, RGB-D fusion, multi-view TSDF reconstruction, 3D measurement.' },
       { name: 'Depth & 3D Perception', imageUrl: 'https://api.iconify.design/mdi/axis-arrow.svg', description: 'Stereo, ToF and structured-light depth; Depth Anything 3; monocular-vs-stereo metrology trade-offs.' },
@@ -205,11 +247,9 @@ export const skillGroupsData = [
     cardImageUrl: 'https://api.iconify.design/mdi/robot-industrial.svg',
     items: [
       { name: 'ROS 2', imageUrl: 'https://api.iconify.design/simple-icons/ros.svg', description: 'Jazzy / Humble; ROS-based drones and manipulators.' },
-      { name: 'Robot Arms', imageUrl: 'https://api.iconify.design/mdi/robot-industrial-outline.svg', description: 'UFACTORY xArm 5, Franka Emika, Standard Bots RO1, SO-ARM101, GELLO leader arms.' },
-      { name: 'Teleoperation & Data Collection', imageUrl: 'https://api.iconify.design/mdi/gamepad-variant-outline.svg', description: 'Bimanual LeRobot rigs, leader-follower arms, Dynamixel / Feetech servos, SpaceMouse and VR-controller teleop.' },
+      { name: 'Robot Arms', imageUrl: 'https://api.iconify.design/mdi/robot-industrial-outline.svg', description: 'UFACTORY xArm 5, Franka Research 3 and Panda, SO-ARM101, BlueROV2, GELLO leader arms.' },
       { name: 'Hand-Eye Calibration', imageUrl: 'https://api.iconify.design/mdi/target.svg', description: 'ChArUco / ArUco / AprilTag camera-to-robot calibration.' },
-      { name: 'Isaac Sim / Isaac Lab', imageUrl: 'https://api.iconify.design/mdi/cube-outline.svg', description: 'Simulation, Replicator synthetic data, URDF import, Real2Sim.' },
-      { name: 'MuJoCo & Webots', imageUrl: 'https://api.iconify.design/mdi/cube-send.svg', description: 'Physics simulation for manipulation and mobile robots.' },
+      { name: 'Webots', imageUrl: 'https://api.iconify.design/mdi/cube-send.svg', description: 'Physics simulation for mobile robots.' },
       { name: 'Kinematics', imageUrl: 'https://api.iconify.design/mdi/vector-line.svg', description: 'Forward/inverse kinematics and path planning.' },
       { name: 'PID Control', imageUrl: 'https://api.iconify.design/mdi/tune-variant.svg', description: 'Feedback control for flight, motion and servo systems.' },
       { name: 'Kalman Filtering', imageUrl: 'https://api.iconify.design/mdi/chart-bell-curve-cumulative.svg', description: 'State estimation and sensor fusion.' },
@@ -249,7 +289,7 @@ export const skillGroupsData = [
   },
   {
     id: 'electronics-embedded',
-    title: 'Electronics & Embedded Systems',
+    title: 'Electronics, Embedded & Sensors',
     cardImageUrl: 'https://api.iconify.design/mdi/chip.svg',
     items: [
       { name: 'NI DAQ', imageUrl: baseSkillImagePath + 'NIDAQ.jpg', description: 'National Instruments hardware for measuring electrical/physical phenomena and converting to digital data.' },
@@ -268,7 +308,14 @@ export const skillGroupsData = [
       { name: 'Altium Designer', imageUrl: baseSkillImagePath + 'altium-designer.png', description: 'EDA software for PCB, FPGA, and embedded software design in a unified environment.' },
       { name: 'Autodesk EAGLE', imageUrl: baseSkillImagePath + 'EAGLE.jpg', description: 'EDA tool for schematic capture, PCB layout, auto-router, and CAM features.' },
       { name: 'ORcad x Capture', imageUrl: baseSkillImagePath + 'OrCADCapture.webp', description: 'Cadence EDA tools for designing ICs, SoCs, and PCBs.' },
-      { name: 'Pspice/LTspice', imageUrl: baseSkillImagePath + 'LTspice.png', description: 'SPICE-based analog circuit and digital logic simulation program for design verification.' }
+      { name: 'Pspice/LTspice', imageUrl: baseSkillImagePath + 'LTspice.png', description: 'SPICE-based analog circuit and digital logic simulation program for design verification.' },
+      { name: 'ATI Multi-Axis Force/Torque', imageUrl: 'https://api.iconify.design/mdi/axis-arrow.svg', description: 'Measures all six components of force/torque for robotics, haptics, product testing.' },
+      { name: 'IMU', imageUrl: 'https://api.iconify.design/mdi/rotate-orbit.svg', description: "Measures body's specific force, angular rate, and orientation using accelerometers/gyroscopes." },
+      { name: 'Ultrasonic', imageUrl: 'https://api.iconify.design/mdi/signal-distance-variant.svg', description: 'Measures distance by emitting/receiving ultrasonic waves for object detection/avoidance.' },
+      { name: 'Flex Sensor', imageUrl: 'https://api.iconify.design/mdi/vector-curve.svg', description: 'Variable resistor that changes resistance when bent, used to detect flexing motions.' },
+      { name: 'Capacitive', imageUrl: 'https://api.iconify.design/mdi/gesture-tap.svg', description: 'Detects changes in capacitance for touch sensing, proximity detection, liquid level sensing.' },
+      { name: 'Piezoelectric', imageUrl: 'https://api.iconify.design/mdi/flash.svg', description: 'Generates electric charge from mechanical stress; used as pressure sensors, accelerometers.' },
+      { name: 'Test Automation', imageUrl: 'https://api.iconify.design/mdi/play-box-multiple-outline.svg', description: 'Using software to execute pre-scripted tests for quality assurance and faster development cycles.' }
     ]
   },
   {
@@ -282,20 +329,6 @@ export const skillGroupsData = [
       { name: 'SolidWorks', imageUrl: baseSkillImagePath + 'SOLIDWORKS.webp', description: 'CAD/CAE software for designing, simulating, and manufacturing products.' },
       { name: 'Fusion 360', imageUrl: baseSkillImagePath + 'fusion360.png', description: 'Cloud-based 3D CAD, CAM, CAE, PCB platform for product design and manufacturing.' },
       { name: 'AutoCAD', imageUrl: baseSkillImagePath + 'autocad.png', description: 'Commercial CAD and drafting software for 2D/3D design and documentation.' }
-    ]
-  },
-  {
-    id: 'sensors-tools',
-    title: 'Sensors & Specialized Tools',
-    cardImageUrl: 'https://api.iconify.design/mdi/leak.svg',
-    items: [
-      { name: 'ATI Multi-Axis Force/Torque', imageUrl: 'https://api.iconify.design/mdi/axis-arrow.svg', description: 'Measures all six components of force/torque for robotics, haptics, product testing.' },
-      { name: 'IMU', imageUrl: 'https://api.iconify.design/mdi/rotate-orbit.svg', description: "Measures body's specific force, angular rate, and orientation using accelerometers/gyroscopes." },
-      { name: 'Ultrasonic', imageUrl: 'https://api.iconify.design/mdi/signal-distance-variant.svg', description: 'Measures distance by emitting/receiving ultrasonic waves for object detection/avoidance.' },
-      { name: 'Flex Sensor', imageUrl: 'https://api.iconify.design/mdi/vector-curve.svg', description: 'Variable resistor that changes resistance when bent, used to detect flexing motions.' },
-      { name: 'Capacitive', imageUrl: 'https://api.iconify.design/mdi/gesture-tap.svg', description: 'Detects changes in capacitance for touch sensing, proximity detection, liquid level sensing.' },
-      { name: 'Piezoelectric', imageUrl: 'https://api.iconify.design/mdi/flash.svg', description: 'Generates electric charge from mechanical stress; used as pressure sensors, accelerometers.' },
-      { name: 'Test Automation', imageUrl: 'https://api.iconify.design/mdi/play-box-multiple-outline.svg', description: 'Using software to execute pre-scripted tests for quality assurance and faster development cycles.' }
     ]
   }
 ];

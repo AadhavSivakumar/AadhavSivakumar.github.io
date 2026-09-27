@@ -155,7 +155,17 @@ To add a project or skill: append to the relevant array — the components map o
 
 That is the owner's stated goal, and three things follow from it:
 
-- **`skillGroupsData` order is deliberate**: Machine Learning & Computer Vision
+- **The content follows the owner's Extended CV** (Sept 27; "for the site
+  content, use the cv"): the experience rows, the about text, the major
+  project descriptions and several small cards were rewritten from it. Kept
+  off the page even though the CV has them: partner names for
+  integrations, a customer rig's cost, NVIDIA's unreleased product names,
+  and the name of the robot whose teleop data the π0 work used.
+- **`skillGroupsData` order is deliberate**: since Sept 27 **Robot Learning:
+  VLAs & World Models** leads (π0/openpi, Cosmos, Isaac Sim, Gaussian
+  splatting, LeRobot, ACT/GR00T, JAX, teleop, MuJoCo, DGAM — each on the
+  CV), then Machine Learning & Computer Vision; the sensors group was folded
+  into "Electronics, Embedded & Sensors" to keep eight cards. Before that: Machine Learning & Computer Vision
   first, Robotics & Control second, then Programming, Embedded, Design, Sensors.
   The group a recruiter screens on leads. It used to be fourth, with four vague
   items ("AI Vision", "Gen AI API").
@@ -171,7 +181,7 @@ That is the owner's stated goal, and three things follow from it:
   MujocoSim repo's notebooks: FK/IK for position and velocity on a UR10e, then
   a Fruit Ninja demo), in that order. Sluice was removed at the owner's
   request. Everything else — including the tactile sensor — is in `smallProjectsData`,
-  strongest first: thirteen cards, five to a row. **The first is the Roboflow
+  strongest first: FIFTEEN cards, five to a row, three full rows (since Sept 27: the Detection-Grounded Action Models card, id `'l'`, second, with a DRAWN architecture-diagram cover `dgam.webp` — a proposal has no footage — and the ASL Glove, id `'m'`, from `Media/projects/aslglove.png`). **The first is the Roboflow
   webinar** (id `'k'`): the owner's public talk on part-presence inspection
   with RF-DETR-Seg, added at their request as a card rather than a "Talks"
   section (one talk does not make a section). Its cover is DRAWN, not a
@@ -535,6 +545,22 @@ settle point):
 | Projects → Additional Projects | the Franka **turns into** the right of **two UR5e** hanging from Generalist's frame; the left unfolds beside it | a **world model** imagines rollouts of the tracked object |
 | Additional Projects → Skills & Resume | the workcell becomes the **Ultra OP1**: the Fairino rises from its cart, the two URs become the unit's arms | the world model becomes a **simulator**: randomised twins, a return curve |
 | Skills & Resume → Get In Touch | the OP1 becomes **Boston Dynamics' Atlas**, which **waves goodbye** while the reader is on the last page | the simulator holds |
+
+**Sept 27: the left acts 2-3 run DOWN the stage** (the owner: "more
+tailored to world models and VLAs from vision"; it was a small side-on
+stack with overlapping instruction words). Act 2: the camera frame at the
+top (`SENSOR_VLA`) → its 12 patches fly out as VISION TOKENS plus one
+OBJECT token for the red cube (the owner's DGAM idea) → LANGUAGE tokens
+("put the red cube in the box") → four wide transformer layers, attention
+fanning from the token in focus → the ACTION CHUNK (the Franka's joints).
+Act 3: the instruction goes, the action chunk rises into its place as
+CONDITIONING, the rollouts are drawn on the frame, and IMAGINED FRAMES
+t+1..t+4 come out of the bottom (`drawFilmstrip`); settled, the bars are
+the right UR's joints (`urNow`). `drawWMRest` is act 3's end state, drawn
+fading by act 4 so the seam holds (0-16 px). Act 4 begins with a 3D
+GAUSSIAN SPLAT condensing into the sim twin (the owner's Real2Sim work),
+captions "real2sim twins · randomised", "success · policy trained in sim".
+What follows about the old act 2/3 layout is history.
 
 **The left half is the LEARNING half** (the owner's targets: robotics, RL,
 world models, simulation, VLAs, embodied AI), and it is WIRED to the right:
@@ -1325,6 +1351,16 @@ This IS verifiable here — SwiftShader Chromium renders it (see the top of
 this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
+
+**Sept 27: in act 5 the ATLAS'S OWN PIECES make the whole journey** (the
+owner: the in-between was "very not detailed" — a blue slab and plain
+drums). `atlasGL.render(..., vis, over)` takes a placement per piece in
+flight; `carry()` in `drawHumanoidAct` lays each piece onto its source's
+joint-to-joint segment, thinned to the source's width, the instant that
+source stops being drawn, and slides the segment's ends and relaxes the
+thinning back to the piece's own place (simOnto: smallest rotation, so no
+collapse through zero). Unit → torso, each small-arm segment → its arm
+piece, each Fairino link → pelvis/thigh/shin/foot. Seam into act 5: 6 px.
 
 **Workcell → OP1 → Atlas are PART-FOR-PART MORPHS** (Sept 26; the owner:
 "it's just shrinking and reappearing... It should also morph from the ultra

@@ -223,14 +223,18 @@ export function createAtlasGL(host) {
     },
     // at(name) -> {m, t} for every skeleton body; k0 the base scale (px/mm);
     // cam {yaw, pitch, dolly}; dark theme flag
-    render(at, k0, cam, dark, vis) {
+    // `over`: id -> placement for pieces in flight (a morph carries them)
+    render(at, k0, cam, dark, vis, over) {
       if (!ready) return;
       if (!shown) { canvas.style.visibility = 'visible'; shown = true; }
       pitchG.rotation.x = -cam.pitch;          // stage pitch: positive looks UP
       yawG.rotation.y = cam.yaw;
       pitchG.position.z = cam.dolly || 0;
       const sol = solve(at, k0);
-      for (const [id, P] of Object.entries(sol)) setGroupReal(id, P.T, P.vis && (!vis || vis[id] !== false));
+      for (const [id, P] of Object.entries(sol)) {
+        const T = over && over[id] ? over[id] : P.T;
+        setGroupReal(id, T, (over && over[id] ? true : P.vis) && (!vis || vis[id] !== false));
+      }
       renderer.render(scene, camera);
     },
     // where each piece is, for the morphs that turn other robots into this

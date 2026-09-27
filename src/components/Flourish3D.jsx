@@ -2232,8 +2232,6 @@ export default function Flourish3D({ side = 'right' }) {
     const GRID_W = PX_C * PX, GRID_H = PX_R * PX;
     // where the sensor sits at the end of act one, and where it goes next
     const SENSOR_HOME = { x: 0, y: 0, z: 16, s: SENSOR_SCALE, ry: 0, rx: 0 };
-    const SENSOR_INFER = { x: -74, y: -6, z: 10, s: 1.12, ry: -34, rx: 0 };
-    const SENSOR_DET = { x: -6, y: -10, z: 20, s: 1.5, ry: 0, rx: 0 };
     const SENSOR_WORLD = { x: -4, y: 54, z: -10, s: 1.62, ry: -22, rx: 66 };
     const lerpS = (A, B, u) => ({
       x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u, z: A.z + (B.z - A.z) * u,
@@ -2283,46 +2281,20 @@ export default function Flourish3D({ side = 'right' }) {
       }
     }
 
-    // ── act 2 (left): a VLA runs on the pixels ──────────────────────────
-    // The left half is the LEARNING half now (the owner's targets: RL, world
-    // models, simulation, VLAs, embodied AI). The picture is cut into patches
-    // and fed, with the INSTRUCTION as a row of language tokens, into a stack
-    // of layers; out the far end come ACTION tokens — seven bars, the joints
-    // of the Franka on the right, read from the same task at the same clock
-    // (RB.fr.task; both pieces reset their clocks on the settle), so what the
-    // left emits is literally what the right does.
-    const LAYERS = 4;
-    // The stack the picture is fed into. ONE function, because the act that
-    // builds it and the act that folds it away both draw it — and if they
-    // draw it differently the boundary between them jumps (measured: 9,000
-    // pixels, when one drew fills and cells and the other only outlines).
-    //   growOf  how much of layer i exists
-    //   fold    1 out at the stack's full depth, 0 collapsed onto the picture
-    //   run     where the activation is, 0..1 through the stack
-    function drawLayerStack(growOf, fold, run, alpha) {
-      for (let i = 0; i < LAYERS; i++) {
-        const g = growOf(i) * fold;
-        if (g <= 0.01) continue;
-        const z = (26 - i * 30) * fold, w = (96 - i * 9) * g, h = (74 - i * 7) * g;
-        const L = place(IDENT, [(54 + i * 11) * fold, -4 * fold, z]);
-        const hot = clamp(1 - Math.abs(run * (LAYERS + 0.6) - i) * 1.6, 0, 1);
-        submit(plate(w, h, 0, 0, 0), L, MAT.neutral, 0.6 * g * alpha);
-        flush();
-        stroke([rect(w, h, 0, 0, 0)], L, slate, (0.6 + 0.4 * hot) * g * alpha, 1.1 + hot);
-        // a few cells, so a layer reads as a feature map rather than a card
-        const cells = [];
-        for (let cx = 0; cx < 3; cx++) for (let cy = 0; cy < 2; cy++) {
-          cells.push(rect(w / 4.4, h / 3.4, (cx - 1) * w / 3.2, (cy - 0.5) * h / 2.4, 1));
-        }
-        fill(cells, L, slate, (0.10 + 0.22 * hot) * g * alpha);
-        if (i > 0) {
-          const prev = place(IDENT, [(54 + (i - 1) * 11) * fold, -4 * fold, (26 - (i - 1) * 30) * fold]);
-          for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
-            stroke([[[dx * (w + 24) / 2.2, dy * (h + 18) / 2.2, z], [dx * w / 2, dy * h / 2, z]]], prev, slate, 0.35 * g * alpha, 1);
-          }
-        }
-      }
-    }
+    // ── act 2 (left): a VLA, FROM VISION ────────────────────────────────
+    // The owner: "more tailored to world models and VLAs from vision". The
+    // stage is tall, so the story runs DOWN it: the camera frame at the top
+    // is cut into patches that fly out as a row of VISION TOKENS — plus one
+    // OBJECT token for the detected red cube, the owner's detection-grounded
+    // idea (DGAM) — the instruction arrives as LANGUAGE tokens under them, a
+    // stack of transformer layers runs over both with attention fanning from
+    // the token in focus, and out of the bottom comes the ACTION CHUNK: the
+    // Franka's seven joints and gripper at the right side's clock
+    // (RB.fr.task), so what the left emits is what the right does. Act 3
+    // turns the same stack into a WORLD MODEL: the actions go in as
+    // conditioning and imagined future frames come out of the bottom.
+    // (It was a small side-on stack beside the picture, the instruction's
+    // words overlapping each other.)
     // CAPTIONS. The left half tells a story a recruiter should be able to
     // read, so its stages are named in small monospace type — projected
     // through the same camera as the geometry, drawn straight to the context
@@ -2335,62 +2307,128 @@ export default function Flourish3D({ side = 'right' }) {
       ctx.globalAlpha = alpha;
       ctx.fillStyle = ink;
       // the type scales with the stage (ZOOM): the token chips are geometry
-      // and shrank with everything else, and 9.5px words overran them
       ctx.font = `600 ${(9.5 * ZOOM).toFixed(2)}px ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
       ctx.textAlign = align; ctx.textBaseline = 'middle';
       ctx.fillText(text, p[0], p[1]);
       ctx.restore();
     }
-    // the instruction, as a row of language tokens under the picture; `hot`
-    // is the token being attended to (-1 for none)
-    const WORDS = ['stack', 'the', 'red', 'cube', 'first'];
-    const TOKENS = WORDS.map(w => 6 + w.length * 4.6);
-    function drawTokens(T, alpha, hot) {
+    const SENSOR_VLA = { x: 0, y: -160, z: 0, s: 1.35, ry: 0, rx: 0 };
+    const SENSOR_DET = SENSOR_VLA;                     // act 3 keeps the frame where act 2 put it
+    const NTOK = 13, TOK = 14, TOK_GAP = 3.8;         // 12 patches + the object token
+    const tokX = i => (i - (NTOK - 1) / 2) * (TOK + TOK_GAP);
+    const ROW_V = -84, ROW_L = -56, LAYER_Y = [-18, 8, 34, 60], LAYER_W = NTOK * (TOK + TOK_GAP) + 10;
+    const ACT_P0 = { x: 0, y: 132, s: 1.15 }, ACT_P1 = { x: 0, y: ROW_L + 2, s: 0.45 };
+    const lerpP2 = (A, B, u) => ({ x: A.x + (B.x - A.x) * u, y: A.y + (B.y - A.y) * u, s: A.s + (B.s - A.s) * u });
+    const I0 = place(IDENT, [0, 0, 0]);
+    // the 4x3 patches of the picture: centre, and the brightest photosite in each
+    const PATCH_C = [], PATCH_V = new Array(12).fill(0);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) PATCH_C.push([-GRID_W / 2 + (c + 0.5) * GRID_W / 4, -GRID_H / 2 + (r + 0.5) * GRID_H / 3]);
+    for (let i = 0; i < PX_C * PX_R; i++) {
+      const [x, y] = pxPos(i);
+      const c = clamp(Math.floor((x + GRID_W / 2) / (GRID_W / 4)), 0, 3), r = clamp(Math.floor((y + GRID_H / 2) / (GRID_H / 3)), 0, 2);
+      PATCH_V[r * 4 + c] = Math.max(PATCH_V[r * 4 + c], pxVal(i, 0));
+    }
+    const at3 = (T, p) => tpOf(T, p);
+    // the patches fly off the picture and line up as tokens; `travel` 0..1,
+    // `hot` the token in focus (-1 none)
+    function drawVisionTokens(T, alpha, travel, hot) {
+      if (alpha <= 0.01 || travel <= 0.001) return;
+      const k0 = detScale(T.m), buckets = [[], [], [], []], objs = [];
+      for (let k = 0; k < NTOK; k++) {
+        const w = smooth(clamp(travel * 1.7 - k * 0.055, 0, 1));
+        if (w <= 0.001) continue;
+        const src = k < 12 ? PATCH_C[k] : [DETS[0].x, DETS[0].y];
+        const a = at3(T, [src[0], src[1], 3]);
+        const x = a[0] + (tokX(k) - a[0]) * w, y = a[1] + (ROW_V - a[1]) * w, z = a[2] * (1 - w);
+        const s0 = (k < 12 ? GRID_W / 4 : DETS[0].w) * k0 * 0.8, sz = s0 + (TOK - s0) * w;
+        const v = k < 12 ? PATCH_V[k] : 1;
+        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x, y, z + 2));
+        if (k === 12) objs.push(rect(sz + 3, sz + 3, x, y, z + 2.5));
+        if (k === hot) objs.push(rect(sz + 3, sz + 3, x, y, z + 2.5));
+      }
+      for (let b = 0; b < 4; b++) fill(buckets[b], I0, pxColor(b), (0.18 + 0.7 * ((b + 1) / 4)) * alpha);
+      stroke(objs, I0, ink, 0.8 * alpha, 1.2);
+      caption('vision tokens · 12 patches + 1 object', tokX(0) - TOK / 2, ROW_V - 13, 0, 0.6 * alpha * smooth(win(travel, 0.5, 0.5)));
+    }
+    // the instruction, one chip per word
+    const WORDS = ['put', 'the', 'red', 'cube', 'in', 'the', 'box'];
+    const WORD_W = WORDS.map(w => 7 + w.length * 4.6);
+    const WORDS_X0 = -(WORD_W.reduce((s, w) => s + w, 0) + 4 * (WORDS.length - 1)) / 2;
+    function drawLang(alpha, hot) {
       if (alpha <= 0.01) return;
-      const y = GRID_H / 2 + 15;
-      let x = -GRID_W / 2;
-      TOKENS.forEach((w, i) => {
-        const a = alpha * (hot === i ? 1 : 0.6);
-        stroke([rect(w, 11, x + w / 2, y, 3)], T, ink, a, hot === i ? 1.6 : 1);
-        const c = [x + w / 2, y, 3];
-        const p = [T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2]];
-        caption(WORDS[i], p[0], p[1], p[2], a * 0.9, 'center');
-        x += w + 5;
+      let x = WORDS_X0;
+      WORDS.forEach((word, i) => {
+        const w = WORD_W[i], on = smooth(clamp(alpha * 1.8 - i * 0.1, 0, 1));
+        if (on > 0.01) {
+          stroke([rect(w, 11, x + w / 2, ROW_L, 1)], I0, ink, on * (hot === i ? 1 : 0.6), hot === i ? 1.6 : 1);
+          caption(word, x + w / 2, ROW_L, 1, on * (hot === i ? 1 : 0.75), 'center');
+        }
+        x += w + 4;
       });
-      const e = [-GRID_W / 2, y + 12, 3];
-      caption('instruction', T.m[0] * e[0] + T.m[1] * e[1] + T.m[2] * e[2] + T.t[0], T.m[3] * e[0] + T.m[4] * e[1] + T.m[5] * e[2] + T.t[1], T.m[6] * e[0] + T.m[7] * e[1] + T.m[8] * e[2] + T.t[2], alpha * 0.55);
+    }
+    // the transformer: four wide layers, a cell per token, the activation
+    // running down them and attention fanning from the column in focus
+    function drawLayers(growOf, run, alpha, hot, seed) {
+      const col = hot >= 0 ? hot : 12;
+      for (let i = 0; i < LAYER_Y.length; i++) {
+        const g = growOf(i);
+        if (g <= 0.01) continue;
+        const y = LAYER_Y[i], w = LAYER_W * g, h = 13;
+        const L = place(IDENT, [0, y, -i * 3]);
+        const lit = clamp(1 - Math.abs(run * (LAYER_Y.length + 0.4) - i) * 1.3, 0, 1);
+        submit(plate(w, h, 0, 0, -0.5), L, MAT.neutral, 0.6 * g * alpha); flush();
+        stroke([rect(w, h, 0, 0, 0)], L, slate, (0.5 + 0.5 * lit) * g * alpha, 1 + lit * 0.6);
+        const dim = [], bright = [];
+        for (let k = 0; k < NTOK; k++) (hash(k * 3.1 + i * 7.7 + seed) > 0.62 || k === col ? bright : dim).push(rect(TOK * 0.72, 7, tokX(k) * g, 0, 0.5));
+        fill(dim, L, slate, (0.10 + 0.12 * lit) * g * alpha);
+        fill(bright, L, ink, (0.25 + 0.45 * lit) * g * alpha);
+        // attention: the column in focus to five others in the next layer
+        if (i + 1 < LAYER_Y.length && growOf(i + 1) > 0.5) {
+          const fan = [];
+          for (const d of [-5, -2, 0, 3, 6]) { const k = clamp(col + d, 0, NTOK - 1); fan.push([[tokX(col), y + h / 2, -i * 3], [tokX(k), LAYER_Y[i + 1] - h / 2, -(i + 1) * 3]]); }
+          stroke(fan, I0, slate, 0.35 * g * alpha * (0.5 + 0.5 * lit), 1);
+        }
+      }
     }
     // the action chunk: seven joints as bars about a zero line, with the
     // gripper's opening as an eighth, narrower, in the accent
-    const ACT_AT = place(IDENT, [74, 62, -24]);            // under the stack (beyond it, it ran off the stage's inner edge)
-    function drawActionBars(alpha, q) {
+    function drawActionBars(alpha, q, P, label, labelA = 1) {
       if (alpha <= 0.01) return;
+      const A = place(scaleM(P.s), [P.x, P.y, 0]);
       const n = 7, bw = 6, gap = 4, W0 = n * (bw + gap);
-      submit(plate(W0 + 16, 64, 0, 0, -0.5), ACT_AT, MAT.neutral, 0.6 * alpha); flush();
-      stroke([rect(W0 + 16, 64, 0, 0, 0)], ACT_AT, slate, 0.5 * alpha, 1);
-      stroke([[[-W0 / 2, 0, 0], [W0 / 2, 0, 0]]], ACT_AT, slate, 0.5 * alpha, 1);
+      submit(plate(W0 + 16, 64, 0, 0, -0.5), A, MAT.neutral, 0.6 * alpha); flush();
+      stroke([rect(W0 + 16, 64, 0, 0, 0)], A, slate, 0.5 * alpha, 1);
+      stroke([[[-W0 / 2, 0, 0], [W0 / 2, 0, 0]]], A, slate, 0.5 * alpha, 1);
       const bars = [];
       for (let i = 0; i < n; i++) { const v = clamp((q[i] || 0) / 3, -1, 1) * 24; bars.push(rect(bw, Math.abs(v) + 0.6, -W0 / 2 + i * (bw + gap) + bw / 2, -v / 2, 0.5)); }
-      fill(bars, ACT_AT, ink, 0.75 * alpha);
+      fill(bars, A, ink, 0.75 * alpha);
       const grip = clamp(((q[7] ?? 0.03) - 0.006) / 0.034, 0, 1);
-      fill([rect(3, 26 * grip + 0.6, W0 / 2 + 4, -13 * grip, 0.5)], ACT_AT, copper, 0.7 * alpha);
-      caption('actions · 7 joints + grip', ACT_AT.t[0], ACT_AT.t[1] + 40, ACT_AT.t[2], alpha * 0.6, 'center');   // centred under the panel: left-aligned it ran off the stage
+      fill([rect(3, 26 * grip + 0.6, W0 / 2 + 4, -13 * grip, 0.5)], A, copper, 0.7 * alpha);
+      if (!label) return;
+      if (P.s < 0.7) caption(label, P.x + (W0 + 16) / 2 * P.s + 5, P.y, 0, alpha * 0.6 * labelA);
+      else caption(label, P.x, P.y + 42 * P.s + 4, 0, alpha * 0.6 * labelA, 'center');
     }
-    // the link from the last layer to the action chunk
-    const ACT_LINK = [[[54 + 3 * 11, -4 + 24, 26 - 3 * 30], [74, 62 - 34, -24]]];
     // the Franka's joints right now — the right side's numbers, on the left
     const frankaNow = (t) => {
       const task = RB.fr.task, n = task.W.length;
       const live = t >= 1 && settleU > 0.001 ? taskQ(task, taskPhase(task, idleT, n)) : task.W[0];
       return settleU >= 0.999 || t < 1 ? live : lerpQ(task.W[0], live, settleU);
     };
+    // ...and the right UR's, while the UR pair works (act 3), in the same bars
+    const urNow = (t) => {
+      const task = RB.ur.taskR, n = task.W.length;
+      const q = t >= 1 && settleU > 0.001 ? taskQ(task, taskPhase(task, idleT, n)) : task.W[0];
+      const base = RB.fr.task.W[0], u = t >= 1 ? settleU : 0;
+      const ur = [q[0], q[1] + 1.2, q[2] + 1.6, q[3] - 1.8, q[4] - 1.57, q[5], 0, 0.006 + clamp((q[6] - 60) / 30, 0, 1) * 0.034];
+      return base.map((v, i) => v + ((ur[i] ?? v) - v) * u);
+    };
     function drawInferAct(t) {
       const u = smooth(t);
       setCam(-8 * u * DEG, 6 * u * DEG, 0);            // from (0,0,0), where the camera act ended
-      const S = lerpS(SENSOR_HOME, SENSOR_INFER, u);
+      const S = lerpS(SENSOR_HOME, SENSOR_VLA, u);
       const T = sensorPlace(S);
-      const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
-      drawPixels(T, 1, frame, null);
+      const live = idleOn && t >= 1;
+      drawPixels(T, 1, live ? Math.floor(idleT / SHUTTER) + 1 : 0, null);
       stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
       // the chip it was a moment ago, fading: this act has to START exactly
       // where the last one ended or the package pops off at the boundary
@@ -2399,53 +2437,47 @@ export default function Flourish3D({ side = 'right' }) {
         stroke([rect(126, 100, 0, 0, -3)], T, ink, 0.55 * pkg, 1);
         stroke(SENSOR_PADS, T, LINE, 0.5 * pkg, 1);
       }
-      // the picture is cut into patches — the move that makes it a sequence
-      const patches = smooth(win(t, 0.12, 0.3));
-      if (patches > 0.01) {
-        const lines = [];
-        for (let c = 1; c < 4; c++) lines.push([[-GRID_W / 2 + (c * GRID_W) / 4, -GRID_H / 2, 3], [-GRID_W / 2 + (c * GRID_W) / 4, GRID_H / 2, 3]]);
-        for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
-        stroke(lines, T, LINE, 0.5 * patches, 1);
-      }
-      // ...and the instruction arrives under it, a token at a time
-      const tok = smooth(win(t, 0.22, 0.3));
-      drawTokens(T, tok, idleOn && t >= 1 ? Math.floor(idleT * 1.6) % TOKENS.length : -1);
-      // the layers, receding, with an activation running through them
-      const run = idleOn && t >= 1 ? (idleT % 2.2) / 2.2 : win(t, 0.5, 0.5);
-      drawLayerStack(i => smooth(win(t, 0.28 + i * 0.1, 0.26)), 1, run, 1);
-      caption('VLA policy', 54 + 20, -4 - 48, 26, smooth(win(t, 0.4, 0.3)) * 0.6, 'center');   // short: the long name ran off the stage's inner edge
-      // the picture and the tokens feeding the first layer
-      const feed = smooth(win(t, 0.3, 0.3));
-      if (feed > 0.01) {
-        for (const dy of [-1, 0, 1]) stroke([[[GRID_W / 2, dy * GRID_H / 3, 3], [GRID_W / 2 + 40 * feed, dy * GRID_H / 4, 3]]], T, slate, 0.45 * feed, 1);
-        stroke([[[GRID_W / 2 - 10, GRID_H / 2 + 15, 3], [GRID_W / 2 + 40 * feed, GRID_H / 4, 3]]], T, ink, 0.4 * feed * tok, 1);
-      }
-      // out the far end: the action chunk, the right side's joints
-      const act = smooth(win(t, 0.66, 0.3));
+      drawPatchGrid(T, smooth(win(t, 0.1, 0.25)));
+      { const c = at3(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55 * smooth(win(t, 0.25, 0.3))); }
+      const hot = live ? Math.floor(idleT * 2.4) % NTOK : -1;
+      drawVisionTokens(T, 1, smooth(win(t, 0.18, 0.4)), hot);
+      drawLang(smooth(win(t, 0.34, 0.3)), live ? Math.floor(idleT * 1.4) % WORDS.length : -1);
+      const run = live ? (idleT % 2.2) / 2.2 : win(t, 0.55, 0.45);
+      drawLayers(i => smooth(win(t, 0.44 + i * 0.07, 0.25)), run, 1, hot, 0);
+      caption('VLA · vision-language-action transformer', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * smooth(win(t, 0.55, 0.3)));
+      const act = smooth(win(t, 0.7, 0.3));
       if (act > 0.01) {
-        stroke(ACT_LINK, place(IDENT, [0, 0, 0]), slate, 0.4 * act, 1);
-        drawActionBars(act, frankaNow(t));
+        stroke([[[0, LAYER_Y[3] + 7, -9], [0, ACT_P0.y - 33, 0]]], I0, slate, 0.45 * act, 1);
+        drawActionBars(act, frankaNow(t), ACT_P0, 'action chunk · 7 joints + grip → the arm');
       }
     }
+    function drawPatchGrid(T, a) {
+      if (a <= 0.01) return;
+      const lines = [];
+      for (let c = 1; c < 4; c++) lines.push([[-GRID_W / 2 + (c * GRID_W) / 4, -GRID_H / 2, 3], [-GRID_W / 2 + (c * GRID_W) / 4, GRID_H / 2, 3]]);
+      for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
+      stroke(lines, T, LINE, 0.5 * a, 1);
+    }
 
-    // ── act 3 (left): a world model imagines what happens next ──────────
-    // The stack folds back into the picture, and the picture spawns GHOST
-    // FRAMES receding into the future: three candidate rollouts of the
-    // tracked object fan out from where it is, the model keeps one, and each
-    // ghost frame shows the object further along it. Settled, a marker runs
-    // the chosen rollout and the frames breathe.
+    // ── act 3 (left): the same stack becomes a WORLD MODEL ─────────────
+    // The instruction goes; the action chunk rises into its place and
+    // CONDITIONS the stack; the three candidate rollouts of the red cube fan
+    // out on the camera frame; and out of the bottom come IMAGINED FRAMES,
+    // t+1 to t+4, the cube further along the kept rollout in each — a model
+    // of what the camera will see if the arm does that. Settled, the actions
+    // are the right UR's and the frames keep re-predicting.
     const ROLLS = [-1, 0, 1];                           // three futures; 0 is the one kept
     const rollAt = (r, sv) => {                         // where the object is, sv (0..1) along rollout r
       const d = DETS[0];
-      return [d.x + sv * 54, d.y - sv * 16 + r * sv * 22 - Math.sin(sv * 3.1) * 6 * (1 - Math.abs(r) * 0.5)];
+      return [d.x + sv * 30, d.y - sv * 10 + r * sv * 16 - Math.sin(sv * 3.1) * 5 * (1 - Math.abs(r) * 0.5)];
     };
-    // the futures, drawn on the picture at T; `f` how far out they are, `adv`
-    // the marker's position on the kept rollout (0 for none). ONE function:
-    // the act that raises them and the act that lays them down both draw it.
+    // the detection and the rollouts, drawn on the picture at T; `f` how far
+    // out they are, `adv` the marker's position on the kept rollout (0 none).
+    // ONE function: the act that raises them and the act that lays them down
+    // both draw it.
     function drawFutures(T, alpha, f, adv) {
       if (alpha <= 0.01 || f <= 0.01) return;
       const d = DETS[0];
-      // the detection, as a detector draws it: box, corner ticks, class and score
       stroke([rect(d.w, d.h, d.x, d.y, 3)], T, RED, 0.9 * alpha, 1.3);
       const cx = d.w / 2, cy = d.h / 2, tk = 5;
       stroke([
@@ -2454,10 +2486,9 @@ export default function Flourish3D({ side = 'right' }) {
         [[d.x - cx, d.y + cy - tk, 3], [d.x - cx, d.y + cy, 3], [d.x - cx + tk, d.y + cy, 3]],
         [[d.x + cx - tk, d.y + cy, 3], [d.x + cx, d.y + cy, 3], [d.x + cx, d.y + cy - tk, 3]],
       ], T, RED, 0.9 * alpha, 1.6);
-      { const c = [d.x - cx, d.y - cy - 7, 3]; caption(`red cube · ${d.conf.toFixed(2)}`, T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2], 0.85 * alpha); }
-      // the three rollouts, dashed, on the picture — the dashes CRAWL along
-      // them while settled (`adv` runs), the way a predicted path is drawn
-      // live, so the futures read as being computed rather than printed
+      { const c = at3(T, [d.x - cx, d.y - cy - 7, 3]); caption(`red cube · ${d.conf.toFixed(2)}`, c[0], c[1], c[2], 0.85 * alpha * f); }
+      // the rollouts, dashed — the dashes CRAWL while settled, so the futures
+      // read as being computed rather than printed
       const crawl = adv > 0 ? (adv * 2) % (2 / 12) : 0;
       for (const r of ROLLS) {
         const dashes = [];
@@ -2468,34 +2499,7 @@ export default function Flourish3D({ side = 'right' }) {
         }
         stroke(dashes, T, r === 0 ? ink : slate, (r === 0 ? 0.7 : 0.35) * alpha, r === 0 ? 1.5 : 1);
       }
-      // the ghost frames: the picture's own frame, repeated back and up, and
-      // in each an IMAGINED picture — the sensor's grid re-lit with the bright
-      // blob moved along the kept rollout — with the object boxed where the
-      // model puts it
-      for (let k = 1; k <= 4; k++) {
-        const g = smooth(win(f, (k - 1) * 0.18, 0.4));
-        if (g <= 0.01) continue;
-        const G = chain(T, place(IDENT, [k * 9 * g, -k * 7 * g, -k * 30 * g]));
-        submit(plate(112, 86, 0, 0, -0.5), G, MAT.neutral, 0.7 * g * alpha); flush();
-        stroke([rect(112, 86, 0, 0, 0)], G, slate, 0.45 * g * alpha, 1);
-        const p = rollAt(0, k / 4);
-        const dx = p[0] - d.x, dy = p[1] - d.y;
-        const buckets = [[], [], [], []];
-        for (let i = 0; i < PX_C * PX_R; i++) {
-          const [x, y] = pxPos(i);
-          const dd = Math.hypot((x - 13 - dx) / 38, (y + 7 - dy) / 29);
-          const v = clamp(1.15 - dd, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7 + k * 2.3));
-          buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(PX * 0.76, PX * 0.76, x, y, 1.5));
-        }
-        for (let b = 0; b < 4; b++) fill(buckets[b], G, pxColor(b), (0.12 + 0.72 * ((b + 1) / 4)) * 0.45 * g * alpha);
-        stroke([rect(d.w * (1 - k * 0.06), d.h * (1 - k * 0.06), p[0], p[1], 2)], G, ink, 0.6 * g * alpha, 1.2);
-        if (k === 4) { const c = [-56, -52, 0]; caption('t+4 · imagined', G.m[0] * c[0] + G.m[1] * c[1] + G.m[2] * c[2] + G.t[0], G.m[3] * c[0] + G.m[4] * c[1] + G.m[5] * c[2] + G.t[1], G.m[6] * c[0] + G.m[7] * c[1] + G.m[8] * c[2] + G.t[2], 0.6 * g * alpha); }
-      }
-      { const c = [-56, 52, 3]; caption('world model · 3 rollouts, 1 kept', T.m[0] * c[0] + T.m[1] * c[1] + T.m[2] * c[2] + T.t[0], T.m[3] * c[0] + T.m[4] * c[1] + T.m[5] * c[2] + T.t[1], T.m[6] * c[0] + T.m[7] * c[1] + T.m[8] * c[2] + T.t[2], 0.6 * alpha * f); }
-      // the imagined object running the kept rollout: the red cube, fading
-      // in at the start and out at the end of each run instead of snapping
-      // back (a copper square that jumped to the start every 3.2 s read as
-      // a glitch)
+      { const c = at3(T, [60, 8, 0]); caption('3 rollouts', c[0], c[1] - 6, c[2], 0.55 * alpha * f); caption('1 kept', c[0], c[1] + 6, c[2], 0.55 * alpha * f); }
       if (adv > 0) {
         const p = rollAt(0, adv);
         const ma = smooth(win(adv, 0, 0.12)) * (1 - smooth(win(adv, 0.84, 0.16)));
@@ -2503,31 +2507,81 @@ export default function Flourish3D({ side = 'right' }) {
         stroke([rect(7, 7, p[0], p[1], 4)], T, ink, 0.6 * alpha * ma, 1);
       }
     }
+    // the imagined frames: the sensor's grid re-lit with the bright blob
+    // moved along the kept rollout, the cube boxed where the model puts it
+    const FILM_Y = 132, FILM_S = 0.48, FILM_DX = 60;
+    function drawFilmstrip(alpha, grow, phase) {
+      const d = DETS[0];
+      for (let k = 1; k <= 4; k++) {
+        const g = grow(k);
+        if (g <= 0.01 || alpha <= 0.01) continue;
+        const x = (k - 2.5) * FILM_DX, y = FILM_Y - (1 - g) * 44;
+        const G = place(scaleM(FILM_S * (0.5 + 0.5 * g)), [x, y, 0]);
+        stroke([[[0, LAYER_Y[3] + 7, -9], [x, y - 44 * FILM_S * (0.5 + 0.5 * g), 0]]], I0, slate, 0.35 * g * alpha, 1);
+        submit(plate(112, 86, 0, 0, -0.5), G, MAT.neutral, 0.7 * g * alpha); flush();
+        stroke([rect(112, 86, 0, 0, 0)], G, slate, 0.55 * g * alpha, 1);
+        const sv = clamp((k - 1 + phase) / 3.4, 0, 1);
+        const p = rollAt(0, 0.15 + sv * 0.85);
+        const dx = p[0] - d.x, dy = p[1] - d.y;
+        const buckets = [[], [], [], []];
+        for (let i = 0; i < PX_C * PX_R; i++) {
+          const [px, py] = pxPos(i);
+          const dd = Math.hypot((px - 13 - dx) / 38, (py + 7 - dy) / 29);
+          const v = clamp(1.15 - dd, 0.05, 1) * (0.75 + 0.25 * hash(i * 3.7 + k * 2.3));
+          buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(PX * 0.76, PX * 0.76, px, py, 1.5));
+        }
+        for (let b = 0; b < 4; b++) fill(buckets[b], G, pxColor(b), (0.12 + 0.72 * ((b + 1) / 4)) * 0.8 * g * alpha);
+        stroke([rect(d.w * 0.9, d.h * 0.9, p[0], p[1], 2)], G, RED, 0.8 * g * alpha, 1.2);
+        caption(`t+${k}`, x - 26, y - 29, 0, 0.6 * g * alpha);
+      }
+      caption('world model · imagined frames', 0, FILM_Y + 34, 0, 0.6 * alpha * grow(4), 'center');
+    }
+    // everything act 3 ends with apart from the picture, the patch grid and
+    // the futures: act 4 draws it too, fading, or the boundary jumps
+    function drawWMRest(alpha, live) {
+      const hot = live ? Math.floor(idleT * 2.4) % NTOK : -1;
+      drawVisionTokens(sensorPlace(SENSOR_VLA), alpha, 1, hot);
+      drawLayers(() => 1, live ? (idleT % 2.2) / 2.2 : 1, alpha, hot, 5);
+      caption('world model · frames + actions → next frames', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * alpha);
+      stroke([[[0, ROW_L + 16, 0], [0, LAYER_Y[0] - 7, 0]]], I0, slate, 0.45 * alpha, 1);
+      drawActionBars(alpha, urNow(live ? 1 : 0), ACT_P1, 'actions in', 1);
+      const ph = live ? smooth(((idleT / 3) % 1)) : 0;
+      drawFilmstrip(alpha, () => 1, ph);
+    }
     function drawDetectAct(t) {
+      if (t >= 1) {
+        setCam(0, 2 * DEG, 0);
+        const T = sensorPlace(SENSOR_DET), live = idleOn;
+        drawPixels(T, 1, live ? Math.floor(idleT / SHUTTER) + 1 : 0, null);
+        stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
+        { const c = at3(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55); }
+        drawWMRest(1, live);
+        drawFutures(T, 1, 1, live ? smooth((idleT % 4) / 4) : 0);
+        return;
+      }
       const u = smooth(t);
       setCam((-8 + 8 * u) * DEG, (6 - 4 * u) * DEG, 0);  // from (-8, 6, 0)
-      const S = lerpS(SENSOR_INFER, SENSOR_DET, u);
-      const T = sensorPlace(S);
-      const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
-      drawPixels(T, 1, frame, null);
+      const T = sensorPlace(SENSOR_DET);
+      drawPixels(T, 1, 0, null);
       stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
-      // the patch grid, the tokens, the stack and the action chunk it arrived
-      // with, going as the futures come
-      const was = 1 - smooth(win(t, 0, 0.4));
-      if (was > 0.01) {
-        const lines = [];
-        for (let c = 1; c < 4; c++) lines.push([[-GRID_W / 2 + (c * GRID_W) / 4, -GRID_H / 2, 3], [-GRID_W / 2 + (c * GRID_W) / 4, GRID_H / 2, 3]]);
-        for (let r = 1; r < 3; r++) lines.push([[-GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3], [GRID_W / 2, -GRID_H / 2 + (r * GRID_H) / 3, 3]]);
-        stroke(lines, T, LINE, 0.5 * was, 1);
-        drawTokens(T, was, -1);
-        drawLayerStack(() => 1, was, 1, was);
-        stroke(ACT_LINK, place(IDENT, [0, 0, 0]), slate, 0.4 * was, 1);
-        drawActionBars(was, RB.fr.task.W[0]);
-        caption('VLA policy', 54 + 20, -4 - 48, 26, was * 0.6, 'center');   // carried in from the last act, or the seam jumps
-      }
-      const f = smooth(win(t, 0.3, 0.6));
-      // the run eases out and in rather than sweeping at one speed
-      drawFutures(T, 1, f, idleOn && t >= 1 ? smooth((idleT % 4) / 4) : 0);
+      { const c = at3(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55); }
+      const was = 1 - smooth(win(t, 0, 0.35));
+      drawPatchGrid(T, was);
+      drawVisionTokens(T, 1, 1, -1);
+      drawLang(was, -1);
+      drawLayers(() => 1, 1, 1, -1, 5 * smooth(win(t, 0.3, 0.1)) >= 2.5 ? 5 : 0);
+      caption('VLA · vision-language-action transformer', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * was);
+      const now = smooth(win(t, 0.35, 0.3));
+      caption('world model · frames + actions → next frames', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * now);
+      // the action chunk rises into the instruction's place: it conditions
+      // the model now instead of leaving it
+      const m = smooth(win(t, 0.12, 0.45));
+      const P = lerpP2(ACT_P0, ACT_P1, m);
+      if (m < 0.5) stroke([[[0, LAYER_Y[3] + 7, -9], [0, P.y - 33 * P.s, 0]]], I0, slate, 0.45 * (1 - m * 2), 1);
+      stroke([[[0, ROW_L + 16, 0], [0, LAYER_Y[0] - 7, 0]]], I0, slate, 0.45 * smooth(win(t, 0.5, 0.2)), 1);
+      drawActionBars(1, urNow(0), P, m < 0.5 ? 'action chunk · 7 joints + grip → the arm' : 'actions in', Math.abs(1 - m * 2));
+      drawFutures(T, 1, smooth(win(t, 0.3, 0.45)), 0);
+      drawFilmstrip(1, k => smooth(win(t, 0.5 + k * 0.08, 0.2)), 0);
     }
 
     // ── act 4 (left): the world model becomes a SIMULATOR ───────────────
@@ -2548,7 +2602,9 @@ export default function Flourish3D({ side = 'right' }) {
       const flat = 1 - smooth(win(t, 0, 0.4));
       if (flat > 0.01) {
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55 * flat, 1);
+        { const c = tpOf(T, [-56, -52, 0]); caption('camera frame', c[0], c[1] - 4, c[2], 0.55 * flat); }
         drawFutures(T, flat, 1, 0);
+        drawWMRest(flat, false);
       }
       // ONE scene: ground, standing objects, rollout — drawn three times
       const scene = (B, gs, rise, tint, roll, alpha, jiggle) => {
@@ -2579,6 +2635,24 @@ export default function Flourish3D({ side = 'right' }) {
       };
       const g = smooth(win(t, 0.16, 0.4)), rise = smooth(win(t, 0.3, 0.5)), roll = smooth(win(t, 0.55, 0.3));
       scene(T, g, rise, MAT.red, roll, 1, 0);       // the red cube, standing on the ground it was seen on
+      // Real2Sim, the owner's own pipeline: the scene first arrives as a 3D
+      // GAUSSIAN SPLAT — a cloud of soft points where each object is — and
+      // condenses into the simulator's solid twin as it stands up
+      const spl = smooth(win(t, 0.18, 0.2)) * (1 - smooth(win(t, 0.5, 0.25)));
+      if (spl > 0.01) {
+        DETS.forEach((d, i) => {
+          const Bx = chain(T, place(rotX(-90 * DEG), [d.x, d.y, 0]));
+          const pts = [];
+          for (let j = 0; j < 22; j++) {
+            const hx = (hash(i * 31 + j * 1.7) - 0.5) * d.w * 0.9, hz = (hash(i * 17 + j * 2.9) - 0.5) * d.h * 0.9;
+            const hy = -hash(i * 7 + j * 4.3) * (14 + d.conf * 20) * (0.4 + 0.6 * rise);
+            const r = 2.2 + hash(j * 5.1 + i) * 2.4;
+            pts.push(rect(r, r, hx, hy, hz));
+          }
+          fill(pts, Bx, i === 0 ? RED : slate, 0.5 * spl);
+        });
+        caption('3D Gaussian splat → sim twin', T.t[0] - 80, T.t[1] + 70, T.t[2], 0.6 * spl);
+      }
       // the camera that saw it, as a frustum over the scene
       const fr = smooth(win(t, 0.45, 0.4));
       if (fr > 0.01) {
@@ -2619,9 +2693,9 @@ export default function Flourish3D({ side = 'right' }) {
           pts.push([2 + x * 92, 22 - 42 * (1 - Math.exp(-x * 3.2)) - Math.sin(x * 21) * 2.5 * (1 - x) + tail, 0.5]);
         }
         if (pts.length > 1) stroke([pts], P, copper, 0.85 * sim, 1.6);
-        caption('return · training in sim', P.t[0] + 2, P.t[1] - 34, 0, 0.6 * sim);
-        caption(`episode ${1000 + (live ? Math.floor(idleT * 14) : 0)}`, P.t[0] + 2, P.t[1] + 34, 0, 0.5 * sim);
-        caption('domain randomisation', T.t[0] - 92 * sim, T.t[1] - 116 * sim, T.t[2], 0.55 * sim);   // above the ground plane's far edge, not on it
+        caption('success · policy trained in sim', P.t[0] + 2, P.t[1] - 34, 0, 0.6 * sim);
+        caption(`demos ${1000 + (live ? Math.floor(idleT * 14) : 0)}`, P.t[0] + 2, P.t[1] + 34, 0, 0.5 * sim);
+        caption('real2sim twins · randomised', T.t[0] - 92 * sim, T.t[1] - 116 * sim, T.t[2], 0.55 * sim);   // above the ground plane's far edge, not on it
       }
     }
 
@@ -3577,51 +3651,53 @@ export default function Flourish3D({ side = 'right' }) {
         const atA = n => { const i = g1.index.get(n); return i == null ? null : TA[i]; };
         const Pc = atlasGL.pieces(atA, detScale(base.m));
         if (Pc) {
-          const k0 = detScale(base.m), vis = Object.fromEntries(Object.keys(Pc).map(id => [id, false]));   // every piece hidden until its source lands
+          // Every Atlas piece makes the WHOLE journey itself, in full detail
+          // (the owner: the in-between "very not detailed" — it used to be a
+          // blue slab and plain drums). A piece starts laid onto its source —
+          // its axis on the source's joint-to-joint segment, thinned to the
+          // source's width — the instant that source stops being drawn, and
+          // is carried back to its own place: the segment's ends slide, the
+          // thinning relaxes. simOnto turns by the smallest rotation, so a
+          // piece never collapses through zero on the way.
+          const k0 = detScale(base.m), vis = Object.fromEntries(Object.keys(Pc).map(id => [id, false])), over = {};
           const mwA = (i, span = 0.5) => smooth(win(t, 0.04 + i * 0.045, span));
-          const bbOB = (P, mat) => { const b = P.bb; return obIn(P.T, b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2], (b.min[0] + b.max[0]) / 2, (b.min[1] + b.max[1]) / 2, (b.min[2] + b.max[2]) / 2, mat); };
-          // unit → torso (its whole box carried onto the torso's box)
+          const midW = P => { const b = P.bb, d = [0, 1, 2].map(i => b.max[i] - b.min[i]).sort((x, y) => x - y); return d[1] * detScale(P.T.m); };
+          const lv = (a, b, w) => a.map((v, i) => v + (b[i] - v) * w);
+          const carry = (id, qa, qb, srcW, w, fallS = 0.6) => {
+            const P = Pc[id]; if (!P) return;
+            const perp0 = clamp(srcW / Math.max(1, midW(P)), 0.25, 1.6);
+            over[id] = w >= 1 ? P.T : simOnto(P.T, P.p0, P.p1, lv(qa, P.p0, w), lv(qb, P.p1, w), fallS + (1 - fallS) * w, perp0 + (1 - perp0) * w).T;
+            vis[id] = true;
+          };
           const Tf5 = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
           const TU5 = unitFrame(chain(Tf5, place(IDENT, [0, 0, 120])), RB.ul.k);
+          const kU = detScale(TU5.m);
+          // the small arms: drawn as themselves until the first arm piece
+          // leaves, then every segment is its Atlas arm piece
+          const armsGo = mwA(1, 0.55) > 0;
+          // the unit's torso → the torso (the head rides in it)
           const wT = mwA(3, 0.55);
-          if (wT < 1) {
-            if (wT <= 0) drawUnit(TU5, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, 0);
-            else obDraw(obLerp(obIn(TU5, UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2, MAT.poly), bbOB(Pc.torso, MAT.blue), wT));
-          }
-          vis.torso = wT >= 1;
-          // small arms → arms: each segment a drum from its own joints to the piece's
+          if (wT <= 0) drawUnit(TU5, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, armsGo ? 0 : 1);
+          else carry('torso', tpOf(TU5, [0, 0, 0]), tpOf(TU5, [0, 0, UNIT.H]), UNIT.W * kU, wT, 1);
           const shR = tpOf(TU5, [0, UNIT.SY, UNIT.SZ]);
           const rNear = Math.hypot(...v3sub(Pc.lupper.p0, shR)) <= Math.hypot(...v3sub(Pc.rupper.p0, shR)) ? 'l' : 'r';
-          for (const side of [1, -1]) {
+          if (armsGo) for (const side of [1, -1]) {
             const F = smallArmFrames(TU5, side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0], side);
             const near = side > 0 ? rNear : (rNear === 'l' ? 'r' : 'l');     // the two arms take opposite sides
-            const segs = [[F.S.t, F.E.t, near + 'upper'], [F.E.t, F.Wr.t, near + 'fore'], [F.Wr.t, F.tcp, near + 'hand']];
-            segs.forEach(([a, b, id], j) => {
-              const w = mwA(1 + j, 0.55);
-              vis[id] = w >= 1;
-              if (w >= 1) return;
-              const P = Pc[id];
-              const pa = a.map((v, c) => v + (P.p0[c] - v) * w), pb = b.map((v, c) => v + (P.p1[c] - v) * w);
-              const { T: Sg, L } = segT(pa, pb, 1);
-              if (L < 0.5) return;
-              const r = (22 * RB.ul.k) + ((50 * k0) - 22 * RB.ul.k) * w;
-              drawDrum(Sg, r, 0, L, w < 0.5 ? MAT.poly : MAT.blue, 1);
-            });
+            [[F.S.t, F.E.t, near + 'upper'], [F.E.t, F.Wr.t, near + 'fore'], [F.Wr.t, F.tcp, near + 'hand']]
+              .forEach(([a, b, id], j) => carry(id, a, b, 44 * kU, mwA(1 + j, 0.55)));
           }
-          // Fairino links → lower body
+          // Fairino links → lower body: each link is drawn until its piece
+          // leaves, and the piece leaves from exactly where the link lay
           const UL = ROBOTS.ultra, TF5 = bodyPlacements(UL, ulBase, RB.ul.rest);
           const fn = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link'];
           const to = ['pelvis', 'lthigh', 'rthigh', 'lshin', 'rshin', 'lfoot', 'rfoot'];
           const J = [...fn.map(n => TF5[UL.index.get(n)].t), tpOf(Tf5, [0, 0, 120])];
-          let lastS = 1;
           fn.forEach((name, i) => {
-            const P = Pc[to[i]], w = mwA(2 + i, 0.55);
-            vis[to[i]] = w >= 1;
-            if (w >= 1 || !P) return;
+            const w = mwA(2 + i, 0.55);
+            if (w > 0 && Pc[to[i]]) { carry(to[i], J[i], J[i + 1], 90 * RB.ul.k, w); return; }
             const A = TF5[UL.index.get(name)];
-            const tg = simOnto(A, J[i], J[i + 1], P.p0, P.p1, lastS, 0.8); lastS = tg.sc;
-            const T = lerpEl(A, tg.T, w);
-            for (const part of UL.parts) if (part.body === name) { const own = MESH_MAT[part.mat] ?? MAT.neutral; const mt = w > 0.6 ? MAT.blue : own; submitMesh(part, T, mt, 1, matLine[mt]); }
+            for (const part of UL.parts) if (part.body === name) { const own = MESH_MAT[part.mat] ?? MAT.neutral; submitMesh(part, A, own, 1, matLine[own]); }
           });
           // the cart and the packing table flatten onto the floor under the Atlas
           const floorC = tpOf(base, [0, 0, -HUM_PELVIS]);
@@ -3634,12 +3710,12 @@ export default function Flourish3D({ side = 'right' }) {
               obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu),
               obIn(TU5, 340, 500, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly)];
             if (wF <= 0) { drawCart(1, 1); growUnitProps(TU5, unitTaskState(TU5, 0), 1); }
-            else cartOB.forEach((o, i) => obDraw(obLerp(o, plate, smooth(win(wF, i * 0.04, 0.7)))));
+            else cartOB.forEach((o, i) => { const w = smooth(win(wF, i * 0.04, 0.7)); obDraw({ ...obLerp(o, plate, w), mat: w > 0.02 ? MAT.poly : o.mat }); });   // the pale pole went glassy widening into the plate
           }
           drawFloorMark(base, smooth(win(t, 0.6, 0.3)));
           flush();
           atlasDrawn = true;
-          atlasGL.render(atA, k0, camState, dark, vis);
+          atlasGL.render(atA, k0, camState, dark, vis, over);
           return;
         }
       }
