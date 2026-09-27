@@ -124,6 +124,7 @@ export function createAtlasGL(host) {
     });
     const e = Math.max(ke[0], ke[1], ke[2]);
     if (e > 0) { m.emissive = new THREE.Color().setRGB(ke[0] / e, ke[1] / e, ke[2] / e, THREE.LinearSRGBColorSpace); m.emissiveIntensity = Math.min(2.2, e * 0.55); }
+    m.userData.base = { color: m.color.clone(), ei: m.emissiveIntensity, r: m.roughness, mt: m.metalness };
     mats.push(m);
     return m;
   };
@@ -155,7 +156,8 @@ export function createAtlasGL(host) {
       for (let i = 0; i < p.vCount; i++) for (let c = 0; c < 3; c++) { const v = pos[i * 3 + c]; if (v < bb.min[c]) bb.min[c] = v; if (v > bb.max[c]) bb.max[c] = v; }
       let grp = groups.get(id);
       if (!grp) { grp = new THREE.Group(); grp.matrixAutoUpdate = false; grp.visible = false; yawG.add(grp); groups.set(id, grp); }
-      grp.add(new THREE.Mesh(g, mcache[p.mat] || (mcache[p.mat] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }))));
+      const mk = id + '|' + p.mat;            // materials PER PIECE, so a piece in flight can wear its source's look
+      grp.add(new THREE.Mesh(g, mcache[mk] || (mcache[mk] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }))));
     }
     ready = true;
   }).catch(() => {});
@@ -224,13 +226,30 @@ export function createAtlasGL(host) {
     // at(name) -> {m, t} for every skeleton body; k0 the base scale (px/mm);
     // cam {yaw, pitch, dolly}; dark theme flag
     // `over`: id -> placement for pieces in flight (a morph carries them)
-    render(at, k0, cam, dark, vis, over) {
+    // `look`: id -> { k, src: [r, g, b] (sRGB 0..1), op } — a piece in flight
+    // blends from its source's flat look (k 0) to its own materials (k 1)
+    render(at, k0, cam, dark, vis, over, look) {
       if (!ready) return;
       if (!shown) { canvas.style.visibility = 'visible'; shown = true; }
       pitchG.rotation.x = -cam.pitch;          // stage pitch: positive looks UP
       yawG.rotation.y = cam.yaw;
       pitchG.position.z = cam.dolly || 0;
       const sol = solve(at, k0);
+      for (const [id, grp] of groups) {
+        const L = look && look[id];
+        const key = L ? `${L.k.toFixed(3)}|${L.op.toFixed(3)}|${L.src}` : '';
+        if (grp.userData.lookKey === key) continue;
+        grp.userData.lookKey = key;
+        const src = L ? new THREE.Color().setRGB(L.src[0], L.src[1], L.src[2], THREE.SRGBColorSpace) : null;
+        for (const mesh of grp.children) {
+          const m = mesh.material, b = m.userData.base;
+          if (!L) { m.color.copy(b.color); m.emissiveIntensity = b.ei; m.roughness = b.r; m.metalness = b.mt; m.opacity = 1; if (m.transparent) { m.transparent = false; m.depthWrite = true; m.needsUpdate = true; } continue; }
+          m.color.copy(src).lerp(b.color, L.k);
+          m.emissiveIntensity = b.ei * L.k;
+          m.roughness = 0.8 + (b.r - 0.8) * L.k; m.metalness = b.mt * L.k;
+          m.opacity = L.op; const tr = L.op < 0.999; if (m.transparent !== tr) { m.transparent = tr; m.depthWrite = !tr; m.needsUpdate = true; }   // a program switch only when transparency flips
+        }
+      }
       for (const [id, P] of Object.entries(sol)) {
         const T = over && over[id] ? over[id] : P.T;
         setGroupReal(id, T, (over && over[id] ? true : P.vis) && (!vis || vis[id] !== false));

@@ -1352,6 +1352,30 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 27, third round.** (1) "The texture changes between morphs is too
+jarring": nothing SWAPS look any more. In act 5 the OP1 parts fade out over
+a short window while the Atlas pieces fade in on top of them wearing the
+SOURCE's look, then ease into their own materials as they travel
+(`atlasGL.render(..., look)`: id → {k, src, op}; materials are per piece
+now so one piece can be re-tinted). In Canvas2D, `submitMeshMix` draws a
+mesh in a tone BETWEEN two materials (`mixTone`, quantised to three steps
+— each step is a new set of fill styles); it replaced the stepped
+poly → iron → steel → alu material changes of the beams → Fairino and the
+UR → servo-chain morphs. (2) "Make the animations on the left more
+engaging… too matrixy": the camera frame is a DRAWN SCENE now
+(`drawScene`: a table, the red/green/blue cubes, a gripper) that the
+photosites resolve into in act 2; settled, the gripper RUNS the action
+chunk — a pick-and-place loop (`pickAt`, `PICK_PERIOD` 8 s) — and the
+action panel shows that same path as 16 waypoints with the gripper's
+opening; the layers are smooth slabs with a copper glow sweeping along
+them and attention ARCS with pulses running down them (the cells are
+gone); the world model's imagined frames are the scene further along the
+loop, fading with distance; the detection box follows the cube. Act 4
+lays the scene down as the ground. Measured: act 4 (Additional Projects →
+Skills) now sits at the frame-budget edge in headless Firefox, 5-7 of 59
+frames over 20 ms against 2-5 before — the Ultra unit's extra detail;
+flat single-polygon horns (`SERVO_HORNS`) replaced drums to keep it there.
+
 **Sept 27, second round (the owner: "the transition from the ultra to the
 atlas is still really wonky"; "the ultra robot arms and body are not
 detailed enough").** The pieces had flown on their own straight lines at
