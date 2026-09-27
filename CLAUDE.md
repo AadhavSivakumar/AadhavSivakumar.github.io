@@ -1352,6 +1352,26 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 27, second round (the owner: "the transition from the ultra to the
+atlas is still really wonky"; "the ultra robot arms and body are not
+detailed enough").** The pieces had flown on their own straight lines at
+their own times and scattered. Now ONE carrier frame moves everything:
+every point's coordinates in the unit's frame blend into its coordinates
+in the Atlas torso's frame while that frame travels (`mapP`, `lerpT`), and
+the groups (torso, arms, legs) leave within 0.04 of each other, so the body
+moves as one and connected chains stay connected. The Fairino's upper arm,
+forearm and wrist become BOTH legs (thigh, shin, foot, offset either side:
+one arm splitting into two legs), the pelvis stands on them, and its base
+and shoulder sink into the pedestal. A piece's thinning is measured AFTER
+it is stretched onto its source (thinned against its own width, a thigh on
+a Fairino link came out a fat slab). The cart's parts flatten where they
+are, then slide together under the Atlas. **The unit**: a rounded-edge
+torso (`TORSO_SIL`), a proud front panel, side handle slots, Ultra's
+orange mark (a cup and two squares); the arm modules are FILLS ONLY — at
+~10 px a module, its edges (lifted by LINE_BIAS) showed through its faces
+and the arms read as a see-through lattice — black, with steel horn discs
+for the joint rhythm.
+
 **Sept 27: in act 5 the ATLAS'S OWN PIECES make the whole journey** (the
 owner: the in-between was "very not detailed" — a blue slab and plain
 drums). `atlasGL.render(..., vis, over)` takes a placement per piece in

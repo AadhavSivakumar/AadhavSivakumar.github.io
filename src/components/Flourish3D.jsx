@@ -689,6 +689,16 @@ const D435 = [
     wire: [...boxWire(84, 20, 6, 0, 0, 4), ...[-32, 18, 36].map(x => ringAt(3.6, x, 0, 8.9, 14))], out: 14, order: 2 },
   { id: 'pcb', mat: MAT.iron, solid: boxFaces(82, 20, 2, 0, -1, -2), wire: boxWire(82, 20, 2, 0, -1, -2), out: -30, order: 3 },
 ];
+// the Ultra unit's torso: a rounded-rectangle section (x forward 150, y
+// across 200, corner radius 24) extruded up its 330 mm
+const roundRect = (w, h, r, n = 5) => {
+  const pts = [], cs = [[w / 2 - r, h / 2 - r, 0], [-w / 2 + r, h / 2 - r, 90], [-w / 2 + r, -h / 2 + r, 180], [w / 2 - r, -h / 2 + r, 270]];
+  for (const [cx, cy, a0] of cs) for (let i = 0; i <= n; i++) { const a = (a0 + (90 * i) / n) * DEG; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return pts;
+};
+const TORSO_SIL = roundRect(150, 200, 24);
+const TORSO_SOLID = extrude(TORSO_SIL, 0, 330);
+const TORSO_WIRE = silWire(TORSO_SIL, 0, 330, 6);
 const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
 const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
 const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
@@ -2088,12 +2098,14 @@ export default function Flourish3D({ side = 'right' }) {
       // BRACKETS, with a cable looping along it
       const servo = (F, z, rotAx) => {
         const G = rotAx ? chain(F, place(rotAx, [0, 0, z])) : chain(F, place(IDENT, [0, 0, z]));
-        box(G, 46, 40, 56, 0, 0, 0, MAT.poly);
-        drawDrum(chain(G, place(rotX(90 * DEG), [0, 0, 0])), 15, -24, 24, MAT.steel, a);   // the horns on both faces
-        line([[[-23, -20.5, 18], [23, -20.5, 18]]], G, MAT.steel);                       // the case seam
+        // FILLS ONLY: at ~0.17 px/mm a module is ten pixels, and its twelve
+        // edges (lifted toward the viewer by LINE_BIAS) showed through its own
+        // faces — the arm read as a see-through lattice
+        submit(boxFaces(54, 46, 62, 0, 0, 0), G, MAT.poly, a);
+        submit(drum(15, -27.5, 27.5), chain(G, place(rotX(90 * DEG), [0, 0, 0])), MAT.steel, a);   // the horns on both faces
       };
       const brackets = (F, z0, z1) => {
-        for (const sy of [-1, 1]) box(F, 30, 4, Math.abs(z1 - z0), 0, sy * 24, (z0 + z1) / 2, MAT.steel);
+        for (const sy of [-1, 1]) submit(boxFaces(34, 5, Math.abs(z1 - z0), 0, sy * 26, (z0 + z1) / 2), F, MAT.poly, a);
       };
       servo(S, -30);                                  // shoulder pitch
       servo(S, -86, rotZ(90 * DEG));                  // shoulder roll, turned
@@ -2103,7 +2115,7 @@ export default function Flourish3D({ side = 'right' }) {
       brackets(E, -28, -UNIT.L2 + 30);
       servo(E, -UNIT.L2 * 0.55, rotZ(90 * DEG));      // forearm module
       servo(Wr, 0);                                   // wrist pitch
-      box(Wr, 40, 40, 22, 0, 0, -22, MAT.poly);       // wrist roll
+      submit(boxFaces(40, 40, 22, 0, 0, -22), Wr, MAT.poly, a);   // wrist roll
       // the cable: along the outside of the chain, sagging between clips
       const cab = [];
       const pts = [tpOf(S, [30, 0, -30]), tpOf(S, [34, 0, -UNIT.L1 * 0.62]), tpOf(E, [34, 0, 0]), tpOf(E, [30, 0, -UNIT.L2 * 0.55]), tpOf(Wr, [28, 0, 0])];
@@ -2126,8 +2138,14 @@ export default function Flourish3D({ side = 'right' }) {
       const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
       // the torso: the box, a top plate, a panel seam across its face, the
       // orange logo, an e-stop on the plate
-      submit(boxFaces(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, MAT.poly, a);
-      line(boxWire(UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2), TU, MAT.poly);
+      // the torso: a tall black case with ROUNDED vertical edges (Ultra's
+      // footage — a plain box read as a crate), a proud front panel with its
+      // seam, a handle slot on each side
+      submit(TORSO_SOLID, TU, MAT.poly, a);
+      line(TORSO_WIRE, TU, MAT.poly);
+      submit(boxFaces(8, UNIT.W - 56, UNIT.H - 70, UNIT.D / 2 + 4, 0, UNIT.H / 2 - 10), TU, MAT.poly, a);
+      line(boxWire(8, UNIT.W - 56, UNIT.H - 70, UNIT.D / 2 + 4, 0, UNIT.H / 2 - 10), TU, MAT.iron);
+      for (const sy of [-1, 1]) line([rect(60, 14, 0, UNIT.H * 0.78, 0)].map(pl => pl.map(([x, z]) => [x, sy * (UNIT.W / 2 + 0.6), z])), TU, MAT.iron);
       submit(boxFaces(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly, a);
       line(boxWire(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly);
       // the SHOULDER YOKE (Ultra's footage): a horizontal black beam across the
@@ -2138,7 +2156,10 @@ export default function Flourish3D({ side = 'right' }) {
       // vent slots on the torso's side
       for (const sy of [-1, 1]) line(Array.from({ length: 5 }, (_, i) => [[-30 + i * 14, sy * (UNIT.W / 2 + 0.5), UNIT.H * 0.3], [-30 + i * 14, sy * (UNIT.W / 2 + 0.5), UNIT.H * 0.55]]), TU, MAT.steel);
       line([[[UNIT.D / 2 + 0.4, -UNIT.W / 2 + 10, UNIT.H * 0.66], [UNIT.D / 2 + 0.4, UNIT.W / 2 - 10, UNIT.H * 0.66]]], TU, MAT.steel);
-      submit(plate(64, 64, 0, 0, 0), chain(TU, place(rotY(90 * DEG), [UNIT.D / 2 + 0.6, 0, UNIT.H * 0.42])), MAT.orange, a * 0.9);
+      // Ultra's mark: an orange cup (two uprights and a base) with two
+      // squares inside it, on the front panel
+      { const LG = chain(TU, place(rotY(90 * DEG), [UNIT.D / 2 + 8.6, 0, UNIT.H * 0.42]));
+        submit([...plate(12, 66, 22, 0, 0), ...plate(46, 12, 5, -27, 0), ...plate(46, 12, 5, 27, 0), ...plate(14, 14, -6, -9, 0), ...plate(14, 14, -6, 9, 0)], LG, MAT.orange, a); }
       drawDrum(chain(TU, place(IDENT, [-40, -70, UNIT.H + 6])), 9, 0, 10, MAT.orange, a);
       // the mast, and the ZED 2i on it (a real mesh), looking forward
       submit(boxFaces(24, 24, 60, 0, 0, UNIT.H + 36), TU, MAT.poly, a);
@@ -3651,58 +3672,86 @@ export default function Flourish3D({ side = 'right' }) {
         const atA = n => { const i = g1.index.get(n); return i == null ? null : TA[i]; };
         const Pc = atlasGL.pieces(atA, detScale(base.m));
         if (Pc) {
-          // Every Atlas piece makes the WHOLE journey itself, in full detail
-          // (the owner: the in-between "very not detailed" — it used to be a
-          // blue slab and plain drums). A piece starts laid onto its source —
-          // its axis on the source's joint-to-joint segment, thinned to the
-          // source's width — the instant that source stops being drawn, and
-          // is carried back to its own place: the segment's ends slide, the
-          // thinning relaxes. simOnto turns by the smallest rotation, so a
-          // piece never collapses through zero on the way.
+          // ONE BODY IN FLIGHT (the owner, twice: the in-between was "very
+          // not detailed", then "still really wonky" — pieces had flown on
+          // their own straight lines at their own times and scattered).
+          // Every Atlas piece starts laid onto the OP1 part it replaces and
+          // ends in its own place, and every point on the way is carried by
+          // ONE frame, `C(w)`, that travels from the unit's frame to the
+          // Atlas torso's: a point's coordinates in the unit's frame blend
+          // into its coordinates in the torso's while the frame itself moves.
+          // So the whole configuration moves as one body — the arms stay on
+          // the shoulders, the legs under the hips — and a chain that is
+          // connected at both ends stays connected in between.
+          //   unit → torso · small arms → arms · the Fairino → BOTH legs
+          //   (upper arm → thighs, forearm → shins, wrist → feet: one arm
+          //   splitting into two legs) · the cart flattens and slides under.
           const k0 = detScale(base.m), vis = Object.fromEntries(Object.keys(Pc).map(id => [id, false])), over = {};
-          const mwA = (i, span = 0.5) => smooth(win(t, 0.04 + i * 0.045, span));
           const midW = P => { const b = P.bb, d = [0, 1, 2].map(i => b.max[i] - b.min[i]).sort((x, y) => x - y); return d[1] * detScale(P.T.m); };
           const lv = (a, b, w) => a.map((v, i) => v + (b[i] - v) * w);
-          const carry = (id, qa, qb, srcW, w, fallS = 0.6) => {
+          const UL = ROBOTS.ultra, TF5 = bodyPlacements(UL, ulBase, RB.ul.rest);
+          const Tf5 = TF5[UL.index.get('wrist3_link')];
+          const TU5 = unitFrame(chain(Tf5, place(IDENT, [0, 0, 120])), RB.ul.k);
+          const kU = detScale(TU5.m), TUt = Pc.torso.T, kT = detScale(TUt.m);
+          const iS = invT(TU5), iT = invT(TUt);
+          const mapP = (ps, pt, w) => w <= 0 ? ps : w >= 1 ? pt : tpOf(lerpT(TU5, TUt, w, kU, kT), lv(tpOf(iS, ps), tpOf(iT, pt), w));
+          const carry = (id, qa, qb, srcW, w) => {
             const P = Pc[id]; if (!P) return;
-            const perp0 = clamp(srcW / Math.max(1, midW(P)), 0.25, 1.6);
-            over[id] = w >= 1 ? P.T : simOnto(P.T, P.p0, P.p1, lv(qa, P.p0, w), lv(qb, P.p1, w), fallS + (1 - fallS) * w, perp0 + (1 - perp0) * w).T;
+            // the thinning is relative to the piece AFTER it is stretched onto
+            // the source (a thigh stretched 2.4x along a Fairino link came out
+            // a fat slab when thinned against its own width)
+            const sc0 = Math.max(0.05, Math.hypot(...v3sub(qb, qa)) / Math.max(1, Math.hypot(...v3sub(P.p1, P.p0))));
+            const perp0 = clamp(srcW / Math.max(1, midW(P) * sc0), 0.12, 1.4);
+            const A = mapP(qa, P.p0, w), B = mapP(qb, P.p1, w);
+            const scw = Math.hypot(...v3sub(B, A)) / Math.max(1, Math.hypot(...v3sub(P.p1, P.p0)));
+            // held at the source's width in px while it travels, then relaxing
+            const pw = perp0 * sc0 / Math.max(0.05, scw), perp = pw + (1 - pw) * smooth(w);
+            over[id] = w >= 1 ? P.T : simOnto(P.T, P.p0, P.p1, A, B, 1, clamp(perp, 0.12, 1.6)).T;
             vis[id] = true;
           };
-          const Tf5 = bodyPlacements(ROBOTS.ultra, ulBase, RB.ul.rest)[ROBOTS.ultra.index.get('wrist3_link')];
-          const TU5 = unitFrame(chain(Tf5, place(IDENT, [0, 0, 120])), RB.ul.k);
-          const kU = detScale(TU5.m);
-          // the small arms: drawn as themselves until the first arm piece
-          // leaves, then every segment is its Atlas arm piece
-          const armsGo = mwA(1, 0.55) > 0;
-          // the unit's torso → the torso (the head rides in it)
-          const wT = mwA(3, 0.55);
-          if (wT <= 0) drawUnit(TU5, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, armsGo ? 0 : 1);
-          else carry('torso', tpOf(TU5, [0, 0, 0]), tpOf(TU5, [0, 0, UNIT.H]), UNIT.W * kU, wT, 1);
+          const W = d => smooth(win(t, 0.1 + d, 0.52));     // the groups leave nearly together
+          const wT = W(0), wA = W(0.02), wL = W(0.04);
+          // the unit → the torso (the head rides in it)
+          if (wT <= 0) drawUnit(TU5, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, wA > 0 ? 0 : 1);
+          else carry('torso', tpOf(TU5, [0, 0, 0]), tpOf(TU5, [0, 0, UNIT.H]), UNIT.W * kU, wT);
+          // the small arms → the arms, joint for joint
           const shR = tpOf(TU5, [0, UNIT.SY, UNIT.SZ]);
           const rNear = Math.hypot(...v3sub(Pc.lupper.p0, shR)) <= Math.hypot(...v3sub(Pc.rupper.p0, shR)) ? 'l' : 'r';
-          if (armsGo) for (const side of [1, -1]) {
+          if (wA > 0) for (const side of [1, -1]) {
             const F = smallArmFrames(TU5, side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0], side);
             const near = side > 0 ? rNear : (rNear === 'l' ? 'r' : 'l');     // the two arms take opposite sides
-            [[F.S.t, F.E.t, near + 'upper'], [F.E.t, F.Wr.t, near + 'fore'], [F.Wr.t, F.tcp, near + 'hand']]
-              .forEach(([a, b, id], j) => carry(id, a, b, 44 * kU, mwA(1 + j, 0.55)));
+            carry(near + 'upper', F.S.t, F.E.t, 52 * kU, wA);
+            carry(near + 'fore', F.E.t, F.Wr.t, 52 * kU, wA);
+            carry(near + 'hand', F.Wr.t, F.tcp, 52 * kU, wA);
           }
-          // Fairino links → lower body: each link is drawn until its piece
-          // leaves, and the piece leaves from exactly where the link lay
-          const UL = ROBOTS.ultra, TF5 = bodyPlacements(UL, ulBase, RB.ul.rest);
-          const fn = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link'];
-          const to = ['pelvis', 'lthigh', 'rthigh', 'lshin', 'rshin', 'lfoot', 'rfoot'];
-          const J = [...fn.map(n => TF5[UL.index.get(n)].t), tpOf(Tf5, [0, 0, 120])];
-          fn.forEach((name, i) => {
-            const w = mwA(2 + i, 0.55);
-            if (w > 0 && Pc[to[i]]) { carry(to[i], J[i], J[i + 1], 90 * RB.ul.k, w); return; }
-            const A = TF5[UL.index.get(name)];
+          // the Fairino → the hips and both legs; its base and shoulder sink
+          // into the pedestal as the cart flattens
+          const J = n => TF5[UL.index.get(n)].t;
+          if (wL > 0) {
+            const side = v3nrm([TU5.m[1], TU5.m[4], TU5.m[7]]), hip = 70 * RB.ul.k;
+            for (const [lr, sg] of [['l', 1], ['r', -1]]) {
+              const o = p => p.map((v, i) => v + side[i] * hip * sg);
+              carry(lr + 'thigh', o(J('upperarm_link')), o(J('forearm_link')), 110 * RB.ul.k, wL);
+              carry(lr + 'shin', o(J('forearm_link')), o(J('wrist1_link')), 90 * RB.ul.k, wL);
+              carry(lr + 'foot', o(J('wrist1_link')), o(J('wrist2_link')), 80 * RB.ul.k, wL);
+            }
+            const Pp = Pc.pelvis;
+            if (Pp) { const L = Math.hypot(...v3sub(Pp.p1, Pp.p0)) / k0 * RB.ul.k; const q0 = J('upperarm_link'); carry('pelvis', q0, [q0[0], q0[1] - L, q0[2]], 200 * RB.ul.k, wL); }
+          }
+          for (const name of ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link']) {
+            const low = name === 'base_link' || name === 'shoulder_link';
+            if (!low && wL > 0) continue;
+            const g = low ? 1 - smooth(win(t, 0.1, 0.4)) : 1;
+            if (g <= 0.02) continue;
+            const A = g < 1 ? scaleAbout(TF5[UL.index.get(name)], g, J('base_link')) : TF5[UL.index.get(name)];
             for (const part of UL.parts) if (part.body === name) { const own = MESH_MAT[part.mat] ?? MAT.neutral; submitMesh(part, A, own, 1, matLine[own]); }
-          });
-          // the cart and the packing table flatten onto the floor under the Atlas
+          }
+          // the cart and the packing table: each part flattens where it is,
+          // then the flat pieces slide together into the floor plate under
+          // the Atlas (a straight lerp piled them into a heap on the way)
           const floorC = tpOf(base, [0, 0, -HUM_PELVIS]);
           const plate = OB(IDENT, floorC, [180, 2, 80], MAT.poly);
-          const wF = smooth(win(t, 0.05, 0.6));
+          const wF = smooth(win(t, 0.04, 0.6));
           if (wF < 1) {
             const cartOB = [obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly),
               obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly),
@@ -3710,7 +3759,16 @@ export default function Flourish3D({ side = 'right' }) {
               obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu),
               obIn(TU5, 340, 500, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly)];
             if (wF <= 0) { drawCart(1, 1); growUnitProps(TU5, unitTaskState(TU5, 0), 1); }
-            else cartOB.forEach((o, i) => { const w = smooth(win(wF, i * 0.04, 0.7)); obDraw({ ...obLerp(o, plate, w), mat: w > 0.02 ? MAT.poly : o.mat }); });   // the pale pole went glassy widening into the plate
+            else {
+              const f1 = smooth(clamp(wF / 0.3, 0, 1)), f2 = smooth(clamp((wF - 0.25) / 0.5, 0, 1));
+              cartOB.forEach(o => {
+                const flat = OB(o.R, [o.c[0], FLOOR_Y - 1, o.c[2]], [o.d[0], 2, o.d[2]], MAT.poly);
+                const tile = OB(IDENT, floorC, [Math.min(o.d[0], 180), 2, Math.min(o.d[2], 80)], MAT.poly);
+                const st = f2 > 0 ? obLerp(flat, tile, f2) : obLerp(o, flat, f1);
+                obDraw({ ...st, mat: f1 > 0.02 ? MAT.poly : o.mat });
+              });
+              if (f2 > 0.6) obDraw(OB(IDENT, floorC, [180 * f2, 2, 80 * f2], MAT.poly));
+            }
           }
           drawFloorMark(base, smooth(win(t, 0.6, 0.3)));
           flush();
