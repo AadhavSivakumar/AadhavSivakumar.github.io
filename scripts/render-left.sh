@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 MANIM=${MANIM:-manim}
 TMP=$(mktemp -d)
-SCENES=${*:-"IdleRest Act0 IdleSensor Act1 IdleVLA Act2 IdleWM Act3 IdleSim Act4 IdleReal"}
+SCENES=${*:-"IdleRest Act0 IdleUntrained Act1 IdleTwin Act2 IdleData Act3 IdleTrain Act4 IdleReal"}
 for theme in light dark; do
   out=Media/web/leftfilm/$theme; mkdir -p "$out"
   for sc in $SCENES; do

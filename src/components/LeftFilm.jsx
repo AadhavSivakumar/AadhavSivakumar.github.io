@@ -16,7 +16,7 @@ import { actAt, heroPhase, win, smooth } from '../waveField';
 // Both themes are rendered; a theme toggle swaps the sources.
 const BASE = '/Media/web/leftfilm/';
 const ACTS = ['Act0', 'Act1', 'Act2', 'Act3', 'Act4'];
-const IDLES = ['IdleRest', 'IdleSensor', 'IdleVLA', 'IdleWM', 'IdleSim', 'IdleReal'];   // held state before act 0, then after each act
+const IDLES = ['IdleRest', 'IdleUntrained', 'IdleTwin', 'IdleData', 'IdleTrain', 'IdleReal'];   // held state before act 0, then after each act
 const FPS = 30;
 
 const themeNow = () => (document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');

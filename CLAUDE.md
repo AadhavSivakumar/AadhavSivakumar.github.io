@@ -483,22 +483,27 @@ longer mounted — `App.jsx` renders `<LeftFilm />` instead — and what the
 sections below say about the left canvas describes code that is still in
 Flourish3D.jsx but unused. The right side (the robots) is unchanged.
 
-- **The story** (`manim/left.py`), one scene per act plus an idle loop per
-  page: IdleRest (Experience: the D435i projecting its capture cone) · Act0
-  (it explodes along the depth diagonal, the stereo module comes out, the
-  RGB barrel lifts, light lands on the die, the die becomes the pixel array)
-  · IdleSensor · Act1 (VLA: the pixels resolve into the picture, patches fly
-  out as cube tokens + a red object token, language tokens, a four-slab
-  transformer with attention arcs, the action chunk) · IdleVLA (the gripper
-  runs the pick loop; the chunk's head moves; a slab lights) · Act2 (world
-  model: tokens gather into z_t, latent chain with an action per step,
-  decoded imagined frames) · IdleWM · Act3 (real2sim: the picture lies down
-  as a floor grid, a Gaussian splat condenses into the sim twin, randomised
-  twins, the training curve) · IdleSim · Act4 (sim2real: the scaffolding
-  goes, the grid becomes a solid table, the gripper comes down) · IdleReal.
-  A real · sim · real tracker runs across the top.
+- **The story** (`manim/left.py`), RE-SEQUENCED Sept 28 into the order the
+  pipeline runs (the owner asked whether the first cut made sense; it did
+  not — the VLA drove the gripper perfectly before anything was trained,
+  and the sim section ended where it began). One act per page boundary,
+  an idle loop per page:
+  IdleRest (Experience: the D435i and its capture cone) · Act0, REAL (it
+  explodes, the sensor catches light, the pixels become the picture) ·
+  IdleUntrained (the untrained policy reaches, comes down BESIDE the cube,
+  closes on air — `FUMBLE`) · Act1, REAL2SIM (the picture lies down as a
+  floor, a Gaussian splat condenses into the sim twin) · IdleTwin (a scan
+  line sweeps the twin) · Act2, SIM DATA (randomised twins with dashed demo
+  paths, "1,000+ demos"; a world model's latent chain decoding imagined
+  rollouts) · IdleData · Act3, TRAIN (the sim data collapses into a
+  dataset stack, is tokenised into the VLA — tokens, language, four slabs,
+  the action chunk — and a "policy success" curve climbs) · IdleTrain ·
+  Act4, SIM2REAL (the trained VLA's panel moves up, the real table comes
+  in, the gripper descends) · IdleReal (the pick-and-place SUCCEEDS: the
+  payoff against IdleUntrained). The states are `S0`…`S4`; the tracker
+  reads real, sim, sim, sim, real.
 - **Seams are exact by construction**: every act starts by adding
-  `stateK()` and ends with `finish(stateK+1())`, the same builders the
+  `S(K-1)()` and ends with `finish(SK())`, the same builders the
   next act and the idle loop use.
 - **Manim quirk**: `set_opacity` also sets FILL opacity, which fills
   outline-only shapes (a frame, a curve) solid white. Use `fade(m, a)`.
