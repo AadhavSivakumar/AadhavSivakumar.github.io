@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
 import Flourish3D from './components/Flourish3D';
+import LeftFilm from './components/LeftFilm';
 import WaveField from './components/WaveField';
 import RobotDock from './components/RobotDock';
 import { useTheme } from './hooks/useTheme';
@@ -137,7 +138,8 @@ function App() {
           field's layer so that on a phone it can sit ABOVE the content while
           the field stays behind it. */}
       <RobotDock>
-        {canAfford3D && <Flourish3D side="left" />}
+        {/* the left stage is Manim clips now (LeftFilm.jsx, manim/left.py) */}
+        <LeftFilm />
         {canAfford3D && <Flourish3D side="right" />}
       </RobotDock>
       <a className="skip-link" href="#main">Skip to content</a>

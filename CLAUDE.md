@@ -457,6 +457,61 @@ keep them:
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
 
+## The LEFT stage is MANIM now (`manim/left.py`, `LeftFilm.jsx`) — Sept 28
+
+The owner: "refactor the whole left side animation in manim". The left
+stage is no longer drawn live: it is Manim scenes rendered to video,
+**scrubbed by the scroll**, in **both themes** (the owner chose both). The
+Flourish3D left-side code (camera, VLA, world model, simulator acts) is no
+longer mounted — `App.jsx` renders `<LeftFilm />` instead — and what the
+sections below say about the left canvas describes code that is still in
+Flourish3D.jsx but unused. The right side (the robots) is unchanged.
+
+- **The story** (`manim/left.py`), one scene per act plus an idle loop per
+  page: IdleRest (Experience: the D435i projecting its capture cone) · Act0
+  (it explodes along the depth diagonal, the stereo module comes out, the
+  RGB barrel lifts, light lands on the die, the die becomes the pixel array)
+  · IdleSensor · Act1 (VLA: the pixels resolve into the picture, patches fly
+  out as cube tokens + a red object token, language tokens, a four-slab
+  transformer with attention arcs, the action chunk) · IdleVLA (the gripper
+  runs the pick loop; the chunk's head moves; a slab lights) · Act2 (world
+  model: tokens gather into z_t, latent chain with an action per step,
+  decoded imagined frames) · IdleWM · Act3 (real2sim: the picture lies down
+  as a floor grid, a Gaussian splat condenses into the sim twin, randomised
+  twins, the training curve) · IdleSim · Act4 (sim2real: the scaffolding
+  goes, the grid becomes a solid table, the gripper comes down) · IdleReal.
+  A real · sim · real tracker runs across the top.
+- **Seams are exact by construction**: every act starts by adding
+  `stateK()` and ends with `finish(stateK+1())`, the same builders the
+  next act and the idle loop use.
+- **Manim quirk**: `set_opacity` also sets FILL opacity, which fills
+  outline-only shapes (a frame, a curve) solid white. Use `fade(m, a)`.
+- **Render**: `MANIM=/path/to/manim scripts/render-left.sh [scenes]` renders
+  both themes and encodes `Media/web/leftfilm/<theme>/<Scene>.{mp4,webm,webp}`.
+  Manim is not in npm; this box has it from conda-forge via micromamba (pip
+  needs the cairo/pango dev headers, which need root). ~11 MB for both
+  themes; one act is 0.2-0.4 MB (mp4).
+- **Encoding**: act clips have EVERY FRAME A KEYFRAME (`-g 1`) so a scroll
+  seek lands at once; idles use a normal GOP and loop. The MP4 (H.264,
+  hardware-decoded almost everywhere) is 510x990 (1.5x); the WebM (VP9,
+  the software-decoded fallback for browsers without H.264, e.g. Linux
+  Firefox) act clips are 340x660 — at 1.5x a decode per scroll step
+  dropped frames there (p90 33-49 ms).
+- **The player** (`LeftFilm.jsx`): two <video>s (scrub, idle) in the
+  `.f3d--left` stage. The scrub clip's `currentTime` follows `actAt(y)`,
+  ONE seek in flight at a time (`pump`, on `seeked`); when `onSettle`
+  reports a held state (before act 0, or the end of an act) the idle clip
+  loops over it. Clips are fetched WHOLE and played from blob URLs: they
+  are small, and a blob is seekable whatever the server does with byte
+  ranges (Python's http.server has none, and the act clips sat on frame 0).
+  The next act and idle are prefetched. The stage fades in as the hero
+  leaves. No mask: the clips are rendered on `--background-color`, and a
+  CSS mask over a scrubbed video cost frames.
+- **Measured** (headless Firefox, VP9 in software): acts 1, 2, 4, 5 p90
+  17 ms; Projects → Additional Projects (the world-model clip and the UR
+  pair together) p90 33, ~7-10 of 59 frames over 20 ms. 0 mutations on a
+  still page (the idle clip is video playback, not DOM writes).
+
 ## The hero, and the sine field that becomes the camera and the motor
 
 The front page follows the old `/portfolio` hero, at the owner's request: a
