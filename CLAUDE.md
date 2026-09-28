@@ -1391,6 +1391,22 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28: the resume and CV are IN THE REPO** (the owner: "commit this to
+the repo so that a drive link isn't needed"): `Resume/Aadhav_Sivakumar_Resume.pdf`
+and `Resume/Aadhav_Sivakumar_Extended_CV.pdf`, served from the site. The
+viewer shows PAGE IMAGES (`Resume/preview/resume-N.webp`, `cv-N.webp`, 150
+dpi) scrolling inside the frame, not an iframe: a PDF in an iframe is blank
+on Android Chrome, one page on iOS, and Playwright's Firefox downloads it.
+Clicking a page, or "Open PDF", opens the PDF itself; "Download" downloads
+it. **To update: replace the PDF, run `node scripts/pdf-previews.mjs`
+(pdftoppm + Pillow), commit both** — `pages` in `resumeDocsData` lists the
+images and the build fails if one is missing (update the list if the page
+count changes). The transcripts are still Drive links. The old resume PDFs
+in `Resume/` are unreferenced and left in place. The hero is ONE line over
+the name now — "Robotics & Embodied AI Engineer · New York & San
+Francisco" — with the serif statement and the descriptive line removed at
+the owner's request ("consolidate the information").
+
 **Sept 28, the 2R arm's servos** (the owner: "the servo motors are not
 oriented properly"): the output spline came out of the servo's big side
 face. `planarServo(F, a, id, off)` now draws a hobby servo as one is: the

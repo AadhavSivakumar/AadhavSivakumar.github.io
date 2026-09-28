@@ -6,8 +6,8 @@ import { skillGroupsData, resumeDocsData } from '../data/siteData';
 
 // The RESUME page (the owner: "just make it resume section. The resume should
 // take up most of the space and the skills should be minor in comparison").
-// The resume itself fills most of the page — its live Google Drive preview,
-// with a tab for the extended CV — and beside it, small, the transcripts and
+// The resume itself fills most of the page — the PDF from this repo
+// (Resume/), with a tab for the extended CV — and beside it, small, the transcripts and
 // the skill groups as chips. Everything opens in the shared modal. The
 // section keeps its id, `skills`, because the art's acts, the settle and the
 // nav are keyed on it.
@@ -61,11 +61,20 @@ export default function Skills({ onCardClick, next }) {
             {docs.map((d, i) => (
               <button key={d.id} role="tab" aria-selected={i === tab} className={`resume-tab${i === tab ? ' is-on' : ''}`} onClick={() => setTab(i)}>{d.title}</button>
             ))}
-            <button className="resume-open" onClick={e => openDoc(e.currentTarget.closest('.resume-viewer'), doc)}>Open full size ↗</button>
+            <a className="resume-open" href={doc.embedUrl} target="_blank" rel="noopener noreferrer">Open PDF ↗</a>
+            <a className="resume-open" href={doc.embedUrl} download>Download</a>
           </div>
           <div className="resume-frame">
-            {near && <iframe key={doc.id} src={doc.embedUrl} title={doc.title} loading="lazy" tabIndex={-1} />}
-            <button className="resume-cover" aria-label={`Open the ${doc.title} full size`} onClick={e => openDoc(e.currentTarget.closest('.resume-viewer'), doc)} />
+            {/* the PAGES as images (scripts/pdf-previews.mjs), scrolling inside
+                the frame: a PDF in an iframe is blank on Android and one page
+                on iOS; the PDF itself is behind Open PDF / Download */}
+            <div className="resume-pages" key={doc.id} tabIndex={0} aria-label={`${doc.title}, ${doc.pages.length} page${doc.pages.length > 1 ? 's' : ''}`}>
+              {doc.pages.map((src, i) => (
+                <a key={src} href={doc.embedUrl} target="_blank" rel="noopener noreferrer">
+                  <img src={src} alt={i === 0 ? `${doc.title}, page 1` : `page ${i + 1}`} loading={i === 0 && near ? 'eager' : 'lazy'} />
+                </a>
+              ))}
+            </div>
           </div>
         </div>
         <aside className="resume-side" ref={sideRef}>

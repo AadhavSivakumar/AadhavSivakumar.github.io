@@ -160,16 +160,16 @@ export default function Hero() {
         <img src={portrait} alt="" width="480" height="480" decoding="async" fetchpriority="high" />
       </motion.div>
 
-      {/* A quiet EYEBROW over the name: what and where, tracked small caps
-          between hairlines — the owner asked for the tagline to look more
-          premium */}
+      {/* ONE line of who and where over the name (the owner: "consolidate the
+          information" — the serif statement and the descriptive line under
+          the name are gone; the chips carry the fields) */}
       <motion.div
         className="hero-eyebrow"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <span>Robotics</span><i aria-hidden="true" /><span>Embodied AI</span><i aria-hidden="true" /><span>New York</span>
+        <span>Robotics &amp; Embodied AI Engineer</span><i aria-hidden="true" /><span>New York &amp; San Francisco</span>
       </motion.div>
 
       <h1 id="hero-title" ref={nameRef} aria-label={NAME}>
@@ -184,25 +184,6 @@ export default function Hero() {
           </React.Fragment>
         ))}
       </h1>
-
-      {/* the line in the owner's words, as a serif statement with the three
-          verbs set in the accent italic, and the fields in a quieter line under it */}
-      <motion.p
-        className="hero-statement"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      >
-        Building robots that <em>see</em>, <em>learn</em> and <em>act</em>.
-      </motion.p>
-      <motion.p
-        className="hero-sub"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.85, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      >
-        Robotics engineer working on embodied AI — VLAs, world models, reinforcement learning and simulation
-      </motion.p>
 
       <div className="hero-chips">
         {KEYWORDS.map((k, i) => (
