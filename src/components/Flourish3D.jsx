@@ -1540,17 +1540,24 @@ export default function Flourish3D({ side = 'right' }) {
       const q = planarIK(planarTip(idleT * 0.9));
       return [PLANAR_REST[0] + (q[0] - PLANAR_REST[0]) * settleU, PLANAR_REST[1] + (q[1] - PLANAR_REST[1]) * settleU];
     };
-    // a hobby servo: its body behind the horn axis, the mounting tabs, the
-    // horn (a disc and a two-arm spline) in front
-    function planarServo(F, a, id) {
+    // a hobby servo, oriented as one is (the owner: "the servo motors are not
+    // oriented properly" — the shaft came out of the big side face): the
+    // output spline rises from the small 40 x 20 TOP face, 10 mm from its
+    // centre, and faces the viewer along the joint axis; the 38 mm body runs
+    // BACK behind it; the mounting tabs stick out of its short ends a little
+    // below the top. `off` is which way the body lies from the shaft (+1
+    // along the frame's x, -1 against it).
+    function planarServo(F, a, id, off = 1) {
       const pa = a * (partA ? (partA[id] ?? 0) : 1);
       if (pa <= 0.004) return;
       capId = id;
       const bx = (w, h, d, x, y, z, mat) => { submit(boxFaces(w, h, d, x, y, z), F, mat, pa); submitLines(boxWire(w, h, d, x, y, z), F, matLine[mat], LOOK.line * pa, LOOK.width); };
-      bx(40, 38, 20, 0, 9, -10, MAT.poly);              // body
-      bx(56, 3, 20, 0, -2, -10, MAT.poly);              // mounting tabs
-      submitLines([ringAt(3, -24, -2, 0.2, 8), ringAt(3, 24, -2, 0.2, 8)], F, matLine[MAT.steel], LOOK.line * pa, LOOK.width);
-      submit(drum(6, 0, 3), F, MAT.steel, pa);          // the output spline
+      const cx = 10 * off;
+      bx(40, 20, 38, cx, 0, -19, MAT.poly);             // body, running back from the top face
+      bx(56, 18, 3, cx, 0, -8, MAT.poly);               // mounting tabs, off the short ends
+      submitLines([ringAt(2.4, cx - 24, 0, -6.4, 8), ringAt(2.4, cx + 24, 0, -6.4, 8)], F, matLine[MAT.steel], LOOK.line * pa, LOOK.width);
+      submitLines([rect(34, 14, cx, 0, 0.1)], F, matLine[MAT.poly], LOOK.line * 0.6 * pa, LOOK.width);   // the case's top seam
+      submit(drum(6, 0, 3), F, MAT.steel, pa);          // the output spline, on the axis
       submitLines(drumWire(6, 0, 3), F, matLine[MAT.steel], LOOK.line * pa, LOOK.width);
     }
     // a printed link: a flat stadium from its joint along +x
@@ -1569,15 +1576,15 @@ export default function Flourish3D({ side = 'right' }) {
       const pb = a * baseA * (partA ? (partA.base ?? 0) : 1);
       if (pb > 0.004) {
         capId = 'base';
-        submit(boxFaces(150, 10, 80, 0, 33, -10), H, MAT.paint, pb);
-        submitLines(boxWire(150, 10, 80, 0, 33, -10), H, matLine[MAT.paint], LOOK.line * pb, LOOK.width);
+        submit(boxFaces(150, 10, 80, 10, 15, -20), H, MAT.paint, pb);
+        submitLines(boxWire(150, 10, 80, 10, 15, -20), H, matLine[MAT.paint], LOOK.line * pb, LOOK.width);
       }
       planarServo(H, a, 'servo1');
       const J1 = chain(H, place(rotZ(-q[0]), [0, 0, 6]));             // link 1 on the shoulder horn — with GAPS between every layer: touching faces traded places in the depth sort and the parts looked to pass through each other
       planarLink(J1, PL.L1, a, 'link1');
       const E = chain(J1, place(IDENT, [PL.L1, 0, 4]));                 // the elbow servo rides the link's end
-      planarServo(chain(E, place(IDENT, [0, 0, 30])), a, 'servo2');
-      const J2 = chain(E, place(rotZ(-q[1]), [0, 0, 37]));             // link 2 on the elbow horn
+      planarServo(chain(E, place(IDENT, [0, 0, 41])), a, 'servo2', -1);   // its body lies back along link 1, 3 mm clear of it
+      const J2 = chain(E, place(rotZ(-q[1]), [0, 0, 48]));             // link 2 on the elbow horn
       planarLink(J2, PL.L2, a, 'link2');
       const Tip = chain(J2, place(IDENT, [PL.L2, 0, 6]));
       const pt = a * (partA ? (partA.tip ?? 0) : 1);
@@ -1590,7 +1597,7 @@ export default function Flourish3D({ side = 'right' }) {
       // what the pen has drawn: the last stretch of the figure, fading
       if (trail && !cap) {
         const pts = [];
-        for (let i = 0; i <= 40; i++) { const p = planarTip(idleT * 0.9 - i * 0.07); pts.push([p[0], p[1], 56]); }
+        for (let i = 0; i <= 40; i++) { const p = planarTip(idleT * 0.9 - i * 0.07); pts.push([p[0], p[1], 64]); }
         stroke([pts], H, copper, 0.7 * trail * a, 1.6);
       }
       return Tip;

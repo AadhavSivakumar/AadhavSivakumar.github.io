@@ -1391,6 +1391,15 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, the 2R arm's servos** (the owner: "the servo motors are not
+oriented properly"): the output spline came out of the servo's big side
+face. `planarServo(F, a, id, off)` now draws a hobby servo as one is: the
+spline on the small 40 x 20 TOP face, 10 mm off centre, facing the viewer
+along the joint axis; the 38 mm body running back behind it; the mounting
+tabs off its short ends, a top seam. The shoulder servo sits body-down on
+the base plate; the elbow servo lies back along link 1 (`off` -1), 3 mm
+clear of it, with link 2 on its spline at z 48 and the pen's trace at z 64.
+
 **Sept 28, sixth round.** Waves: a point every ~6 px joined by quadratic
 curves through the midpoints (straight segments showed their corners on
 the thick top rows). The D435i: the stereo module and the PCB were
