@@ -1490,3 +1490,39 @@ html[data-theme="dark"] .resume-frame { background: #2a2a2a; }
 .skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface-color); color: var(--text-color); font: 500 0.76rem 'Poppins', sans-serif; cursor: pointer; }
 .skill-chip i { width: 15px; height: 15px; flex: 0 0 auto; background: var(--accent-ink); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 @media (max-width: 991px) { .resume-layout { grid-template-columns: 1fr; height: auto; } .resume-viewer { height: 70vh; } }
+
+/* ── the hero, premium pass ──────────────────────────────────────────────
+   An eyebrow of tracked small caps between hairlines; the statement in the
+   display serif with its verbs in the accent italic; the descriptive line
+   quieter under it; and the chips as fine GLASS pills — a hairline gold
+   border, near-clear fill, small tracked caps — instead of the glossy gold
+   gradient buttons (which read as UI, not as a signature). */
+.hero-eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; font: 600 0.72rem 'Poppins', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; color: var(--accent-ink); }
+.hero-eyebrow i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent-color); opacity: 0.8; }
+.hero-eyebrow::before, .hero-eyebrow::after { content: ""; width: clamp(24px, 6vw, 64px); height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-color) 70%, transparent)); }
+.hero-eyebrow::after { transform: scaleX(-1); }
+#hero h1 { margin-bottom: 12px; }
+#hero p.hero-statement { font-family: 'Playfair Display', serif; font-size: clamp(1.35rem, 2.6vw, 2rem); font-weight: 700; color: var(--text-color); letter-spacing: -0.005em; margin: 0 0 10px; }
+#hero p.hero-statement em { font-style: italic; color: var(--accent-ink); background: linear-gradient(100deg, var(--accent-ink) 20%, color-mix(in srgb, var(--accent-ink) 55%, var(--accent-color)) 50%, var(--accent-ink) 80%);   /* the sheen stays above 3:1 (large text): the plain accent is 2.2:1 on the light page */ background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: hero-sheen 6s ease-in-out infinite; }
+@keyframes hero-sheen { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0% 0; } }
+#hero p.hero-sub { font-size: clamp(0.9rem, 1.4vw, 1.02rem); color: var(--secondary-color); letter-spacing: 0.01em; margin: 0; max-width: 900px; }
+.hero-chips { gap: 10px; margin-top: 28px; }
+:root {
+  --chip-ink: var(--text-color);
+  --chip-fill: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.22));
+  --chip-border: color-mix(in srgb, var(--accent-color) 55%, transparent);
+  --chip-top-hi: 0.6;
+  --chip-shade: rgba(120,90,20,0.10);
+  --chip-txtshadow: none;
+}
+html[data-theme="dark"] {
+  --chip-fill: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  --chip-border: color-mix(in srgb, var(--accent-color) 45%, transparent);
+  --chip-top-hi: 0.18;
+  --chip-shade: rgba(0,0,0,0.25);
+}
+.hero-chip { font-weight: 500; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 9px 18px;
+  box-shadow: inset 0 1px 0.5px rgba(255,255,255,var(--chip-top-hi)), 0 1px 8px -4px rgba(60,45,10,0.25); }
+.hero-chip:hover, .hero-chip:focus-visible { color: var(--accent-ink); }
+#hero[data-idle] p.hero-statement em { animation-play-state: paused; }   /* no loop while the hero is off screen */
+@media (prefers-reduced-motion: reduce) { #hero p.hero-statement em { animation: none; } }

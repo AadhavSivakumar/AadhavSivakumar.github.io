@@ -685,9 +685,9 @@ const D435 = [
   ...D435_APERTURES.map(([x, r], i) => ({ id: `lens${i}`, mat: MAT.poly, glass: true,
     solid: [...surface([[12.6, r], [15, r]], 16).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })), ...disc(0, r, 15, 16).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n }))],
     wire: [ringAt(r, x, 0, 15.05, 20), ringAt(r * 0.55, x, 0, 15.1, 14)], out: 48, order: 0 })),
-  { id: 'module', mat: MAT.steel, solid: [...boxFaces(84, 20, 6, 0, 0, 4), ...[-32, 18].flatMap(x => drum(3.6, 7, 8.8).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })))],
-    wire: [...boxWire(84, 20, 6, 0, 0, 4), ...[-32, 18].map(x => ringAt(3.6, x, 0, 8.9, 14))], out: 14, order: 2 },
-  { id: 'pcb', mat: MAT.iron, solid: boxFaces(82, 20, 2, 0, -1, -2), wire: boxWire(82, 20, 2, 0, -1, -2), out: -30, order: 3 },
+  { id: 'module', mat: MAT.steel, solid: [...boxFaces(80, 15, 6, 0, 0, 4), ...[-32, 18].flatMap(x => drum(3.6, 7, 8.8).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })))],
+    wire: [...boxWire(80, 15, 6, 0, 0, 4), ...[-32, 18].map(x => ringAt(3.6, x, 0, 8.9, 14))], out: 14, order: 2 },   // 80 x 15: at 84 x 20 its corners came out through the casing's round ends
+  { id: 'pcb', mat: MAT.iron, solid: boxFaces(78, 15, 2, 0, 0, -2), wire: boxWire(78, 15, 2, 0, 0, -2), out: -30, order: 3 },
 ];
 // the Ultra unit's torso: a rounded-rectangle section (x forward 150, y
 // across 200, corner radius 24) extruded up its 330 mm
@@ -1573,13 +1573,13 @@ export default function Flourish3D({ side = 'right' }) {
         submitLines(boxWire(150, 10, 80, 0, 33, -10), H, matLine[MAT.paint], LOOK.line * pb, LOOK.width);
       }
       planarServo(H, a, 'servo1');
-      const J1 = chain(H, place(rotZ(-q[0]), [0, 0, 3]));             // link 1 on the shoulder horn
+      const J1 = chain(H, place(rotZ(-q[0]), [0, 0, 6]));             // link 1 on the shoulder horn — with GAPS between every layer: touching faces traded places in the depth sort and the parts looked to pass through each other
       planarLink(J1, PL.L1, a, 'link1');
       const E = chain(J1, place(IDENT, [PL.L1, 0, 4]));                 // the elbow servo rides the link's end
-      planarServo(chain(E, place(IDENT, [0, 0, 20])), a, 'servo2');
-      const J2 = chain(E, place(rotZ(-q[1]), [0, 0, 23]));             // link 2 on the elbow horn
+      planarServo(chain(E, place(IDENT, [0, 0, 30])), a, 'servo2');
+      const J2 = chain(E, place(rotZ(-q[1]), [0, 0, 37]));             // link 2 on the elbow horn
       planarLink(J2, PL.L2, a, 'link2');
-      const Tip = chain(J2, place(IDENT, [PL.L2, 0, 4]));
+      const Tip = chain(J2, place(IDENT, [PL.L2, 0, 6]));
       const pt = a * (partA ? (partA.tip ?? 0) : 1);
       if (pt > 0.004) {
         capId = 'tip';
@@ -1590,7 +1590,7 @@ export default function Flourish3D({ side = 'right' }) {
       // what the pen has drawn: the last stretch of the figure, fading
       if (trail && !cap) {
         const pts = [];
-        for (let i = 0; i <= 40; i++) { const p = planarTip(idleT * 0.9 - i * 0.07); pts.push([p[0], p[1], 30]); }
+        for (let i = 0; i <= 40; i++) { const p = planarTip(idleT * 0.9 - i * 0.07); pts.push([p[0], p[1], 56]); }
         stroke([pts], H, copper, 0.7 * trail * a, 1.6);
       }
       return Tip;
@@ -1643,6 +1643,23 @@ export default function Flourish3D({ side = 'right' }) {
         }
       }
       flush();
+      // THE CAPTURE CONE (the owner: "project a cone out from the lens, like
+      // it's capturing the scene"): the RGB imager's field of view, 69° x 42°
+      // as Intel specifies it, drawn out from the lens as a faint pyramid; while
+      // settled a frame of light sweeps out along it at every shutter
+      const coneA = (t > 0 ? 1 - smooth(win(t, 0.01, 0.12)) : 1) * alpha * (partA ? (partA.lens3 ?? 0) : 1);
+      if (coneA > 0.01 && !cap) {
+        const D = 40, hw = D * Math.tan(34.5 * DEG), hh = D * Math.tan(21 * DEG);
+        const L = chain(home, place(IDENT, [D435_RGB_X, 0, 15.2]));
+        const far = [[-hw, -hh, D], [hw, -hh, D], [hw, hh, D], [-hw, hh, D]];
+        const o = [0, 0, 0];
+        fill([[o, far[0], far[1], o], [o, far[1], far[2], o], [o, far[2], far[3], o], [o, far[3], far[0], o]], L, copper, 0.05 * coneA);
+        stroke([...far.map(c => [o, c]), [...far, far[0]]], L, copper, 0.45 * coneA, 1);
+        if (idleOn && t <= 0) {
+          const f = (idleT % SHUTTER) / SHUTTER;
+          if (f < 0.6) { const d = f / 0.6, r = far.map(c => [c[0] * d, c[1] * d, c[2] * d]); stroke([[...r, r[0]]], L, copper, 0.8 * (1 - d) * coneA, 1.4); }
+        }
+      }
       // TAKING PICTURES: the RGB aperture's iris shuts and opens over ~0.34s
       // and its rim flashes. Drawn after the flush, on top; only while the
       // page is settled — a shutter frozen half-shut looks broken.

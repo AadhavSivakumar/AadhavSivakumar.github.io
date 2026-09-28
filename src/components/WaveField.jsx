@@ -109,13 +109,19 @@ export default function WaveField() {
         if (a <= 0.004) continue;
         ctx.globalAlpha = a;
         ctx.lineWidth = STROKE_TOP + (STROKE_BOTTOM - STROKE_TOP) * (i / (ROWS - 1));
+        // SMOOTH: a point every ~6 px, joined by quadratic curves through the
+        // midpoints (straight segments showed their corners on the thick top
+        // rows — "I can still see individual segments")
         ctx.beginPath();
-        const N = 90;
-        for (let q = 0; q <= N; q++) {
-          const xs = (W * q) / N;
-          const y = fieldY(i, yv, xs, phase, freq, bulgeH);
-          if (q) ctx.lineTo(xs, y); else ctx.moveTo(xs, y);
+        const N = Math.max(120, Math.round(W / 6));
+        let px = 0, py = fieldY(i, yv, 0, phase, freq, bulgeH);
+        ctx.moveTo(px, py);
+        for (let q = 1; q <= N; q++) {
+          const xs = (W * q) / N, y = fieldY(i, yv, xs, phase, freq, bulgeH);
+          ctx.quadraticCurveTo(px, py, (px + xs) / 2, (py + y) / 2);
+          px = xs; py = y;
         }
+        ctx.lineTo(px, py);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;

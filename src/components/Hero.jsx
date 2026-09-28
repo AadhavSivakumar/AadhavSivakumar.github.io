@@ -110,7 +110,7 @@ export default function Hero() {
 
 
   return (
-    <section id="hero" ref={heroRef} aria-labelledby="hero-title">
+    <section id="hero" data-idle={heroOnScreen ? undefined : "1"} ref={heroRef} aria-labelledby="hero-title">
       {/* The sine field behind this is the WaveField canvas in App.jsx — fixed
           to the viewport so it can leave the hero and become the two side
           pieces. The glass chips refract it through backdrop-filter. */}
@@ -157,6 +157,18 @@ export default function Hero() {
         <img src={portrait} alt="" width="480" height="480" decoding="async" fetchpriority="high" />
       </motion.div>
 
+      {/* A quiet EYEBROW over the name: what and where, tracked small caps
+          between hairlines — the owner asked for the tagline to look more
+          premium */}
+      <motion.div
+        className="hero-eyebrow"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <span>Robotics</span><i aria-hidden="true" /><span>Embodied AI</span><i aria-hidden="true" /><span>New York</span>
+      </motion.div>
+
       <h1 id="hero-title" ref={nameRef} aria-label={NAME}>
         {NAME.split(' ').map((word, wi, words) => (
           <React.Fragment key={wi}>
@@ -170,10 +182,21 @@ export default function Hero() {
         ))}
       </h1>
 
+      {/* the line in the owner's words, as a serif statement with the three
+          verbs set in the accent italic, and the fields in a quieter line under it */}
       <motion.p
+        className="hero-statement"
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        Building robots that <em>see</em>, <em>learn</em> and <em>act</em>.
+      </motion.p>
+      <motion.p
+        className="hero-sub"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.85, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
         Robotics engineer working on embodied AI — VLAs, world models, reinforcement learning and simulation
       </motion.p>

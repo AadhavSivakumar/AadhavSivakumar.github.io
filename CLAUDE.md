@@ -1352,6 +1352,25 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, sixth round.** Waves: a point every ~6 px joined by quadratic
+curves through the midpoints (straight segments showed their corners on
+the thick top rows). The D435i: the stereo module and the PCB were
+rectangles wider than the casing's rounded ends (84 x 20 and 82 x 20 in a
+stadium of radius 12.5), so their corners came out through the shell as
+little tabs; they are 80 x 15 and 78 x 15 now. The CAPTURE CONE: the RGB
+imager's 69° x 42° field of view drawn out from its lens (40 mm), a faint
+pyramid with a frame of light sweeping out along it at every shutter while
+settled; it goes as the camera explodes. The 2R arm: its layers touched
+face to face (horn, link, servo, horn, link), traded places in the depth
+sort and looked to pass through each other; they have gaps now (link 1 at
+z 6, the elbow servo 20-40, link 2 at 46, the pen at 56). The HERO: an
+eyebrow of tracked small caps between hairlines ("Robotics · Embodied AI ·
+New York"), a serif statement ("Building robots that see, learn and act.",
+the verbs in an accent italic with a slow sheen kept above 3:1, paused
+off screen via `#hero[data-idle]`), the owner's descriptive line under it,
+and the chips as fine glass pills — hairline gold border, near-clear
+fill, tracked small caps — instead of the glossy gold gradient.
+
 **Sept 28, fifth round: the waves are their own thing.** The owner: "you
 don't have to make the sine waves become the animation, the sine waves can
 be their own thing. hopefully that saves on compute/lag. Also, make the
