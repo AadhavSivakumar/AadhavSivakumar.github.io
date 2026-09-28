@@ -1352,6 +1352,27 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, third round: the world model IS one; the gripper grips; the end
+is 3D.** (1) Act 3 used to relabel the VLA's own stack "world model"; now it
+draws a latent world model (Dreamer / Cosmos style): the frame's tokens
+GATHER into z_t (the encoder), a chain of latent blocks (`drawLatents`,
+`LAT_X`, `LAT_Y`) steps z → z' with an action dropping into every step from
+the action chunk (the dynamics), and each predicted latent decodes down
+into an imagined frame (`drawFilmstrip`). The VLA's layers and instruction
+step back as it forms. The dashed "rollouts" are gone (`drawFutures`
+deleted). (2) The pick loop is abstract keys (`PICK_KEYS`: spot, level,
+open, phase) shared by the picture (`pickAt`) and the 3D table (`pick3At`).
+The phases were one key late — the closed gripper lifted off without the
+cube, then the cube rode up with the gripper after it let go — and the
+fingers closed to inside the cube; now the phase is the cube's state during
+the segment a key starts, and the fingers close onto its faces. (3) Act 5
+is 3D: `drawWorldAct(t, real, pk)` — the same workspace the simulator stood
+on turns into a solid table (grid, twins, curve, frustum fade by
+`1 - real`), the cubes are cubes in their own colours at their own sizes
+(`CUBE3`; heights used to come from detection confidence and the green and
+blue went grey), and a 3D gripper comes down and runs the loop. Checked by
+settled montages at 12 moments, 2D and 3D.
+
 **Sept 28, later: act one rebuilt, acts 2-3 in depth** (the owner: "more
 refined… maybe in 3d. The camera at the start should explode better and
 expose the sensor more interestingly"). `EXPLODE` gives every D435 part a

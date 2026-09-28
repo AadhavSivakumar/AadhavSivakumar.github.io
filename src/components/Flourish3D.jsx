@@ -2406,23 +2406,47 @@ export default function Flourish3D({ side = 'right' }) {
     const SCENE_CUBES = [{ c: CUBE_A, s: 15, col: RED }, { c: [30, 16], s: 13, col: MAT_HEX[MAT.green] }, { c: [-33, 19], s: 11, col: MAT_HEX[MAT.blue] }];
     const GRIP_HOME = [-22, -30];
     const PICK_PERIOD = 8;
-    // one loop: over A, down, close, lift, over B, down, open, up — and back
+    // THE PICK LOOP, as abstract keys so the 2D picture and the 3D table run
+    // the same motion: [u, spot (H home, A, B), level (1 high, 0 at the cube),
+    // open (1 open, 0 closed), phase — where the red cube is DURING the
+    // segment that starts at this key: 0 resting at A, 1 carried, 2 resting at
+    // B, 3 carried back]. The phases used to be one key late: the closed
+    // gripper lifted off leaving the cube on the table, then the cube rode up
+    // with the gripper after it had let go (the owner: "the gripper gripping
+    // the cube … is not behaving properly").
     const PICK_KEYS = [
-      [0, GRIP_HOME, 1, 0], [0.1, [CUBE_A[0], -26], 1, 0], [0.18, [CUBE_A[0], CUBE_A[1] - 9], 1, 0], [0.22, [CUBE_A[0], CUBE_A[1] - 9], 0, 0],
-      [0.32, [CUBE_A[0], -26], 0, 1], [0.42, [CUBE_B[0], -26], 0, 1], [0.5, [CUBE_B[0], CUBE_B[1] - 9], 0, 1], [0.54, [CUBE_B[0], CUBE_B[1] - 9], 1, 1],
-      [0.6, [CUBE_B[0], -26], 1, 2], [0.66, [CUBE_B[0], -26], 1, 2], [0.72, [CUBE_B[0], CUBE_B[1] - 9], 1, 2], [0.76, [CUBE_B[0], CUBE_B[1] - 9], 0, 2],
-      [0.84, [CUBE_A[0], -26], 0, 3], [0.9, [CUBE_A[0], CUBE_A[1] - 9], 0, 3], [0.94, [CUBE_A[0], CUBE_A[1] - 9], 1, 3], [1, GRIP_HOME, 1, 0],
+      [0, 'H', 1, 1, 0], [0.1, 'A', 1, 1, 0], [0.18, 'A', 0, 1, 0], [0.22, 'A', 0, 0, 1],
+      [0.32, 'A', 1, 0, 1], [0.42, 'B', 1, 0, 1], [0.5, 'B', 0, 0, 1], [0.54, 'B', 0, 1, 2],
+      [0.6, 'B', 1, 1, 2], [0.66, 'B', 1, 1, 2], [0.72, 'B', 0, 1, 2], [0.76, 'B', 0, 0, 3],
+      [0.84, 'A', 1, 0, 3], [0.9, 'A', 0, 0, 3], [0.94, 'A', 0, 1, 0], [1, 'H', 1, 1, 0],
     ];
-    // gripper position, opening (1 open) and where the red cube is, u 0..1
     const pickU = live => (live ? (idleT / PICK_PERIOD) % 1 : 0);
-    const pickAt = u => {
+    const pickKey = u => {
       u = ((u % 1) + 1) % 1;
       let i = 0; while (i < PICK_KEYS.length - 2 && PICK_KEYS[i + 1][0] <= u) i++;
-      const [u0, p0, o0, ph] = PICK_KEYS[i], [u1, p1, o1] = PICK_KEYS[i + 1];
-      const f = smooth(clamp((u - u0) / Math.max(1e-6, u1 - u0), 0, 1));
-      const g = [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f], open = o0 + (o1 - o0) * f;
-      // phase: 0 cube at A, 1 carried A→B, 2 cube at B, 3 carried B→A
-      const cube = ph === 1 || ph === 3 ? [g[0], g[1] + 9] : ph === 2 ? CUBE_B : CUBE_A;
+      const k0 = PICK_KEYS[i], k1 = PICK_KEYS[i + 1];
+      return { k0, k1, f: smooth(clamp((u - k0[0]) / Math.max(1e-6, k1[0] - k0[0]), 0, 1)) };
+    };
+    // in the picture: the fingers straddle the cube's middle (the gripper is
+    // 3 above the cube's centre when down), and close ONTO its sides
+    const spot2 = (sp, lv) => (sp === 'H' ? GRIP_HOME : lv ? [(sp === 'A' ? CUBE_A : CUBE_B)[0], -26] : [(sp === 'A' ? CUBE_A : CUBE_B)[0], (sp === 'A' ? CUBE_A : CUBE_B)[1] - 3]);
+    const pickAt = u => {
+      const { k0, k1, f } = pickKey(u);
+      const p0 = spot2(k0[1], k0[2]), p1 = spot2(k1[1], k1[2]);
+      const g = [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f], open = k0[3] + (k1[3] - k0[3]) * f;
+      const ph = k0[4];
+      const cube = ph === 1 || ph === 3 ? [g[0], g[1] + 3] : ph === 2 ? CUBE_B : CUBE_A;
+      return { g, open, cube };
+    };
+    // on the 3D table (act 4's ground frame: picture x, picture y, height)
+    const CUBE3 = [16, 14, 12];                      // red, green, blue: the scene's cubes, as cubes
+    const spot3 = (sp, lv) => (sp === 'H' ? [-24, 4, 46] : [...(sp === 'A' ? CUBE_A : CUBE_B), lv ? 34 : CUBE3[0] / 2]);
+    const pick3At = u => {
+      const { k0, k1, f } = pickKey(u);
+      const p0 = spot3(k0[1], k0[2]), p1 = spot3(k1[1], k1[2]);
+      const g = p0.map((v, i) => v + (p1[i] - v) * f), open = k0[3] + (k1[3] - k0[3]) * f;
+      const ph = k0[4];
+      const cube = ph === 1 || ph === 3 ? g : ph === 2 ? [...CUBE_B, CUBE3[0] / 2] : [...CUBE_A, CUBE3[0] / 2];
       return { g, open, cube };
     };
     function drawCubeImg(T, c, s, col, a) {
@@ -2441,11 +2465,11 @@ export default function Flourish3D({ side = 'right' }) {
       for (const q of cubes) if (q !== cubes[0] || st.cube === CUBE_A || st.cube === CUBE_B) fill([rect(q.s * 1.1, q.s * 0.28, q.c[0] + 2, q.c[1] + q.s * 0.42, 1.8)], T, ink, 0.12 * a);   // no shadow while carried
       cubes.slice().sort((p, q) => p.c[1] - q.c[1]).forEach(q => drawCubeImg(T, q.c, q.s, q.col, a));
       // the gripper coming down from above the frame: stem, wrist, two fingers
-      const [gx, gy] = st.g, o = 4 + st.open * 6;
-      stroke([[[gx, -39, 2.4], [gx, gy - 9, 2.4]]], T, ink, 0.7 * a, 2);
-      fill([rect(18, 6, gx, gy - 7, 2.4)], T, ink, 0.75 * a);
-      fill([rect(3, 10, gx - o, gy, 2.4), rect(3, 10, gx + o, gy, 2.4)], T, ink, 0.8 * a);
-      fill([rect(3, 3, gx - o, gy + 4, 2.5), rect(3, 3, gx + o, gy + 4, 2.5)], T, copper, 0.9 * a);
+      const [gx, gy] = st.g, o = SCENE_CUBES[0].s / 2 + 1.5 + st.open * 5;   // closed = on the cube's faces, not through them
+      stroke([[[gx, -39, 2.4], [gx, gy - 11, 2.4]]], T, ink, 0.7 * a, 2);
+      fill([rect(2 * o + 5, 5, gx, gy - 9, 2.4)], T, ink, 0.75 * a);
+      fill([rect(3, 12, gx - o, gy - 1, 2.4), rect(3, 12, gx + o, gy - 1, 2.4)], T, ink, 0.8 * a);
+      fill([rect(3, 3, gx - o, gy + 5, 2.5), rect(3, 3, gx + o, gy + 5, 2.5)], T, copper, 0.9 * a);
     }
     // the photosites RESOLVE into the picture: r 0 pixels, 1 the scene
     function drawFrameImage(T, r, st, frame) {
@@ -2454,16 +2478,19 @@ export default function Flourish3D({ side = 'right' }) {
     }
     // the patches fly off the picture and line up as tokens; `travel` 0..1,
     // `hot` the token in focus (-1 none)
-    function drawVisionTokens(T, alpha, travel, hot) {
+    function drawVisionTokens(T, alpha, travel, hot, gather = 0) {
       if (alpha <= 0.01 || travel <= 0.001) return;
+      if (gather > 0) alpha *= 1 - smooth(win(gather, 0.75, 0.25));
+      if (alpha <= 0.01) return;
       const k0 = detScale(T.m), buckets = [[], [], [], []], sides = [[], [], [], []], objs = [];
       for (let k = 0; k < NTOK; k++) {
         const w = smooth(clamp(travel * 1.7 - k * 0.055, 0, 1));
         if (w <= 0.001) continue;
         const src = k < 12 ? PATCH_C[k] : [DETS[0].x, DETS[0].y];
         const a = at3(T, [src[0], src[1], 3]);
-        const x = a[0] + (tokX(k) - a[0]) * w, y = a[1] + (ROW_V - a[1]) * w, z = a[2] * (1 - w);
-        const s0 = (k < 12 ? GRID_W / 4 : DETS[0].w) * k0 * 0.8, sz = s0 + (TOK - s0) * w;
+        const gk = gather > 0 ? smooth(clamp(gather * 1.6 - k * 0.045, 0, 1)) : 0;   // into z_t: the ENCODER
+        const x = a[0] + (tokX(k) - a[0]) * w + (LAT_X(0) - tokX(k)) * gk, y = a[1] + (ROW_V - a[1]) * w + (LAT_Y - ROW_V) * gk, z = a[2] * (1 - w);
+        const s0 = (k < 12 ? GRID_W / 4 : DETS[0].w) * k0 * 0.8, sz = (s0 + (TOK - s0) * w) * (1 - 0.7 * gk);
         const v = k < 12 ? PATCH_V[k] : 1;
         // a flat patch on the picture becomes a CUBE as it arrives: the token
         // gains depth (its sides drawn first, the face over them)
@@ -2616,68 +2643,68 @@ export default function Flourish3D({ side = 'right' }) {
       const d = DETS[0];
       return [d.x + sv * 30, d.y - sv * 10 + r * sv * 16 - Math.sin(sv * 3.1) * 5 * (1 - Math.abs(r) * 0.5)];
     };
-    // the detection and the rollouts, drawn on the picture at T; `f` how far
-    // out they are, `adv` the marker's position on the kept rollout (0 none).
-    // ONE function: the act that raises them and the act that lays them down
-    // both draw it.
-    function drawFutures(T, alpha, f, adv, cube) {
-      if (alpha <= 0.01 || f <= 0.01) return;
-      const d = cube ? { ...DETS[0], x: DETS[0].x + cube[0] - CUBE_A[0], y: DETS[0].y + cube[1] - CUBE_A[1] } : DETS[0];
-      stroke([rect(d.w, d.h, d.x, d.y, 3)], T, RED, 0.9 * alpha, 1.3);
-      const cx = d.w / 2, cy = d.h / 2, tk = 5;
-      stroke([
-        [[d.x - cx, d.y - cy + tk, 3], [d.x - cx, d.y - cy, 3], [d.x - cx + tk, d.y - cy, 3]],
-        [[d.x + cx - tk, d.y - cy, 3], [d.x + cx, d.y - cy, 3], [d.x + cx, d.y - cy + tk, 3]],
-        [[d.x - cx, d.y + cy - tk, 3], [d.x - cx, d.y + cy, 3], [d.x - cx + tk, d.y + cy, 3]],
-        [[d.x + cx - tk, d.y + cy, 3], [d.x + cx, d.y + cy, 3], [d.x + cx, d.y + cy - tk, 3]],
-      ], T, RED, 0.9 * alpha, 1.6);
-      // the rollouts, dashed — the dashes CRAWL while settled, so the futures
-      // read as being computed rather than printed
-      const crawl = adv > 0 ? (adv * 2) % (2 / 12) : 0;
-      for (const r of ROLLS) {
-        const dashes = [];
-        for (let i = -2; i < 12; i += 2) {
-          const s0 = clamp(i / 12 + crawl, 0, 1) * f, s1 = clamp((i + 1) / 12 + crawl, 0, 1) * f;
-          if (s1 - s0 < 0.005) continue;
-          const a = rollAt(r, s0), b = rollAt(r, s1); dashes.push([[a[0], a[1], 3], [b[0], b[1], 3]]);
+    // ── the WORLD MODEL, drawn as one (the owner: "it says world model… I'm
+    // not sure if the thing under it actually represents a world model" — it
+    // was the VLA's own stack relabelled). A latent world model, Dreamer /
+    // Cosmos style: an ENCODER turns the frame into a latent state z_t (the
+    // vision tokens gather into it); a DYNAMICS model takes z and the next
+    // action and predicts the next latent, again and again, without looking
+    // at the camera — the chain along the middle, an action dropping into
+    // each step from the policy's action chunk; and a DECODER turns every
+    // predicted latent back into a picture — the imagined frames along the
+    // bottom, each the scene further along the actions.
+    const LAT_Y = 30, LAT_X = k => -116 + k * 58;
+    const FILM_Y = 136, FILM_S = 0.48, FILM_DX = 58;
+    function drawLatents(grow, alpha, pulse) {
+      for (let k = 0; k <= 4; k++) {
+        const g = grow(k);
+        if (g <= 0.01) continue;
+        const L = place(scaleM((0.5 + 0.5 * g) * 1.3), [LAT_X(k), LAT_Y, 0]);
+        submit(boxFaces(26, 30, 12, 0, 0, -6), L, MAT.neutral, 0.75 * g * alpha);
+        submitLines(boxWire(26, 30, 12, 0, 0, -6), L, slate, 0.5 * g * alpha, 1);
+        flush();
+        // the latent vector: a column of cells, each with its own value
+        const cells = [[], []];
+        for (let c = 0; c < 5; c++) (hash(c * 3.3 + k * 1.9) > 0.5 ? cells[1] : cells[0]).push(rect(16, 3.4, 0, -10 + c * 5, 0.5));
+        fill(cells[0], L, slate, 0.35 * g * alpha); fill(cells[1], L, copper, 0.7 * g * alpha);
+        // the dynamics step to the next latent, the action dropping into it
+        if (k < 4 && grow(k + 1) > 0.01) {
+          const g2 = grow(k + 1), x0 = LAT_X(k) + 18, x1 = LAT_X(k + 1) - 18;
+          stroke([[[x0, LAT_Y, 0], [x0 + (x1 - x0) * g2, LAT_Y, 0]], [[x1 - 5, LAT_Y - 3, 0], [x1, LAT_Y, 0], [x1 - 5, LAT_Y + 3, 0]]], I0, slate, 0.6 * g2 * alpha, 1.2);
+          const mx = (x0 + x1) / 2;
+          fill([rect(9, 9, mx, LAT_Y - 26, 0)], I0, copper, 0.85 * g2 * alpha);       // a_t: one action of the chunk
+          stroke([[[mx, LAT_Y - 21, 0], [mx, LAT_Y - 2, 0]]], I0, copper, 0.6 * g2 * alpha, 1);
         }
-        stroke(dashes, T, r === 0 ? ink : slate, (r === 0 ? 0.7 : 0.35) * alpha, r === 0 ? 1.5 : 1);
       }
-      if (adv > 0) {
-        const p = rollAt(0, adv);
-        const ma = smooth(win(adv, 0, 0.12)) * (1 - smooth(win(adv, 0.84, 0.16)));
-        fill([rect(7, 7, p[0], p[1], 4)], T, RED, 0.9 * alpha * ma);
-        stroke([rect(7, 7, p[0], p[1], 4)], T, ink, 0.6 * alpha * ma, 1);
+      if (pulse != null) {                               // the rollout running down the chain
+        const x = LAT_X(0) + pulse * (LAT_X(4) - LAT_X(0));
+        fill([rect(5, 5, x, LAT_Y, 1)], I0, copper, 0.95 * alpha);
       }
     }
-    // the imagined frames: the sensor's grid re-lit with the bright blob
-    // moved along the kept rollout, the cube boxed where the model puts it
-    const FILM_Y = 132, FILM_S = 0.48, FILM_DX = 60;
+    // the imagined frames, decoded from latents 1..4
     function drawFilmstrip(alpha, grow, phase) {
       for (let k = 1; k <= 4; k++) {
         const g = grow(k);
         if (g <= 0.01 || alpha <= 0.01) continue;
-        const x = (k - 2.5) * FILM_DX, y = FILM_Y - (1 - g) * 44;
+        const x = LAT_X(k), y = FILM_Y - (1 - g) * 44;
         const G = place(scaleM(FILM_S * (0.5 + 0.5 * g)), [x, y, 0]);
-        stroke([[[0, LAYER_Y[3] + 7, -9], [x, y - 44 * FILM_S * (0.5 + 0.5 * g), 0]]], I0, slate, 0.35 * g * alpha, 1);
+        stroke([[[x, LAT_Y + 20, 0], [x, y - 43 * FILM_S * (0.5 + 0.5 * g), 0]]], I0, slate, 0.45 * g * alpha, 1);   // decode
         submit(plate(112, 86, 0, 0, -0.5), G, MAT.neutral, 0.7 * g * alpha); flush();
-        // further out, less certain: the frames soften as they go
-        const conf = 1 - (k - 1) * 0.14;
+        const conf = 1 - (k - 1) * 0.14;                 // further out, less certain
         stroke([rect(112, 86, 0, 0, 0)], G, slate, 0.55 * g * alpha, 1);
         drawScene(G, g * alpha * conf, pickAt(phase + k * 0.075));
       }
-      caption('imagined futures', 0, FILM_Y + 34, 0, 0.6 * alpha * grow(4), 'center');
+      caption('imagined frames', LAT_X(2.5), FILM_Y + 30, 0, 0.6 * alpha * grow(4), 'center');
     }
-    // everything act 3 ends with apart from the picture, the patch grid and
-    // the futures: act 4 draws it too, fading, or the boundary jumps
+    // everything act 3 ends with apart from the picture: act 4 draws it too,
+    // fading, or the boundary jumps
     function drawWMRest(alpha, live) {
-      const hot = live ? Math.floor(idleT * 2.4) % NTOK : -1;
-      drawVisionTokens(sensorPlace(SENSOR_VLA), alpha, 1, hot);
-      drawLayers(() => 1, live ? (idleT % 2.2) / 2.2 : 1, alpha, hot, 5);
-      caption('world model', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * alpha);
-      stroke([[[0, ROW_L + 16, 0], [0, LAYER_Y[0] - 7, 0]]], I0, slate, 0.45 * alpha, 1);
-      drawActionBars(alpha, pickU(live), ACT_P1, 'actions', 1);
-      drawFilmstrip(alpha, () => 1, pickU(live));
+      const ph = pickU(live);
+      drawLatents(() => 1, alpha, live ? (idleT / 1.6) % 1 : null);
+      caption('world model', LAT_X(0) - 17, LAT_Y - 30, 0, 0.7 * alpha);
+      drawActionBars(alpha, ph, ACT_P1, 'actions', 1);
+      stroke([[[ACT_P1.x, ACT_P1.y + 15, 0], [LAT_X(2), LAT_Y - 26, 0]]], I0, copper, 0.35 * alpha, 1);
+      drawFilmstrip(alpha, () => 1, ph);
     }
     function drawDetectAct(t) {
       if (t >= 1) {
@@ -2685,8 +2712,7 @@ export default function Flourish3D({ side = 'right' }) {
         const T = sensorPlace(SENSOR_DET), live = idleOn;
         drawScene(T, 1, pickAt(pickU(live)));
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
-          drawWMRest(1, live);
-        drawFutures(T, 1, 1, live ? smooth((idleT % 4) / 4) : 0, pickAt(pickU(live)).cube);
+        drawWMRest(1, live);
         return;
       }
       const u = smooth(t);
@@ -2694,22 +2720,23 @@ export default function Flourish3D({ side = 'right' }) {
       const T = sensorPlace(SENSOR_DET);
       drawScene(T, 1, pickAt(0));
       stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
-      const was = 1 - smooth(win(t, 0, 0.35));
-      drawVisionTokens(T, 1, 1, -1);
+      // the policy (VLA) steps back: its instruction and its layers go; the
+      // frame's tokens gather into the world model's first latent
+      const was = 1 - smooth(win(t, 0, 0.3));
+      drawVisionTokens(T, 1, 1, -1, smooth(win(t, 0.08, 0.34)));
       drawLang(was, -1);
-      drawLayers(() => 1, 1, 1, -1, 5 * smooth(win(t, 0.3, 0.1)) >= 2.5 ? 5 : 0);
+      drawLayers(() => 1, 1, was, -1, 0);
       caption('VLA · vision + language → action', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * was);
-      const now = smooth(win(t, 0.35, 0.3));
-      caption('world model', -LAYER_W / 2, LAYER_Y[0] - 13, 0, 0.6 * now);
-      // the action chunk rises into the instruction's place: it conditions
-      // the model now instead of leaving it
-      const m = smooth(win(t, 0.12, 0.45));
+      // the action chunk rises to feed the model
+      const m = smooth(win(t, 0.1, 0.4));
       const P = lerpP2(ACT_P0, ACT_P1, m);
       if (m < 0.5) stroke([[[0, LAYER_Y[3] + 7, -9], [0, P.y - 33 * P.s, 0]]], I0, slate, 0.45 * (1 - m * 2), 1);
-      stroke([[[0, ROW_L + 16, 0], [0, LAYER_Y[0] - 7, 0]]], I0, slate, 0.45 * smooth(win(t, 0.5, 0.2)), 1);
       drawActionBars(1, 0, P, m < 0.5 ? 'action chunk' : 'actions', Math.abs(1 - m * 2));
-      drawFutures(T, 1, smooth(win(t, 0.3, 0.45)), 0);
-      drawFilmstrip(1, k => smooth(win(t, 0.5 + k * 0.08, 0.2)), 0);
+      const lg = k => smooth(win(t, 0.3 + k * 0.07, 0.2));
+      drawLatents(lg, 1, null);
+      caption('world model', LAT_X(0) - 17, LAT_Y - 30, 0, 0.7 * smooth(win(t, 0.35, 0.3)));
+      stroke([[[ACT_P1.x, ACT_P1.y + 15, 0], [LAT_X(2), LAT_Y - 26, 0]]], I0, copper, 0.35 * smooth(win(t, 0.55, 0.3)), 1);
+      drawFilmstrip(1, k => smooth(win(t, 0.5 + k * 0.08, 0.18)), 0);
     }
 
     // ── act 4 (left): the world model becomes a SIMULATOR ───────────────
@@ -2719,8 +2746,10 @@ export default function Flourish3D({ side = 'right' }) {
     // twins beside it, tinted differently and re-arranged, each with its own
     // rollout — domain randomisation — and a return curve climbs over them
     // as training runs. Sim to real.
-    function drawWorldAct(t) {
-      const u = smooth(t);
+    // real 0..1: the sim turning back into the real table (act 5); pk: the 3D
+    // pick state when the gripper is working
+    function drawWorldAct(t, real = 0, pk = null) {
+      const u = smooth(t), simA = 1 - real;
       setCam((-10 + 20 * u) * DEG, (-12 - 4 * u) * DEG, 0);   // from (-10, -12, 0); down to -16 over the ground plane
       const S = lerpS(SENSOR_DET, SENSOR_WORLD, u);
       const T = sensorPlace(S);
@@ -2730,26 +2759,35 @@ export default function Flourish3D({ side = 'right' }) {
       const flat = 1 - smooth(win(t, 0, 0.4));
       if (flat > 0.01) {
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55 * flat, 1);
-        drawFutures(T, flat, 1, 0);
         drawWMRest(flat, false);
       }
       // ONE scene: ground, standing objects, rollout — drawn three times
-      const scene = (B, gs, rise, tint, roll, alpha, jiggle) => {
+      const scene = (B, gs, rise, tint, roll, alpha, jiggle, main = false) => {
         const gw = GRID_W * (1 + 0.7 * gs), gh = GRID_H * (1 + 1.5 * gs);
-        if (gs > 0.01) {
+        if (main && real > 0.01) {                      // the real TABLE: a solid top where the sim grid was
+          submit(boxFaces(gw, gh, 6, 0, 0, 3.2), B, MAT.paint, real); flush();
+        }
+        if (gs > 0.01 && (!main || simA > 0.01)) {
           const lines = [rect(gw, gh, 0, 0, 0)];
           for (let i = 1; i < 6; i++) lines.push([[-gw / 2 + (i * gw) / 6, -gh / 2, 0], [-gw / 2 + (i * gw) / 6, gh / 2, 0]]);
           for (let i = 1; i < 6; i++) lines.push([[-gw / 2, -gh / 2 + (i * gh) / 6, 0], [gw / 2, -gh / 2 + (i * gh) / 6, 0]]);
-          stroke(lines, B, LINE, 0.4 * gs * alpha, 1);
+          stroke(lines, B, LINE, 0.4 * gs * alpha * (main ? simA : 1), 1);
         }
         if (rise > 0.01) {
           for (let i = 0; i < DETS.length; i++) {
             const d = DETS[i];
             const jx = jiggle ? Math.sin(i * 2.3 + jiggle) * 14 : 0, jy = jiggle ? Math.cos(i * 1.7 + jiggle) * 9 : 0;
-            const hgt = (14 + d.conf * 20) * rise;
-            const Bx = chain(B, place(rotX(-90 * DEG), [d.x + jx, d.y + jy, 0]));
-            submit(boxFaces(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), Bx, i === 0 ? tint : MAT.paint, rise * alpha);
-            submitLines(boxWire(d.w * 0.7, hgt, d.h * 0.7, 0, -hgt / 2, 0), Bx, i === 0 ? ink : matLine[MAT.paint], LOOK.line * rise * alpha, LOOK.width);
+            // the scene's own cubes, as CUBES, in their own colours (heights
+            // came from detection confidence, and the green and blue cubes
+            // went grey — the twin did not match what it twinned); the
+            // randomised twins keep random tints
+            const sz = CUBE3[i], hgt = sz * rise;
+            const at = main && i === 0 && pk ? pk.cube : [SCENE_CUBES[i].c[0], SCENE_CUBES[i].c[1], sz / 2];
+            const Bx = chain(B, place(rotX(-90 * DEG), [at[0] + jx, at[1] + jy, 0]));
+            const lift = main && i === 0 && pk ? at[2] - sz / 2 : 0;
+            const mat = jiggle ? (i === 0 ? tint : MAT.paint) : [MAT.red, MAT.green, MAT.blue][i];
+            submit(boxFaces(sz, hgt, sz, 0, -hgt / 2 - lift, 0), Bx, mat, rise * alpha);
+            submitLines(boxWire(sz, hgt, sz, 0, -hgt / 2 - lift, 0), Bx, matLine[mat], LOOK.line * rise * alpha, LOOK.width);
           }
           flush();
         }
@@ -2761,27 +2799,38 @@ export default function Flourish3D({ side = 'right' }) {
         }
       };
       const g = smooth(win(t, 0.16, 0.4)), rise = smooth(win(t, 0.3, 0.5)), roll = smooth(win(t, 0.55, 0.3));
-      scene(T, g, rise, MAT.red, roll, 1, 0);       // the red cube, standing on the ground it was seen on
+      scene(T, g, rise, MAT.red, roll * simA, 1, 0, true);       // the scene, standing on the ground it was seen on
+      // the GRIPPER, in 3D, working the table (the last act): a stem from
+      // above, a palm, two fingers that close onto the red cube's faces
+      if (pk && real > 0.01) {
+        const [gx, gy, h] = pk.g, o = CUBE3[0] / 2 + 2 + pk.open * 6;
+        const G = chain(T, place(rotX(-90 * DEG), [gx, gy, 0]));
+        const bx = (w, hh, d, x, y, z, mat) => { submit(boxFaces(w, hh, d, x, y, z), G, mat, real); submitLines(boxWire(w, hh, d, x, y, z), G, matLine[mat], LOOK.line * real, LOOK.width); };
+        bx(6, 70, 6, 0, -(h + 16 + 35), 0, MAT.steel);
+        bx(2 * o + 8, 7, 12, 0, -(h + 13), 0, MAT.poly);
+        for (const sg of [-1, 1]) { bx(3.5, 16, 9, sg * o, -(h + 3), 0, MAT.poly); bx(3.5, 3, 9, sg * o, -(h - 6), 0, MAT.copper); }
+        flush();
+      }
       // Real2Sim, the owner's own pipeline: the scene first arrives as a 3D
       // GAUSSIAN SPLAT — a cloud of soft points where each object is — and
       // condenses into the simulator's solid twin as it stands up
       const spl = smooth(win(t, 0.18, 0.2)) * (1 - smooth(win(t, 0.5, 0.25)));
       if (spl > 0.01) {
         DETS.forEach((d, i) => {
-          const Bx = chain(T, place(rotX(-90 * DEG), [d.x, d.y, 0]));
+          const Bx = chain(T, place(rotX(-90 * DEG), [SCENE_CUBES[i].c[0], SCENE_CUBES[i].c[1], 0]));
           const pts = [];
           for (let j = 0; j < 22; j++) {
-            const hx = (hash(i * 31 + j * 1.7) - 0.5) * d.w * 0.9, hz = (hash(i * 17 + j * 2.9) - 0.5) * d.h * 0.9;
-            const hy = -hash(i * 7 + j * 4.3) * (14 + d.conf * 20) * (0.4 + 0.6 * rise);
+            const hx = (hash(i * 31 + j * 1.7) - 0.5) * CUBE3[i] * 1.2, hz = (hash(i * 17 + j * 2.9) - 0.5) * CUBE3[i] * 1.2;
+            const hy = -hash(i * 7 + j * 4.3) * CUBE3[i] * (0.4 + 0.6 * rise);
             const r = 2.2 + hash(j * 5.1 + i) * 2.4;
             pts.push(rect(r, r, hx, hy, hz));
           }
-          fill(pts, Bx, i === 0 ? RED : slate, 0.5 * spl);
+          fill(pts, Bx, [RED, MAT_HEX[MAT.green], MAT_HEX[MAT.blue]][i], 0.5 * spl);
         });
         caption('real2sim', T.t[0] - 80, T.t[1] + 70, T.t[2], 0.6 * spl);
       }
       // the camera that saw it, as a frustum over the scene
-      const fr = smooth(win(t, 0.45, 0.4));
+      const fr = smooth(win(t, 0.45, 0.4)) * simA;
       if (fr > 0.01) {
         const apex = [-GRID_W * 0.75, -78 * fr, GRID_H * 0.6];
         const corners = [[-GRID_W / 2, 0, -GRID_H / 2], [GRID_W / 2, 0, -GRID_H / 2], [GRID_W / 2, 0, GRID_H / 2], [-GRID_W / 2, 0, GRID_H / 2]];
@@ -2791,7 +2840,7 @@ export default function Flourish3D({ side = 'right' }) {
       }
       // the twins: the same scene, smaller, to either side, tinted and
       // re-arranged — and while settled, re-randomised every couple of seconds
-      const sim = smooth(win(t, 0.62, 0.38));
+      const sim = smooth(win(t, 0.62, 0.38)) * simA;
       if (sim > 0.01) {
         // every 2.4 s a new randomisation — reached by GLIDING over the last
         // 0.6 s of the epoch (the jiggle phase is continuous through sin/cos),
@@ -2829,23 +2878,21 @@ export default function Flourish3D({ side = 'right' }) {
     // The simulator fades as one; the ground it stood on rises back up into
     // an upright camera frame — the real world again — and the gripper runs
     // the policy trained in sim on the real scene.
-    const SENSOR_REAL = { x: 0, y: -30, z: 0, s: 2.1, ry: 0, rx: 0 };
+    // IN 3D (the owner: "the final animation on the left side should be in
+    // 3d"): the simulator's own workspace becomes the real table — the grid,
+    // the twins, the curve and the frustum go, a solid table top comes in
+    // under the cubes — and a 3D gripper comes down and runs the pick loop
+    // on it, the policy trained in sim, on the real thing.
     function drawSim2RealAct(t) {
       const live = idleOn && t >= 1;
-      const fade = 1 - smooth(win(t, 0.05, 0.4));
-      if (fade > 0.01) { GMUL = fade; drawWorldAct(1); flush(); GMUL = 1; }
-      const u = smooth(win(t, 0.1, 0.6));
-      setCam(10 * (1 - u) * DEG, -16 * (1 - u) * DEG, 0);   // from where the simulator's view ended, to square on
-      const T = sensorPlace(lerpS(SENSOR_WORLD, SENSOR_REAL, u));
-      const a = smooth(win(t, 0.15, 0.4));
-      if (a <= 0.01) return;
-      GMUL = a;
-      drawScene(T, 1, pickAt(pickU(live)));
-      stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.6, 1.2);
-      flush();
-      const c = tpOf(T, [-56, -50, 0]);
-      caption('sim2real', c[0], c[1] - 6, c[2], 0.7);
-      GMUL = 1;
+      const real = smooth(win(t, 0.08, 0.5));
+      const pk = pick3At(pickU(live));
+      // the gripper arrives from above the table as the scene turns real
+      const drop = 1 - smooth(win(t, 0.3, 0.4));
+      const pkd = { ...pk, g: [pk.g[0], pk.g[1], pk.g[2] + drop * 90] };
+      drawWorldAct(1, real, real > 0.01 ? pkd : null);
+      const T = sensorPlace(SENSOR_WORLD);
+      caption('sim2real', T.t[0] - 92, T.t[1] - 116, T.t[2], 0.7 * real);
     }
     // the arc marker: three stops, the dot travelling between them
     function drawArc(p, a) {
