@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
 import {
-  ROWS, VW, VH, FIELD_A, BULGE, FREQ_LAND, FREQ_PORT, DRIFT,
+  ROWS, VW, VH, FIELD_A, FREQ_LAND, FREQ_PORT, DRIFT,
   rowY, rowA, waveY, S_ART, live, heroPhase, heroHeight,
 } from '../waveField';
 
@@ -19,6 +19,8 @@ import {
 // The stroke TAPERS down the field (the owner: "a little thicker at the top
 // and thinner at the bottom"), from STROKE_TOP to STROKE_BOTTOM css px.
 const STROKE_TOP = 3.8, STROKE_BOTTOM = 0.6;
+// the pointer lens: its radius (virtual units) and how far it parts the rows
+const LENS_R = 46, LENS_H = { land: 40, port: 16 };
 
 export default function WaveField() {
   const ref = useRef(null);
@@ -57,17 +59,35 @@ export default function WaveField() {
 
     measure();
 
-    // ── the mouse bulge, from /portfolio ────────────────────────────────
-    let mx = null, my = null;
+    // ── the pointer LENS ────────────────────────────────────────────────
+    // (the owner: "make the mouse hovering effect a bit better"). It was
+    // /portfolio's bulge: every row near the cursor lifted into one lump that
+    // snapped on and off. Now the rows PART around the pointer — pushed up
+    // above it and down below it, like a lens — the lens follows the pointer
+    // with easing rather than sitting on it, and fades in and out.
+    let tx = null, ty = null;               // where the pointer is (virtual units)
+    let mx = null, my = null;               // where the lens is, easing after it
+    let lens = 0, lensTo = 0;               // its strength, 0..1
     const onMove = e => {
       if (reduce) return;
       const yPage = e.clientY + scrollY;
-      if (yPage < 0 || yPage > heroH) { mx = my = null; return; }
-      mx = (e.clientX / W) * VW;
-      my = (yPage / heroH) * VH;
+      if (yPage < 0 || yPage > heroH) { lensTo = 0; wake(); return; }
+      tx = (e.clientX / W) * VW;
+      ty = (yPage / heroH) * VH;
+      if (mx === null) { mx = tx; my = ty; }
+      lensTo = 1;
       wake();
     };
-    const onLeave = () => { mx = my = null; wake(); };
+    const onLeave = () => { lensTo = 0; wake(); };
+    // ease the lens toward the pointer; true while it is still moving
+    const stepLens = dt => {
+      if (mx === null) return false;
+      const k = 1 - Math.exp(-dt * 9), kl = 1 - Math.exp(-dt * (lensTo ? 6 : 4));
+      mx += (tx - mx) * k; my += (ty - my) * k;
+      lens += (lensTo - lens) * kl;
+      if (lensTo === 0 && lens < 0.002) { lens = 0; mx = my = null; return false; }
+      return Math.abs(tx - mx) + Math.abs(ty - my) > 0.05 || Math.abs(lensTo - lens) > 0.002;
+    };
 
     // ── drawing ─────────────────────────────────────────────────────────
     // A field point at screen x on row i sits at
@@ -76,9 +96,11 @@ export default function WaveField() {
     function fieldY(i, yv, xs, phase, freq, bulgeH) {
       const xv = (xs / W) * VW;
       let w = waveY(i, Math.abs(xv - VW / 2), phase, freq);
-      if (bulgeH > 0 && mx !== null) {
-        const dx = xv - mx, dy = yv - my, d2 = dx * dx + dy * dy;
-        if (d2 < BULGE.cutoff2) w -= bulgeH * Math.exp(-d2 / (2 * BULGE.radius * BULGE.radius));
+      if (bulgeH > 0 && lens > 0) {
+        // a derivative of a gaussian in y: rows above are pushed up, rows
+        // below pushed down, the push fading with distance in x and y
+        const dx = xv - mx, dy = yv - my, d2 = dx * dx + dy * dy, R = LENS_R;
+        if (d2 < 9 * R * R) w += bulgeH * lens * (dy / R) * Math.exp(-d2 / (2 * R * R));
       }
       return (yv + w) * (heroH / VH) - scrollY;
     }
@@ -90,7 +112,7 @@ export default function WaveField() {
       if (s >= S_ART) return false;
       const elapsed = now - t0;
       const phase = live.phase, freq = live.freq;
-      const bulgeH = portrait ? BULGE.port : BULGE.land;
+      const bulgeH = portrait ? LENS_H.port : LENS_H.land;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       ctx.strokeStyle = ink;
@@ -126,14 +148,14 @@ export default function WaveField() {
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      return entering || mx !== null;      // is anything still moving on its own?
+      return entering || lensBusy;      // is anything still moving on its own?
     }
 
     // ── the loop ────────────────────────────────────────────────────────
     // Runs only while something animates on its own: the entrance, the drift
     // (hero on screen, tab visible, ~30fps), the bulge. Otherwise the scroll
     // driver is the only thing that redraws.
-    let raf = 0, prev = 0, lastDraw = 0, needDraw = true;
+    let raf = 0, prev = 0, lastDraw = 0, needDraw = true, lensBusy = false;
     const DRIFT_MS = 31;
     const heroOnScreen = () => scrollY < heroH;
     function tick(now) {
@@ -142,7 +164,8 @@ export default function WaveField() {
       prev = now;
       const drifting = !reduce && heroOnScreen() && document.visibilityState !== 'hidden';
       if (drifting) live.phase -= DRIFT * dt;
-      if (mx === null && !needDraw && now - lastDraw < DRIFT_MS) {
+      lensBusy = stepLens(dt || 1 / 60);
+      if (!lensBusy && !needDraw && now - lastDraw < DRIFT_MS) {
         if (drifting) raf = requestAnimationFrame(tick); else prev = 0;
         return;
       }

@@ -1391,6 +1391,21 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, later: the hover LENS, a natural centre, a smooth modal close.**
+The pointer no longer lifts /portfolio's bulge under itself: the rows PART
+around it (a derivative-of-gaussian push, up above the pointer and down
+below, `LENS_R` 46 / `LENS_H` 40 virtual units), the lens eases after the
+pointer (`stepLens`, ~9/s) and fades in and out, and the loop runs only
+while it is still moving. `CENTER_SOFT` 55 → 14: at 55 the soft centre
+flattened a whole half-wave into a plateau ("looks a bit unnatural"); 14
+rounds only the tip. The modal CLOSE (`Modal.jsx`): `CLOSE_S` 0.8 s on an
+in-out curve (`CLOSE_EASE`) instead of 0.48 s of EXPAND_EASE, which did ~80%
+of the shrink in its first 100 ms; the modal's text fades out over ~0.3 s,
+the card copy fades in over 0.32-0.72 s, and the surface's shadow fades as
+it lands (the resting card has none, and it used to vanish at the end).
+Measured frame by frame: width 1280 → 235 over 0.78 s, ghost opacity rising
+from 0.45 s.
+
 **Sept 28, waves:** 34 rows (was /portfolio's 25) with the per-row phase
 step scaled so the field keeps the same total twist; the stroke tapers
 3.8 → 0.6 px on an eased curve (`pow(i/(ROWS-1), 0.75)`) so the upper rows

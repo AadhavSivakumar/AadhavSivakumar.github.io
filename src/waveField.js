@@ -38,7 +38,7 @@ export const rowA = i => A_TOP - (i / (ROWS - 1)) * (A_TOP - A_BOTTOM);
 // mirrored about the centre, and a plain |x| made a sharp V there (the owner:
 // "the middle should be less pointy"); a SOFT absolute value, sqrt(d² + s²) - s,
 // rounds the join over ~CENTER_SOFT units and is |x| everywhere else.
-export const CENTER_SOFT = 55;
+export const CENTER_SOFT = 14;   // 55 flattened a whole half-wave into a plateau across the middle ("it looks a bit unnatural"); 14 rounds only the tip
 export const waveY = (i, d, phase, freq) => AMP * Math.sin((Math.sqrt(d * d + CENTER_SOFT * CENTER_SOFT) - CENTER_SOFT + phase) * freq + i * PHASE_STEP);
 
 // ── the timeline, in HERO HEIGHTS scrolled ──────────────────────────────

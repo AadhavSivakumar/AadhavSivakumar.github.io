@@ -2,6 +2,14 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from
 import { motion } from 'motion/react';
 
 const EXPAND_EASE = [0.22, 1, 0.36, 1];
+// the CLOSE runs longer and evenly (the owner: "when the modal goes back into
+// the card… it snaps back into place and the text reappears instantly"):
+// EXPAND_EASE put ~80% of the shrink in its first 100ms, so the surface
+// arrived almost at once and the card's text popped on. An in-out curve over
+// 0.8s, the modal's text fading out over the first third and the card's text
+// fading in over the second half, then a gentle landing.
+const CLOSE_S = 0.8;
+const CLOSE_EASE = [0.65, 0, 0.35, 1];
 
 // Content population: children stagger in once the modal is fully expanded,
 // and stagger back out (quickly, in reverse) before it collapses.
@@ -10,7 +18,7 @@ const contentContainer = {
   show: { transition: { staggerChildren: 0.06, delayChildren: 0.28 } },   // starts while the surface is still growing, as the card copy fades
 };
 const contentItem = {
-  hidden: { opacity: 0, y: 12, transition: { duration: 0.16, ease: 'easeIn' } },
+  hidden: { opacity: 0, y: 8, transition: { duration: 0.26, ease: 'easeOut' } },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EXPAND_EASE } },
 };
 
@@ -148,13 +156,13 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     // CLOSE: shrink straight onto the card's own rectangle (no lifted stop on
     // the way), the card copy inside at its true size, so the surface and the
     // copy arrive together and match the real card pixel for pixel
-    collapse: { top: r.top, left: r.left, width: r.width, height: r.height, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0.12)', transition: { duration: 0.48, ease: EXPAND_EASE } },
+    collapse: { top: r.top, left: r.left, width: r.width, height: r.height, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0)', transition: { duration: CLOSE_S, ease: CLOSE_EASE } },   // the shadow fades as it lands: the resting card has none, and it used to vanish at the end
     settle: {
       top: r.top,
       scale: 1,
       opacity: 0,                   // already ON the card, which is revealed underneath (onLanding): a quick fade, no movement
       boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
-      transition: { duration: 0.12, ease: 'linear' },
+      transition: { duration: 0.35, ease: 'easeOut' },
     },
   };
 
@@ -363,7 +371,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   })();
   const flyTo = phase === 'collapse' ? media && media.rect : phase === 'lift' ? liftedMedia : tgt;
   const flyFrom = phase === 'collapse' ? (closeFrom.current || tgt) : media && media.rect;
-  const flyTransition = phase === 'collapse' ? { duration: 0.48, ease: EXPAND_EASE } : phase === 'lift' ? { duration: 0.28, ease: 'easeOut' } : { duration: 0.6, ease: EXPAND_EASE };
+  const flyTransition = phase === 'collapse' ? { duration: CLOSE_S, ease: CLOSE_EASE } : phase === 'lift' ? { duration: 0.28, ease: 'easeOut' } : { duration: 0.6, ease: EXPAND_EASE };
 
   return (
     <>
@@ -397,7 +405,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             // close) so the copy never over- or under-fills it; on close it
             // fades in at once, as the content fades out
             transition={phase === 'collapse' || phase === 'settle'
-              ? { opacity: { duration: 0.3, delay: 0.08 }, scale: { duration: 0 } }
+              ? { opacity: { duration: CLOSE_S * 0.5, delay: CLOSE_S * 0.4, ease: 'easeInOut' }, scale: { duration: 0 } }
               : { opacity: { duration: 0.28, delay: ghostOn ? 0.15 : 0.1 }, scale: { duration: 0.6, ease: EXPAND_EASE } }}
             dangerouslySetInnerHTML={{ __html: cardHTML }}
           />
