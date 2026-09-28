@@ -1391,6 +1391,14 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, waves:** 34 rows (was /portfolio's 25) with the per-row phase
+step scaled so the field keeps the same total twist; the stroke tapers
+3.8 → 0.6 px on an eased curve (`pow(i/(ROWS-1), 0.75)`) so the upper rows
+stay heavy; and the centre is no longer a V — the mirrored wave uses a soft
+absolute value, `sqrt(d² + CENTER_SOFT²) - CENTER_SOFT` (55 virtual units),
+in `waveY`. The numbers in "Its numbers are /portfolio's" below are the
+originals.
+
 **Sept 28: the resume and CV are IN THE REPO** (the owner: "commit this to
 the repo so that a drive link isn't needed"): `Resume/Aadhav_Sivakumar_Resume.pdf`
 and `Resume/Aadhav_Sivakumar_Extended_CV.pdf`, served from the site. The

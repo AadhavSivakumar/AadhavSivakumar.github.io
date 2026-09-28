@@ -18,7 +18,7 @@ import {
 //
 // The stroke TAPERS down the field (the owner: "a little thicker at the top
 // and thinner at the bottom"), from STROKE_TOP to STROKE_BOTTOM css px.
-const STROKE_TOP = 2.8, STROKE_BOTTOM = 0.7;
+const STROKE_TOP = 3.8, STROKE_BOTTOM = 0.6;
 
 export default function WaveField() {
   const ref = useRef(null);
@@ -108,7 +108,8 @@ export default function WaveField() {
         const a = rowA(i) * e * fieldA;
         if (a <= 0.004) continue;
         ctx.globalAlpha = a;
-        ctx.lineWidth = STROKE_TOP + (STROKE_BOTTOM - STROKE_TOP) * (i / (ROWS - 1));
+        // eased, so the upper rows stay heavy and the thinning happens lower down
+        ctx.lineWidth = STROKE_TOP + (STROKE_BOTTOM - STROKE_TOP) * Math.pow(i / (ROWS - 1), 0.75);
         // SMOOTH: a point every ~6 px, joined by quadratic curves through the
         // midpoints (straight segments showed their corners on the thick top
         // rows — "I can still see individual segments")

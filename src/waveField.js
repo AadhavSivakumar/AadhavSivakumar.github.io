@@ -15,14 +15,14 @@
 // ten screen pixels a second, slow enough to read as the field being alive
 // rather than as a screensaver.
 
-export const ROWS = 25;
+export const ROWS = 34;          // was /portfolio's 25; the owner asked for more
 export const VW = 1000;          // virtual width
 export const VH = 350;           // virtual height
 export const PAD = 20;           // top/bottom padding inside the virtual box
 export const AMP = 8;            // amplitude, virtual units
 export const FREQ_LAND = 0.04;
 export const FREQ_PORT = 0.02;
-export const PHASE_STEP = -25 * Math.PI / 180;
+export const PHASE_STEP = -25 * (25 / ROWS) * Math.PI / 180;   // the same total twist down the field, spread over more rows
 export const A_TOP = 0.8;
 export const A_BOTTOM = 0.1;
 export const DRIFT = 7.2;        // virtual units per second
@@ -34,8 +34,12 @@ export const BULGE = { land: 120, port: 40, radius: 40, cutoff2: 25000 };
 
 export const rowY = i => PAD + (i / (ROWS - 1)) * (VH - 2 * PAD);
 export const rowA = i => A_TOP - (i / (ROWS - 1)) * (A_TOP - A_BOTTOM);
-// `d` is the distance from the centre line, in virtual units.
-export const waveY = (i, d, phase, freq) => AMP * Math.sin((d + phase) * freq + i * PHASE_STEP);
+// `d` is the distance from the centre line, in virtual units. The wave is
+// mirrored about the centre, and a plain |x| made a sharp V there (the owner:
+// "the middle should be less pointy"); a SOFT absolute value, sqrt(d² + s²) - s,
+// rounds the join over ~CENTER_SOFT units and is |x| everywhere else.
+export const CENTER_SOFT = 55;
+export const waveY = (i, d, phase, freq) => AMP * Math.sin((Math.sqrt(d * d + CENTER_SOFT * CENTER_SOFT) - CENTER_SOFT + phase) * freq + i * PHASE_STEP);
 
 // ── the timeline, in HERO HEIGHTS scrolled ──────────────────────────────
 // `s = scrollY / heroHeight`, so the choreography is pinned to the hero
