@@ -966,13 +966,12 @@ export default function Flourish3D({ side = 'right' }) {
         sizeCanvas();
         if (atlasGL) atlasGL.resize(fit, dpr);
         readHostA();
-        publish();
         repaint();
       });
       sizeRO.observe(host);
     }
 
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); publish(); repaint(); });
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); repaint(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 
@@ -2335,14 +2334,14 @@ export default function Flourish3D({ side = 'right' }) {
     // While the morph runs, each part's real drawing — fills, hidden lines
     // removed — fades in as its own strands land, on the same schedule the
     // field uses to move them.
+    // The pieces no longer FORM from the hero's waves (the owner: "the sine
+    // waves can be their own thing" — capturing every line and flying
+    // hundreds of strands cost frames on the way down): each piece simply
+    // fades in, whole, as the hero scrolls away.
     function prelude(s) {
-      if (!morph) publish();
-      const m = win(s, S_MORPH[0], S_MORPH[1]);
-      const n = morph.order.length;
-      const pa = {};
-      let any = false;
-      morph.order.forEach((id, r) => { const v = partArtA(partT(m, r, n)); pa[id] = v; if (v > 0.004) any = true; });
-      if (any) { partA = pa; art(); partA = null; }
+      const v = smooth(win(s, 0.3, 0.62));
+      if (v <= 0.004) return;
+      GMUL = v; art(); GMUL = 1;
     }
 
 // ── the left side after the sensor: inference, detections, a world model

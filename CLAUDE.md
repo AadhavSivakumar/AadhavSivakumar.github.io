@@ -1352,6 +1352,22 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, fifth round: the waves are their own thing.** The owner: "you
+don't have to make the sine waves become the animation, the sine waves can
+be their own thing. hopefully that saves on compute/lag. Also, make the
+waves a little thicker at the top and thinner at the bottom." `WaveField`
+draws only the field now — full-width rows riding the page by -scrollY,
+scrolling away with the hero, cleared past it — with the stroke tapering
+from `STROKE_TOP` 2.8 px to `STROKE_BOTTOM` 0.7 px down the rows. The plan,
+the strand flights and the pieces' capture/publish on every resize and
+theme change are no longer run; `prelude` in Flourish3D fades each piece in
+WHOLE (through `GMUL`) as the hero leaves. Everything the sections below
+say about strands flying, `publishTargets`, `cap` and `partA` describes
+code that no longer runs (the functions are still in the file). Measured
+in headless Firefox the hero scroll was already p90 17.2 and is p90 17.1;
+the saving is the capture and the per-frame strand maths on slower
+machines.
+
 **Sept 28, fourth round.** (1) The first piece on the right is no longer
 the IEC motor with a fan: it is TWO SERVOS driving a 2R PLANAR ARM
 (`drawPlanar`, `PL`, `PLANAR_HOME`) — a base plate, the shoulder servo, a
