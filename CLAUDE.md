@@ -1394,7 +1394,7 @@ select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 **Sept 28, later: the hover LENS, a natural centre, a smooth modal close.**
 The pointer no longer lifts /portfolio's bulge under itself: the rows PART
 around it (a derivative-of-gaussian push, up above the pointer and down
-below, `LENS_R` 46 / `LENS_H` 40 virtual units), the lens eases after the
+below, `LENS_R` 46 / `LENS_H` 40 virtual units, windowed by (1 - d²/9R²)² so it reaches exactly zero at 3R — a hard cutoff there left a visible step in every row), the lens eases after the
 pointer (`stepLens`, ~9/s) and fades in and out, and the loop runs only
 while it is still moving. `CENTER_SOFT` 55 → 14: at 55 the soft centre
 flattened a whole half-wave into a plateau ("looks a bit unnatural"); 14

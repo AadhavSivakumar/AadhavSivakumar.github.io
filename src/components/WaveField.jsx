@@ -100,7 +100,10 @@ export default function WaveField() {
         // a derivative of a gaussian in y: rows above are pushed up, rows
         // below pushed down, the push fading with distance in x and y
         const dx = xv - mx, dy = yv - my, d2 = dx * dx + dy * dy, R = LENS_R;
-        if (d2 < 9 * R * R) w += bulgeH * lens * (dy / R) * Math.exp(-d2 / (2 * R * R));
+        // tapered to EXACTLY zero at 3R by a smooth window: a hard cutoff
+        // there left ~1.3 units of push and every row stepped at the edge
+        // (the owner: "a weird discontinuity… with the mouse hover effect")
+        if (d2 < 9 * R * R) { const q = 1 - d2 / (9 * R * R); w += bulgeH * lens * (dy / R) * Math.exp(-d2 / (2 * R * R)) * q * q; }
       }
       return (yv + w) * (heroH / VH) - scrollY;
     }
