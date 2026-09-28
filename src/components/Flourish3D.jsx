@@ -1514,36 +1514,91 @@ export default function Flourish3D({ side = 'right' }) {
     const SPIN = 2600 * DEG;
     const ROLL = (90 + 250) * DEG;
     let partA = null;                      // per-part alpha while a part materialises
+    // ── the first piece on the right: TWO SERVOS driving a 2R PLANAR ARM
+    // (the owner: "have the motor be two servo motors instead of a dc motor,
+    // and have it powering a 2R planar manipulator instead of a fan" — the
+    // sand-table arm from their own projects). In its own frame, mm: x right,
+    // y DOWN, z toward the viewer; the arm works in the xy plane. A base
+    // plate, the shoulder servo standing on it with its horn to the front,
+    // the first printed link on that horn, the elbow servo riding the link's
+    // end, the second link on ITS horn, and a pen at the tip. Settled, the
+    // tip traces a figure-eight by inverse kinematics and leaves the line it
+    // drew behind it in copper.
+    const PL = { L1: 110, L2: 96, C: [92, -74], AX: 44, AY: 22 };
+    const PLANAR_HOME = place(scaleM(1.15), [-58, 66, 0]);
+    // the tip's figure-eight, and the joint angles that put it there
+    const planarTip = tau => [PL.C[0] + PL.AX * Math.sin(tau), PL.C[1] + PL.AY * Math.sin(tau) * Math.cos(tau)];
+    const planarIK = p => {
+      const x = p[0], y = -p[1], d2 = x * x + y * y;
+      const c2 = clamp((d2 - PL.L1 * PL.L1 - PL.L2 * PL.L2) / (2 * PL.L1 * PL.L2), -1, 1);
+      const q2 = -Math.acos(c2);                        // elbow UP
+      const q1 = Math.atan2(y, x) - Math.atan2(PL.L2 * Math.sin(q2), PL.L1 + PL.L2 * Math.cos(q2));
+      return [q1, q2];
+    };
+    const PLANAR_REST = planarIK(planarTip(0));
+    const planarQ = () => {
+      if (!idleOn || settleU <= 0.001) return PLANAR_REST;
+      const q = planarIK(planarTip(idleT * 0.9));
+      return [PLANAR_REST[0] + (q[0] - PLANAR_REST[0]) * settleU, PLANAR_REST[1] + (q[1] - PLANAR_REST[1]) * settleU];
+    };
+    // a hobby servo: its body behind the horn axis, the mounting tabs, the
+    // horn (a disc and a two-arm spline) in front
+    function planarServo(F, a, id) {
+      const pa = a * (partA ? (partA[id] ?? 0) : 1);
+      if (pa <= 0.004) return;
+      capId = id;
+      const bx = (w, h, d, x, y, z, mat) => { submit(boxFaces(w, h, d, x, y, z), F, mat, pa); submitLines(boxWire(w, h, d, x, y, z), F, matLine[mat], LOOK.line * pa, LOOK.width); };
+      bx(40, 38, 20, 0, 9, -10, MAT.poly);              // body
+      bx(56, 3, 20, 0, -2, -10, MAT.poly);              // mounting tabs
+      submitLines([ringAt(3, -24, -2, 0.2, 8), ringAt(3, 24, -2, 0.2, 8)], F, matLine[MAT.steel], LOOK.line * pa, LOOK.width);
+      submit(drum(6, 0, 3), F, MAT.steel, pa);          // the output spline
+      submitLines(drumWire(6, 0, 3), F, matLine[MAT.steel], LOOK.line * pa, LOOK.width);
+    }
+    // a printed link: a flat stadium from its joint along +x
+    function planarLink(F, L, a, id, mat = MAT.pla) {
+      const pa = a * (partA ? (partA[id] ?? 0) : 1);
+      if (pa <= 0.004) return;
+      capId = id;
+      const sil = stadium(L, 11, 8);
+      submit(extrude(sil, 0, 4), F, mat, pa);
+      submitLines(silWire(sil, 0, 4, 99), F, matLine[mat], LOOK.line * pa, LOOK.width);
+      submitLines([ringAt(3.5, 0, 0, 4.1, 10), ringAt(3.5, L, 0, 4.1, 10)], F, matLine[MAT.steel], LOOK.line * pa, LOOK.width);
+    }
+    function drawPlanar(H, q, a, trail, baseA = 1) {
+      if (a <= 0.004) return null;
+      // the base plate the shoulder servo stands on
+      const pb = a * baseA * (partA ? (partA.base ?? 0) : 1);
+      if (pb > 0.004) {
+        capId = 'base';
+        submit(boxFaces(150, 10, 80, 0, 33, -10), H, MAT.paint, pb);
+        submitLines(boxWire(150, 10, 80, 0, 33, -10), H, matLine[MAT.paint], LOOK.line * pb, LOOK.width);
+      }
+      planarServo(H, a, 'servo1');
+      const J1 = chain(H, place(rotZ(-q[0]), [0, 0, 3]));             // link 1 on the shoulder horn
+      planarLink(J1, PL.L1, a, 'link1');
+      const E = chain(J1, place(IDENT, [PL.L1, 0, 4]));                 // the elbow servo rides the link's end
+      planarServo(chain(E, place(IDENT, [0, 0, 20])), a, 'servo2');
+      const J2 = chain(E, place(rotZ(-q[1]), [0, 0, 23]));             // link 2 on the elbow horn
+      planarLink(J2, PL.L2, a, 'link2');
+      const Tip = chain(J2, place(IDENT, [PL.L2, 0, 4]));
+      const pt = a * (partA ? (partA.tip ?? 0) : 1);
+      if (pt > 0.004) {
+        capId = 'tip';
+        submit(drum(4, 0, 12), Tip, MAT.copper, pt);
+        submitLines(drumWire(4, 0, 12), Tip, matLine[MAT.copper], LOOK.line * pt, LOOK.width);
+      }
+      flush();
+      // what the pen has drawn: the last stretch of the figure, fading
+      if (trail && !cap) {
+        const pts = [];
+        for (let i = 0; i <= 40; i++) { const p = planarTip(idleT * 0.9 - i * 0.07); pts.push([p[0], p[1], 30]); }
+        stroke([pts], H, copper, 0.7 * trail * a, 1.6);
+      }
+      return Tip;
+    }
     function drawMotor() {
       setCam(16 * DEG, 14 * DEG, 30);
-      const runK = MOTOR_K_MAX;
-      const base = chain(motorModule(runK), place(rotZ(ROLL), [0, 0, 0]));
-      for (let k = 0; k < MOTOR.length; k++) {
-        const part = MOTOR[k];
-        const pa = partA ? (partA[part.id] ?? 0) : 1;
-        if (pa <= 0.004) continue;
-        capId = part.id;
-        const T = chain(base, place(rotZ(part.spins ? SPIN + idleT * 150 * DEG : 0), [0, 0, 0]));
-        const oc = cam(T.t[0], T.t[1], T.t[2]);
-        const screenR = (part.r || 60) * runK * (PERSP / (PERSP - oc[2]));
-        const mat = part.mat || MAT.neutral;
-        submit(part.solids, T, mat, pa);
-        submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
-        // LEVEL OF DETAIL, and not captured for the morph: fine detail
-        // arrives with its part's drawing rather than as a strand
-        if (screenR > LOD_PX && part.detail && !cap) submitLines(part.detail, T, matLine[mat], LOOK.line * 0.8 * pa, LOOK.width);
-      }
-      // COPPER: bars in the stator slots, end turns bulging past the r=62 core
-      const pc = partA ? (partA.copper ?? 0) : 1;
-      if (pc > 0.004) {
-        capId = 'copper';
-        const T = chain(base, place(rotZ(SPIN + idleT * 150 * DEG), [0, 0, 0]));
-        for (let k = 0; k < 9; k++) submit(barSolid((k / 9) * TAU, 46, -52, 52, 7), T, MAT.copper, pc);
-        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), T, MAT.copper, pc);
-        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), T, MAT.copper, pc);
-        submitLines([ring(64, -58, 28), ring(64, 58, 28)], T, copper, LOOK.line * pc, LOOK.width);
-      }
-      flush();     // ONE sorted pass over the whole machine: masses and lines
+      drawPlanar(PLANAR_HOME, planarQ(), 1, idleOn ? settleU : 0);
     }
     // The camera on the stage: faces into the page (its front is +z, turned
     // toward the page's centre), three-quarter view, mm to px by CAM2.k.
@@ -3349,30 +3404,23 @@ export default function Flourish3D({ side = 'right' }) {
       // owner saw the robots "from under angles"; the work is looked DOWN on
       // now, and each act starts at the pitch the last one ended on.
       setCam(16 * DEG, (14 - 22 * a) * DEG, 30 * (1 - a));
-      // the motor swings round and shrinks down to where the SO-ARM's base
-      // servo sits — a servo IS a small motor — then hands over
-      const shrink = smooth(win(t, 0.30, 0.34));
-      if (shrink < 1) {
-        const k = MOTOR_K_MAX * (1 - a) + 0.40 * a * (1 - 0.72 * shrink);
-        const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
-        const goal = soServo();
-        const pos = [goal[0] * a, 10 + (goal[1] - 10) * a, 0];
-        const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
-        const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
-        const propA = 1 - win(t, 0.03, 0.18);
-        const ma = 1 - shrink;
-        for (let i = 0; i < MOTOR.length; i++) {
-          const part = MOTOR[i];
-          const pa = (part.id === 'prop' ? propA : 1) * ma;
-          if (pa <= 0.01) continue;
-          const T = chain(roll, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
-          const mat = part.mat || MAT.neutral;
-          submit(part.solids, T, mat, pa);
-          submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
-        }
-        const C = chain(roll, place(rotZ(SPIN), [0, 0, 0]));
-        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), C, MAT.copper, ma);
-        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), C, MAT.copper, ma);
+      // the 2R arm BECOMES the SO-ARM's arm: it stays in its plane, slides and
+      // scales until its shoulder is on the SO-ARM's shoulder, and bends its
+      // two joints until its links lie along the SO-ARM's upper arm and
+      // forearm (as seen), then hands over as the SO-ARM grows into it; its
+      // base plate sinks away (it used to shrink to a point and vanish)
+      {
+        const so = ROBOTS.soarm, TSo = bodyPlacements(so, standing(RB.so.root, RB.so.k, RB.so.yaw), RB.so.rest);
+        const Psh = TSo[so.index.get('upper_arm')].t, Pel = TSo[so.index.get('lower_arm')].t, Pwr = TSo[so.index.get('wrist')].t;
+        const ang = (p, q) => Math.atan2(-(q[1] - p[1]), q[0] - p[0]);
+        const qs1 = ang(Psh, Pel), qs2 = ang(Pel, Pwr) - qs1;
+        const kTo = Math.hypot(Pel[0] - Psh[0], Pel[1] - Psh[1]) / PL.L1;
+        const m = smooth(win(t, 0.04, 0.46)), fadeP = 1 - smooth(win(t, 0.66, 0.26));   // held on the SO-ARM's arm until the SO-ARM has grown into it
+        const k = 1.15 + (kTo - 1.15) * m;
+        const H = place(scaleM(k), [-58 + (Psh[0] + 58) * m, 66 + (Psh[1] - 66) * m, Psh[2] * m]);
+        const wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
+        const q = [PLANAR_REST[0] + wrap(qs1 - PLANAR_REST[0]) * m, PLANAR_REST[1] + wrap(qs2 - PLANAR_REST[1]) * m];
+        if (fadeP > 0.01) drawPlanar(H, q, fadeP, 0, 1 - smooth(win(t, 0.04, 0.3)));
       }
       // the arm grows out of the servo, base first, unfolding to its pose;
       // its cube arrives with it, and once settled it moves the cube
@@ -4008,26 +4056,7 @@ export default function Flourish3D({ side = 'right' }) {
       // at the viewer — the joint axis of a planar arm — and shrinking into
       // the shoulder. After that the parametric arm takes over, which is what
       // makes this act meet the next one exactly.
-      if (a < 1) {
-        const k = MOTOR_K_MAX + (ARM.K - MOTOR_K_MAX) * a;
-        const tilt = mul(rotX(66 * (1 - a) * DEG), rotY(30 * (1 - a) * DEG));
-        const pos = [P_2R.root[0] * a, 10 + (P_2R.root[1] - 10) * a, 0];
-        const base = chain(place(IDENT, pos), place(mul(tilt, scaleM(k)), [0, 0, 0]));
-        const roll = chain(base, place(rotZ(ROLL * (1 - a)), [0, 0, 0]));
-        const propA = 1 - win(t, 0.03, 0.18);        // the propeller goes; the shaft stays
-        for (let i = 0; i < MOTOR.length; i++) {
-          const part = MOTOR[i];
-          const pa = part.id === 'prop' ? propA : 1;
-          if (pa <= 0.01) continue;
-          const T = chain(roll, place(rotZ(part.spins ? SPIN : 0), [0, 0, 0]));
-          const mat = part.mat || MAT.neutral;
-          submit(part.solids, T, mat, pa);
-          submitLines(part.polys, T, matLine[mat], LOOK.line * pa, LOOK.width);
-        }
-        const C = chain(roll, place(rotZ(SPIN), [0, 0, 0]));
-        submit(surface([[-76, 42], [-68, 60], [-56, 64], [-45, 50]], 20), C, MAT.copper, 1);
-        submit(surface([[45, 50], [56, 64], [68, 60], [76, 42]], 20), C, MAT.copper, 1);
-      }
+      if (a < 1) drawPlanar(place(scaleM(1.15 * (1 - 0.5 * a)), [-58 * (1 - a) + P_2R.root[0] * a, 66 * (1 - a) + P_2R.root[1] * a, 0]), PLANAR_REST, 1 - a, 0);
       // the arm grows out of it: base, link 1 swinging down from vertical,
       // the elbow, link 2, then the gripper
       // the motor shrinks down into the shoulder servo, which is what an

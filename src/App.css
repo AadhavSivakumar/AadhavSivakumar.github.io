@@ -1468,3 +1468,25 @@ html[data-theme="dark"] .badge-flat__strap { background: #d9d4ca; }
 .modal-gallery-arrow:hover { border-color: var(--accent-ink); }
 .modal-gallery-count { flex: 0 0 auto; font-size: 12px; color: var(--text-muted, inherit); min-width: 40px; text-align: right; }
 @media (max-width: 768px) { .modal-gallery-thumb { width: 64px; height: 44px; } .modal-gallery-arrow { display: none; } }
+
+/* ── the Resume page: the resume big, transcripts and skills small ──────── */
+.resume-layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(250px, 1fr); gap: 22px; height: clamp(420px, calc(100vh - 250px), 760px); }
+.resume-viewer { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--border-color); border-radius: 12px; background: var(--surface-color); overflow: hidden; }
+.resume-tabs { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); }
+.resume-tab { font: 600 0.85rem 'Poppins', sans-serif; padding: 6px 14px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--secondary-color); cursor: pointer; }
+.resume-tab.is-on { background: color-mix(in srgb, var(--accent-color) 18%, transparent); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent-color) 40%, transparent); }
+.resume-open { margin-left: auto; font: 600 0.8rem 'Poppins', sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); cursor: pointer; }
+.resume-open:hover { border-color: var(--accent-ink); }
+.resume-frame { position: relative; flex: 1; min-height: 0; background: #e9e7e3; }
+html[data-theme="dark"] .resume-frame { background: #2a2a2a; }
+.resume-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+.resume-cover { position: absolute; inset: 0; background: transparent; border: 0; cursor: zoom-in; }
+.resume-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.resume-side-title { margin: 4px 0 0; font: 600 0.75rem 'Poppins', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); }
+.resume-doc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-color); color: var(--text-color); font: 500 0.85rem 'Poppins', sans-serif; text-align: left; cursor: pointer; }
+.resume-doc:hover, .skill-chip:hover { border-color: var(--accent-ink); }
+.resume-doc .doc-tile-badge { position: static; margin-left: auto; font-size: 0.68rem; padding: 2px 7px; }
+.skill-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface-color); color: var(--text-color); font: 500 0.76rem 'Poppins', sans-serif; cursor: pointer; }
+.skill-chip i { width: 15px; height: 15px; flex: 0 0 auto; background: var(--accent-ink); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+@media (max-width: 991px) { .resume-layout { grid-template-columns: 1fr; height: auto; } .resume-viewer { height: 70vh; } }

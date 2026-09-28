@@ -181,7 +181,7 @@ That is the owner's stated goal, and three things follow from it:
   MujocoSim repo's notebooks: FK/IK for position and velocity on a UR10e, then
   a Fruit Ninja demo), in that order. Sluice was removed at the owner's
   request. Everything else — including the tactile sensor — is in `smallProjectsData`,
-  strongest first: FIFTEEN cards, five to a row, three full rows (since Sept 27: the Detection-Grounded Action Models card, id `'l'`, second, with a DRAWN architecture-diagram cover `dgam.webp` — a proposal has no footage — and the ASL Glove, id `'m'`, from `Media/projects/aslglove.png`). **The first is the Roboflow
+  strongest first: fourteen cards, five to a row (the ASL Glove, id `'m'`, from `Media/projects/aslglove.png`, added Sept 27; the DGAM card, id `'l'`, was removed at the owner's request on Sept 28). **The first is the Roboflow
   webinar** (id `'k'`): the owner's public talk on part-presence inspection
   with RF-DETR-Seg, added at their request as a card rather than a "Talks"
   section (one talk does not make a section). Its cover is DRAWN, not a
@@ -1351,6 +1351,30 @@ This IS verifiable here — SwiftShader Chromium renders it (see the top of
 this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
+
+**Sept 28, fourth round.** (1) The first piece on the right is no longer
+the IEC motor with a fan: it is TWO SERVOS driving a 2R PLANAR ARM
+(`drawPlanar`, `PL`, `PLANAR_HOME`) — a base plate, the shoulder servo, a
+printed link, the elbow servo on its end, a second link, a pen — the
+owner's sand-table arm. Settled, the pen traces a figure-eight by 2R
+inverse kinematics (`planarIK`, elbow up) and leaves its line in copper;
+the hero's waves land on it (it is what `art()` draws, captured per part:
+base, servo1, link1, servo2, link2, tip). In act one it BECOMES the
+SO-ARM's arm: it stays in its plane, slides and scales until its shoulder
+is on the SO-ARM's shoulder and bends its joints onto the SO-ARM's upper
+arm and forearm as seen, its base sinking, and holds there until the
+SO-ARM has grown into it (a single 3D similarity was tried first and swung
+the whole arm through space). The motor's data (`MOTOR`) remains only for
+the parametric fallback drawn before the meshes load. (2) Skills & Resume
+is the RESUME page (`Skills.jsx`, id still `skills`): the resume's live
+Drive preview fills most of it, with a tab for the extended CV and "Open
+full size"; a transparent button covers the iframe (a cross-origin frame
+swallows the wheel, and the page could not be scrolled past it) and opens
+the modal; the iframe mounts only when the page is near. Beside it, small:
+the two transcripts and the eight skill groups as chips (each opens its
+modal). `SkillGroupCard.jsx` and `DocStrip.jsx` are gone. (3) The DGAM card
+is off Additional Projects (fourteen cards now); DGAM stays in the
+experience and skills text.
 
 **Sept 28, third round: the world model IS one; the gripper grips; the end
 is 3D.** (1) Act 3 used to relabel the VLA's own stack "world model"; now it
