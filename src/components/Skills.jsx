@@ -34,9 +34,17 @@ export default function Skills({ onCardClick, next }) {
   useEffect(() => {
     const el = pageRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setNear(true); io.disconnect(); } }, { rootMargin: '600px 0px' });
+    // mounted only once the page is actually ON screen and the reader has
+    // paused there: the Drive viewer's load is a long main-thread task, and
+    // loading it 600px early put it in the middle of the scroll through
+    // Additional Projects — frames of 170-200ms, measured
+    let t = 0;
+    const io = new IntersectionObserver(([e]) => {
+      clearTimeout(t);
+      if (e.isIntersecting) t = setTimeout(() => { setNear(true); io.disconnect(); }, 450);
+    }, { threshold: 0.35 });
     io.observe(el);
-    return () => io.disconnect();
+    return () => { clearTimeout(t); io.disconnect(); };
   }, []);
   const openDoc = (el, doc) => onCardClick(el, {
     id: doc.id,

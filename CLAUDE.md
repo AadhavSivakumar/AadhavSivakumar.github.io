@@ -65,7 +65,7 @@ prevent.
 - **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
 - **motion** (`motion/react`, the framer-motion successor) — only four files import it: the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), and the modal's phased open/close sequence (`Modal.jsx`). It does **not** drive the card reveals or the hover lift.
 - **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`), and — via `src/hooks/useScrollReveal.js` — **every scroll-into-view card entrance** on the site (`LiftCard`, `Reveal`, `Resume`'s tiles, `Contact`'s links). The hook suppresses inline CSS transitions during the entrance and clears them on completion so the CSS hover/tap states resume. Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
-- **three.js / @react-three/fiber / drei / rapier / meshline** — the 3D lanyard badges beside the Experience and Research cards. This whole stack is **lazy-loaded** (see Performance below).
+- **three.js** — only the WebGL Atlas on the last page (`atlasGL.js`, lazy). The lanyards were three.js + @react-three/fiber / drei / rapier / meshline until Sept 28; they are motion components now (`MotionLanyard.jsx`).
 
 ## Source layout
 
@@ -230,7 +230,46 @@ browser cannot play the video (no H.264 in many Linux Chromium builds; it used
 to fall through to "Image Not Found") — and the build check enforces its
 existence.
 
-## The 3D lanyard (`src/components/Lanyard/`)
+## The lanyard badges — now MOTION, not 3D (`src/components/MotionLanyard.jsx`)
+
+**Sept 28: the three.js + rapier lanyard is GONE** (the owner: "can you use
+Framer for the lanyards instead?"). Each badge is a motion (Framer Motion)
+pendulum: a pin; the strap and card hang from it as one group rotated about
+the pin by a low-damped spring (`swing`); dragging swings the group to the
+pointer's angle from the pin (the strap stretching up to 30px); release
+lets the spring swing it home through an overshoot; a pointer brushing
+past pushes a small sway; hovering tilts the card in 3D; a click (not a
+drag) flips it to the photo on its back, Enter/Space too. The face is real
+HTML (photo, name in the display serif, role, ID/EXP) and inverts against
+the page as the 3D card did. Both badges hang in the left column
+(`.exp-lanyard--pair`), each pin 52px above its card on a 40px strap.
+Nothing runs on a still page: every motion is a spring that settles (0
+mutations 3s after arriving). Removed with it: `src/components/Lanyard/`
+(Lanyard.jsx, card.glb, lanyard.png), the badge probe, ErrorBoundary, and
+the @react-three/fiber, drei, rapier and meshline packages — a ~3 MB lazy
+chunk and four WebGL contexts. three.js remains for the Atlas only
+(`atlasGL`, lazy, from act 4). Everything below in this section describes
+the removed 3D lanyard and is history.
+
+Also found while measuring: the Resume page's Drive preview was mounted
+600px early, in the middle of the scroll through Additional Projects, and
+its load is a long main-thread task (frames of 170-200ms, act 3 p90 50);
+it mounts once the page is 35% on screen and the reader has paused 450ms.
+With that and the lanyards gone every act measures p90 17.1-17.3 in
+Firefox — act 4, which had sat at the frame-budget edge for several rounds,
+included. The camera (D435i) also: `CAM2.yaw` 34 → 16 and the rest view 26
+/ 15 → 14 / 12 (the far lens was out of sight), and its LENSES draw in a
+second pass after the body — the front plate is one big face sorted at its
+centre's depth, so the lenses on its far half sorted behind it and two of
+the four apertures were missing.
+
+Also found while measuring this: the hero's scroll-cue gate used an 80px
+outward rootMargin, so sitting on the Experience page (the hero's bottom
+edge exactly at the top of the screen) still counted as "on screen" and the
+cue kept bobbing — ~120 style writes every 2s on a still page. It uses a
+threshold now.
+
+## The 3D lanyard (`src/components/Lanyard/`) — REMOVED Sept 28, kept as history
 
 ID badges on physics ropes, ported from the ReactBits lanyard and heavily
 extended. **Seen rendering for the first time on 2026-09-07** via the WebGL

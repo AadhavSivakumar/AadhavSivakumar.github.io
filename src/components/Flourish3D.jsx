@@ -1603,7 +1603,7 @@ export default function Flourish3D({ side = 'right' }) {
     // toward the page's centre), three-quarter view, mm to px by CAM2.k.
     // `t` > 0 explodes it (see drawCameraAct); returns the module's frame
     // for the hand-over to the sensor.
-    const CAM2 = { k: 2.55, x: -14, y: -10, yaw: 34, pitch: 8 };
+    const CAM2 = { k: 2.55, x: -14, y: -10, yaw: 16, pitch: 8 };   // turned toward the viewer: at yaw 34 (plus the view's 26) the far lens was hidden (the owner: "I can't see the furthest away circle")
     const CAM2_EX = 1.0;                                    // explode stations are in mm, scaled by k
     // Where each part goes in the exploded view, mm in the camera's own frame
     // (x along the bar, y DOWN, z out of the front): the front plate up and
@@ -1615,10 +1615,15 @@ export default function Flourish3D({ side = 'right' }) {
     function drawD435(alpha, t, opt = null) {
       // at rest this piece sets its own view (the acts set theirs): the hero's
       // capture pass draws it before anything else has, and cam() was null
-      if (t <= 0 && (!DEV || !cam)) setCam(26 * DEG, 15 * DEG, -70);   // (?dev=<robot> on the right leaves the left with no view at all)
+      if (t <= 0 && (!DEV || !cam)) setCam(14 * DEG, 12 * DEG, -70);   // (?dev=<robot> on the right leaves the left with no view at all)
       const home = place(mul(mul(rotY(CAM2.yaw * DEG), rotX(-CAM2.pitch * DEG)), scaleM(CAM2.k)), [CAM2.x, CAM2.y, 0]);
       let moduleT = home;
-      for (const part of D435) {
+      // the LENSES in a second pass, over everything else: the front plate is
+      // one big face sorted at its centre's depth, so on the side turned away
+      // the lenses sorted BEHIND it and vanished — two of the four apertures
+      // were missing (the owner: "I can't see the furthest away circle")
+      for (const pass of [0, 1]) for (const part of D435) {
+        if (!!part.glass !== !!pass) continue;
         const pa = partA ? (partA[part.id] ?? 0) : 1;
         const isModule = part.id === 'module';
         const order = part.order;
@@ -1641,6 +1646,7 @@ export default function Flourish3D({ side = 'right' }) {
             submitLines(RGB_BARREL.wire, B, matLine[MAT.steel], LOOK.line * ba, LOOK.width);
           }
         }
+        if (part === D435[D435.length - 1] && !pass) flush();
       }
       flush();
       // THE CAPTURE CONE (the owner: "project a cone out from the lens, like
@@ -1728,7 +1734,7 @@ export default function Flourish3D({ side = 'right' }) {
       const rays = smooth(win(t, 0.54, 0.1)) * (1 - smooth(win(t, 0.78, 0.1)));
       const s2 = smooth(win(t, 0.62, 0.3));
       const q = smooth(win(t, 0.62, 0.34));                 // the view squares up as the die arrives
-      const yaw = 26 + (-22 - 26) * o, pitch = 15 + (24 - 15) * o, dolly = -70 + (-20 + 70) * o;
+      const yaw = 14 + (-22 - 14) * o, pitch = 12 + (24 - 12) * o, dolly = -70 + (-20 + 70) * o;
       setCam(yaw * (1 - q) * DEG, pitch * (1 - q) * DEG, dolly * (1 - q));
       const kB = 2.7;
       const TB = place(mul(mul(rotY(-6 * DEG), rotX(-8 * DEG)), scaleM(kB)), [-62, 6, 10]);   // its face toward the viewer (it was near edge-on under the orbited view)

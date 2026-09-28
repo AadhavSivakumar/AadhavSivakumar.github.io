@@ -1,14 +1,12 @@
-import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import SectionTitle from './SectionTitle';
-import ErrorBoundary from './ErrorBoundary';
 import LiftCard from './LiftCard';
 import { CoverVideo } from './ProjectCard';
 import PageNext from './PageNext';
 import { experienceData } from '../data/siteData';
 import { badgeByName } from './badgeCards';
 
-// The three.js / rapier stack is lazy so a phone never downloads it.
-const Lanyard = lazy(() => import('./Lanyard/Lanyard'));
+import MotionLanyard from './MotionLanyard';
 
 // One PAGE of experience: two organisations, each a card with its lanyard
 // badge hanging beside it, the pair sized to fit one screen. Rendered twice
@@ -46,46 +44,16 @@ function useNearViewport(ref, margin = '600px') {
   return near;
 }
 
-// Can this browser make a WebGL context at all? Checked once. Where it cannot
-// (GPU blocklisted, hardware acceleration off, a remote session) the 3D badge
-// used to render NOTHING — the error boundary's fallback was null — and the
-// owner reported "I can no longer see the lanyards". Now the badge is drawn
-// flat instead (BadgeFallback), so it is never silently missing.
-let webglOK = null;
-const canWebGL = () => {
-  if (webglOK !== null) return webglOK;
-  try { const c = document.createElement('canvas'); webglOK = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webglOK = false; }
-  return webglOK;
-};
-
-// The flat badge: the same card, photo, name, role, ID and EXP, on a strap.
-function BadgeFallback({ card }) {
-  const b = card.badge;
-  return (
-    <div className="badge-flat">
-      <span className="badge-flat__strap" />
-      <div className="badge-flat__card">
-        <img src={card.image} alt="" className="badge-flat__photo" />
-        <strong className="badge-flat__name">{b.name}</strong>
-        <span className="badge-flat__role">{b.role}</span>
-        <span className="badge-flat__meta"><b>ID</b> {b.id}<br /><b>EXP</b> {b.exp}</span>
-      </div>
-    </div>
-  );
-}
-
-// ONE canvas in the left column, spanning both rows, holding BOTH badges:
-// the first hangs beside the first card, the second is hung one row lower so
-// it sits beside the second card (the owner: "make the starship id badge align
-// with the starship card… put all of the lanyards on the left side"). One tall
-// canvas rather than one per row, because the canvas HEIGHT sets the badge's
-// size, and a row-high canvas drew each badge at half its size.
+// The left column, spanning both rows, holding BOTH badges: the first beside
+// the first card, the second hung one card-row lower beside the second (the
+// owner: "make the starship id badge align with the starship card… put all
+// of the lanyards on the left side"). The badges are motion (Framer Motion)
+// components now — see MotionLanyard.jsx; they were a three.js + rapier
+// scene in a WebGL canvas.
 function RowLanyard({ badgeNames, wide }) {
   const ref = useRef(null);
   const near = useNearViewport(ref);
-  const [lost, setLost] = useState(false);
   const cards = badgeNames.map(n => badgeByName[n]).filter(Boolean);
-  const card = cards[0];
   // one card row + the grid gap, in px: how far below the first badge the
   // second hangs, so each is level with its own card
   const [rowPx, setRowPx] = useState(0);
@@ -95,39 +63,10 @@ function RowLanyard({ badgeNames, wide }) {
     measure(); window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
-  // a context LOST later (the GPU process resets, too many contexts) is not
-  // an exception, so the error boundary never sees it; watch the canvas
-  useEffect(() => {
-    if (!wide || !near) return undefined;
-    let canvas = null;
-    const onLost = () => setLost(true);
-    const t = setInterval(() => {
-      canvas = ref.current && ref.current.querySelector('canvas');
-      if (canvas) { canvas.addEventListener('webglcontextlost', onLost); clearInterval(t); }
-    }, 500);
-    return () => { clearInterval(t); if (canvas) canvas.removeEventListener('webglcontextlost', onLost); };
-  }, [wide, near]);
-  if (!card) return null;
-  const flat = !canWebGL() || lost;
+  if (!cards.length) return null;
   return (
-    <div ref={ref} className="exp-lanyard exp-lanyard--pair" aria-hidden="true">
-      {wide && near && flat && cards.map((c, i) => <div key={i} className="badge-flat-slot">{<BadgeFallback card={c} />}</div>)}
-      {wide && near && !flat && rowPx > 0 && (
-        // The boundary sits OUTSIDE the Suspense so it catches both a WebGL
-        // context that cannot be created and a failed fetch of the lazy chunk.
-        <ErrorBoundary label={`Lanyard (${badgeNames.join(', ')})`} fallback={cards.map((c, i) => <div key={i} className="badge-flat-slot"><BadgeFallback card={c} /></div>)}>
-          <Suspense fallback={null}>
-            <Lanyard
-              position={[0, 0, 30]}
-              gravity={[0, -40, 0]}
-              cards={cards.map((c, i) => ({ ...c, side: 'center', slot: 0, dropPx: i * rowPx - 45 }))}
-              clearCenterPx={0}
-              sizeMul={1.1}
-              lanyardWidth={0.32}
-            />
-          </Suspense>
-        </ErrorBoundary>
-      )}
+    <div ref={ref} className="exp-lanyard exp-lanyard--pair">
+      {wide && near && rowPx > 0 && <MotionLanyard cards={cards} rowPx={rowPx} />}
     </div>
   );
 }

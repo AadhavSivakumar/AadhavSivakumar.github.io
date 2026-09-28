@@ -1526,3 +1526,33 @@ html[data-theme="dark"] {
 .hero-chip:hover, .hero-chip:focus-visible { color: var(--accent-ink); }
 #hero[data-idle] p.hero-statement em { animation-play-state: paused; }   /* no loop while the hero is off screen */
 @media (prefers-reduced-motion: reduce) { #hero p.hero-statement em { animation: none; } }
+
+/* ── the lanyard badges, in motion (MotionLanyard.jsx) ───────────────────
+   A pin; a strap and the card hang from it as one group that swings about
+   the pin; the card tilts in 3D on hover and flips to its photo on click.
+   The card INVERTS against the page, as the 3D one did: near-black with pale
+   type on the light site, pale with dark type on the dark one. */
+.exp-lanyard.exp-lanyard--pair { overflow: visible; height: auto; border-radius: 0; }
+.mlan { position: absolute; left: 50%; width: 0; }
+.mlan-pin { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 12%, var(--accent-color) 40%, color-mix(in srgb, var(--accent-color) 55%, #000) 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 3; }
+.mlan-hang { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.mlan-strap { position: absolute; left: -7px; top: 0; width: 14px; border-radius: 0 0 3px 3px; background: repeating-linear-gradient(0deg, color-mix(in srgb, var(--accent-color) 85%, #000) 0 2px, var(--accent-color) 2px 6px); box-shadow: inset 1px 0 0 rgba(255,255,255,0.35), inset -1px 0 0 rgba(0,0,0,0.2); }
+.mlan-clip { position: absolute; left: -9px; top: 36px; width: 18px; height: 16px; border-radius: 4px; background: linear-gradient(180deg, #d9d6cf, #8e8a82); box-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+.mlan-card-wrap { position: absolute; left: -82px; top: 50px; width: 164px; height: 232px; perspective: 700px; cursor: grab; touch-action: none; }
+.mlan-card-wrap:active { cursor: grabbing; }
+.mlan-card-wrap:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 4px; border-radius: 12px; }
+.mlan-card { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+.mlan-face { position: absolute; inset: 0; border-radius: 12px; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 18px 30px -12px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.06) inset; user-select: none; }
+.mlan-front { display: flex; flex-direction: column; align-items: center; padding: 22px 14px 12px; background: linear-gradient(160deg, #26272a, #141416 60%); color: #f1ede4; }
+.mlan-front.is-pale { background: linear-gradient(160deg, #f3efe6, #dcd6c9 70%); color: #1c1c1e; }
+.mlan-front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.10) 48%, transparent 60%); pointer-events: none; }
+.mlan-slot { position: absolute; top: 8px; left: 50%; width: 30px; height: 6px; margin-left: -15px; border-radius: 3px; background: rgba(0,0,0,0.45); box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
+.mlan-photo { width: 84px; height: 84px; object-fit: cover; border-radius: 50%; border: 2px solid var(--accent-color); background: #fff; }
+.mlan-name { margin-top: 10px; font: 700 1.15rem 'Playfair Display', serif; letter-spacing: 0.01em; }
+.mlan-role { font: 500 0.72rem 'Poppins', sans-serif; opacity: 0.8; text-align: center; }
+.mlan-rule { width: 70%; height: 1px; margin: 10px 0 7px; background: color-mix(in srgb, var(--accent-color) 60%, transparent); }
+.mlan-meta { display: flex; justify-content: space-between; width: 80%; font: 500 0.66rem ui-monospace, Menlo, monospace; opacity: 0.85; }
+.mlan-meta b { color: var(--accent-color); font-weight: 700; letter-spacing: 0.1em; }
+.mlan-back { transform: rotateY(180deg); background: #ece7dc; }
+.mlan-back img { width: 100%; height: 100%; object-fit: contain; padding: 18px; box-sizing: border-box; }
+.mlan-front.is-pale .mlan-meta b { color: var(--accent-ink); }   /* the plain accent is too faint on the pale card */

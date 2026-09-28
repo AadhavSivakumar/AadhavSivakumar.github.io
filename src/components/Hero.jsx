@@ -102,7 +102,10 @@ export default function Hero() {
     if (!el || typeof IntersectionObserver === 'undefined') return undefined;
     const io = new IntersectionObserver(
       ([e]) => setHeroOnScreen(e.isIntersecting),
-      { rootMargin: '80px' }
+      // NOT an outward margin: sitting on the Experience page puts the hero's
+      // bottom edge exactly at the top of the screen, and with 80px of margin
+      // it still counted as on screen — the cue kept bobbing on a still page
+      { threshold: 0.02 }
     );
     io.observe(el);
     return () => io.disconnect();
