@@ -85,7 +85,6 @@ const toModal = item => ({
   ].filter(Boolean),
 });
 
-const SHOWN = 2;        // highlights on the card; the rest are in the modal
 const SHOWN_TAGS = 5;
 const SHOWN_TAGS_MEDIA = 3;   // beside a video the tag row is narrower, and it must stay ONE row for the page to fit
 
@@ -94,7 +93,6 @@ const SHOWN_TAGS_MEDIA = 3;   // beside a video the tag row is narrower, and it 
 // same lazy, poster-first, pause-control-aware <video> the project covers
 // use. `item.video` is a root-relative .mp4 with a `-poster.webp` beside it.
 function ExperienceCard({ item, index, onCardClick }) {
-  const more = item.bullets.length - SHOWN;
   return (
     <LiftCard
       className={`exp-card exp-card--${index}${item.video ? ' exp-card--media' : ''} project-modal-trigger`}
@@ -117,10 +115,10 @@ function ExperienceCard({ item, index, onCardClick }) {
         </div>
         <p className="exp-period">{item.period}</p>
       </div>
+      {/* the card is a short PARAGRAPH; every bullet is in the modal (the
+          owner: "on the cards… have a small paragraph and have the bullet
+          points show up in the modal") */}
       {item.summary && <p className="exp-summary">{item.summary}</p>}
-      <ul className="exp-bullets">
-        {item.bullets.slice(0, SHOWN).map((b, i) => <li key={i}><span>{b}</span></li>)}
-      </ul>
       <div className="exp-foot">
         {item.tags?.length > 0 && (
           <div className="project-tags-container exp-tags">
@@ -128,7 +126,7 @@ function ExperienceCard({ item, index, onCardClick }) {
           </div>
         )}
         <span className="exp-more">
-          {more > 0 ? `+${more} more highlight${more > 1 ? 's' : ''}` : 'Details'}
+          {`${item.bullets.length} highlight${item.bullets.length > 1 ? 's' : ''}`}
           <span aria-hidden="true"> →</span>
         </span>
       </div>

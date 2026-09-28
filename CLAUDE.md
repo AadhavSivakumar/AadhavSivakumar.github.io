@@ -143,7 +143,7 @@ All page content lives in `src/data/siteData.js`:
   www.ucsc.edu itself is behind a Cloudflare check). Encoded silent, 960 px,
   30 fps, libx264 crf 29, faststart, a poster from inside each clip: 0.8–1.3
   MB each, fetched only when the card is on screen. Files:
-  `Media/web/experience/{roboflow,starship,nyu-tandon,ucsc-baskin}.mp4`. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary and the first two bullets, each clamped, and five tags — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
+  `Media/web/experience/{roboflow,starship,nyu-tandon,ucsc-baskin}.mp4`. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary paragraph and a few tags (since Sept 28 no bullets on the card) — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
   **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
 - `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
 
@@ -456,6 +456,22 @@ keep them:
   toward the viewer" is the opposite local pitch on a card facing away.
 - Interactions: drag (kinematic), click (<350ms, small movement) flips the card via a yaw target + torque kick, moving cursor applies a small repulsion impulse (sway), and hovering leans the card toward the cursor (yaw/pitch targets in the frame damper — the 3D tilt lives here, not on the HTML cards).
 - **The badges hang from a beige pegboard, not a rail.** A straight full-width crossbar over six equal-length vertical straps in one dead-flat rank reads as *prison bars* — that exact combination was rejected. `LanyardRack` now renders a perforated beige masonite panel (tiling hole-grid canvas texture, theme-aware) with a ball-headed pin per badge, and `SLOT_RISE_BY` + `hangJitter()` stagger the pins slightly so they sit near-level but never in a rigid rank. Keep the stagger subtle: too much and the outer rings clip the top of the frame.
+
+## Sept 28: experience cards are a paragraph; the close flies a snapshot
+
+Experience and Research cards show the role, org, degree, period, the
+SUMMARY paragraph (clamped to 5 lines, 4 on short screens), the tags and "N
+highlights →"; every bullet is in the modal only (the owner: "have a small
+paragraph and have the bullet points show up in the modal"). Keep each
+`summary` a short paragraph — it is the card's whole text now.
+
+The modal CLOSE flies a canvas SNAPSHOT of the frame on screen at the click
+(`closeShot`, drawn with the element's object-fit crop), not a new
+<video>/<img>: the new element had not decoded a frame yet, so the slot
+flashed the flyer's #111 background, then the poster, then the video at a
+different moment (the owner: "a small flash/jitteryness"). Where the source
+cannot be drawn (undecoded, e.g. Chromium here without H.264) it falls back
+to the live copy.
 
 ## The LEFT stage is MANIM now (`manim/left.py`, `LeftFilm.jsx`) — Sept 28
 

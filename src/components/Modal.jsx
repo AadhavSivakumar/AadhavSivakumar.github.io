@@ -91,6 +91,31 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   }, [isOpen, cardRect, phase]);
 
   const closeFrom = useRef(null);
+  // THE CLOSE FLIES A SNAPSHOT (the owner: "right when I click the close
+  // button… there's a small flash/jitteryness"): the flyer used to be a NEW
+  // <video>/<img> that had not decoded a frame yet — for a frame or two the
+  // slot showed its #111 background (the flash), then the poster, then the
+  // video at a different moment. The frame on screen at the click is drawn
+  // to a canvas, cropped exactly as object-fit: cover crops it, and that
+  // canvas is what flies back to the card.
+  const closeShot = useRef(null);
+  const snapshot = el => {
+    try {
+      const vw = el.videoWidth || el.naturalWidth, vh = el.videoHeight || el.naturalHeight;
+      const w = el.clientWidth, h = el.clientHeight;
+      if (!vw || !vh || !w || !h) return null;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const c = document.createElement('canvas');
+      c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+      const fit = getComputedStyle(el).objectFit;
+      const k = fit === 'contain' ? Math.min(w / vw, h / vh) : Math.max(w / vw, h / vh);
+      const dw = vw * k, dh = vh * k;
+      const ctx = c.getContext('2d');
+      if (fit === 'contain') { ctx.fillStyle = '#111'; ctx.fillRect(0, 0, c.width, c.height); }
+      ctx.drawImage(el, (w - dw) / 2 * dpr, (h - dh) / 2 * dpr, dw * dpr, dh * dpr);
+      return c;
+    } catch { return null; }          // a tainted or undecoded source: fall back to the live copy
+  };
   // the flight's target needs the content mounted: re-render once after the
   // first (lift) paint so the flyer starts with the lift, not after it
   const [, force] = useState(0);
@@ -99,6 +124,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     // where the modal's media is right now (it may have been scrolled)
     const el = contentRef.current && contentRef.current.querySelector('.modal-image');
     if (el) { const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height }; if (media && el.tagName === 'VIDEO' && pick === 0) media.time = el.currentTime; }
+    closeShot.current = el ? snapshot(el) : null;
     flyVid.current = null;
     // straight to collapse: the content fades out WHILE the surface shrinks and
     // the card copy fades back in, instead of an empty modal waiting 260ms for
@@ -441,7 +467,9 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
           animate={flyTo}
           transition={flyTransition}
         >
-          {media.isVideo
+          {phase === 'collapse' && closeShot.current
+            ? <div className="modal-flyer-shot" ref={d => { if (d && !d.firstChild) d.appendChild(closeShot.current); }} />
+            : media.isVideo
             ? <video ref={v => { if (v && !flyVid.current) { flyVid.current = v; try { v.currentTime = media.time || 0; } catch {} } }} src={media.src} poster={media.poster} autoPlay muted loop playsInline />
             : <img src={media.src} alt="" />}
         </motion.div>
