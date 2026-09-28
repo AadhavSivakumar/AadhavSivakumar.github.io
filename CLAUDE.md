@@ -1352,6 +1352,24 @@ this file) — which is the condition the rule below was waiting for. The rest
 of the page stays line art. Harness note: a stage can now hold two canvases;
 select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 
+**Sept 28, later: act one rebuilt, acts 2-3 in depth** (the owner: "more
+refined… maybe in 3d. The camera at the start should explode better and
+expose the sensor more interestingly"). `EXPLODE` gives every D435 part a
+3D displacement (plate up and forward, lenses further and fanned, casing
+back, PCB back and down) while the view ORBITS (yaw 26 → -22, pitch 15 →
+24, dolly -70 → -20); then everything but the stereo module fades, the
+module comes to the middle at three-quarters (`TB`), the RGB lens barrel —
+its own piece now, `RGB_BARREL`, lifted off the module solid — tips up and
+away, light rays with photons run through the aperture onto the exposed
+die, the photosites light as they land, and the die grows into
+SENSOR_HOME as the view squares up (end state unchanged: act 2's seam 0
+px). `drawD435(alpha, t, opt)` takes the plan (`e`, `fade`, `modT`,
+`lift`, `modFade`); at rest it draws exactly as before, so the hero's
+strands still land on it. Acts 2-3: tokens become CUBES as they arrive,
+the layers and the action panel are solid slabs, and the view looks DOWN
+on the stack from its left (act 2 ends at yaw -18 / pitch -14, act 3 at
+-10 / -12, act 4 starts there). The tracker sits at y -270.
+
 **Sept 28.** (1) The left side is ONE STORY, real → sim → real (the owner:
 "too many words… just go from real 2 sim to real over the course of all the
 animations, and include the most crucial terminology"): a tracker at the

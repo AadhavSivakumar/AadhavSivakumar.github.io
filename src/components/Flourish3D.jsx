@@ -685,8 +685,8 @@ const D435 = [
   ...D435_APERTURES.map(([x, r], i) => ({ id: `lens${i}`, mat: MAT.poly, glass: true,
     solid: [...surface([[12.6, r], [15, r]], 16).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })), ...disc(0, r, 15, 16).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n }))],
     wire: [ringAt(r, x, 0, 15.05, 20), ringAt(r * 0.55, x, 0, 15.1, 14)], out: 48, order: 0 })),
-  { id: 'module', mat: MAT.steel, solid: [...boxFaces(84, 20, 6, 0, 0, 4), ...[-32, 18, 36].flatMap(x => drum(3.6, 7, 8.8).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })))],
-    wire: [...boxWire(84, 20, 6, 0, 0, 4), ...[-32, 18, 36].map(x => ringAt(3.6, x, 0, 8.9, 14))], out: 14, order: 2 },
+  { id: 'module', mat: MAT.steel, solid: [...boxFaces(84, 20, 6, 0, 0, 4), ...[-32, 18].flatMap(x => drum(3.6, 7, 8.8).map(f => ({ v: f.v.map(([px, py, pz]) => [px + x, py, pz]), n: f.n })))],
+    wire: [...boxWire(84, 20, 6, 0, 0, 4), ...[-32, 18].map(x => ringAt(3.6, x, 0, 8.9, 14))], out: 14, order: 2 },
   { id: 'pcb', mat: MAT.iron, solid: boxFaces(82, 20, 2, 0, -1, -2), wire: boxWire(82, 20, 2, 0, -1, -2), out: -30, order: 3 },
 ];
 // the Ultra unit's torso: a rounded-rectangle section (x forward 150, y
@@ -701,6 +701,9 @@ const SERVO_HORNS = [face(hornPts(23.6)), face(hornPts(-23.6).reverse())];   // 
 const TORSO_SIL = roundRect(150, 200, 24, 3);
 const TORSO_SOLID = extrude(TORSO_SIL, 0, 330);
 const TORSO_WIRE = silWire(TORSO_SIL, 0, 330, 6);
+// the RGB imager's lens barrel on the stereo module, its own piece: in act one
+// it LIFTS OFF and exposes the image sensor under it
+const RGB_BARREL = { solid: drum(3.6, 7, 8.8).map(f => ({ v: f.v.map(([px, py, pz]) => [px + 36, py, pz]), n: f.n })), wire: [ringAt(3.6, 36, 0, 8.9, 14), ringAt(2.2, 36, 0, 8.95, 12)] };
 const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
 const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
 const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
@@ -1548,37 +1551,42 @@ export default function Flourish3D({ side = 'right' }) {
     // for the hand-over to the sensor.
     const CAM2 = { k: 2.55, x: -14, y: -10, yaw: 34, pitch: 8 };
     const CAM2_EX = 1.0;                                    // explode stations are in mm, scaled by k
-    function drawD435(alpha, t) {
+    // Where each part goes in the exploded view, mm in the camera's own frame
+    // (x along the bar, y DOWN, z out of the front): the front plate up and
+    // forward, the lenses further and fanned, the casing back, the PCB back
+    // and down — a teardown drawing's layout, not one axis (the owner: "the
+    // camera at the start should explode better")
+    const EXPLODE = { body: [0, 10, -40], plate: [0, -8, 42], module: [0, 2, 18], pcb: [0, 30, -64], lens0: [-16, -14, 72], lens1: [-5, -17, 78], lens2: [7, -14, 74], lens3: [18, -10, 70] };   // kept on the stage: the lenses flew off its top
+    // opt: { e explode 0..1, fade others 0..1, modT module placement override, lift barrel 0..1 }
+    function drawD435(alpha, t, opt = null) {
       // at rest this piece sets its own view (the acts set theirs): the hero's
       // capture pass draws it before anything else has, and cam() was null
       if (t <= 0 && (!DEV || !cam)) setCam(26 * DEG, 15 * DEG, -70);   // (?dev=<robot> on the right leaves the left with no view at all)
-      // as it opens the assembly drifts toward the outer edge, where the
-      // stage overhangs the screen, so the fan of parts stays on the stage
-      const drift = t > 0 ? -20 * smooth(win(t, 0.03, 0.42)) : 0;     // the lenses fan toward the INNER edge (+x); the assembly drifts out
-      const home = place(mul(mul(rotY(CAM2.yaw * DEG), rotX(-CAM2.pitch * DEG)), scaleM(CAM2.k)), [CAM2.x + drift, CAM2.y, 0]);
-      let moduleT = null;
+      const home = place(mul(mul(rotY(CAM2.yaw * DEG), rotX(-CAM2.pitch * DEG)), scaleM(CAM2.k)), [CAM2.x, CAM2.y, 0]);
+      let moduleT = home;
       for (const part of D435) {
         const pa = partA ? (partA[part.id] ?? 0) : 1;
-        const mv = t > 0 ? smooth(win(t, 0.03 + part.order * 0.03, 0.42)) : 0;
         const isModule = part.id === 'module';
-        const a = alpha * pa * (t > 0 ? 1 - smooth(isModule ? win(t, 0.78, 0.12) : win(t, 0.44 + part.order * 0.02, 0.18)) : 1);
-        let T = chain(home, place(IDENT, [0, 0, part.out * CAM2_EX * mv]));
-        if (isModule && t > 0) {
-          // THE SENSOR COMES OUT. Once the view is apart the module leaves its
-          // station: it travels to the centre of the stage, turning to face
-          // the viewer and shrinking to the die's size, its front face
-          // landing on the die plane (z 16), and the drawn package forms
-          // around it while its photosites light as it fades
-          const s = smooth(win(t, 0.46, 0.3));
-          const kB = 2.0;
-          const TB = { m: scaleM(kB), t: [0, 0, 16 - 7 * kB] };
-          if (s > 0) T = lerpT(T, TB, s, CAM2.k, kB);
-          moduleT = { T, c: [0, 0, 7] };                      // the front face's centre, in the module's frame
-        }
+        const order = part.order;
+        const mv = opt ? smooth(clamp((opt.e - order * 0.08) / 0.76, 0, 1)) : 0;
+        const a = alpha * pa * (opt && !isModule ? 1 - opt.fade : 1) * (opt && isModule ? 1 - (opt.modFade || 0) : 1);
+        const d = EXPLODE[part.id] || [0, 0, part.out];
+        let T = chain(home, place(IDENT, [d[0] * mv, d[1] * mv, d[2] * mv]));
+        if (isModule) { if (opt && opt.modT) T = opt.modT(T); moduleT = T; }
         if (a <= 0.004) continue;
         capId = part.id;
         submit(part.solid, T, part.mat, a);
         submitLines(part.wire, T, part.glass ? ink : matLine[part.mat], LOOK.line * a, LOOK.width);
+        if (isModule) {
+          // the RGB barrel rides the module until it lifts off it
+          const lift = opt ? opt.lift || 0 : 0, ba = a * (1 - smooth(clamp((lift - 0.5) / 0.5, 0, 1)));
+          if (ba > 0.004) {
+            const B = chain(T, place(rotX(-40 * DEG * lift), [0, -10 * lift, 26 * lift]));
+            capId = 'module';
+            submit(RGB_BARREL.solid, B, MAT.steel, ba);
+            submitLines(RGB_BARREL.wire, B, matLine[MAT.steel], LOOK.line * ba, LOOK.width);
+          }
+        }
       }
       flush();
       // TAKING PICTURES: the RGB aperture's iris shuts and opens over ~0.34s
@@ -1634,51 +1642,65 @@ export default function Flourish3D({ side = 'right' }) {
     // explodes down to its sensor and the sensor resolves into pixels; the
     // motor becomes the shoulder of a 2R arm. Both then hold.
     function drawCameraAct(t) {
-      // the view holds its three-quarter angle while the camera comes apart
-      // (an exploded view needs the angle to read), then squares up to the
-      // sensor once the parts have gone
-      const q = smooth(win(t, 0.44, 0.3));
-      // ...pulling back a little as it opens (dolly -70 -> -115), so the fan
-      // of parts stays on the stage. The view's yaw has the SAME sign as the
-      // camera's own (CAM2.yaw): with opposite signs they cancelled and the
-      // parts slid straight at the viewer, foreshortened to nothing.
-      const e = smooth(win(t, 0.03, 0.42));
-      setCam(26 * (1 - q) * DEG, 15 * (1 - q) * DEG, (-70 - 45 * e) * (1 - q));
-      // 1 · the camera comes apart along its own optical axis, each piece
-      // holding its orientation, to its own station (see drawD435)
-      const board = drawD435(1, Math.max(0.001, t));
-      // 2 · the sensor is the module that came out of the camera: the drawn
-      // package forms AROUND it, in ITS frame — unflipped (facing() turned
-      // it a half turn about z, and the die must end at SENSOR_HOME's
-      // identity for the next act to start where this one ends), at the
-      // die's own scale, its plane on the module's front face
-      const sens = smooth(win(t, 0.56, 0.24));
-      if (sens <= 0 || !board) return;
-      // the die's frame is the module's — at the die's scale, its plane on the
-      // module's front face — and at t = 1 it is exactly SENSOR_HOME
-      const k = detScale(board.T.m) || 1;
-      const Rm = board.T.m.map(x => x / k);
-      const T = place(Rm.map(x => x * SENSOR_SCALE), tpOf(board.T, board.c));
-      stroke([rect(112, 86, 0, 0, 0), rect(126, 100, 0, 0, -3)], T, ink, 0.55 * sens, 1);
+      // 1 · EXPLODE while the view ORBITS: the parts fly out to a teardown
+      // layout in 3D and the view swings round from the camera's front-left to
+      // its front-right and closer, so the layers read in depth
+      const e = smooth(win(t, 0.02, 0.36)), o = smooth(win(t, 0.02, 0.46));
+      // 2 · everything but the stereo module goes; the module comes to the
+      //     middle, big, at three-quarters, the RGB imager toward the viewer
+      const fade = smooth(win(t, 0.34, 0.16)), s1 = smooth(win(t, 0.32, 0.24));
+      // 3 · the RGB lens barrel LIFTS OFF: under it, the image sensor
+      const lift = smooth(win(t, 0.48, 0.14));
+      // 4 · light comes in through where the lens was and lands on the die;
+      //     its photosites light as it does, and the die rises to fill the
+      //     view — the pixel array the next act starts from
+      const rays = smooth(win(t, 0.54, 0.1)) * (1 - smooth(win(t, 0.78, 0.1)));
+      const s2 = smooth(win(t, 0.62, 0.3));
+      const q = smooth(win(t, 0.62, 0.34));                 // the view squares up as the die arrives
+      const yaw = 26 + (-22 - 26) * o, pitch = 15 + (24 - 15) * o, dolly = -70 + (-20 + 70) * o;
+      setCam(yaw * (1 - q) * DEG, pitch * (1 - q) * DEG, dolly * (1 - q));
+      const kB = 2.7;
+      const TB = place(mul(mul(rotY(-6 * DEG), rotX(-8 * DEG)), scaleM(kB)), [-62, 6, 10]);   // its face toward the viewer (it was near edge-on under the orbited view)
+      const modT = T => (s1 > 0 ? lerpT(T, TB, s1, CAM2.k, kB) : T);
+      const board = drawD435(1, Math.max(0.001, t), { e, fade, modT, lift, modFade: smooth(win(t, 0.7, 0.16)) });
+      // the die: 8 mm on the module under the barrel, then SENSOR_HOME
+      const onMod = chain(board, place(scaleM(8 / 112), [36, 0, 7.4]));
+      const home = place(scaleM(SENSOR_SCALE), [0, 0, 16]);
+      const T = s2 > 0 ? lerpT(onMod, home, s2, detScale(onMod.m), SENSOR_SCALE) : onMod;
+      const dieA = smooth(win(t, 0.44, 0.1));
+      if (dieA <= 0.01) return;
+      // the silicon: a dark die, its package and bond pads forming as it grows
+      submit(plate(112, 86, 0, 0, 0.5), T, MAT.iron, 0.55 * dieA * (1 - smooth(win(t, 0.86, 0.12)))); flush();
+      const sens = smooth(win(t, 0.74, 0.2));
+      stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55 * Math.max(sens, dieA * 0.8), 1);
+      stroke([rect(126, 100, 0, 0, -3)], T, ink, 0.55 * sens, 1);
       stroke(SENSOR_PADS, T, LINE, 0.5 * sens, 1);
-      // 3 · pixels: each photosite lights to its own value, so the grid IS
-      // an image. Bucketed by brightness so 48 cells cost 4 fills, not 48.
-      // Once it is finished, the sensor KEEPS TAKING PICTURES while the page
-      // is settled: a readout band sweeps the grid and each sweep leaves a
-      // slightly different picture behind.
+      // the light: rays from the scene in front, through the aperture, onto
+      // the die, with photons running down them
+      if (rays > 0.01) {
+        const lines = [], dots = [];
+        for (let i = 0; i < 7; i++) {
+          const ang = (i / 7) * TAU, src = [36 + Math.cos(ang) * 11, Math.sin(ang) * 9, 34], ap = [36, 0, 9.5], hit = [36 - Math.cos(ang) * 3, -Math.sin(ang) * 2.4, 7.5];
+          lines.push([src, ap, hit]);
+          const u = (t * 9 + i * 0.37) % 1;
+          const p = u < 0.8 ? src.map((v, c) => v + (ap[c] - v) * (u / 0.8)) : ap.map((v, c) => v + (hit[c] - v) * ((u - 0.8) / 0.2));
+          dots.push(rect(1.4, 1.4, p[0], p[1], p[2]));
+        }
+        stroke(lines, board, copper, 0.55 * rays, 1.1);
+        fill(dots, board, copper, 0.9 * rays);
+      }
+      // 5 · the photosites, each to its own value, lighting in a sweep as the
+      //     light lands; settled, the sensor keeps taking pictures
       const frame = idleOn && t >= 1 ? Math.floor(idleT / SHUTTER) + 1 : 0;
       const buckets = [[], [], [], []];
-      // the photosites sit a little in front of the module while it is still
-      // there (a depth slab clear of its front face), and settle onto the die
-      // plane as it goes, so the next act's z 1.5 is where they end
       const pz = 1.5 + 2.5 * (1 - smooth(win(t, 0.86, 0.12)));
       for (let i = 0; i < PX_C * PX_R; i++) {
-        const a = smooth(win(t, 0.66 + (i / (PX_C * PX_R)) * 0.24, 0.10));
+        const a = smooth(win(t, 0.56 + (i / (PX_C * PX_R)) * 0.26, 0.1));
         if (a <= 0.02) continue;
         const [x, y] = pxPos(i);
         const v = pxVal(i, frame) * a;
         const sz = PX * 0.76 * (0.30 + 0.70 * a);
-        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x * a + x * 0.86 * (1 - a), y * a + y * 0.86 * (1 - a), pz));
+        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x, y, pz));
       }
       for (let b = 0; b < 4; b++) fill(buckets[b], T, pxColor(b), 0.12 + 0.72 * ((b + 1) / 4));
       if (frame) {
@@ -2434,7 +2456,7 @@ export default function Flourish3D({ side = 'right' }) {
     // `hot` the token in focus (-1 none)
     function drawVisionTokens(T, alpha, travel, hot) {
       if (alpha <= 0.01 || travel <= 0.001) return;
-      const k0 = detScale(T.m), buckets = [[], [], [], []], objs = [];
+      const k0 = detScale(T.m), buckets = [[], [], [], []], sides = [[], [], [], []], objs = [];
       for (let k = 0; k < NTOK; k++) {
         const w = smooth(clamp(travel * 1.7 - k * 0.055, 0, 1));
         if (w <= 0.001) continue;
@@ -2443,10 +2465,18 @@ export default function Flourish3D({ side = 'right' }) {
         const x = a[0] + (tokX(k) - a[0]) * w, y = a[1] + (ROW_V - a[1]) * w, z = a[2] * (1 - w);
         const s0 = (k < 12 ? GRID_W / 4 : DETS[0].w) * k0 * 0.8, sz = s0 + (TOK - s0) * w;
         const v = k < 12 ? PATCH_V[k] : 1;
-        buckets[clamp(Math.ceil(v * 4) - 1, 0, 3)].push(rect(sz, sz, x, y, z + 2));
+        // a flat patch on the picture becomes a CUBE as it arrives: the token
+        // gains depth (its sides drawn first, the face over them)
+        const b = clamp(Math.ceil(v * 4) - 1, 0, 3), h = sz / 2, z0 = z + 2, z1 = z0 - sz * 0.8 * w;
+        buckets[b].push(rect(sz, sz, x, y, z0));
+        sides[b].push([[x - h, y - h, z0], [x + h, y - h, z0], [x + h, y - h, z1], [x - h, y - h, z1], [x - h, y - h, z0]],
+          [[x - h, y + h, z0], [x + h, y + h, z0], [x + h, y + h, z1], [x - h, y + h, z1], [x - h, y + h, z0]],
+          [[x - h, y - h, z0], [x - h, y + h, z0], [x - h, y + h, z1], [x - h, y - h, z1], [x - h, y - h, z0]],
+          [[x + h, y - h, z0], [x + h, y + h, z0], [x + h, y + h, z1], [x + h, y - h, z1], [x + h, y - h, z0]]);
         if (k === 12) objs.push(rect(sz + 3, sz + 3, x, y, z + 2.5));
         if (k === hot) objs.push(rect(sz + 3, sz + 3, x, y, z + 2.5));
       }
+      for (let b = 0; b < 4; b++) fill(sides[b], I0, pxColor(b), (0.12 + 0.5 * ((b + 1) / 4)) * alpha);
       for (let b = 0; b < 4; b++) fill(buckets[b], I0, pxColor(b), (0.18 + 0.7 * ((b + 1) / 4)) * alpha);
       stroke(objs, I0, ink, 0.8 * alpha, 1.2);
     }
@@ -2476,7 +2506,7 @@ export default function Flourish3D({ side = 'right' }) {
         const y = LAYER_Y[i], w = LAYER_W * g, h = 13;
         const L = place(IDENT, [0, y, -i * 3]);
         const lit = clamp(1 - Math.abs(run * (LAYER_Y.length + 0.4) - i) * 1.3, 0, 1);
-        submit(plate(w, h, 0, 0, -0.5), L, MAT.neutral, 0.6 * g * alpha); flush();
+        submit(boxFaces(w, h, 16, 0, 0, -8.5), L, MAT.neutral, 0.7 * g * alpha); submitLines(boxWire(w, h, 16, 0, 0, -8.5), L, slate, 0.35 * g * alpha, 1); flush();   // a slab, not a card
         stroke([rect(w, h, 0, 0, 0)], L, slate, (0.45 + 0.5 * lit) * g * alpha, 1 + lit * 0.6);
         // a soft glow sweeping along the layer: the activation passing
         // through (it was a row of cells, which read as a spreadsheet)
@@ -2506,7 +2536,7 @@ export default function Flourish3D({ side = 'right' }) {
       if (alpha <= 0.01) return;
       const A = place(scaleM(P.s), [P.x, P.y, 0]);
       const PW = 104, PH = 62;
-      submit(plate(PW, PH, 0, 0, -0.5), A, MAT.neutral, 0.6 * alpha); flush();
+      submit(boxFaces(PW, PH, 10, 0, 0, -5.5), A, MAT.neutral, 0.7 * alpha); submitLines(boxWire(PW, PH, 10, 0, 0, -5.5), A, slate, 0.35 * alpha, 1); flush();
       stroke([rect(PW, PH, 0, 0, 0)], A, slate, 0.5 * alpha, 1);
       // the chunk: 16 steps of the pick loop from `u` on, in the panel's frame
       const map = g => [g[0] * 0.9, (g[1] + 6) * 0.95, 0.5];
@@ -2539,7 +2569,7 @@ export default function Flourish3D({ side = 'right' }) {
     };
     function drawInferAct(t) {
       const u = smooth(t);
-      setCam(-8 * u * DEG, 6 * u * DEG, 0);            // from (0,0,0), where the camera act ended
+      setCam(-18 * u * DEG, -14 * u * DEG, 0);         // from (0,0,0), where the camera act ended, to a view down onto the stack from its left: it reads in depth
       const S = lerpS(SENSOR_HOME, SENSOR_VLA, u);
       const T = sensorPlace(S);
       const live = idleOn && t >= 1;
@@ -2651,7 +2681,7 @@ export default function Flourish3D({ side = 'right' }) {
     }
     function drawDetectAct(t) {
       if (t >= 1) {
-        setCam(0, 2 * DEG, 0);
+        setCam(-10 * DEG, -12 * DEG, 0);
         const T = sensorPlace(SENSOR_DET), live = idleOn;
         drawScene(T, 1, pickAt(pickU(live)));
         stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
@@ -2660,7 +2690,7 @@ export default function Flourish3D({ side = 'right' }) {
         return;
       }
       const u = smooth(t);
-      setCam((-8 + 8 * u) * DEG, (6 - 4 * u) * DEG, 0);  // from (-8, 6, 0)
+      setCam((-18 + 8 * u) * DEG, (-14 + 2 * u) * DEG, 0);  // from (-18, -14, 0)
       const T = sensorPlace(SENSOR_DET);
       drawScene(T, 1, pickAt(0));
       stroke([rect(112, 86, 0, 0, 0)], T, ink, 0.55, 1);
@@ -2691,7 +2721,7 @@ export default function Flourish3D({ side = 'right' }) {
     // as training runs. Sim to real.
     function drawWorldAct(t) {
       const u = smooth(t);
-      setCam(10 * u * DEG, (2 - 18 * u) * DEG, 0);       // from (0, 2, 0); down to -16 over the ground plane
+      setCam((-10 + 20 * u) * DEG, (-12 - 4 * u) * DEG, 0);   // from (-10, -12, 0); down to -16 over the ground plane
       const S = lerpS(SENSOR_DET, SENSOR_WORLD, u);
       const T = sensorPlace(S);
       const lay = smooth(win(t, 0.1, 0.5));
@@ -2821,7 +2851,7 @@ export default function Flourish3D({ side = 'right' }) {
     function drawArc(p, a) {
       if (a <= 0.01 || cap) return;
       setCam(0, 0, 0);
-      const Y = -238, X = [-64, 0, 64], L = ['real', 'sim', 'real'];
+      const Y = -270, X = [-64, 0, 64], L = ['real', 'sim', 'real'];
       stroke([[[X[0], Y, 0], [X[2], Y, 0]]], I0, slate, 0.35 * a, 1);
       const x = X[0] + clamp(p, 0, 2) * 64;
       stroke([[[X[0], Y, 0], [x, Y, 0]]], I0, copper, 0.8 * a, 1.6);
