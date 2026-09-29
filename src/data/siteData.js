@@ -21,7 +21,7 @@ export const aboutMeData = {
   id: 'about-me-section',
   type: 'about',
   cardTitle: 'Aadhav Sivakumar',
-  cardTeaser: "Hello! My name is Aadhav Sivakumar, and this website is meant to showcase projects I've worked on in the past and projects that I'm currently working on. Click to learn more.",
+  cardTeaser: "Robotics engineer. Formerly AI Engineer at Roboflow and graduate researcher in NYU Tandon's LAIR lab; MS Mechatronics & Robotics, NYU.",
   imageUrl: '/Media/web/Gradpic.webp',
   modalTitle: 'Aadhav Sivakumar',
   modalContent: [

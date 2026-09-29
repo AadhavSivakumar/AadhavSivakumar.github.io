@@ -413,7 +413,10 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
         className="modal-backdrop"
         initial={{ opacity: 0 }}
         animate={{ opacity: backdropOn ? 1 : 0 }}
-        transition={{ duration: 0.4 }}
+        // paced with the card, not ahead of it (the owner: "the background
+        // darkens too much too fast"): it eases in across the lift and the
+        // expand, and eases out with the close
+        transition={backdropOn ? { duration: LIFT_S + OPEN_HOLD + OPEN_S, ease: [0.4, 0, 0.2, 1] } : { duration: CLOSE_S * 0.9, ease: [0.4, 0, 0.2, 1] }}
         style={{ pointerEvents: phase === 'open' ? 'auto' : 'none' }}
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       />

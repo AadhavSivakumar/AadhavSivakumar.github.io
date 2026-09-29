@@ -58,7 +58,7 @@ html[data-theme="dark"] {
 html { scroll-behavior: smooth; scrollbar-gutter: stable; }   /* the gutter stays when a modal locks the page: the scrollbar vanishing and coming back shifted everything sideways */
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   /* No gold glow in the corner. A 10% accent radial sat at 10%/10% here, fixed
      to the viewport, and read as a warm light leaking in from the left. */
   background: radial-gradient(circle at 90% 80%, color-mix(in srgb, var(--primary-color) 5%, transparent) 0%, transparent 40%),
@@ -70,7 +70,7 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1, h2, h3, h4 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--primary-color);}
+h1, h2, h3, h4 { font-family: var(--font-sans); font-weight: 700; color: var(--primary-color);}
 a { color: var(--accent-ink); text-decoration: none; transition: color 0.3s ease; }
 a:hover { color: var(--primary-color); }
 
@@ -224,7 +224,7 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
   background: var(--surface-color);
 }
 .hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.05); }
-#hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: 'Poppins'; }
+#hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: var(--font-sans); }
 .hero-word { display: inline-block; white-space: nowrap; }
 .hero-letter { display: inline-block; will-change: transform; }
 
@@ -264,7 +264,7 @@ html[data-theme="dark"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   font-size: 0.85rem;
   letter-spacing: 0.01em;
@@ -617,7 +617,7 @@ html[data-theme="dark"] .f3d::before {
   margin-bottom: 20px;
   text-align: center;
   color: var(--secondary-color);
-  font-family: 'Poppins';
+  font-family: var(--font-sans);
   font-weight: 400;
 }
 #projects h3 {
@@ -768,7 +768,7 @@ html[data-theme="dark"] .small-project-card img.is-gif {
 
 .small-project-content { padding: 10px 12px 12px; }
 .small-project-content h4 {
-  font-family: 'Poppins'; font-weight: 600; font-size: 0.92rem; line-height: 1.3; margin-bottom: 0;
+  font-family: var(--font-sans); font-weight: 600; font-size: 0.92rem; line-height: 1.3; margin-bottom: 0;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   min-height: 2.6em;
 }
@@ -866,7 +866,7 @@ html[data-theme="dark"] .skill-group-card-image {
   filter: grayscale(0) opacity(1) brightness(1) contrast(1);
 }
 .skill-group-card-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-sans);
   font-size: 1.15rem;
   line-height: 1.3;
   margin-bottom: 4px;
@@ -919,7 +919,7 @@ html[data-theme="dark"] .skill-group-card-image {
   flex-direction: column;
 }
 .skill-group-item-name {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   font-size: 1.1rem;
   margin-bottom: 5px;
@@ -941,7 +941,7 @@ html[data-theme="dark"] .skill-group-card-image {
    own page (four 180px tiles); `.docs-strip` is the row of compact tiles at
    the foot of the Skills & Resume page the documents live on now. */
 .docs-strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; }
-.docs-strip-lead { font-family: 'Poppins', sans-serif; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); margin-right: 6px; }
+.docs-strip-lead { font-family: var(--font-sans); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); margin-right: 6px; }
 /* (compound selectors: `.doc-tile` below sets 180x180 and would win on order) */
 .doc-tile.doc-tile--compact { flex-direction: row; width: auto; height: 48px; gap: 10px; padding: 0 16px 0 12px; border-radius: 10px; }
 .doc-tile.doc-tile--compact .doc-tile-label { padding: 0; font-size: 0.85rem; }
@@ -980,7 +980,7 @@ html[data-theme="dark"] .skill-group-card-image {
 }
 .doc-tile-icon { transition: color 0.3s ease; }
 .doc-tile-label {
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--primary-color);
@@ -994,7 +994,7 @@ html[data-theme="dark"] .skill-group-card-image {
   background: linear-gradient(180deg, #F0E8D0 0%, #D9C06C 50%, #B9A149 100%);
   border: 1px solid #A08B3A;
   color: #4a3311;
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 700;
   font-size: 0.75rem;
   padding: 3px 9px;
@@ -1191,7 +1191,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
   color: var(--secondary-color);
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  font-family: 'Poppins', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
@@ -1345,7 +1345,7 @@ html[data-theme="dark"] .badge-flat__strap { background: #d9d4ca; }
 /* A grid, not a wrapping flex row: a long role pushed the period chip onto a
    line of its own and cost the card 40px. */
 .exp-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 16px; }
-.exp-role { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 1.15rem; line-height: 1.35; margin: 0; }
+.exp-role { font-family: var(--font-sans); font-weight: 600; font-size: 1.15rem; line-height: 1.35; margin: 0; }
 .exp-org { margin: 3px 0 0; color: var(--secondary-color); font-size: 0.92rem; }
 .exp-org-name { color: var(--accent-ink); font-weight: 600; }
 .exp-sep { margin: 0 8px; }
@@ -1474,9 +1474,9 @@ html[data-theme="dark"] .badge-flat__strap { background: #d9d4ca; }
 .resume-layout { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(250px, 1fr); gap: 22px; height: clamp(420px, calc(100vh - 250px), 760px); }
 .resume-viewer { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--border-color); border-radius: 12px; background: var(--surface-color); overflow: hidden; }
 .resume-tabs { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-color); }
-.resume-tab { font: 600 0.85rem 'Poppins', sans-serif; padding: 6px 14px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--secondary-color); cursor: pointer; }
+.resume-tab { font: 600 0.85rem var(--font-sans); padding: 6px 14px; border-radius: 999px; border: 1px solid transparent; background: transparent; color: var(--secondary-color); cursor: pointer; }
 .resume-tab.is-on { background: color-mix(in srgb, var(--accent-color) 18%, transparent); color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent-color) 40%, transparent); }
-.resume-open { margin-left: 6px; text-decoration: none; font: 600 0.8rem 'Poppins', sans-serif; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); cursor: pointer; }
+.resume-open { margin-left: 6px; text-decoration: none; font: 600 0.8rem var(--font-sans); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-color); cursor: pointer; }
 .resume-open:hover { border-color: var(--accent-ink); }
 .resume-frame { position: relative; flex: 1; min-height: 0; background: #e9e7e3; }
 html[data-theme="dark"] .resume-frame { background: #2a2a2a; }
@@ -1484,12 +1484,12 @@ html[data-theme="dark"] .resume-frame { background: #2a2a2a; }
 .resume-cover { position: absolute; inset: 0; background: transparent; border: 0; cursor: zoom-in; }
 .resume-tabs .resume-open:first-of-type { margin-left: auto; }
 .resume-side { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
-.resume-side-title { margin: 4px 0 0; font: 600 0.75rem 'Poppins', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); }
-.resume-doc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-color); color: var(--text-color); font: 500 0.85rem 'Poppins', sans-serif; text-align: left; cursor: pointer; }
+.resume-side-title { margin: 4px 0 0; font: 600 0.75rem var(--font-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); }
+.resume-doc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-color); color: var(--text-color); font: 500 0.85rem var(--font-sans); text-align: left; cursor: pointer; }
 .resume-doc:hover, .skill-chip:hover { border-color: var(--accent-ink); }
 .resume-doc .doc-tile-badge { position: static; margin-left: auto; font-size: 0.68rem; padding: 2px 7px; }
 .skill-chips { display: flex; flex-wrap: wrap; gap: 7px; }
-.skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface-color); color: var(--text-color); font: 500 0.76rem 'Poppins', sans-serif; cursor: pointer; }
+.skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface-color); color: var(--text-color); font: 500 0.76rem var(--font-sans); cursor: pointer; }
 .skill-chip i { width: 15px; height: 15px; flex: 0 0 auto; background: var(--accent-ink); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 @media (max-width: 991px) { .resume-layout { grid-template-columns: 1fr; height: auto; } .resume-viewer { height: 70vh; } }
 
@@ -1499,7 +1499,7 @@ html[data-theme="dark"] .resume-frame { background: #2a2a2a; }
    quieter under it; and the chips as fine GLASS pills — a hairline gold
    border, near-clear fill, small tracked caps — instead of the glossy gold
    gradient buttons (which read as UI, not as a signature). */
-.hero-eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; font: 600 0.72rem 'Poppins', sans-serif; letter-spacing: 0.28em; text-transform: uppercase; color: var(--accent-ink); }
+.hero-eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; font: 600 0.72rem var(--font-sans); letter-spacing: 0.28em; text-transform: uppercase; color: var(--accent-ink); }
 .hero-eyebrow i { width: 4px; height: 4px; border-radius: 50%; background: var(--accent-color); opacity: 0.8; }
 .hero-eyebrow::before, .hero-eyebrow::after { content: ""; width: clamp(24px, 6vw, 64px); height: 1px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-color) 70%, transparent)); }
 .hero-eyebrow::after { transform: scaleX(-1); }
@@ -1543,8 +1543,8 @@ html[data-theme="dark"] {
 .mlan-front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.10) 48%, transparent 60%); pointer-events: none; }
 .mlan-slot { position: absolute; top: 8px; left: 50%; width: 30px; height: 6px; margin-left: -15px; border-radius: 3px; background: rgba(0,0,0,0.45); box-shadow: inset 0 1px 1px rgba(0,0,0,0.5); }
 .mlan-photo { width: 84px; height: 84px; object-fit: cover; border-radius: 50%; border: 2px solid var(--accent-color); background: #fff; }
-.mlan-name { margin-top: 10px; font: 700 1.15rem 'Playfair Display', serif; letter-spacing: 0.01em; }
-.mlan-role { font: 500 0.72rem 'Poppins', sans-serif; opacity: 0.8; text-align: center; }
+.mlan-name { margin-top: 10px; font: 700 1.15rem var(--font-sans); letter-spacing: 0.01em; }
+.mlan-role { font: 500 0.72rem var(--font-sans); opacity: 0.8; text-align: center; }
 .mlan-rule { width: 70%; height: 1px; margin: 10px 0 7px; background: color-mix(in srgb, var(--accent-color) 60%, transparent); }
 .mlan-meta { display: flex; justify-content: space-between; width: 80%; font: 500 0.66rem ui-monospace, Menlo, monospace; opacity: 0.85; }
 .mlan-meta b { color: var(--accent-color); font-weight: 700; letter-spacing: 0.1em; }
@@ -1569,3 +1569,109 @@ html[data-theme="dark"] {
 .exp-summary { -webkit-line-clamp: 5 !important; margin-top: 10px; }
 .exp-card--media .exp-summary { font-size: 0.93rem; line-height: 1.55; }
 @media (max-height: 840px) { .exp-summary { -webkit-line-clamp: 4 !important; } }
+
+
+/* ════════════════════════ PREMIUM PASS (Sept 29) ═══════════════════════
+   The owner: "make the site feel less AI and feel more premium. Look at the
+   websites for very modern startups." Measured off Linear, Physical
+   Intelligence, Skild AI and Figure: ONE neutral grotesk (Geist here) at
+   medium weights with tight tracking, monospace for small labels,
+   left-aligned headings, a near-monochrome palette, hairline borders, no
+   gradients, no metallic gold, no drop shadows at rest. What read as
+   "template" here and goes: the metallic gold nav pill, centred titles with
+   a gold underline bar, Playfair + Poppins, the gold card rule, filled tag
+   pills and green/amber status chips. The gold stays in the ART (the waves,
+   the robots) and as one quiet accent. This block overrides by order. */
+:root {
+  --primary-color: #111110;
+  --secondary-color: #6A6863;
+  --icon-resting-color: #6A6863;
+  --background-color: #F6F5F1;
+  --surface-color: #FFFFFF;
+  --border-color: #E6E3DC;
+  --hair: color-mix(in srgb, var(--primary-color) 10%, transparent);
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+html[data-theme="dark"] {
+  --primary-color: #EDECE8;
+  --secondary-color: #908E88;
+  --icon-resting-color: #908E88;
+  --background-color: #0C0C0D;
+  --surface-color: #141416;
+  --border-color: #26262A;
+}
+body { font-family: var(--font-sans); letter-spacing: -0.006em; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+h1, h2, h3, h4 { font-family: var(--font-sans); font-weight: 500; letter-spacing: -0.025em; }
+p, li { text-wrap: pretty; }
+
+/* header: the wordmark in the grotesk; the active link a quiet surface pill */
+header .logo a { font: 600 1.05rem var(--font-sans); letter-spacing: -0.02em; color: var(--primary-color); }
+header.scrolled { box-shadow: none; border-bottom: 1px solid var(--hair); background-color: color-mix(in srgb, var(--background-color) 82%, transparent); }
+.nav-link { font-size: 0.88rem; letter-spacing: -0.005em; }
+.nav-pill { background: var(--surface-color); border: 1px solid var(--hair); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
+html[data-theme="dark"] .nav-pill { background: color-mix(in srgb, var(--primary-color) 8%, transparent); box-shadow: none; }
+.nav-link.active .nav-link-label { color: var(--primary-color); font-weight: 500; text-shadow: none; }
+.scroll-progress { height: 1px; }
+.scroll-progress-bar { background: var(--primary-color); opacity: 0.55; }
+
+/* section titles: left, grotesk, tight, a mono index over them, no bar */
+.page .section-title, .section-title { text-align: center;   /* centred, not left: left-aligned titles ran into the left-hand art and the lanyard pins */ font-weight: 500; letter-spacing: -0.035em; line-height: 1.05; font-size: clamp(1.9rem, 1.1rem + 1.7vw, 2.75rem); }
+.section-title[data-index]::before { content: attr(data-index) " /"; display: block; font: 500 0.72rem var(--font-mono); letter-spacing: 0.04em; color: var(--secondary-color); margin-bottom: 8px; }
+.st-underline { display: none !important; }
+
+/* cards: flat, hairline, a quiet hover (border, not a lift and a shadow) */
+.major-project-card, .small-project-card, .exp-card, .about-me-card, .doc-tile, .resume-viewer, .resume-doc, .skill-chip {
+  border: 1px solid var(--hair) !important; border-radius: 14px; box-shadow: none !important;
+}
+.exp-card { border-left-width: 1px !important; background-color: var(--surface-color); }
+.lift-card:hover, .doc-tile:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary-color) 22%, transparent) !important; box-shadow: 0 8px 24px -16px rgba(0, 0, 0, 0.25) !important; }
+.exp-role, .major-project-card h3, .small-project-card h4 { font-weight: 500; letter-spacing: -0.02em; }
+.exp-org-name { color: var(--primary-color); font-weight: 500; }
+.exp-period { font: 500 0.72rem var(--font-mono) !important; color: var(--secondary-color) !important; border-color: var(--hair) !important; }
+.exp-more { font: 500 0.74rem var(--font-mono); letter-spacing: 0.01em; color: var(--secondary-color); }
+
+/* tags: monospace, outlined, neutral; status is a coloured DOT, not a chip */
+.project-tag, html[data-theme="dark"] .project-tag {
+  background: transparent; color: var(--secondary-color); border: 1px solid var(--hair);
+  font: 500 0.68rem var(--font-mono); letter-spacing: 0.01em; padding: 2px 8px; border-radius: 6px;
+}
+.project-tag.status-completed, .project-tag.status-in-progress,
+html[data-theme="dark"] .project-tag.status-completed, html[data-theme="dark"] .project-tag.status-in-progress {
+  background: transparent; border-color: var(--hair); color: var(--secondary-color);
+}
+.project-tag.status-completed::before, .project-tag.status-in-progress::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.project-tag.status-completed::before { background: #3F9A5A; }
+.project-tag.status-in-progress::before { background: #D19A32; }
+
+/* buttons: solid ink pills */
+.modal-dynamic-button, html[data-theme="dark"] .modal-dynamic-button, .resume-open {
+  background: var(--primary-color) !important; color: var(--background-color) !important; border: 0 !important;
+  font: 500 0.85rem var(--font-sans) !important; letter-spacing: -0.005em; border-radius: 999px !important; box-shadow: none !important;
+}
+.resume-open { padding: 6px 14px !important; }
+.resume-tab.is-on { background: color-mix(in srgb, var(--primary-color) 8%, transparent); color: var(--primary-color); border-color: transparent; }
+.resume-tab { font: 500 0.82rem var(--font-sans); }
+.resume-side-title, .docs-strip-lead { font: 500 0.7rem var(--font-mono); letter-spacing: 0.04em; }
+.skill-chip { font: 500 0.76rem var(--font-sans); }
+.skill-chip i { background: var(--secondary-color); }
+
+/* the hero: a big tight grotesk name, a mono eyebrow, mono chips */
+#hero h1 { font-weight: 500; letter-spacing: -0.045em; line-height: 1; font-size: clamp(2.8rem, 7vw, 6.4rem); }
+.hero-eyebrow { font: 500 0.72rem var(--font-mono); letter-spacing: 0.08em; color: var(--secondary-color); }
+.hero-eyebrow::before, .hero-eyebrow::after { background: var(--hair); }
+.hero-eyebrow i { background: var(--secondary-color); opacity: 0.6; }
+.hero-chip { font: 500 0.7rem var(--font-mono) !important; letter-spacing: 0.02em !important; text-transform: none !important; color: var(--primary-color) !important; border-color: var(--hair) !important; }
+.hero-photo { box-shadow: 0 0 0 1px var(--hair); }
+
+/* the lanyard badge's type, the modal's headings */
+.mlan-name { font: 600 1.1rem var(--font-sans) !important; letter-spacing: -0.02em; }
+.mlan-role { font-family: var(--font-sans) !important; }
+.mlan-meta { font-family: var(--font-mono) !important; }
+.modal-text-content h2 { font-weight: 500; letter-spacing: -0.03em; }
+.modal-meta { font-family: var(--font-mono); font-size: 0.78rem; }
+
+/* the modal backdrop: lighter, and paced with the lift (see Modal.jsx) */
+.modal-backdrop { background-color: rgba(15, 15, 14, 0.32); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.55); }
+.modal-animator { border-radius: 16px; border: 1px solid var(--hair); }

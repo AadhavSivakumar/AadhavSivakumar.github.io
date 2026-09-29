@@ -1535,6 +1535,27 @@ the name now — "Robotics & Embodied AI Engineer · New York & San
 Francisco" — with the serif statement and the descriptive line removed at
 the owner's request ("consolidate the information").
 
+**Sept 29: the PREMIUM PASS** (the owner: "make the site feel less AI and
+feel more premium. Look at the websites for very modern startups"). Looked
+at Linear, Physical Intelligence, Skild AI and Figure: one neutral grotesk
+at medium weights with tight tracking, monospace for small labels, a
+near-monochrome palette, hairline borders, no gradients, no metallic gold,
+no resting shadows. Implemented as ONE block at the END of App.css ("PREMIUM
+PASS") that overrides by order, plus: Geist + Geist Mono (Google Fonts) in
+place of Playfair Display + Poppins everywhere (`--font-sans`, `--font-mono`);
+new neutral tokens (ink #111110 on #F6F5F1; #EDECE8 on #0C0C0D); the nav
+pill a quiet surface pill (no gold gradient); section titles centred (left
+ran into the left-hand art and the lanyard pins), weight 500, tight, with a
+mono index over each ("01 /" … "06 /", `INDEX` in SectionTitle.jsx) and no
+underline bar; cards flat with a hairline and no gold rule; tags monospace
+and outlined, status a coloured DOT; buttons solid ink pills; an ink favicon.
+The gold stays in the ART and in `--accent-*`. The modal backdrop is lighter
+(0.32 light / 0.55 dark, 2px blur) and fades across the whole lift + expand
+instead of in 0.4s. Copy: the Get in Touch line and the about teaser were
+stock phrasing ("I'm always open to…", "this website is meant to
+showcase…") and are plain statements now. Tag text is --secondary-color on
+the surface: 5.3:1 light, ~6:1 dark (above the 4.5:1 floor).
+
 **Sept 29, later.** (1) `actAt` counts t ≥ 0.985 as finished for BOTH
 sides (a snap stops a fraction of a pixel short on a 2x screen). (2) The
 settled work loop could miss its start: the page reports settled before

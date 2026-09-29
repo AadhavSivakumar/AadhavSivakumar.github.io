@@ -54,9 +54,8 @@ export default function Contact({ onCardClick }) {
         <div className="contact-body">
           <Reveal delay={0.1}>
             <p>
-              I'm always open to discussing new opportunities in Robotics, Machine Learning, and
-              Mechatronics. Whether you have a question or just want to say hi, I'll try my best
-              to get back to you!
+              Open to roles in robot learning — VLAs, world models, sim-to-real. Based in
+              New York and San Francisco. The fastest way to reach me is email.
             </p>
           </Reveal>
           <div className="social-links">
