@@ -1535,6 +1535,20 @@ the name now — "Robotics & Embodied AI Engineer · New York & San
 Francisco" — with the serif statement and the descriptive line removed at
 the owner's request ("consolidate the information").
 
+**Sept 29, later.** (1) `actAt` counts t ≥ 0.985 as finished for BOTH
+sides (a snap stops a fraction of a pixel short on a 2x screen). (2) The
+settled work loop could miss its start: the page reports settled before
+this piece's rate-limited redraw lands on the section top, so held(lastY)
+said no and nothing retried — the SO-ARM stood still on Research.
+`settledNow` + `idleKick()` in paint() start the loop from the redraw that
+lands. (3) The 2R arm is drawn LAYER BY LAYER (a flush after each of base,
+servo 1, link 1, servo 2, link 2): sorted by face centres, link 2's centre
+lay far out along it and slipped behind the elbow servo it is mounted on;
+in the SO-ARM act it is drawn after the SO-ARM. (4) The modal OPENS in two
+beats: lift (22px, 1.06x, 0.42s), a 0.1s hold, then an in-out expand over
+0.7s (`LIFT_*`, `OPEN_*` in Modal.jsx), the card copy and the flying media
+on the same numbers.
+
 **Sept 29, SO-ARM hand-over:** the 2R arm used to FADE out while lying in
 the SO-ARM's plane; half-transparent faces interleaved with the SO-ARM's in
 the depth sort and flickered ("glitching textures"). It stays opaque, 30 mm

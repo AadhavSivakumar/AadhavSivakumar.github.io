@@ -1580,12 +1580,16 @@ export default function Flourish3D({ side = 'right' }) {
         submitLines(boxWire(150, 10, 80, 10, 15, -20), H, matLine[MAT.paint], LOOK.line * pb, LOOK.width);
       }
       planarServo(H, a, 'servo1');
+      flush();   // LAYER BY LAYER toward the viewer: sorted by face centres, link 2's centre lay far out along it and it slipped behind the elbow servo it sits on (the owner: "glitching… between the motor and the second link")
       const J1 = chain(H, place(rotZ(-q[0]), [0, 0, 6]));             // link 1 on the shoulder horn — with GAPS between every layer: touching faces traded places in the depth sort and the parts looked to pass through each other
       planarLink(J1, PL.L1, a, 'link1');
+      flush();
       const E = chain(J1, place(IDENT, [PL.L1, 0, 4]));                 // the elbow servo rides the link's end
       planarServo(chain(E, place(IDENT, [0, 0, 41])), a, 'servo2', -1);   // its body lies back along link 1, 3 mm clear of it
+      flush();
       const J2 = chain(E, place(rotZ(-q[1]), [0, 0, 48]));             // link 2 on the elbow horn
       planarLink(J2, PL.L2, a, 'link2');
+      flush();
       const Tip = chain(J2, place(IDENT, [PL.L2, 0, 6]));
       const pt = a * (partA ? (partA.tip ?? 0) : 1);
       if (pt > 0.004) {
@@ -3433,6 +3437,21 @@ export default function Flourish3D({ side = 'right' }) {
       // owner saw the robots "from under angles"; the work is looked DOWN on
       // now, and each act starts at the pitch the last one ended on.
       setCam(16 * DEG, (14 - 22 * a) * DEG, 30 * (1 - a));
+      // the arm grows out of the servo, base first, unfolding to its pose;
+      // its cube arrives with it, and once settled it moves the cube
+      const base = standing(RB.so.root, RB.so.k, RB.so.yaw);
+      if (t >= 1) {
+        const st = taskState(ROBOTS.soarm, base, RB.so.task, idleT, settleU);
+        drawRobot(ROBOTS.soarm, base, st.q, 1);
+        drawCubes(st, 1);
+      } else {
+        const gr = growOrder(SO_ORDER, t, 0.34, 0.5);
+        drawRobot(ROBOTS.soarm, base, lerpQ(RB.so.folded, RB.so.rest, smooth(win(t, 0.5, 0.5))), 1, gr);
+        drawCubes(taskState(ROBOTS.soarm, base, RB.so.task, 0), smooth(win(t, 0.8, 0.2)));
+      }
+      flush();
+      // (drawn AFTER the SO-ARM: it is in front of it, and drawPlanar draws
+      // layer by layer)
       // the 2R arm BECOMES the SO-ARM's arm: it stays in its plane, slides and
       // scales until its shoulder is on the SO-ARM's shoulder, and bends its
       // two joints until its links lie along the SO-ARM's upper arm and
@@ -3456,19 +3475,6 @@ export default function Flourish3D({ side = 'right' }) {
         const q = [PLANAR_REST[0] + wrap(qs1 - PLANAR_REST[0]) * m, PLANAR_REST[1] + wrap(qs2 - PLANAR_REST[1]) * m];
         if (shr > 0.02) drawPlanar(H, q, 1, 0, 1 - smooth(win(t, 0.04, 0.3)));
       }
-      // the arm grows out of the servo, base first, unfolding to its pose;
-      // its cube arrives with it, and once settled it moves the cube
-      const base = standing(RB.so.root, RB.so.k, RB.so.yaw);
-      if (t >= 1) {
-        const st = taskState(ROBOTS.soarm, base, RB.so.task, idleT, settleU);
-        drawRobot(ROBOTS.soarm, base, st.q, 1);
-        drawCubes(st, 1);
-      } else {
-        const gr = growOrder(SO_ORDER, t, 0.34, 0.5);
-        drawRobot(ROBOTS.soarm, base, lerpQ(RB.so.folded, RB.so.rest, smooth(win(t, 0.5, 0.5))), 1, gr);
-        drawCubes(taskState(ROBOTS.soarm, base, RB.so.task, 0), smooth(win(t, 0.8, 0.2)));
-      }
-      flush();
     }
     // where the SO-ARM's base servo sits on the stage — the motor lands there
     function soServo() {
@@ -4212,6 +4218,7 @@ export default function Flourish3D({ side = 'right' }) {
     // piece is one fixed frame, so scrolling there redraws NOTHING — only the
     // first frame past the line does, to land exactly on the finished piece.
     let stopScroll = null;
+    let settledNow = false, idleKick = () => {};
     let trailing = 0;
     publish();                             // the field needs the targets before the morph starts
     if (reduce) {
@@ -4231,6 +4238,7 @@ export default function Flourish3D({ side = 'right' }) {
         draw(yy);
         MIN_MS = clamp((performance.now() - t0) * 2.0, 32, 80);
         lastDraw = performance.now();
+        idleKick();
       };
       stopScroll = onPageScroll(y => {
         if (lastY >= 0 && (Math.abs(y - lastY) < 0.5 || (held(y) && held(y) === held(lastY)))) return;
@@ -4303,12 +4311,23 @@ export default function Flourish3D({ side = 'right' }) {
       if (idleRAF) { cancelAnimationFrame(idleRAF); idleRAF = 0; }
       if (idleTimer) { clearTimeout(idleTimer); idleTimer = 0; }
     };
+    // The page can report SETTLED before this piece's last redraw has landed
+    // on the section top (the redraw is rate-limited), so lastY was still
+    // mid-act, held() said no, and the loop never started — the SO-ARM stood
+    // still on Research (the owner: "the soarm101 is not being animated
+    // anymore"). `settledNow` remembers the settle, and the redraw that
+    // lands on a held state starts the loop (startIdle in paint()).
+    const startIdle = () => {
+      if (idleOn || !held(lastY)) return;
+      if (!returning) { idleT = 0; settleU = 0; }
+      returning = 0; idleOn = true; idlePrev = 0; idleSchedule();
+    };
+    idleKick = () => { if (settledNow) startIdle(); };
     const stopSettle = reduce ? null : onSettle(on => {
+      settledNow = !!on;
       if (on === idleOn) return;
       if (on) {
-        if (!held(lastY)) return;           // mid-morph or mid-act: nothing to idle
-        if (!returning) { idleT = 0; settleU = 0; }
-        returning = 0; idleOn = true; idlePrev = 0; idleSchedule();
+        startIdle();                        // mid-morph or mid-act: nothing to idle (yet)
       } else {
         idleOn = false;
         if (lastY >= 0 && settleU > 0.01 && held(lastY)) { returning = performance.now(); returnFrom = settleU; idlePrev = 0; idleSchedule(); }

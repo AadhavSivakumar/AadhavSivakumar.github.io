@@ -9,13 +9,21 @@ const EXPAND_EASE = [0.22, 1, 0.36, 1];
 // 0.8s, the modal's text fading out over the first third and the card's text
 // fading in over the second half, then a gentle landing.
 const CLOSE_S = 0.8;
+// the OPEN, as two beats (the owner: "have the card lift off the page, and
+// then expand"): it was a 12px, 0.28s lift straight into an expand whose
+// curve front-loads its motion, so the two ran together. Now the card rises
+// 22px and grows 6% over LIFT_S, HOLDS for a beat, and the expand starts
+// gently (an in-out curve). The surface, the card copy inside it and the
+// flying media all run on these same numbers.
+const LIFT_S = 0.42, LIFT_Y = 22, LIFT_K = 1.06, LIFT_EASE = [0.2, 0.8, 0.2, 1];
+const OPEN_HOLD = 0.1, OPEN_S = 0.7, OPEN_EASE = [0.5, 0, 0.18, 1];
 const CLOSE_EASE = [0.65, 0, 0.35, 1];
 
 // Content population: children stagger in once the modal is fully expanded,
 // and stagger back out (quickly, in reverse) before it collapses.
 const contentContainer = {
   hidden: { transition: { staggerChildren: 0.01, staggerDirection: -1 } },
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.28 } },   // starts while the surface is still growing, as the card copy fades
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.1 + 0.35 } },   // in once the expand is under way   // starts while the surface is still growing, as the card copy fades
 };
 const contentItem = {
   hidden: { opacity: 0, y: 8, transition: { duration: 0.26, ease: 'easeOut' } },
@@ -162,17 +170,17 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     scale: 1,
     opacity: 1,
     boxShadow: '0 30px 80px rgba(0, 0, 0, 0.45)',
-    transition: { duration: 0.6, ease: EXPAND_EASE },
+    transition: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD },
   };
   const lifted = {
-    top: r.top - 12,
+    top: r.top - LIFT_Y,
     left: r.left,
     width: r.width,
     height: r.height,
-    scale: 1.05,
+    scale: LIFT_K,
     opacity: 1,
-    boxShadow: '0 30px 60px rgba(0, 0, 0, 0.35)',
-    transition: { duration: 0.28, ease: 'easeOut' },
+    boxShadow: '0 34px 60px rgba(0, 0, 0, 0.32)',
+    transition: { duration: LIFT_S, ease: LIFT_EASE },
   };
   const animatorTargets = {
     lift: lifted,
@@ -392,12 +400,12 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // used to fly straight to the final slot over 0.85s from the first frame)
   const liftedMedia = (() => {
     if (!media || !media.rect) return null;
-    const m = media.rect, cx = r.left + r.width / 2, cy = r.top + r.height / 2, k = 1.05;
-    return { top: cy - 12 + (m.top - cy) * k, left: cx + (m.left - cx) * k, width: m.width * k, height: m.height * k };
+    const m = media.rect, cx = r.left + r.width / 2, cy = r.top + r.height / 2, k = LIFT_K;
+    return { top: cy - LIFT_Y + (m.top - cy) * k, left: cx + (m.left - cx) * k, width: m.width * k, height: m.height * k };
   })();
   const flyTo = phase === 'collapse' ? media && media.rect : phase === 'lift' ? liftedMedia : tgt;
   const flyFrom = phase === 'collapse' ? (closeFrom.current || tgt) : media && media.rect;
-  const flyTransition = phase === 'collapse' ? { duration: CLOSE_S, ease: CLOSE_EASE } : phase === 'lift' ? { duration: 0.28, ease: 'easeOut' } : { duration: 0.6, ease: EXPAND_EASE };
+  const flyTransition = phase === 'collapse' ? { duration: CLOSE_S, ease: CLOSE_EASE } : phase === 'lift' ? { duration: LIFT_S, ease: LIFT_EASE } : { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD };
 
   return (
     <>
@@ -432,7 +440,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             // fades in at once, as the content fades out
             transition={phase === 'collapse' || phase === 'settle'
               ? { opacity: { duration: CLOSE_S * 0.5, delay: CLOSE_S * 0.4, ease: 'easeInOut' }, scale: { duration: 0 } }
-              : { opacity: { duration: 0.28, delay: ghostOn ? 0.15 : 0.1 }, scale: { duration: 0.6, ease: EXPAND_EASE } }}
+              : { opacity: { duration: 0.3, delay: ghostOn ? 0.15 : OPEN_HOLD + 0.2 }, scale: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD } }}
             dangerouslySetInnerHTML={{ __html: cardHTML }}
           />
         )}

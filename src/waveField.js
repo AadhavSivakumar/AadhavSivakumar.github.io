@@ -123,7 +123,10 @@ export function actAt(y) {
   for (let k = 0; k < spans.length; k++) {
     const [t0, t1] = spans[k];
     if (y >= t1) { i = k; t = 1; continue; }
-    if (y > t0) { i = k; t = clamp01((y - t0) / Math.max(1, t1 - t0)); break; }
+    // within 1.5% of the end counts as FINISHED: a snap on a real screen
+    // (fractional device pixels) stops a hair short of a section top, and at
+    // t 0.999 the robots never started their work loop (held() wants t 1)
+    if (y > t0) { i = k; t = clamp01((y - t0) / Math.max(1, t1 - t0)); if (t >= 0.985) t = 1; break; }
     break;
   }
   return { i, t };
