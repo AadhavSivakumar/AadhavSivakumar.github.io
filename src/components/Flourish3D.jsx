@@ -3444,12 +3444,17 @@ export default function Flourish3D({ side = 'right' }) {
         const ang = (p, q) => Math.atan2(-(q[1] - p[1]), q[0] - p[0]);
         const qs1 = ang(Psh, Pel), qs2 = ang(Pel, Pwr) - qs1;
         const kTo = Math.hypot(Pel[0] - Psh[0], Pel[1] - Psh[1]) / PL.L1;
-        const m = smooth(win(t, 0.04, 0.46)), fadeP = 1 - smooth(win(t, 0.66, 0.26));   // held on the SO-ARM's arm until the SO-ARM has grown into it
+        // SOLID and SHRINKING, never fading (the owner: "the so-arm101 has
+        // glitching textures during its animation"): a half-transparent 2R
+        // arm lying in the SO-ARM's own plane interleaved with it face by face
+        // in the depth sort and flickered. It sits 30 mm in front of it, at
+        // full alpha, and shrinks into the shoulder once the SO-ARM has grown
+        const m = smooth(win(t, 0.04, 0.46)), shr = 1 - smooth(win(t, 0.62, 0.26));
         const k = 1.15 + (kTo - 1.15) * m;
-        const H = place(scaleM(k), [-58 + (Psh[0] + 58) * m, 66 + (Psh[1] - 66) * m, Psh[2] * m]);
+        const H = place(scaleM(k * shr), [-58 + (Psh[0] + 58) * m, 66 + (Psh[1] - 66) * m, (Psh[2] + 30) * m]);
         const wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
         const q = [PLANAR_REST[0] + wrap(qs1 - PLANAR_REST[0]) * m, PLANAR_REST[1] + wrap(qs2 - PLANAR_REST[1]) * m];
-        if (fadeP > 0.01) drawPlanar(H, q, fadeP, 0, 1 - smooth(win(t, 0.04, 0.3)));
+        if (shr > 0.02) drawPlanar(H, q, 1, 0, 1 - smooth(win(t, 0.04, 0.3)));
       }
       // the arm grows out of the servo, base first, unfolding to its pose;
       // its cube arrives with it, and once settled it moves the cube

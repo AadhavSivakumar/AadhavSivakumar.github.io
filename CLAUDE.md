@@ -513,6 +513,18 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
   tokens, DrawBorderThenFill for the dataset and the table, Circumscribe
   on the twin, the object token and the policy, Indicate on the success
   label, and a flash burst at every grasp in IdleReal (`grasp_burst`).
+- **An act counts as finished at t ≥ 0.985** (`DONE` in LeftFilm.jsx):
+  a snap on a real screen (fractional device pixels) could land a hair
+  short of the section top, leaving t at 0.999 — the idle never started
+  and the scrub sat a frame short of the finished text (the owner: the
+  last letter was missing and only the last page animated). At DONE the
+  scrub seeks to the TRUE last frame. Tested at 2x DPR with snapping on.
+- **The camera is 3D** (IdleRest and the start of Act0): a small renderer
+  in left.py (`cam_parts`, `render_parts`) — extruded outlines rotated by
+  yaw/pitch, back faces culled, faces shaded by a light and depth-sorted,
+  a mild perspective — because Manim's Cairo 3D sorts whole mobjects and
+  painted cylinder caps over the front plate. Yaw 0.95 (facing into the
+  stage), swaying ±0.32 rad at rest; it explodes along its own depth axis.
 - **LeftFilm hides a clip until it has LANDED** (`visibility: hidden` from
   the source change until the first `seeked`/`loadeddata`): the old clip's
   frame used to stay up while the new one downloaded — the camera, showing
@@ -1522,6 +1534,11 @@ in `Resume/` are unreferenced and left in place. The hero is ONE line over
 the name now — "Robotics & Embodied AI Engineer · New York & San
 Francisco" — with the serif statement and the descriptive line removed at
 the owner's request ("consolidate the information").
+
+**Sept 29, SO-ARM hand-over:** the 2R arm used to FADE out while lying in
+the SO-ARM's plane; half-transparent faces interleaved with the SO-ARM's in
+the depth sort and flickered ("glitching textures"). It stays opaque, 30 mm
+in front, and SHRINKS into the shoulder once the SO-ARM has grown.
 
 **Sept 28, the 2R arm's servos** (the owner: "the servo motors are not
 oriented properly"): the output spline came out of the servo's big side

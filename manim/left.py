@@ -261,6 +261,126 @@ def capture_cone(a=1.0, sweep=None):
     return g
 
 
+# ── the D435i IN 3D (the owner: "have the 3d camera BE in 3d, and slightly be
+# spinning around"). Manim's Cairo renderer sorts whole mobjects, so its 3D
+# solids painted end caps over the front plate; this is a small renderer of
+# its own instead: parts are EXTRUDED outlines (a stadium for the body and
+# the plate, circles for the lens barrels, rectangles for the boards) in the
+# camera's frame (x along the bar, y up, z out of the front), rotated by
+# yaw/pitch, back faces CULLED, faces shaded by a light and sorted by depth,
+# projected with a mild perspective, and drawn as flat polygons — so a frame
+# of it is drawn exactly like everything else here. `ex` explodes each part
+# out along the camera's OWN depth axis.
+C3 = np.array([-0.55, 0.55, 0.0])
+L3, R3, D3 = 2.2, 0.38, 0.62
+LIGHT = np.array([-0.45, 0.55, 0.7]) / np.linalg.norm([-0.45, 0.55, 0.7])
+
+
+def _stadium_pts(L, R, n=14):
+    pts = []
+    for i in range(n + 1):
+        a = math.pi / 2 + math.pi * i / n
+        pts.append((-L / 2 + R * math.cos(a), R * math.sin(a)))
+    for i in range(n + 1):
+        a = -math.pi / 2 + math.pi * i / n
+        pts.append((L / 2 + R * math.cos(a), R * math.sin(a)))
+    return pts
+
+
+def _circle_pts(r, n=18, cx=0.0, cy=0.0):
+    return [(cx + r * math.cos(math.tau * i / n), cy + r * math.sin(math.tau * i / n)) for i in range(n)]
+
+
+def _rect_pts(w, h):
+    return [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]
+
+
+def extrude(outline, z0, z1, col):
+    """Faces of a prism: (points, outward normal, colour), in the part's frame.
+    The outline runs counter-clockwise."""
+    faces = [([(x, y, z1) for x, y in outline], (0, 0, 1), col), ([(x, y, z0) for x, y in reversed(outline)], (0, 0, -1), col)]
+    n = len(outline)
+    for i in range(n):
+        (xa, ya), (xb, yb) = outline[i], outline[(i + 1) % n]
+        nx, ny = yb - ya, -(xb - xa)
+        ln = math.hypot(nx, ny) or 1
+        faces.append(([(xa, ya, z0), (xb, yb, z0), (xb, yb, z1), (xa, ya, z1)], (nx / ln, ny / ln, 0), col))
+    return faces
+
+
+def _rot(yaw, pitch):
+    cy, sy, cp, sp = math.cos(yaw), math.sin(yaw), math.cos(pitch), math.sin(pitch)
+    Ry = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
+    Rx = np.array([[1, 0, 0], [0, cp, -sp], [0, sp, cp]])
+    return Ry @ Rx
+
+
+def _proj(p):
+    k = 14.0 / (14.0 - p[2])                 # a mild perspective
+    return [C3[0] + p[0] * k, C3[1] + p[1] * k, 0]
+
+
+def render_parts(parts, yaw, pitch, alpha=None):
+    """parts: [(name, faces, offset_z)] -> a VGroup, parts back to front."""
+    R = _rot(yaw, pitch)
+    drawn = []
+    for name, faces, dz in parts:
+        a = 1.0 if alpha is None else alpha.get(name, 1.0)
+        if a <= 0.01:
+            continue
+        polys = []
+        for pts, nrm, col in faces:
+            n = R @ np.array(nrm)
+            if n[2] <= 0.02:
+                continue                      # culled: faces away from the viewer
+            wp = [R @ np.array([x, y, z + dz]) for x, y, z in pts]
+            lit = 0.55 + 0.45 * max(0.0, float(n @ LIGHT))
+            c = ManimColor(col)
+            shade = c.darker(1 - lit) if lit < 1 else c
+            polys.append((sum(q[2] for q in wp) / len(wp),
+                          Polygon(*[_proj(q) for q in wp], fill_color=shade, fill_opacity=a, stroke_color=shade, stroke_width=0.6, stroke_opacity=a)))
+        polys.sort(key=lambda t: t[0])
+        zc = sum(t[0] for t in polys) / len(polys) if polys else 0
+        drawn.append((zc, VGroup(*[p for _, p in polys])))
+    drawn.sort(key=lambda t: t[0])
+    return VGroup(*[g for _, g in drawn])
+
+
+def cam_parts(ex=0.0):
+    parts = [("casing", extrude(_stadium_pts(L3, R3), -D3 / 2, D3 / 2, PAL["body"]), -0.55 * ex),
+             ("pcb", extrude(_rect_pts(L3 * 0.78, 0.36), -0.05, 0.0, PAL["pcb"]), -1.0 * ex),
+             ("module", extrude(_rect_pts(L3 * 0.8, 0.34), -0.04, 0.04, PAL["steel"]), 0.2 + 0.25 * ex),
+             ("plate", extrude(_stadium_pts(L3 * 0.94, R3 * 0.82), D3 / 2, D3 / 2 + 0.05, PAL["plate"]), 0.95 * ex)]
+    for i, (lx, r) in enumerate(LENS):
+        parts.append((f"lens{i}", extrude(_circle_pts(r * 0.8, 16, lx * 0.95, 0), D3 / 2 + 0.05, D3 / 2 + 0.16, "#1B1D21"), 1.7 * ex))
+    return parts
+
+
+def cam3d(yaw=0.95, pitch=0.2, ex=0.0, cone=1.0, sweep=None, others=1.0):
+    alpha = {k: others for k in ("casing", "pcb", "plate", "lens0", "lens1", "lens2", "lens3")}
+    g = render_parts(cam_parts(ex), yaw, pitch, alpha)
+    R = _rot(yaw, pitch)
+    # gold rims on the lenses, when their fronts face the viewer
+    if others > 0.01 and (R @ np.array([0, 0, 1]))[2] > 0.05:
+        for lx, r in LENS:
+            ring = [_proj(R @ np.array([x, y, D3 / 2 + 0.165 + 1.7 * ex])) for x, y in _circle_pts(r * 0.62, 18, lx * 0.95, 0)]
+            g.add(Polygon(*ring, stroke_color=PAL["gold"], stroke_width=1.6, stroke_opacity=others, fill_opacity=0))
+    if cone > 0.01:
+        o = np.array([LENS[3][0] * 0.95, 0, D3 / 2 + 0.17])
+        D = 1.25                             # on the stage at the widest point of the sway
+        far = [o + np.array([sx * D * math.tan(0.6), sy * D * math.tan(0.37), D]) for sx, sy in ((-1, 1), (1, 1), (1, -1), (-1, -1))]
+        O, F = _proj(R @ o), [_proj(R @ f) for f in far]
+        cg = VGroup(Polygon(*F, stroke_color=PAL["copper"], stroke_width=1.5, stroke_opacity=0.75 * cone, fill_color=PAL["copper"], fill_opacity=0.06 * cone),
+                    *[Line(O, f, stroke_color=PAL["copper"], stroke_width=1.5, stroke_opacity=0.75 * cone) for f in F])
+        if sweep is not None:
+            cg.add(Polygon(*[_proj(R @ (o + (f - o) * sweep)) for f in far], stroke_color=PAL["copper"], stroke_width=2.2, stroke_opacity=0.9 * (1 - sweep) * cone, fill_opacity=0))
+        g.add(cg)
+    return g
+
+
+YAW0, PITCH0 = 0.95, 0.22      # turned well round to face INTO the stage, so the cone projects across it, not at the viewer or off the edge
+
+
 def camera_rest(sweep=None):
     return VGroup(cam_casing(), cam_plate(), cam_lenses(), capture_cone(1.0, sweep))
 
@@ -698,25 +818,35 @@ def idle(scene, build, t):
 
 
 class IdleRest(Scene):
+    """The camera, in 3D, swaying about its vertical axis; a frame of light
+    sweeps out along its capture cone."""
     def construct(self):
-        idle(self, lambda u: camera_rest(sweep=(u * 1.6) if u * 1.6 < 1 else None), IDLE_T * 0.65)
+        u = ValueTracker(0)
+        self.add(always_redraw(lambda: cam3d(YAW0 + 0.32 * math.sin(math.tau * u.get_value()), PITCH0 + 0.06 * math.sin(math.tau * 2 * u.get_value()),
+                                             sweep=(u.get_value() * 3) % 1)))
+        self.play(u.animate.set_value(1), run_time=IDLE_T * 1.5, rate_func=linear)
 
 
 class Act0(Base):
-    """Real: the camera explodes, the sensor catches light, the pixels become the picture."""
+    """Real: the camera, in 3D, explodes along its depth; the stereo module turns
+    square-on, the barrel lifts, the sensor catches light, the pixels become
+    the picture."""
     def construct(self):
-        casing, plate, lenses, cone = cam_casing(), cam_plate(), cam_lenses(), capture_cone()
-        module, pcb, barrel = cam_module(), cam_pcb(), rgb_barrel()
-        self.add(casing, pcb, module, barrel, plate, lenses, cone)
-        D = np.array([0.22, 0.5, 0])
-        self.play(Uncreate(cone, run_time=0.35),
-                  lenses.animate.shift(3.1 * D), plate.animate.shift(2.0 * D), module.animate.shift(0.9 * D),
-                  barrel.animate.shift(0.9 * D), pcb.animate.shift(-0.5 * D), casing.animate.shift(-1.6 * D),
-                  run_time=0.9, rate_func=smooth)
+        ex, yaw, oth, cone = ValueTracker(0), ValueTracker(YAW0), ValueTracker(1), ValueTracker(1)
+        self.add(always_redraw(lambda: cam3d(yaw.get_value(), PITCH0, ex.get_value(), cone.get_value(), others=oth.get_value())))
+        # 1 · the exploded view, turning a little further so the layers read
+        self.play(ex.animate.set_value(1), yaw.animate.set_value(1.15), cone.animate.set_value(0), run_time=1.1, rate_func=smooth)
+        # 2 · the rest goes; the camera turns square-on
+        self.play(oth.animate.set_value(0), yaw.animate.set_value(0), run_time=0.7)
+        self.clear()
+        # hand over to the flat module at the sensor
         mc = np.array([SEN_C[0], SEN_C[1], 0])
-        shift = mc - module[0].get_center()
-        self.play(FadeOut(VGroup(lenses, plate, pcb, casing), lag_ratio=0.15), module.animate.shift(shift).scale(1.25, about_point=mc),
-                  barrel.animate.shift(shift).scale(1.25, about_point=mc), run_time=0.55)
+        module, barrel = cam_module(), rgb_barrel()
+        flat = VGroup(module, barrel)
+        flat.shift(mc - module[0].get_center()).scale(1.25, about_point=mc)
+        m3 = cam3d(0, PITCH0, 1, 0, others=0)
+        self.add(m3)
+        self.play(ReplacementTransform(m3, flat), run_time=0.45)
         die_at = barrel.get_center()
         die = Square(0.16, fill_color="#1A1B1E", fill_opacity=1, stroke_color=PAL["gold"], stroke_width=1.5).move_to(die_at)
         self.add(die)
@@ -724,12 +854,10 @@ class Act0(Base):
         self.play(barrel.animate.shift([0.35, 0.55, 0]).rotate(0.6).set_opacity(0), run_time=0.4)
         src = [die_at + np.array([0.5 + 0.12 * i, 1.1 - 0.05 * i, 0]) for i in range(5)]
         rays = VGroup(*[Line(p, die_at, stroke_color=PAL["copper"], stroke_width=2) for p in src])
-        # the light arrives as passing flashes, and the die flashes as it lands
         self.play(LaggedStart(*[ShowPassingFlash(r.copy(), time_width=0.6) for r in rays], lag_ratio=0.12), run_time=0.45)
         self.play(Flash(die_at, color=PAL["copper"], line_length=0.14, num_lines=10, flash_radius=0.16), run_time=0.3)
         sen = sensor(1.0)
         self.play(FadeOut(module), ReplacementTransform(die, sen), run_time=0.5)
-        # the pixels resolve into the picture, drawn border first; the policy is untrained
         pic = picture(0, fumble=True)
         self.play(ReplacementTransform(sen, pic), run_time=0.6)
         self.play(Write(untrained_label()), run_time=0.45)

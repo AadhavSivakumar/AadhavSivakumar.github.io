@@ -18,6 +18,13 @@ const BASE = '/Media/web/leftfilm/';
 const ACTS = ['Act0', 'Act1', 'Act2', 'Act3', 'Act4'];
 const IDLES = ['IdleRest', 'IdleUntrained', 'IdleTwin', 'IdleData', 'IdleTrain', 'IdleReal'];   // held state before act 0, then after each act
 const FPS = 30;
+// An act counts as FINISHED a hair before its end: a snap on a real screen
+// can land a fraction of a pixel short of the section top (fractional
+// device pixels), which left t at 0.999 — the idle loop never started and
+// the scrub sat one frame short of the finished text (the owner: "the last
+// letter… is not fully loaded in when at the snap points… only the very last
+// one is [animated]"; the last page is held by the bottom of the document).
+const DONE = 0.985;
 
 const themeNow = () => (document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 const reduced = () => typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -99,12 +106,14 @@ export default function LeftFilm() {
       setSrc(scrub, theme, ACTS[Math.max(0, i)], () => {
         const d = scrub.duration;
         if (!d || !isFinite(d)) return;
-        want = i < 0 ? 0 : Math.min(d - 1 / FPS, Math.max(0, state.t * d));
+        // at the end of an act, the clip's TRUE last frame (the finished
+        // text): `d - 1/FPS` could land on the frame before it
+        want = i < 0 ? 0 : state.t >= DONE ? d - 0.25 / FPS : Math.min(d - 1 / FPS, Math.max(0, state.t * d));
         pump();
       });
     };
     // the held state the page is sitting in, if any: before act 0, or at the end of an act
-    const heldIndex = () => (state.i < 0 ? 0 : state.t >= 1 ? state.i + 1 : null);
+    const heldIndex = () => (state.i < 0 ? 0 : state.t >= DONE ? state.i + 1 : null);
     const update = () => {
       raf = 0;
       // where the page is NOW: on a fresh load straight onto a section the
