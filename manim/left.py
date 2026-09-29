@@ -799,7 +799,7 @@ PANEL4 = (0.0, 2.35)
 def S4(u=0.0):
     """Sim2real: the trained VLA drives the real gripper."""
     return VGroup(tracker(2), action_panel(u, PANEL4, 0.42, "VLA policy"), table_scene(u),
-                  label("sim2real", 12).move_to([-1.25, -2.05, 0]), label("policy · trained in sim", 11).move_to([0.5, -2.4, 0]))
+                  label("sim2real", 12).move_to([-1.25, -2.05, 0]), label("policy · trained in sim", 11).move_to([-0.45, -2.35, 0]))
 
 
 # ═══════════════════════════ the scenes ═══════════════════════════════════
@@ -975,7 +975,7 @@ class Act4(Base):
         g0, op0, _ = pick3(0)
         self.add(always_redraw(lambda: gripper3(g0, op0, 1.0, d.get_value())))
         self.play(d.animate.set_value(0.0), p.animate.set_value(2.0),
-                  Write(label("sim2real", 12).move_to([-1.25, -2.05, 0])), Write(label("policy · trained in sim", 11).move_to([0.5, -2.4, 0])),
+                  Write(label("sim2real", 12).move_to([-1.25, -2.05, 0])), Write(label("policy · trained in sim", 11).move_to([-0.45, -2.35, 0])),
                   run_time=1.0, rate_func=smooth)
         self.play(Circumscribe(action_panel(0, PANEL4, 0.42, "VLA policy")[0], color=PAL["copper"], buff=0.05, stroke_width=2), run_time=0.45)
         self.finish(S4())

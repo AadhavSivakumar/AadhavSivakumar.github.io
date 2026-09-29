@@ -1535,6 +1535,24 @@ the name now — "Robotics & Embodied AI Engineer · New York & San
 Francisco" — with the serif statement and the descriptive line removed at
 the owner's request ("consolidate the information").
 
+**Sept 29, premium pass round 2** (the owner: "take some time, do a few
+renders, and make it an iterative process"). Found by rendering every page
+and RECORDING the modal in real time (`openvid.mjs` in the session scratch:
+Playwright recordVideo + ffmpeg frames — slowing the browser's animation
+clock via CDP is NOT a valid test here, it slows CSS/WAAPI but not motion's
+JS-driven top/left/width, so the frames mix two timelines):
+- the lifting card copy showed its picture and a blank half: the card's
+  grid comes from rules scoped to its parent and its odd/even position,
+  which the detached copy did not match. `frozenHTML` in App.jsx now
+  freezes each direct child at its measured offset; the ghost has no
+  padding/border of its own.
+- the ghost fades out as the expand STARTS (0.2s at OPEN_HOLD) so the
+  growing media does not slide over text still fading.
+- the modal × mounted visible and flashed on the lifting card: initial 0.
+- the left stage DIMS to 0.28 while the lanyard column shares it
+  (Experience, Research) and returns as the reader leaves.
+- "policy · trained in sim" moved in from the stage's clipped left edge.
+
 **Sept 29: the PREMIUM PASS** (the owner: "make the site feel less AI and
 feel more premium. Look at the websites for very modern startups"). Looked
 at Linear, Physical Intelligence, Skild AI and Figure: one neutral grotesk

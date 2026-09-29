@@ -65,6 +65,23 @@ function App() {
              radius: getComputedStyle(m.closest('.exp-media') || m).borderRadius || '8px' };
   };
 
+  // The card's markup with each direct child FROZEN at the place it has on
+  // screen: a card's layout can come from rules scoped to its parent and
+  // its position (the major projects' picture-left / picture-right grid),
+  // which a detached copy does not match — the lifting copy showed its
+  // picture and a blank white half where the text had dropped below the
+  // clip (the owner: the lift should be the card itself rising).
+  const frozenHTML = card => {
+    const box = card.getBoundingClientRect();
+    const clone = card.cloneNode(true);
+    [...card.children].forEach((c, i) => {
+      const k = clone.children[i]; if (!k) return;
+      const r = c.getBoundingClientRect();
+      Object.assign(k.style, { position: 'absolute', left: `${r.left - box.left}px`, top: `${r.top - box.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: '0' });
+    });
+    return clone.innerHTML;
+  };
+
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
     const rect = cardElement.getBoundingClientRect();
     // Add animating-out class to card for visual effect
@@ -77,7 +94,7 @@ function App() {
       cardRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
       // a copy of the card itself, so the modal can BE the card lifting off
       // the page and growing, rather than an empty surface
-      cardHTML: cardElement.innerHTML,
+      cardHTML: frozenHTML(cardElement),
       cardClass: cardElement.className.replace('animating-out', ''),
       media: mediaOf(cardElement),
     });

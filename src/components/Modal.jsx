@@ -443,7 +443,9 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             // fades in at once, as the content fades out
             transition={phase === 'collapse' || phase === 'settle'
               ? { opacity: { duration: CLOSE_S * 0.5, delay: CLOSE_S * 0.4, ease: 'easeInOut' }, scale: { duration: 0 } }
-              : { opacity: { duration: 0.3, delay: ghostOn ? 0.15 : OPEN_HOLD + 0.2 }, scale: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD } }}
+              // leaving on the expand: out quickly as the surface starts to grow, so
+              // the growing media does not slide over text still fading
+              : { opacity: { duration: 0.2, delay: ghostOn ? 0.15 : OPEN_HOLD }, scale: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD } }}
             dangerouslySetInnerHTML={{ __html: cardHTML }}
           />
         )}
@@ -453,6 +455,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             ref={closeRef}
             onClick={handleClose}
             aria-label="Close modal"
+            initial={{ opacity: 0 }}          // mounted hidden: without it the × flashed on the lifting card's corner
             animate={{ opacity: phase === 'open' ? 1 : 0 }}
             transition={{ duration: 0.25 }}
           >
