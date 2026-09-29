@@ -501,7 +501,24 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
   Act4, SIM2REAL (the trained VLA's panel moves up, the real table comes
   in, the gripper descends) · IdleReal (the pick-and-place SUCCEEDS: the
   payoff against IdleUntrained). The states are `S0`…`S4`; the tracker
-  reads real, sim, sim, sim, real.
+  reads (none), sim, sim, sim, real — it is NOT in S0: it draws itself in
+  at the start of real2sim (the owner: "the real to sim to real bar is
+  showing up too early"). The untrained policy WANDERS (`WANDER`, seeded
+  random spots, dipping and closing on air, never on the cube). Manim's
+  own effects carry each act (the owner: "have more of the manim effects
+  be present"): Write/Unwrite for every label, Uncreate for the cone,
+  ShowPassingFlash for light onto the die, down the latent chain and
+  through the transformer, Flash at the die, GrowFromCenter/GrowFromPoint
+  for splats, latents and cubes, TransformFromCopy for the twins and the
+  tokens, DrawBorderThenFill for the dataset and the table, Circumscribe
+  on the twin, the object token and the policy, Indicate on the success
+  label, and a flash burst at every grasp in IdleReal (`grasp_burst`).
+- **LeftFilm hides a clip until it has LANDED** (`visibility: hidden` from
+  the source change until the first `seeked`/`loadeddata`): the old clip's
+  frame used to stay up while the new one downloaded — the camera, showing
+  on Additional Projects (the owner saw it). All five act clips are
+  prefetched once the reader leaves the hero, and the act position is
+  re-measured on every update and on a body resize.
 - **Seams are exact by construction**: every act starts by adding
   `S(K-1)()` and ends with `finish(SK())`, the same builders the
   next act and the idle loop use.

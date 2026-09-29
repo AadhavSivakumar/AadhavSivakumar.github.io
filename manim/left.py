@@ -127,26 +127,37 @@ def pic_state(u):
     return g, op, cube
 
 
-# the UNTRAINED policy's loop: it reaches for the red cube, comes down BESIDE
-# it, closes on air, lifts, lets go and goes home — the cube never moves
-FUMBLE = [(0.00, "H", 1, 1), (0.14, "M", 1, 1), (0.26, "M", 0, 1), (0.32, "M", 0, 0), (0.44, "M", 1, 0),
-          (0.52, "M", 1, 0), (0.58, "M", 1, 1), (0.76, "H", 1, 1), (1.00, "H", 1, 1)]
+# the UNTRAINED policy (the owner: "have the robot moving in random
+# locations"): the gripper wanders between random spots over the table —
+# seeded, so every render is the same — dipping to the table at some and
+# closing on air, never on the cube; the loop starts and ends at home
+def _wander_keys(n=7, seed=11):
+    import random as _r
+    rnd = _r.Random(seed)
+    keys = [(-0.45, 0.55, 1.0)]
+    for i in range(n):
+        x = rnd.uniform(-0.8, 0.85)
+        if abs(x - PA[0]) < 0.28:                     # never onto the red cube
+            x += 0.4 if x < PA[0] else -0.4
+        dip = rnd.random() < 0.55
+        y = rnd.uniform(-0.18, -0.05) if dip else rnd.uniform(0.1, 0.62)
+        keys.append((x, y, 0.0 if dip and rnd.random() < 0.7 else 1.0))
+    keys.append((-0.45, 0.55, 1.0))
+    return keys
+
+
+WANDER = _wander_keys()
 
 
 def fumble_state(u):
     u = u % 1.0
-    i = 0
-    while i < len(FUMBLE) - 2 and FUMBLE[i + 1][0] <= u:
-        i += 1
-    k0, k1 = FUMBLE[i], FUMBLE[i + 1]
-    f = smooth01((u - k0[0]) / max(1e-6, k1[0] - k0[0]))
-
-    def spot(sp, lv):
-        if sp == "H":
-            return (-0.45, 0.55)
-        return (PA[0] + 0.34, 0.3) if lv else (PA[0] + 0.34, PA[1] + 0.2)     # a gripper's width off the cube
-    p0, p1 = spot(k0[1], k0[2]), spot(k1[1], k1[2])
-    return (p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f), k0[3] + (k1[3] - k0[3]) * f, PA
+    n = len(WANDER) - 1
+    k = min(n - 1, int(u * n))
+    f = smooth01(u * n - k)
+    (x0, y0, o0), (x1, y1, o1) = WANDER[k], WANDER[k + 1]
+    # the jaw closes as it arrives at a dip and opens as it leaves
+    op = o1 if f > 0.7 else (o0 if f < 0.3 else o0 + (o1 - o0) * (f - 0.3) / 0.4)
+    return (x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + 0.08 * math.sin(math.pi * f)), op, PA
 
 
 def iso_cube(c, s, color, depth=0.45):
@@ -588,8 +599,10 @@ def untrained_label(a=1.0):
 
 
 def S0(u=0.0):
-    """Real: the camera's picture, the untrained policy."""
-    return VGroup(tracker(0), picture(u, fumble=True), untrained_label())
+    """Real: the camera's picture, the untrained policy. (No tracker yet: the
+    real/sim/real bar arrives with real2sim — the owner: "the real to sim to
+    real bar is showing up too early".)"""
+    return VGroup(picture(u, fumble=True), untrained_label())
 
 
 def r2s_label(a=1.0):
@@ -696,28 +709,30 @@ class Act0(Base):
         module, pcb, barrel = cam_module(), cam_pcb(), rgb_barrel()
         self.add(casing, pcb, module, barrel, plate, lenses, cone)
         D = np.array([0.22, 0.5, 0])
-        self.play(FadeOut(cone, run_time=0.3),
+        self.play(Uncreate(cone, run_time=0.35),
                   lenses.animate.shift(3.1 * D), plate.animate.shift(2.0 * D), module.animate.shift(0.9 * D),
                   barrel.animate.shift(0.9 * D), pcb.animate.shift(-0.5 * D), casing.animate.shift(-1.6 * D),
                   run_time=0.9, rate_func=smooth)
         mc = np.array([SEN_C[0], SEN_C[1], 0])
         shift = mc - module[0].get_center()
-        self.play(FadeOut(VGroup(lenses, plate, pcb, casing)), module.animate.shift(shift).scale(1.25, about_point=mc),
-                  barrel.animate.shift(shift).scale(1.25, about_point=mc), FadeIn(tracker(0)), run_time=0.55)
+        self.play(FadeOut(VGroup(lenses, plate, pcb, casing), lag_ratio=0.15), module.animate.shift(shift).scale(1.25, about_point=mc),
+                  barrel.animate.shift(shift).scale(1.25, about_point=mc), run_time=0.55)
         die_at = barrel.get_center()
         die = Square(0.16, fill_color="#1A1B1E", fill_opacity=1, stroke_color=PAL["gold"], stroke_width=1.5).move_to(die_at)
         self.add(die)
         self.bring_to_front(barrel)
-        self.play(barrel.animate.shift([0.35, 0.55, 0]).set_opacity(0), run_time=0.4)
+        self.play(barrel.animate.shift([0.35, 0.55, 0]).rotate(0.6).set_opacity(0), run_time=0.4)
         src = [die_at + np.array([0.5 + 0.12 * i, 1.1 - 0.05 * i, 0]) for i in range(5)]
-        rays = VGroup(*[Line(p, die_at, stroke_color=PAL["copper"], stroke_width=1.5, stroke_opacity=0.8) for p in src])
-        photons = VGroup(*[Dot(p, radius=0.03, color=PAL["copper"]) for p in src])
-        self.play(Create(rays), run_time=0.2)
-        self.play(*[p.animate.move_to(die_at) for p in photons], run_time=0.25)
+        rays = VGroup(*[Line(p, die_at, stroke_color=PAL["copper"], stroke_width=2) for p in src])
+        # the light arrives as passing flashes, and the die flashes as it lands
+        self.play(LaggedStart(*[ShowPassingFlash(r.copy(), time_width=0.6) for r in rays], lag_ratio=0.12), run_time=0.45)
+        self.play(Flash(die_at, color=PAL["copper"], line_length=0.14, num_lines=10, flash_radius=0.16), run_time=0.3)
         sen = sensor(1.0)
-        self.play(FadeOut(rays), FadeOut(photons), FadeOut(module), ReplacementTransform(die, sen), run_time=0.5)
-        # the pixels resolve into the picture; the policy is untrained
-        self.play(ReplacementTransform(sen, picture(0, fumble=True)), FadeIn(untrained_label()), run_time=0.7)
+        self.play(FadeOut(module), ReplacementTransform(die, sen), run_time=0.5)
+        # the pixels resolve into the picture, drawn border first; the policy is untrained
+        pic = picture(0, fumble=True)
+        self.play(ReplacementTransform(sen, pic), run_time=0.6)
+        self.play(Write(untrained_label()), run_time=0.45)
         self.finish(S0())
 
 
@@ -727,17 +742,22 @@ class IdleUntrained(Scene):
 
 
 class Act1(Base):
-    """Real2sim: the picture lies down; a Gaussian splat condenses into the sim twin."""
+    """Real2sim: the bar arrives; the picture lies down; a Gaussian splat condenses into the sim twin."""
     def construct(self):
-        tr, pic, lab = S0()
+        pic, lab = S0()
         self.add(pic, lab)
         p = ValueTracker(0)
+        # the real / sim / real bar draws itself in, here, where sim begins
+        self.play(Unwrite(lab), Create(tracker(0)), run_time=0.5)
         self.add(always_redraw(lambda: tracker(p.get_value())))
-        self.play(FadeOut(lab), run_time=0.3)
-        self.play(ReplacementTransform(pic, floor_grid()), p.animate.set_value(0.5), run_time=0.9)
+        grid = floor_grid()
+        self.play(ReplacementTransform(pic, grid), p.animate.set_value(0.5), run_time=0.85)
         sp = splats(1.0)
-        self.play(FadeIn(sp, lag_ratio=0.02), FadeIn(r2s_label()), run_time=0.6)
-        self.play(FadeOut(sp), FadeIn(floor_cubes(), shift=UP * 0.1), p.animate.set_value(1.0), run_time=0.7)
+        self.play(LaggedStart(*[GrowFromCenter(d) for d in sp], lag_ratio=0.01), Write(r2s_label()), run_time=0.6)
+        cubes = floor_cubes()
+        self.play(FadeOut(sp, scale=0.6), LaggedStart(*[GrowFromPoint(c, c.get_bottom()) for c in cubes], lag_ratio=0.2),
+                  p.animate.set_value(1.0), run_time=0.7)
+        self.play(Circumscribe(VGroup(grid, cubes), color=PAL["copper"], buff=0.08, stroke_width=2), run_time=0.55)
         self.finish(S1())
 
 
@@ -755,18 +775,20 @@ class Act2(Base):
         mv = lambda: (0.0, -0.7 + (C2[1] + 0.7) * m.get_value())
         sc = lambda: 1.0 + (SC2 - 1.0) * m.get_value()
         self.add(always_redraw(lambda: VGroup(floor_grid(mv(), sc()), floor_cubes(mv(), sc()))))
-        self.play(m.animate.set_value(1), FadeOut(lab), run_time=0.6)
-        # domain randomisation: twins, each running demonstrations
-        self.play(FadeIn(twins(0.0), shift=DOWN * 0.1), FadeIn(label("domain randomization", 12).move_to([0, 2.95, 0])), run_time=0.5)
+        self.play(m.animate.set_value(1), Unwrite(lab), run_time=0.55)
+        # domain randomisation: the twin is copied out, re-arranged, re-tinted
+        tw = twins(0.0)
+        src = VGroup(floor_grid(C2, SC2), floor_cubes(C2, SC2))
+        self.play(TransformFromCopy(src, tw), Write(label("domain randomization", 12).move_to([0, 2.95, 0])), run_time=0.6)
         self.play(Create(demo_path(TWIN_L, TWIN_SC, 0.0)), Create(demo_path(TWIN_R, TWIN_SC, 2.2)),
-                  FadeIn(label("1,000+ demos", 11).move_to([0, 1.5, 0])), run_time=0.6)
-        # the world model: a learned simulator, imagining rollouts
-        g = ValueTracker(0)
-        self.add(always_redraw(lambda: latents(grow=lambda k: smooth01(g.get_value() * 5 - k), LAT_Y=LAT2)))
-        self.play(g.animate.set_value(1), FadeIn(label("world model", 12).move_to([LAT_X[0] + 0.3, LAT2 + 0.52, 0])), run_time=0.7, rate_func=linear)
-        fg = ValueTracker(0)
-        self.add(always_redraw(lambda: imagined(0, grow=lambda k: smooth01(fg.get_value() * 4 - (k - 1)), LAT_Y=LAT2, FRAME_Y=FR2)))
-        self.play(fg.animate.set_value(1), FadeIn(label("imagined rollouts", 12).move_to([0.37, FR2 - 0.42, 0])), run_time=0.7, rate_func=linear)
+                  Write(label("1,000+ demos", 11).move_to([0, 1.5, 0])), run_time=0.55)
+        # the world model: latents grow one after another, a pulse runs the chain
+        lat = latents(LAT_Y=LAT2)
+        self.play(LaggedStart(*[GrowFromCenter(m_) for m_ in lat], lag_ratio=0.05), Write(label("world model", 12).move_to([LAT_X[0] + 0.3, LAT2 + 0.52, 0])), run_time=0.75)
+        run = Line([LAT_X[0], LAT2, 0], [LAT_X[4], LAT2, 0], stroke_color=PAL["copper"], stroke_width=5)
+        self.play(ShowPassingFlash(run, time_width=0.35), run_time=0.5)
+        im = imagined(0, LAT_Y=LAT2, FRAME_Y=FR2)
+        self.play(LaggedStart(*[FadeIn(m_, shift=DOWN * 0.15) for m_ in im], lag_ratio=0.12), Write(label("imagined rollouts", 12).move_to([0.37, FR2 - 0.42, 0])), run_time=0.7)
         self.finish(S2())
 
 
@@ -780,22 +802,27 @@ class Act3(Base):
     def construct(self):
         s2 = S2()
         self.add(s2)
-        tr = s2[0]
         rest = VGroup(*s2[1:])
         # the sim data collapses into a dataset
-        self.play(rest.animate.scale(0.25).move_to([DATA_C[0], DATA_C[1], 0]).set_opacity(0), FadeIn(dataset()), run_time=0.8)
+        self.play(rest.animate.scale(0.25).move_to([DATA_C[0], DATA_C[1], 0]).set_opacity(0), DrawBorderThenFill(dataset()), run_time=0.8)
         self.remove(rest)
-        # it is tokenised and fed through the policy
+        # it is tokenised into the VLA
         tok = tokens()
-        self.play(LaggedStart(*[TransformFromCopy(Dot([DATA_C[0], DATA_C[1], 0], radius=0.04, color=PAL["copper"]), t) for t in tok], lag_ratio=0.04), run_time=0.7)
-        self.play(LaggedStart(*[FadeIn(q, shift=DOWN * 0.1) for q in lang_tokens()], lag_ratio=0.1), run_time=0.35)
-        self.play(FadeIn(layers(), lag_ratio=0.2), FadeIn(vla_label()), Create(attention(-1)), run_time=0.45)
+        self.play(LaggedStart(*[TransformFromCopy(Dot([DATA_C[0], DATA_C[1] - 0.2, 0], radius=0.04, color=PAL["copper"]), t) for t in tok], lag_ratio=0.04), run_time=0.65)
+        self.play(Circumscribe(VGroup(tok[12], tok[13]), color=PAL["red"], buff=0.05, stroke_width=2), run_time=0.4)
+        self.play(LaggedStart(*[Create(q) for q in lang_tokens()], lag_ratio=0.1), run_time=0.35)
+        lay = layers()
+        self.play(LaggedStart(*[GrowFromEdge(l, UP) for l in lay], lag_ratio=0.08), Write(vla_label()), Create(attention(-1)), run_time=0.5)
+        # a forward pass: flashes run down through the slabs to the action chunk
+        down = VGroup(*[Line([x, TOK_Y - 0.15, 0], [x * 0.6, PANEL_C[1] + 0.55, 0], stroke_color=PAL["copper"], stroke_width=3) for x in (-1.0, -0.3, 0.4, 1.1)])
         self.play(Create(Line([0, LAYER_Y[-1] - 0.12, 0], [0, PANEL_C[1] + 0.55, 0], stroke_color=PAL["line"], stroke_width=2)),
-                  FadeIn(action_panel(0), shift=DOWN * 0.15), run_time=0.35)
+                  LaggedStart(*[ShowPassingFlash(d, time_width=0.5) for d in down], lag_ratio=0.15),
+                  FadeIn(action_panel(0), shift=DOWN * 0.15), run_time=0.55)
         # and its success in sim climbs
         cu = ValueTracker(0.02)
         self.add(always_redraw(lambda: curve(cu.get_value(), **CURVE3)))
-        self.play(cu.animate.set_value(1.0), run_time=0.8, rate_func=linear)
+        self.play(cu.animate.set_value(1.0), run_time=0.7, rate_func=linear)
+        self.play(Indicate(curve(1.0, **CURVE3)[-1], color=PAL["copper"], scale_factor=1.12), run_time=0.45)
         self.finish(S3())
 
 
@@ -813,18 +840,36 @@ class Act4(Base):
         p = ValueTracker(1.0)
         self.remove(tr)
         self.add(always_redraw(lambda: tracker(p.get_value())))
-        self.play(FadeOut(VGroup(data, crv, tok, lang, att, lay, arrow, vlab)),
+        self.play(FadeOut(VGroup(data, crv, tok, lang, att, lay, arrow), lag_ratio=0.05), Unwrite(vlab),
                   ReplacementTransform(panel, action_panel(0, PANEL4, 0.42, "VLA policy")), p.animate.set_value(1.5), run_time=0.8)
-        self.play(FadeIn(VGroup(floor_grid(a=0.0, solid=1.0), floor_cubes()), shift=UP * 0.15), run_time=0.6)
+        self.play(DrawBorderThenFill(floor_grid(a=0.0, solid=1.0)), LaggedStart(*[GrowFromPoint(c, c.get_bottom()) for c in floor_cubes()], lag_ratio=0.15), run_time=0.7)
         d = ValueTracker(2.2)
         g0, op0, _ = pick3(0)
         self.add(always_redraw(lambda: gripper3(g0, op0, 1.0, d.get_value())))
         self.play(d.animate.set_value(0.0), p.animate.set_value(2.0),
-                  FadeIn(label("sim2real", 12).move_to([-1.25, -2.05, 0])), FadeIn(label("policy · trained in sim", 11).move_to([0.5, -2.4, 0])),
-                  run_time=1.1, rate_func=smooth)
+                  Write(label("sim2real", 12).move_to([-1.25, -2.05, 0])), Write(label("policy · trained in sim", 11).move_to([0.5, -2.4, 0])),
+                  run_time=1.0, rate_func=smooth)
+        self.play(Circumscribe(action_panel(0, PANEL4, 0.42, "VLA policy")[0], color=PAL["copper"], buff=0.05, stroke_width=2), run_time=0.45)
         self.finish(S4())
+
+
+def grasp_burst(u):
+    """A small Flash-style burst at the cube, just after the jaw closes on it
+    (u 0.22-0.30) and when it lets go at B (u 0.54-0.62)."""
+    g = VGroup()
+    for t0 in (0.22, 0.54):
+        f = (u - t0) / 0.08
+        if 0 <= f <= 1:
+            gg, _, cube = pick3(u)
+            c = floor_pt(cube[0], cube[1], cube[2] + 0.12)
+            for i in range(10):
+                ang = i / 10 * math.tau
+                r0, r1 = 0.18 + 0.12 * f, 0.26 + 0.14 * f
+                g.add(Line([c[0] + r0 * math.cos(ang), c[1] + r0 * math.sin(ang), 0], [c[0] + r1 * math.cos(ang), c[1] + r1 * math.sin(ang), 0],
+                           stroke_color=PAL["copper"], stroke_width=2, stroke_opacity=1 - f))
+    return g
 
 
 class IdleReal(Scene):
     def construct(self):
-        idle(self, S4, IDLE_T * 2)
+        idle(self, lambda u: VGroup(S4(u), grasp_burst(u)), IDLE_T * 2)

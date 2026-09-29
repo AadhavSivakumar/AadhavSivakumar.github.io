@@ -42,10 +42,20 @@ function setSrc(v, theme, name, onReady) {
   const key = `${theme}/${name}`;
   if (v.dataset.clip === key) { if (onReady && v.readyState >= 1) onReady(); else if (onReady) v.addEventListener('loadedmetadata', onReady, { once: true }); return; }
   v.dataset.clip = key;
-  v.poster = `${BASE}${key}.webp`;
+  // HIDDEN until the new clip has landed on its frame: until then the OLD
+  // clip's last frame was on screen — the camera, on a page far from it
+  // (the owner: "the 3d camera is reappearing at additional projects")
+  v.style.visibility = 'hidden';
+  v.removeAttribute('poster');
   clipURL(`${BASE}${key}.${fmt()}`).then(u => {
     if (v.dataset.clip !== key) return;
-    if (onReady) v.addEventListener('loadedmetadata', onReady, { once: true });
+    const reveal = () => { if (v.dataset.clip === key) v.style.visibility = ''; };
+    v.addEventListener('loadedmetadata', () => {
+      if (onReady) onReady();
+      // revealed on the seek the callback started, or on the first frame
+      v.addEventListener('seeked', reveal, { once: true });
+      v.addEventListener('loadeddata', reveal, { once: true });
+    }, { once: true });
     v.src = u;
   }).catch(() => {});
 }
@@ -97,6 +107,11 @@ export default function LeftFilm() {
     const heldIndex = () => (state.i < 0 ? 0 : state.t >= 1 ? state.i + 1 : null);
     const update = () => {
       raf = 0;
+      // where the page is NOW: on a fresh load straight onto a section the
+      // first measurement ran before the layout had grown, said "before act
+      // 0", and the camera's idle loop played on Additional Projects until
+      // something scrolled
+      state = actAt(window.scrollY);
       const hi = heldIndex();
       if (settled && hi !== null && !reduced()) {
         idle.loop = true;
@@ -105,9 +120,10 @@ export default function LeftFilm() {
         showIdle(false);
         seek();
       }
-      // fetch the next act and the idle ahead of time
+      // every act clip once the reader is past the hero (under 1 MB in all),
+      // so a jump across pages never waits on a download; the next idle too
+      if (state.i >= 0 || scrollY > 200) ACTS.forEach(a => prefetch(theme, a));
       const n = Math.max(0, state.i + 1);
-      if (n < ACTS.length) prefetch(theme, ACTS[n]);
       prefetch(theme, IDLES[Math.min(IDLES.length - 1, n)]);
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(update); };
@@ -121,10 +137,14 @@ export default function LeftFilm() {
       schedule();
     });
     const stopSettle = onSettle(v => { settled = !!v; schedule(); });
+    // the page's layout settling (images, fonts, the lazy sections) moves
+    // the act boundaries; re-place the stage when it does
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => schedule()) : null;
+    if (ro) ro.observe(document.body);
     const mo = new MutationObserver(() => { theme = themeNow(); scrub.dataset.clip = ''; idle.dataset.clip = ''; schedule(); });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     schedule();
-    return () => { stopScroll(); stopSettle(); mo.disconnect(); if (raf) cancelAnimationFrame(raf); idle.pause(); };
+    return () => { stopScroll(); stopSettle(); mo.disconnect(); if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); idle.pause(); };
   }, []);
 
   return (
