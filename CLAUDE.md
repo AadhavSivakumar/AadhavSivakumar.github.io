@@ -1535,6 +1535,20 @@ the name now — "Robotics & Embodied AI Engineer · New York & San
 Francisco" — with the serif statement and the descriptive line removed at
 the owner's request ("consolidate the information").
 
+**Sept 29, the Manim restyle** (the owner: "the background doesn't blend
+in with the site. The manim animation still looks a little too AIcoded").
+The clips are rendered on the PAGE'S OWN background colour (PAL.bg =
+--background-color, light #F6F5F1 / dark #0C0C0D; measured across the stage
+edge: ≤2 levels of 255 apart) — keep the two in step if the page colour
+changes. (Rendering on white/black and blending with multiply/screen was
+tried: the stage's opacity isolates the video and it blended against
+nothing — a black box in the dark theme.) The drawing speaks the site's
+language: ink hairlines, near-white fills, ONE accent (the target cube, the
+flows, the tracker: terracotta #C0553A / #E0735A), no primary-coloured
+props (the other cubes are hairline boxes, `iso_cube`), no drop-shadow
+copies under the slabs and latent blocks, hairline frames, and Geist Mono
+labels (`manim/fonts/GeistMono.ttf`, SIL OFL, registered with manimpango).
+
 **Sept 29, premium pass round 2** (the owner: "take some time, do a few
 renders, and make it an iterative process"). Found by rendering every page
 and RECORDING the modal in real time (`openvid.mjs` in the session scratch:

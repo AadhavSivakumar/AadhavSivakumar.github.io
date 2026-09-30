@@ -23,15 +23,24 @@ import math
 import os
 
 THEME = os.environ.get("THEME", "light")
+# The site's own language (the owner: "the background doesn't blend in with
+# the site. The manim animation still looks a little too AIcoded"): ink
+# hairlines, near-white fills, ONE accent — the target cube, the flows, the
+# tracker — and Geist Mono labels. No primary-coloured props, no filled
+# panels. The background is the PAGE'S OWN colour (App.css --background-color,
+# light and dark): then the stage's opacity and its dimming mix like with
+# like and no box shows. (Blending a white/black clip with multiply/screen
+# was tried: the stage's opacity isolates it, and it blended against nothing
+# — a black box in the dark theme.) Change these if the page colour changes.
 PAL = {
-    "light": dict(bg="#F7F5F2", ink="#2E2A24", soft="#8C8375", line="#C9BFAE", gold="#A8823C",
-                  copper="#C0703A", red="#C9473F", green="#4E9A5C", blue="#3F6FB8",
-                  panel="#EFEBE3", body="#C9CDD2", plate="#2E3034", steel="#9FA6AE",
-                  pcb="#556B5A", table="#E4DED2", wall="#EEEAE3", slab="#E9E4DA"),
-    "dark": dict(bg="#121212", ink="#EDE6D8", soft="#9A917F", line="#4A453D", gold="#D4B47C",
-                 copper="#E08A4C", red="#E0605A", green="#6DB57A", blue="#6A94D8",
-                 panel="#1C1B19", body="#7D838B", plate="#2A2C30", steel="#8A919A",
-                 pcb="#4D6453", table="#2A2723", wall="#1E1D1B", slab="#23221F"),
+    "light": dict(bg="#F6F5F1", ink="#1A1917", soft="#8C8981", line="#D9D5CD", gold="#1A1917",
+                  copper="#C0553A", red="#C0553A", green="#D9D5CD", blue="#B8B4AB",
+                  panel="#FFFFFF", body="#E6E3DC", plate="#1E1E1F", steel="#C9C6BF",
+                  pcb="#B8B4AB", table="#F1EFEA", wall="#FAF9F6", slab="#F6F4EF", cube="#F3F1EC"),
+    "dark": dict(bg="#0C0C0D", ink="#E9E7E2", soft="#77746E", line="#34332F", gold="#E9E7E2",
+                 copper="#E0735A", red="#E0735A", green="#3A3935", blue="#55534E",
+                 panel="#000000", body="#4A4946", plate="#161617", steel="#5A5955",
+                 pcb="#3A3935", table="#141413", wall="#0A0A0A", slab="#111110", cube="#1C1B1A"),
 }[THEME]
 
 # the stage is 340 x 660 on the page; rendered at 1.5x
@@ -42,13 +51,16 @@ config.frame_width = 8.0 * 510 / 990
 config.frame_rate = 30
 config.background_color = PAL["bg"]
 
-FONT = "DejaVu Sans Mono"
+import manimpango
+from pathlib import Path
+manimpango.register_font(str(Path(__file__).parent / "fonts" / "GeistMono.ttf"))
+FONT = "Geist Mono"
 ACT_T = 3.5      # seconds per act
 IDLE_T = 4.0     # seconds per idle loop
 
 
 def label(s, size=13, color=None):
-    return Text(s, font=FONT, font_size=size, color=color or PAL["soft"], weight=BOLD)
+    return Text(s, font=FONT, font_size=size - 1, color=color or PAL["soft"], weight=NORMAL)
 
 
 def fade(m, a):
@@ -161,16 +173,22 @@ def fumble_state(u):
 
 
 def iso_cube(c, s, color, depth=0.45):
-    """A cube drawn in cabinet projection: front face, top and right side."""
+    """A cube in cabinet projection. The TARGET (the accent colour) is solid;
+    every other cube is a hairline box on a near-white fill, as a technical
+    drawing would draw it."""
     x, y = c
     d = s * depth
     col = ManimColor(color)
+    target = color in (PAL["red"],)
+    ink = ManimColor(PAL["ink"])
+    fill = col if target else ManimColor(PAL["cube"])
+    sw = 0 if target else 1.4
     front = Polygon([x - s / 2, y - s / 2, 0], [x + s / 2, y - s / 2, 0], [x + s / 2, y + s / 2, 0], [x - s / 2, y + s / 2, 0],
-                    fill_color=col, fill_opacity=1, stroke_width=0)
+                    fill_color=fill, fill_opacity=1, stroke_color=ink, stroke_width=sw)
     top = Polygon([x - s / 2, y + s / 2, 0], [x + s / 2, y + s / 2, 0], [x + s / 2 + d, y + s / 2 + d, 0], [x - s / 2 + d, y + s / 2 + d, 0],
-                  fill_color=col.lighter(0.3), fill_opacity=1, stroke_width=0)
+                  fill_color=fill.lighter(0.25) if target else fill, fill_opacity=1, stroke_color=ink, stroke_width=sw)
     side = Polygon([x + s / 2, y - s / 2, 0], [x + s / 2 + d, y - s / 2 + d, 0], [x + s / 2 + d, y + s / 2 + d, 0], [x + s / 2, y + s / 2, 0],
-                   fill_color=col.darker(0.25), fill_opacity=1, stroke_width=0)
+                   fill_color=fill.darker(0.2) if target else fill.darker(0.04), fill_opacity=1, stroke_color=ink, stroke_width=sw)
     return VGroup(side, top, front)
 
 
@@ -195,7 +213,7 @@ def picture(u=0.0, w=3.3, h=2.1, center=(0, 2.0, 0), frame=True, fumble=False):
         g.add(Rectangle(width=0.035 * sx * 2, height=0.2 * sy, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to([gx + sg * o, gy + 0.06 * sy, 0]))
         g.add(Rectangle(width=0.035 * sx * 2, height=0.05 * sy, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to([gx + sg * o, gy - 0.05 * sy, 0]))
     if frame:
-        g.add(Rectangle(width=w, height=h, stroke_color=PAL["gold"], stroke_width=2.5).move_to([cx, cy, 0]))
+        g.add(Rectangle(width=w, height=h, stroke_color=PAL["soft"], stroke_width=1.1).move_to([cx, cy, 0]))
     return g
 
 
@@ -468,9 +486,8 @@ def layers(run=None):
     g = VGroup()
     for i, y in enumerate(LAYER_Y):
         lit = 0.0 if run is None else max(0.0, 1 - abs(run * 4.4 - i) * 1.3)
-        g.add(RoundedRectangle(width=3.4, height=0.2, corner_radius=0.06, fill_color=ManimColor(PAL["slab"]).darker(0.12), fill_opacity=1, stroke_width=0).move_to([0.06, y - 0.06, 0]))
         g.add(RoundedRectangle(width=3.4, height=0.2, corner_radius=0.06, fill_color=PAL["slab"], fill_opacity=1,
-                               stroke_color=PAL["copper"] if lit > 0.3 else PAL["line"], stroke_width=1.5 + lit).move_to([0, y, 0]))
+                               stroke_color=PAL["copper"] if lit > 0.3 else PAL["soft"], stroke_width=1.1 + 0.6 * lit).move_to([0, y, 0]))
         if lit > 0:
             g.add(RoundedRectangle(width=3.3 * lit + 0.01, height=0.08, corner_radius=0.03, fill_color=PAL["copper"], fill_opacity=0.35 * lit, stroke_width=0).move_to([0, y, 0]))
     return g
@@ -509,7 +526,7 @@ def action_panel(u=0.0, center=PANEL_C, scale=1.0, lab="action chunk", lab_a=1.0
 
 
 def vla_label(a=1.0):
-    return fade(label("VLA · vision + language → action", 12).move_to([0, LAYER_Y[0] + 0.28, 0]), a)
+    return fade(label("vla policy", 12).move_to([0, LAYER_Y[0] + 0.28, 0]), a)
 
 
 def state1(u=0.0, hot=-1, run=None):
@@ -531,11 +548,11 @@ def latents(pulse=None, grow=None, LAT_Y=LAT_Y):
         s = 1.0 if grow is None else grow(k)
         if s <= 0.01:
             continue
-        box = VGroup(Rectangle(width=0.4, height=0.55, fill_color=ManimColor(PAL["slab"]).darker(0.12), fill_opacity=1, stroke_width=0).move_to([x + 0.05, LAT_Y - 0.05, 0]),
-                     Rectangle(width=0.4, height=0.55, fill_color=PAL["slab"], fill_opacity=1, stroke_color=PAL["line"], stroke_width=1.5).move_to([x, LAT_Y, 0]))
+        box = VGroup(Rectangle(width=0.4, height=0.55, fill_color=PAL["slab"], fill_opacity=1, stroke_color=PAL["soft"], stroke_width=1.1).move_to([x, LAT_Y, 0]))
+        hot = (k * 2) % 5
         for c in range(5):
-            on = math.sin(c * 2.1 + k * 1.3) > 0.1
-            box.add(Rectangle(width=0.26, height=0.05, fill_color=PAL["copper"] if on else PAL["line"], fill_opacity=0.9, stroke_width=0).move_to([x, LAT_Y + 0.18 - c * 0.09, 0]))
+            box.add(Line([x - 0.12, LAT_Y + 0.18 - c * 0.09, 0], [x + (0.12 if c == hot else 0.02 + 0.08 * ((c * 3 + k) % 3) / 2), LAT_Y + 0.18 - c * 0.09, 0],
+                         stroke_color=PAL["copper"] if c == hot else PAL["soft"], stroke_width=2 if c == hot else 1.2))
         g.add(box.scale(s, about_point=[x, LAT_Y, 0]))
         if k < 4 and (grow is None or grow(k + 1) > 0.5):
             g.add(Arrow([x + 0.22, LAT_Y, 0], [LAT_X[k + 1] - 0.22, LAT_Y, 0], buff=0, stroke_width=2, color=PAL["soft"],
