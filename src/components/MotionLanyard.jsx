@@ -86,8 +86,7 @@ function Badge({ card, pinTop, strap, siteDark }) {
               <strong className="mlan-name">{b.name}</strong>
               <span className="mlan-role">{b.role}</span>
               <span className="mlan-rule" aria-hidden="true" />
-              <span className="mlan-meta"><b>ID</b>{b.id}</span>
-              <span className="mlan-meta"><b>EXP</b>{b.exp}</span>
+              <span className="mlan-dates">{card.period}</span>
             </div>
             <div className="mlan-face mlan-back">
               <img src={card.image} alt="" draggable="false" />

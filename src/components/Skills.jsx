@@ -81,7 +81,7 @@ export default function Skills({ onCardClick, next }) {
           <h3 className="resume-side-title">Transcripts</h3>
           {transcripts.map(d => (
             <button key={d.id} className="resume-doc project-modal-trigger" onClick={e => openDoc(e.currentTarget, d)}>
-              <DocIcon /><span>{d.title}</span>{d.badge && <span className="doc-tile-badge">{d.badge}</span>}
+              <DocIcon /><span>{d.title}</span>
             </button>
           ))}
           <h3 className="resume-side-title">Skills</h3>

@@ -112,7 +112,6 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
   // Small cards carry their first two tags on one line: thirteen of them share
   // one screen now, and the rest are in the modal.
   const tagsToShow = isMajor ? project.tags : project.tags?.slice(0, 2);
-  const statusClass = project.status?.toLowerCase().replace(/ /g, '-');
 
 
   return (
@@ -129,7 +128,6 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
           {/* status first, then the tags, on one line: the card is a short
               sideways row now */}
           <div className="project-tags-container">
-            {project.status && <span className={`project-tag status-${statusClass}`}>{project.status}</span>}
             {tagsToShow?.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
           </div>
         </div>
@@ -139,7 +137,6 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
           {/* One row: status first, then the first two tags. The description
               lives in the modal — thirteen cards share one screen. */}
           <div className="project-tags-container">
-            {project.status && <span className={`project-tag status-${statusClass}`}>{project.status}</span>}
             {tagsToShow?.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
           </div>
         </div>

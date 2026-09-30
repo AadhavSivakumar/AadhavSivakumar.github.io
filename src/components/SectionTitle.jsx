@@ -3,8 +3,6 @@ import { animate, stagger } from 'animejs';
 
 // Section heading revealed by an anime.js letter cascade (plus an underline
 // draw) the first time it scrolls into view.
-const INDEX = { 'experience-title': '01', 'research-title': '02', 'projects-title': '03', 'additional-projects-title': '04', 'skills-title': '05', 'contact-title': '06' };
-
 export default function SectionTitle({ children, id }) {
   const ref = useRef(null);
   const text = String(children);
@@ -41,11 +39,8 @@ export default function SectionTitle({ children, id }) {
     return () => observer.disconnect();
   }, []);
 
-  // a small monospace index over each page's title (01 … 06), as modern
-  // product sites number their sections
-  const idx = INDEX[id];
   return (
-    <h2 className="section-title" id={id} ref={ref} aria-label={text} data-index={idx || undefined}>
+    <h2 className="section-title" id={id} ref={ref} aria-label={text}>
       {text.split(' ').map((word, wi, words) => (
         <React.Fragment key={wi}>
           <span className="st-word" aria-hidden="true">

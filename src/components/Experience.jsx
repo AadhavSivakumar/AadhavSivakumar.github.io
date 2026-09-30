@@ -50,10 +50,12 @@ function useNearViewport(ref, margin = '600px') {
 // of the lanyards on the left side"). The badges are motion (Framer Motion)
 // components now — see MotionLanyard.jsx; they were a three.js + rapier
 // scene in a WebGL canvas.
-function RowLanyard({ badgeNames, wide }) {
+function RowLanyard({ rows, wide }) {
   const ref = useRef(null);
   const near = useNearViewport(ref);
-  const cards = badgeNames.map(n => badgeByName[n]).filter(Boolean);
+  // each badge carries its row's DATES (the owner: "just have the dates on
+  // the ID cards" — they came off the cards)
+  const cards = rows.map(r => badgeByName[r.badge] && { ...badgeByName[r.badge], period: r.period }).filter(Boolean);
   // one card row + the grid gap, in px: how far below the first badge the
   // second hangs, so each is level with its own card
   const [rowPx, setRowPx] = useState(0);
@@ -113,7 +115,6 @@ function ExperienceCard({ item, index, onCardClick }) {
           </p>
           {item.degree && <p className="exp-degree">{item.degree}</p>}
         </div>
-        <p className="exp-period">{item.period}</p>
       </div>
       {/* the card is a short PARAGRAPH; every bullet is in the modal (the
           owner: "on the cards… have a small paragraph and have the bullet
@@ -154,7 +155,7 @@ export default function Experience({ id, title, group, onCardClick, next }) {
           screen. */}
       <div className="exp-grid">
         {rows.map((item, i) => <ExperienceCard key={item.id} item={item} index={i} onCardClick={onCardClick} />)}
-        <RowLanyard badgeNames={rows.map(r => r.badge)} wide={wide} />
+        <RowLanyard rows={rows} wide={wide} />
       </div>
       {next && <PageNext to={next.to} label={next.label} />}
     </section>

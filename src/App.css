@@ -1675,3 +1675,6 @@ html[data-theme="dark"] .project-tag.status-completed, html[data-theme="dark"] .
 .modal-backdrop { background-color: rgba(15, 15, 14, 0.32); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
 html[data-theme="dark"] .modal-backdrop { background-color: rgba(0, 0, 0, 0.55); }
 .modal-animator { border-radius: 16px; border: 1px solid var(--hair); }
+
+/* the badge's dates (they replaced ID / EXP) */
+.mlan-dates { font: 500 0.72rem var(--font-mono); letter-spacing: 0.01em; opacity: 0.85; }
