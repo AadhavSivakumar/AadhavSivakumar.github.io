@@ -188,7 +188,12 @@ That is the owner's stated goal, and three things follow from it:
   removed, and the CV desktop arm (`'g'`) is now "Bimanual SO-ARM101
   Teleoperation" (the CV's LAIR line). Its cover `so101.webp` is a STAND-IN,
   this site's own SO-ARM101 render: replace it when the owner sends footage.
-  The old site also had "Machine Learning & AI Instructor"; not requested.
+  Also back from the old site, on request: "Machine Learning & AI
+  Instructor" (`'n'`, before MATE ROV; the old card had no text, so it is
+  written from the CV's IDEA-program entry; cover cropped to the camera
+  view of its Nicla Vision demo) — fifteen small cards, three full rows.
+  The RL card credits the two classmates by name (the owner agreed; their
+  names are in the project's public README).
 - **`majorProjectsData` is exactly the four the owner chose**: Glass-2-Bot,
   SMART compost sorting, Stockbot, and "UR10e Kinematics in MuJoCo" (id `'h'`, once titled "3D Fruit Ninja
   Simulation", then "MuJoCo simulation for forward/inverse kinematics for
