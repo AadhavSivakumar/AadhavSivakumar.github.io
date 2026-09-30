@@ -10,12 +10,12 @@ import portrait from '../../Media/hero/frontpagepfp.webp';
 // world models, simulation, VLAs, embodied AI"), plus robotics itself; the
 // tagline says the same thing in a sentence.
 const KEYWORDS = [
-  { label: 'Embodied AI', target: 'experience' },
+  { label: 'Robotics', target: 'projects' },
   { label: 'VLAs', target: 'skills' },
   { label: 'World Models', target: 'research' },
   { label: 'Reinforcement Learning', target: 'research' },
   { label: 'Simulation', target: 'projects' },
-  { label: 'Robotics', target: 'projects' },
+  { label: 'Embodied AI', target: 'experience' },
 ];
 
 const NAME = 'Aadhav Sivakumar';

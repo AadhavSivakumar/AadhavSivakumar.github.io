@@ -175,9 +175,9 @@ That is the owner's stated goal, and three things follow from it:
   TensorRT, OpenCV, CUDA…) are deliberately ABSENT until the owner confirms
   them, however likely they are. Do not add them on inference.
 - **`majorProjectsData` is exactly the four the owner chose**: Glass-2-Bot,
-  SMART compost sorting, Stockbot, and the MuJoCo forward/inverse kinematics
-  simulation for a 6-DOF arm (id `'h'`, once titled "3D Fruit Ninja
-  Simulation" — the owner renamed it; the description is taken from the
+  SMART compost sorting, Stockbot, and "UR10e Kinematics in MuJoCo" (id `'h'`, once titled "3D Fruit Ninja
+  Simulation", then "MuJoCo simulation for forward/inverse kinematics for
+  6DOF arm" — renamed at the owner's request; the description is taken from the
   MujocoSim repo's notebooks: FK/IK for position and velocity on a UR10e, then
   a Fruit Ninja demo), in that order. Sluice was removed at the owner's
   request. Everything else — including the tactile sensor — is in `smallProjectsData`,
@@ -1534,6 +1534,17 @@ in `Resume/` are unreferenced and left in place. The hero is ONE line over
 the name now — "Robotics & Embodied AI Engineer · New York & San
 Francisco" — with the serif statement and the descriptive line removed at
 the owner's request ("consolidate the information").
+
+**Sept 29, header and share card.** The header is a three-column grid:
+wordmark left, the page links CENTRED, and on the right the owner's
+profiles (`SOCIALS` in Header.jsx: LinkedIn, GitHub, email, the resume PDF)
+as 17px line icons beside the theme toggle; on a phone the profiles sit at
+the bottom of the menu panel (`.socials--menu`) and the toggle and burger
+sit right. The link preview is `Media/web/og.jpg` (1200x630 JPG — WebP does
+not unfurl on LinkedIn or Slack): the big AS mark, name, role, the gold
+waves, rendered from an HTML page with Playwright; og/twitter image, type,
+size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
+owner). Hero chips: Robotics first, Embodied AI last.
 
 **Sept 29, the Manim restyle** (the owner: "the background doesn't blend
 in with the site. The manim animation still looks a little too AIcoded").

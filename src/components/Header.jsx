@@ -12,6 +12,28 @@ const LINKS = [
   { id: 'contact', label: 'Contact' },
 ];
 
+// The owner's profiles in the header (LinkedIn, GitHub, email, and the
+// resume PDF from the repo), as small line icons — on a phone they sit in the
+// menu panel instead
+const SOCIALS = [
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/aadhav-s/', path: 'M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2zM4 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z' },
+  { label: 'GitHub', href: 'https://github.com/AadhavSivakumar', path: 'M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22' },
+  { label: 'Email', href: 'mailto:sivakumaadhav@gmail.com', path: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM22 6l-10 7L2 6' },
+  { label: 'Resume (PDF)', href: '/Resume/Aadhav_Sivakumar_Resume.pdf', path: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 13h6M9 17h6' },
+];
+function Socials({ className }) {
+  return (
+    <div className={`socials ${className || ''}`}>
+      {SOCIALS.map(s => (
+        <a key={s.label} href={s.href} className="social" aria-label={s.label} title={s.label}
+          {...(s.href.startsWith('http') || s.href.endsWith('.pdf') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={s.path} /></svg>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 // Animated sun <-> moon: the disc shrinks and a masking circle slides across to
 // carve out a crescent, while the eight rays retract into the disc. Everything
 // is one continuous transition, so the toggle morphs rather than swapping
@@ -166,10 +188,15 @@ export default function Header({ theme, toggleTheme }) {
             <span className="nav-link-label">{link.label}</span>
           </a>
         ))}
+        <Socials className="socials--menu" />
+      </nav>
+      {/* right: the profiles and the theme toggle; the links are centred */}
+      <div className="header-end">
+        <Socials className="socials--bar" />
         <button id="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
           <ThemeIcon theme={theme} />
         </button>
-      </nav>
+      </div>
     </header>
   );
 }
