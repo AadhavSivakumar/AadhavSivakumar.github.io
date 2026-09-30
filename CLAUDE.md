@@ -1556,6 +1556,20 @@ gallery items they are FULL LENGTH (28-61 s: each is one complete run) at
 their native 848x480, crf 29, and keep a 64k mono audio track (the player
 starts muted, with controls): 1.2-3.0 MB each.
 
+**Sept 30, Roboflow footage.** The owner's own work videos (nine, from
+their Drive folder; the ~700 MB originals stay there, NOT in the repo) are
+the Roboflow entry's modal gallery: `gallery` on the `experienceData` row,
+passed through `toModal` in Experience.jsx (any experience row can have
+one now). `Media/web/gallery/x_roboflow/1-9.mp4` + posters, 22 MB: SILENT
+(phone clips carry room audio and colleagues' voices), 1280 wide for screen
+recordings, 960 for phone clips, crf 28. Reviewed frame by frame before
+publishing: the GTC quality-control screen recording is CROPPED to the app
+(crop=3012:1476:6:308) — the full frame showed the browser's tabs, an
+internal IP, bookmarks to internal tools and the dock. Order: part-presence
+app, the stacked inspection view, the workcell, the annotated frames, the
+QC dashboard, the xArm pick-and-place, the owner at the xArm, the arm with
+a trim panel, gesture control.
+
 **Sept 30, the header grows at the top.** At the very top of the page the
 bar is LARGE (the owner: "make the navbar very large at the beginning, but
 then as soon as it scrolls down have it shrink"): `scrolled` is set past

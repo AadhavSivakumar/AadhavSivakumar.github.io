@@ -50,6 +50,9 @@ export const experienceData = [
     group: 'industry',
     badge: 'Roboflow',
     video: baseExperiencePath + 'roboflow.mp4',
+    // The owner's own work footage (their Drive folder, Sept 30), shown in the
+    // modal: silent, web-sized; the screen recording cropped to the app.
+    gallery: gal('x_roboflow', ['1.mp4', '2.mp4', '3.mp4', '4.mp4', '5.mp4', '6.mp4', '7.mp4', '8.mp4', '9.mp4']),
     org: 'Roboflow',
     role: 'AI Engineer',
     degree: 'Edge AI engineering team · Solutions R&D',

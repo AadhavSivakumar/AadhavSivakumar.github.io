@@ -78,6 +78,7 @@ const toModal = item => ({
   id: item.id,
   title: item.role,
   imageUrl: item.video,             // the card's video is the modal's top media (and flies into it)
+  gallery: item.gallery,            // more footage, after it, in the modal's gallery strip
   modalContent: [
     { type: 'meta', value: [item.org, item.location, item.period].filter(Boolean).join('  ·  ') },
     item.degree && { type: 'meta', value: item.degree },
