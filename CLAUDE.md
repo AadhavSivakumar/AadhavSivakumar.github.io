@@ -174,6 +174,21 @@ That is the owner's stated goal, and three things follow from it:
   Frameworks that are not yet evidenced anywhere (PyTorch, TensorFlow, ONNX,
   TensorRT, OpenCV, CUDA…) are deliberately ABSENT until the owner confirms
   them, however likely they are. Do not add them on inference.
+- **Sept 30 project changes (the owner):** "Reinforcement Learning & Optimal
+  Control" was on the OLD /portfolio and never made it into this rebuild
+  (its data was taken from an earlier copy); it is back as the FIRST major
+  project, id `'rl'`, "Reinforcement Learning: Go2 Locomotion" — written
+  from the rob6323_go2_project README and code (PPO via rsl_rl in Isaac Lab,
+  PD torque control, early termination, Raibert heuristic, reward shaping,
+  randomised friction) and the course repo; media from
+  `Media/projects/l_reinforcementlearning`. Glass-2-Bot moved to Additional
+  Projects (second, after the webinar). "3D space mapping with depth camera"
+  (`'j'`) was replaced by Robot Perception (`'rp'`, from the Robot-Perception
+  repo's code; media `m_robotperception`), the 2D lidar card (`'i'`) was
+  removed, and the CV desktop arm (`'g'`) is now "Bimanual SO-ARM101
+  Teleoperation" (the CV's LAIR line). Its cover `so101.webp` is a STAND-IN,
+  this site's own SO-ARM101 render: replace it when the owner sends footage.
+  The old site also had "Machine Learning & AI Instructor"; not requested.
 - **`majorProjectsData` is exactly the four the owner chose**: Glass-2-Bot,
   SMART compost sorting, Stockbot, and "UR10e Kinematics in MuJoCo" (id `'h'`, once titled "3D Fruit Ninja
   Simulation", then "MuJoCo simulation for forward/inverse kinematics for
