@@ -187,9 +187,10 @@ That is the owner's stated goal, and three things follow from it:
   section (one talk does not make a section). Its cover is DRAWN, not a
   screenshot — `Media/web/projects/webinar.webp`, 1000x500, rendered from a
   scratch HTML page with Playwright (a grid of parts with one missing) — and
-  its button goes to the webinar SERIES (luma.com/roboflow) because the
-  recording's own URL is not anywhere public that could be reached; swap it
-  in when the owner supplies it. Preserve `id` values when moving entries
+  its modal embeds the RECORDING (Roboflow's YouTube, "Build a Missing Part
+  Detection System with Computer Vision", youtube-nocookie from 1:36, the
+  owner's link) with a "Watch on YouTube" button; it used to point at the
+  webinar series on luma.com until the owner supplied the link (Sept 29). Preserve `id` values when moving entries
   between the two arrays; a card promoted to major needs a `cardDescription`,
   which small cards do not use.
 - Metadata (`index.html` title/OG/description) names "Robotics & Computer
