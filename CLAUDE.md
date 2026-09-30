@@ -1548,6 +1548,15 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Sept 30, the header grows at the top.** At the very top of the page the
+bar is LARGE (the owner: "make the navbar very large at the beginning, but
+then as soon as it scrolls down have it shrink"): `scrolled` is set past
+12px (was 50) and `header:not(.scrolled)` raises the padding, wordmark, link
+type and profile icons, transitioned over 0.45s. Only from 1200px wide (121px
+tall; at 1024 the large links would run into the profile icons) and bigger
+from 1600 (150px); measured with no overlap 1024-1920 and the portrait
+clear of the bar at every size. Phones keep the compact burger bar.
+
 **Sept 29, lighter.** Three cuts, each measured:
 - **Skill icons are SELF-HOSTED** in `Media/web/icons/` as
   `<iconify-prefix>--<name>.svg` (devicons as `devicon--<dir>--<file>.svg`):

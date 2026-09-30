@@ -131,7 +131,7 @@ export default function Header({ theme, toggleTheme }) {
   }, [active]);
 
   useEffect(() => {
-    return onScroll(y => setScrolled(y > 50));
+    return onScroll(y => setScrolled(y > 12));   // large at the very top, compact as soon as the page moves
   }, []);
 
   // Scroll spy: the section crossing the upper-middle band of the viewport

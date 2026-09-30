@@ -1702,6 +1702,34 @@ header nav { justify-self: center; }
   .socials--menu { display: flex; padding: 8px 10px 4px; gap: 6px; }
 }
 
+/* LARGE at the top of the page, compact the moment it scrolls (the owner:
+   "make the navbar very large at the beginning, but then as soon as it
+   scrolls down have it shrink"). `scrolled` is set past 12px (Header.jsx).
+   Wide screens only: the large bar needs ~1200px before the centred links
+   reach the profile icons (at 1024 they would overlap); bigger again from
+   1600. On a phone the bar holds a burger and the menu drops from it. */
+@media (min-width: 769px) {
+  header { transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.45s ease, border-color 0.45s ease; }
+  header .logo a, .nav-link, #theme-toggle { transition: font-size 0.45s cubic-bezier(0.22, 1, 0.36, 1), padding 0.45s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease; }
+  .social, .social svg { transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease, background-color 0.2s ease; }
+}
+@media (min-width: 1200px) {
+  header:not(.scrolled) { padding-top: 36px; padding-bottom: 36px; }
+  header:not(.scrolled) .logo a { font-size: 1.9rem; }
+  header:not(.scrolled) .nav-link { font-size: 1.06rem; padding: 10px 16px; }
+  header:not(.scrolled) .social { width: 40px; height: 40px; }
+  header:not(.scrolled) .social svg { width: 21px; height: 21px; }
+  header:not(.scrolled) #theme-toggle { font-size: 1.5rem; }
+}
+@media (min-width: 1600px) {
+  header:not(.scrolled) { padding-top: 46px; padding-bottom: 46px; }
+  header:not(.scrolled) .logo a { font-size: 2.3rem; }
+  header:not(.scrolled) .nav-link { font-size: 1.25rem; padding: 12px 22px; }
+  header:not(.scrolled) .social { width: 46px; height: 46px; }
+  header:not(.scrolled) .social svg { width: 24px; height: 24px; }
+  header:not(.scrolled) #theme-toggle { font-size: 1.75rem; }
+}
+
 /* self-hosted monochrome icons, drawn as a mask in the theme's icon colour */
 .skill-icon-mono { display: inline-block; background-color: var(--icon-resting-color); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 .skill-icon-mono--head { width: 64px; height: 64px; margin: 0 auto; display: block; }
