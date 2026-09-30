@@ -1701,3 +1701,7 @@ header nav { justify-self: center; }
   header nav { left: 0; right: 0; width: 100%; box-sizing: border-box; }
   .socials--menu { display: flex; padding: 8px 10px 4px; gap: 6px; }
 }
+
+/* self-hosted monochrome icons, drawn as a mask in the theme's icon colour */
+.skill-icon-mono { display: inline-block; background-color: var(--icon-resting-color); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+.skill-icon-mono--head { width: 64px; height: 64px; margin: 0 auto; display: block; }

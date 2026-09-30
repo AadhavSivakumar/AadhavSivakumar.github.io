@@ -223,33 +223,23 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
       return (
         <>
           <motion.div variants={contentItem} className="modal-image-container" style={{ display: itemData.cardImageUrl ? 'block' : 'none' }}>
-            <img
-              src={itemData.cardImageUrl}
-              alt={itemData.title}
-              className="modal-image"
-              onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error'; }}
-            />
+            <span role="img" aria-label={itemData.title} className="modal-image skill-icon-mono skill-icon-mono--head" style={{ WebkitMaskImage: `url(${itemData.cardImageUrl})`, maskImage: `url(${itemData.cardImageUrl})` }} />
           </motion.div>
           <div className="modal-text-content">
             <motion.h2 id="modal-title" variants={contentItem}>{itemData.title}</motion.h2>
             <div className="modal-skill-group-items-container">
               {itemData.items.map((skill, i) => {
-                let skillImageSrc = skill.imageUrl;
-                if (skillImageSrc.includes('iconify.design')) {
-                  const iconColor = getComputedStyle(document.documentElement).getPropertyValue('--icon-resting-color').trim().replace('#', '');
-                  // Strip any colour the data already carries: two `color`
-                  // params make the Iconify API answer 500, not a fallback SVG.
-                  const base = skillImageSrc.split('?')[0];
-                  skillImageSrc = `${base}?color=${iconColor}`;
-                }
+                // The icons are self-hosted (Media/web/icons). The monochrome
+                // ones (Iconify's mdi-- / simple-icons--) are drawn as a MASK
+                // filled with the theme's icon colour — they used to be
+                // coloured by a query to the Iconify API; the coloured logos
+                // (devicon--, photos) stay images.
+                const mono = /\/icons\/(mdi|simple-icons)--/.test(skill.imageUrl);
                 return (
                   <motion.div key={i} variants={contentItem} className="skill-group-item">
-                    <img
-                      src={skillImageSrc}
-                      alt={skill.name}
-                      className="skill-group-item-image"
-                      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/60x60/F7F5F2/BFA181?text=?'; }}
-                    />
+                    {mono
+                      ? <span role="img" aria-label={skill.name} className="skill-group-item-image skill-icon-mono" style={{ WebkitMaskImage: `url(${skill.imageUrl})`, maskImage: `url(${skill.imageUrl})` }} />
+                      : <img src={skill.imageUrl} alt={skill.name} className="skill-group-item-image" loading="lazy" />}
                     <div className="skill-group-item-text">
                       <h3 className="skill-group-item-name">{skill.name}</h3>
                       <p className="skill-group-item-description">{skill.description}</p>

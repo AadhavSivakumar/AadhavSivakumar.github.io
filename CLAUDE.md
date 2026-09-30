@@ -1546,6 +1546,30 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Sept 29, lighter.** Three cuts, each measured:
+- **Skill icons are SELF-HOSTED** in `Media/web/icons/` as
+  `<iconify-prefix>--<name>.svg` (devicons as `devicon--<dir>--<file>.svg`):
+  about 65 files, where there used to be 59 requests to the Iconify and
+  jsDelivr CDNs at runtime. The monochrome sets (`mdi--`, `simple-icons--`)
+  have no colour of their own, so the modal draws them as CSS MASKS in
+  `--icon-resting-color` (`.skill-icon-mono`, the regex in `Modal.jsx`),
+  which follows the theme; coloured devicons stay `<img>`. When fetching a
+  new icon, check that the file is really SVG: Iconify rate-limits bulk
+  fetches and answers "error code: 1015" with a 200-looking body.
+  `@mdi/svg` and `simple-icons` on jsDelivr's npm mirror are the fallbacks.
+  Linux is the simple-icons mark; the devicon one was 192 KB of paths.
+- **Badge photos are WebP**, at most 360px: UCSC's went from 292 KB to
+  41 KB. Roboflow's stays a PNG because its WebP came out larger. The unused
+  Dublin High and "Researcher" badges were dropped from `badgeCards.js`.
+- **The left side's drawn code is deleted from `Flourish3D.jsx`** (4,354 →
+  3,450 lines): the D435 camera, the sensor, the VLA, the world model, the
+  simulator, the arc and the mirrorless `CAMERA`. The left stage is
+  `LeftFilm` (Manim) and has only ever mounted `side="right"` since then,
+  so the hero's left strands just fade, as they always did without a piece.
+  Main script: 502.7 → 485.5 KB (175.1 → 169.3 KB gzipped). Everything in
+  this file about drawing the left camera, sensor, VLA and simulator is
+  history now; git has it (before this commit).
+
 **Sept 29, the Manim restyle** (the owner: "the background doesn't blend
 in with the site. The manim animation still looks a little too AIcoded").
 The clips are rendered on the PAGE'S OWN background colour (PAL.bg =

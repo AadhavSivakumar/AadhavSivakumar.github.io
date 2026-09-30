@@ -14,7 +14,7 @@ import './App.css';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <div className="page-flourish-layer" aria-hidden="true">
     <WaveField />
-    <Flourish3D side="left" />
+    {/* the left stage is LeftFilm now */}
     <Flourish3D side="right" />
   </div>
 );
