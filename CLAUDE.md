@@ -1548,6 +1548,14 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Sept 30, Glass-2-Bot gallery.** The owner's three demo videos (red,
+green, and green-and-red object detection) are the project's gallery:
+originals in `Media/projects/c_glass2bot/demo*.mp4`, web copies
+`Media/web/gallery/c_glass2bot/{1,2,3}.mp4` + posters. Unlike the other
+gallery items they are FULL LENGTH (28-61 s: each is one complete run) at
+their native 848x480, crf 29, and keep a 64k mono audio track (the player
+starts muted, with controls): 1.2-3.0 MB each.
+
 **Sept 30, the header grows at the top.** At the very top of the page the
 bar is LARGE (the owner: "make the navbar very large at the beginning, but
 then as soon as it scrolls down have it shrink"): `scrolled` is set past
