@@ -1532,9 +1532,10 @@ it. **To update: replace the PDF, run `node scripts/pdf-previews.mjs`
 images and the build fails if one is missing (update the list if the page
 count changes). The transcripts are still Drive links. The old resume PDFs
 in `Resume/` are unreferenced and left in place. The hero is ONE line over
-the name now — "Robotics & Embodied AI Engineer · New York & San
-Francisco" — with the serif statement and the descriptive line removed at
-the owner's request ("consolidate the information").
+the name now — "New York & San Francisco" (the role in front of it was
+removed at the owner's request on Sept 30; the page title and share card
+still carry it) — with the serif statement and the descriptive line removed
+at the owner's request ("consolidate the information").
 
 **Sept 29, header and share card.** The header is a three-column grid:
 wordmark left, the page links CENTRED, and on the right the owner's

@@ -169,7 +169,7 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <span>Robotics &amp; Embodied AI Engineer</span><i aria-hidden="true" /><span>New York &amp; San Francisco</span>
+        <span>New York &amp; San Francisco</span>
       </motion.div>
 
       <h1 id="hero-title" ref={nameRef} aria-label={NAME}>
