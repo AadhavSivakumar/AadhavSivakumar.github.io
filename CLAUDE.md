@@ -204,9 +204,13 @@ That is the owner's stated goal, and three things follow from it:
   strongest first: fourteen cards, five to a row (the ASL Glove, id `'m'`, from `Media/projects/aslglove.png`, added Sept 27; the DGAM card, id `'l'`, was removed at the owner's request on Sept 28). **The first is the Roboflow
   webinar** (id `'k'`): the owner's public talk on part-presence inspection
   with RF-DETR-Seg, added at their request as a card rather than a "Talks"
-  section (one talk does not make a section). Its cover is DRAWN, not a
-  screenshot — `Media/web/projects/webinar.webp`, 1000x500, rendered from a
-  scratch HTML page with Playwright (a grid of parts with one missing) — and
+  section (one talk does not make a section). Its cover is a LOOP CUT FROM
+  THE RECORDING (`Media/web/projects/webinar.mp4`, Oct 1, the owner: "have a
+  gif of the video be the cover": 3:03-3:10.5 of the YouTube video, pulled
+  with yt-dlp, the Lucid feed and its parts count cropped above the
+  face-cam; an mp4 rather than a .gif — the same loop as a GIF, even at
+  15 fps and 128 colours, measured 2.6 MB against 0.25 MB); it
+  replaced a drawn cover (a grid of parts with one missing) — and
   its modal embeds the RECORDING (Roboflow's YouTube, "Build a Missing Part
   Detection System with Computer Vision", youtube-nocookie from 1:36, the
   owner's link) with a "Watch on YouTube" button; it used to point at the
@@ -271,6 +275,40 @@ the @react-three/fiber, drei, rapier and meshline packages — a ~3 MB lazy
 chunk and four WebGL contexts. three.js remains for the Atlas only
 (`atlasGL`, lazy, from act 4). Everything below in this section describes
 the removed 3D lanyard and is history.
+
+**Oct 1, the badges reworked** (the owner: "I feel like the lanyards can be
+improved"), each change seen in both themes:
+- **A clearing behind each badge** (`.mlan::before`, z -1 inside the
+  section): a static page-coloured radial halo. The left film shows through
+  this column at 0.28 on these two pages and its D435 sat right behind the
+  first badge (the dark theme read its apertures as "0 0 0 0"); the halo
+  hides it where the badge hangs and nowhere else, without touching the
+  film or the story.
+- **A woven strap in the card's own colour** (dark on the light site, pale
+  on the dark one) with one gold thread, a steel pin head and a swivel clip
+  whose ring runs into the card's slot. It was a gold-striped stub that read
+  as a peg. Still SHORT: the owner asked for a short string.
+- **The holder's name** along the front's bottom edge, like a real badge.
+- **The back says something**: org, role, WHERE / WHEN (label over value —
+  side by side the dates wrapped), the tags that FIT one line (`fitTags` in
+  Experience.jsx: in order, skipping any that would overflow 26 chars), a
+  barcode strip. It repeated the logo. Org and role clamp to two lines each
+  (NYU Tandon and UCSC's names are long).
+- **The release carries the throw**: `swing` is a plain motion value now,
+  driven by `animate()` springs; on release its measured velocity
+  (`getVelocity`, clamped ±480°/s) seeds the spring — a flick let go at
+  −37° swings through +12.5° and settles in ~2 s. With `useSpring` +
+  `jump()` every release started from rest. A brush ADDS to any swing in
+  progress.
+- **The laminate's sheen slides with the hover tilt** (`--sheen`, a motion
+  value as a CSS variable), and a hint ("drag · click to flip") fades in on
+  hover/focus. Still 0 mutations on a still page.
+
+**Found and NOT changed (the owner's call):** on Experience and Research the
+RIGHT stage (the 2R arm, the SO-ARM101 act) is behind the wide cards almost
+entirely — at 1440 the stage is x 1114-1454 and the cards 268-1389 — so
+those robots are only seen in slivers through the gaps between cards (a
+grey bracket between the two Experience cards is the 2R arm's base).
 
 Also found while measuring: the Resume page's Drive preview was mounted
 600px early, in the middle of the scroll through Additional Projects, and

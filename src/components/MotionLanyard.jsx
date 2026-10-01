@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useSpring, useTransform, useReducedMotion } from 'motion/react';
+import { motion, animate, useMotionValue, useSpring, useTransform, useReducedMotion } from 'motion/react';
 
 // The ID badges, drawn with motion (Framer Motion) instead of three.js +
 // rapier (the owner: "can you use Framer for the lanyards instead?"). That
@@ -8,40 +8,45 @@ import { motion, useSpring, useTransform, useReducedMotion } from 'motion/react'
 // face is real text now, so it can never wash out under a light.
 //
 // Each badge is a PENDULUM: the strap and the card hang from a pin as one
-// group rotated about the pin by a spring. Drag the card and the group swings
-// to follow the pointer's angle from the pin (the strap stretching a little);
-// let go and the spring swings it back, overshooting like a weight on a
-// string. A pointer brushing past pushes it into a sway; hovering tilts the
-// card toward the pointer in 3D; a click (not a drag) flips it over to the
-// photo on its back. Nothing runs on a still page: every motion is a spring
-// that settles.
+// group rotated about the pin. Drag the card and the group swings to follow
+// the pointer's angle from the pin (the strap stretching a little); let go and
+// it swings home on a low-damped spring that CARRIES THE THROW (the release
+// hands the drag's angular velocity to the spring — it used to restart from
+// rest, so a flick died at the release). A pointer brushing past pushes it
+// into a sway; hovering tilts the card toward the pointer in 3D and slides
+// the laminate's sheen with it; a click (not a drag) flips it to the back,
+// which carries what the front does not: organisation, place, dates, tags.
+// Nothing runs on a still page: every motion is a spring that settles.
+const SWING = { type: 'spring', stiffness: 42, damping: 4.2, mass: 1 };   // degrees about the pin
+
 function Badge({ card, pinTop, strap, siteDark }) {
   const reduce = useReducedMotion();
-  const swing = useSpring(reduce ? 0 : 24, { stiffness: 42, damping: 4.2, mass: 1 });   // degrees about the pin
+  const swing = useMotionValue(reduce ? 0 : 24);
   const stretch = useSpring(0, { stiffness: 260, damping: 16 });
   const tiltX = useSpring(0, { stiffness: 200, damping: 16 });
   const tiltY = useSpring(0, { stiffness: 200, damping: 16 });
+  const sheen = useTransform(tiltY, v => `${50 - v * 3}% 0`);   // the laminate's highlight slides as the card turns
   const [flipped, setFlipped] = useState(false);
   const pinRef = useRef(null);
   const dragged = useRef(false);
   const strapH = useTransform(stretch, s => strap + s);
-  const b = card.badge;
+  const b = card.badge, back = card.back || {};
+  const swingTo = (to, velocity = 0) => animate(swing, to, { ...SWING, velocity });
 
   // the entrance: it drops in already swinging and settles
-  useEffect(() => { if (!reduce) swing.set(0); }, [reduce, swing]);
+  useEffect(() => { if (!reduce) { const c = swingTo(0); return () => c.stop(); } return undefined; }, [reduce]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const pinXY = () => { const r = pinRef.current.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-  const onPanStart = () => { dragged.current = true; tiltX.set(0); tiltY.set(0); };
+  const onPanStart = () => { dragged.current = true; swing.stop(); tiltX.set(0); tiltY.set(0); };
   const onPan = (e, info) => {
     const [px, py] = pinXY();
     const dx = info.point.x - window.scrollX - px, dy = info.point.y - window.scrollY - py;
     const ang = Math.atan2(dx, Math.max(8, dy)) * 180 / Math.PI;
-    swing.jump(Math.max(-70, Math.min(70, -ang)));
+    swing.set(Math.max(-70, Math.min(70, -ang)));   // a plain value: getVelocity() then measures the throw
     stretch.set(Math.max(0, Math.min(30, Math.hypot(dx, dy) - (strap + 130))));
   };
-  const onPanEnd = (e, info) => {
-    // let go: the spring swings it home, carrying the throw
-    swing.set(0);                              // released off-centre, the low-damped spring swings through and back
+  const onPanEnd = () => {
+    swingTo(0, Math.max(-480, Math.min(480, swing.getVelocity())));
     stretch.set(0);
     setTimeout(() => { dragged.current = false; }, 0);
   };
@@ -49,7 +54,7 @@ function Badge({ card, pinTop, strap, siteDark }) {
   const onBrush = e => {
     if (reduce || dragged.current) return;
     const push = Math.max(-9, Math.min(9, -e.movementX * 0.5));
-    if (Math.abs(push) > 0.5) { swing.set(push); setTimeout(() => swing.set(0), 140); }
+    if (Math.abs(push) > 0.5) swingTo(0, swing.getVelocity() + push * 9);   // adds to any swing already going
   };
   const onHover = e => {
     if (reduce || dragged.current) return;
@@ -58,9 +63,10 @@ function Badge({ card, pinTop, strap, siteDark }) {
     tiltX.set((0.5 - (e.clientY - r.top) / r.height) * 16);
   };
   const onLeave = () => { tiltX.set(0); tiltY.set(0); };
+  const pale = siteDark ? ' is-pale' : '';
 
   return (
-    <div className="mlan" style={{ top: pinTop }} onPointerMove={onBrush}>
+    <div className={`mlan${pale}`} style={{ top: pinTop }} onPointerMove={onBrush}>
       <span className="mlan-pin" ref={pinRef} aria-hidden="true" />
       <motion.div className="mlan-hang" style={{ rotate: swing }}>
         <motion.span className="mlan-strap" style={{ height: strapH }} aria-hidden="true" />
@@ -76,23 +82,35 @@ function Badge({ card, pinTop, strap, siteDark }) {
           onClick={() => { if (!dragged.current) setFlipped(f => !f); }}
           role="button"
           tabIndex={0}
-          aria-label={`${b.name} badge — flip`}
+          aria-pressed={flipped}
+          aria-label={`${b.name} badge — ${flipped ? 'showing details; flip back' : 'flip for details'}`}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFlipped(f => !f); } }}
         >
           <motion.div className="mlan-card" animate={{ rotateY: flipped ? 180 : 0 }} transition={{ type: 'spring', stiffness: 120, damping: 14 }}>
-            <div className={`mlan-face mlan-front${siteDark ? ' is-pale' : ''}`}>
+            <motion.div className={`mlan-face mlan-front${pale}`} style={{ '--sheen': sheen }}>
               <span className="mlan-slot" aria-hidden="true" />
               <img src={card.image} alt="" className="mlan-photo" draggable="false" />
               <strong className="mlan-name">{b.name}</strong>
               <span className="mlan-role">{b.role}</span>
               <span className="mlan-rule" aria-hidden="true" />
               <span className="mlan-dates">{card.period}</span>
-            </div>
-            <div className="mlan-face mlan-back">
-              <img src={card.image} alt="" draggable="false" />
-            </div>
+              <span className="mlan-holder">Aadhav Sivakumar</span>
+            </motion.div>
+            <motion.div className={`mlan-face mlan-back${pale}`} style={{ '--sheen': sheen }}>
+              <span className="mlan-slot" aria-hidden="true" />
+              <img src={card.image} alt="" className="mlan-back-logo" draggable="false" />
+              <strong className="mlan-back-org">{back.org || b.name}</strong>
+              <span className="mlan-back-role">{back.role || b.role}</span>
+              <dl className="mlan-back-meta">
+                {back.location && <><dt>Where</dt><dd>{back.location}</dd></>}
+                {card.period && <><dt>When</dt><dd>{card.period}</dd></>}
+              </dl>
+              {back.tags?.length > 0 && <span className="mlan-back-tags">{back.tags.join(' · ')}</span>}
+              <span className="mlan-barcode" aria-hidden="true" />
+            </motion.div>
           </motion.div>
         </motion.div>
+        <motion.span className="mlan-hint" style={{ y: stretch }} aria-hidden="true">drag · click to flip</motion.span>
       </motion.div>
     </div>
   );

@@ -123,7 +123,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
       {media}
       {isMajor ? (
         <div className="project-content">
-          <h4>{project.title}</h4>
+          <h3>{project.title}</h3>
           <p>{project.cardDescription}</p>
           {/* status first, then the tags, on one line: the card is a short
               sideways row now */}
@@ -133,7 +133,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
         </div>
       ) : (
         <div className="small-project-content">
-          <h4>{project.title}</h4>
+          <h3>{project.title}</h3>
           {/* One row: status first, then the first two tags. The description
               lives in the modal — thirteen cards share one screen. */}
           <div className="project-tags-container">
