@@ -145,7 +145,7 @@ All page content lives in `src/data/siteData.js`:
   MB each, fetched only when the card is on screen. Files:
   `Media/web/experience/{roboflow,starship,nyu-tandon,ucsc-baskin}.mp4`. `group` picks the page: `'industry'` (Roboflow, Starship) or `'research'` (NYU, UCSC). The card is a teaser — role, org, degree, period, the summary paragraph and a few tags (since Sept 28 no bullets on the card) — and the WHOLE entry opens in the shared modal (`meta`, `list` and `tags` blocks in `Modal.jsx` exist for it). Keep bullets in priority order: the first two are what the card shows.
   **It is written for a public page.** Industries and public events are named; customers, contract values, internal contact and colleague names, internal infrastructure, unreleased product plans and anything the owner's own notes flag `[confirm]` or NDA are not. The owner's resume source material is far richer than what is here — that is deliberate, not an omission.
-- `resumeDocsData` — the four document tiles (Resume, Extended CV, two transcripts), each `{ id, title, badge?, embedUrl }` where `embedUrl` is a Google Drive `/preview` link.
+- `resumeDocsData` — the four documents (Resume, Extended CV, UCSC and NYU transcripts), each `{ id, title, tab?, embedUrl, pages }`: `embedUrl` is the PDF in `Resume/`, `pages` its page images (`scripts/pdf-previews.mjs`). All four are viewer tabs on the Resume page. **The transcripts are REDACTED copies** (Oct 1: both student IDs and the NYU birth date removed from the text layer with PyMuPDF, not just covered, and a black bar drawn over each; every other word verified unchanged by a word diff) — never commit an unredacted one.
 
 The lanyard badge content (name/role/ID/EXP + photo per badge) lives in `src/components/badgeCards.js`, with photos imported from `Media/lanyardimgs/`. Each `experienceData` row names its badge with `badge: '<name>'`.
 
@@ -159,7 +159,7 @@ That is the owner's stated goal, and three things follow from it:
   content, use the cv"): the experience rows, the about text, the major
   project descriptions and several small cards were rewritten from it. Kept
   off the page even though the CV has them: partner names for
-  integrations, a customer rig's cost, NVIDIA's unreleased product names,
+  integrations, a customer rig's cost, NVIDIA's unreleased product names (Cosmos 3 Edge is RELEASED — the owner, Oct 1 — so it may be named),
   and the name of the robot whose teleop data the π0 work used.
 - **`skillGroupsData` order is deliberate**: since Sept 27 **Robot Learning:
   VLAs & World Models** leads (π0/openpi, Cosmos, Isaac Sim, Gaussian
@@ -304,7 +304,7 @@ improved"), each change seen in both themes:
   value as a CSS variable), and a hint ("drag · click to flip") fades in on
   hover/focus. Still 0 mutations on a still page.
 
-**Found and NOT changed (the owner's call):** on Experience and Research the
+**Found and NOT changed (the owner's call — Oct 1: "I think the robots can be seen", so it stays):** on Experience and Research the
 RIGHT stage (the 2R arm, the SO-ARM101 act) is behind the wide cards almost
 entirely — at 1440 the stage is x 1114-1454 and the cards 268-1389 — so
 those robots are only seen in slivers through the gaps between cards (a
@@ -1588,7 +1588,7 @@ Clicking a page, or "Open PDF", opens the PDF itself; "Download" downloads
 it. **To update: replace the PDF, run `node scripts/pdf-previews.mjs`
 (pdftoppm + Pillow), commit both** — `pages` in `resumeDocsData` lists the
 images and the build fails if one is missing (update the list if the page
-count changes). The transcripts are still Drive links. The old resume PDFs
+count changes). The transcripts are hosted too since Oct 1 (redacted; see `resumeDocsData`). The old resume PDFs
 in `Resume/` are unreferenced and left in place. The hero is ONE line over
 the name now — "New York & San Francisco" (the role in front of it was
 removed at the owner's request on Sept 30; the page title and share card

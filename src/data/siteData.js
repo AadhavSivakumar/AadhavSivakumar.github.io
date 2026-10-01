@@ -178,14 +178,16 @@ export const smallProjectsData = [
   { id: 'f', title: 'Mechatronics Competition', imageUrl: baseProjectImagePath + 'mechcomp.mp4', tags: ['STM32', 'SolidWorks', 'PID Control'], status: 'Completed', modalContent: [{ type: 'text', value: 'The final project of the mechatronics course at UC Santa Cruz: a ping-pong-ball-shooting robot, fully prototyped in SolidWorks and built with a laser cutter and power tools. It competed against the other teams in the class and scored the most points in a single round.' }, { type: 'embed', value: baseProjectPdfPath + 'ECE_118_Final_Project_Report.pdf', title: 'Project Documentation PDF' }] },
 ];
 
-// The resume and extended CV are PDFs in this repo (Resume/), served from the
-// site itself — replace the files to update them. The transcripts are still
-// Google Drive previews.
+// The resume, extended CV and both transcripts are PDFs in this repo
+// (Resume/), served from the site itself and shown as page images (`pages`,
+// from scripts/pdf-previews.mjs). The transcripts are REDACTED copies (student
+// IDs, birth date removed from the file, not just covered); `tab` is the
+// viewer's short label.
 export const resumeDocsData = [
   { id: 'doc-resume', title: 'Resume', embedUrl: '/Resume/Aadhav_Sivakumar_Resume.pdf', pages: ['/Resume/preview/resume-1.webp'] },
   { id: 'doc-cv', title: 'Extended CV', embedUrl: '/Resume/Aadhav_Sivakumar_Extended_CV.pdf', pages: ['/Resume/preview/cv-1.webp', '/Resume/preview/cv-2.webp', '/Resume/preview/cv-3.webp', '/Resume/preview/cv-4.webp', '/Resume/preview/cv-5.webp', '/Resume/preview/cv-6.webp', '/Resume/preview/cv-7.webp'] },
-  { id: 'doc-ug-transcript', title: 'Undergraduate Transcript', badge: 'A', embedUrl: 'https://drive.google.com/file/d/1_QDb00FYIqoaMAUFQp8Ukwiw2WeaYVPg/preview' },
-  { id: 'doc-grad-transcript', title: 'Graduate Transcript', badge: 'A+', embedUrl: 'https://drive.google.com/file/d/1wwtghhqCJjWordYjrPYAK1M2VDtH3Nc3/preview' },
+  { id: 'doc-ug-transcript', title: 'Undergraduate Transcript', tab: 'UCSC transcript', embedUrl: '/Resume/Aadhav_Sivakumar_Transcript_UCSC.pdf', pages: [1, 2, 3, 4, 5, 6, 7].map(n => `/Resume/preview/ucsc-${n}.webp`) },
+  { id: 'doc-grad-transcript', title: 'Graduate Transcript', tab: 'NYU transcript', embedUrl: '/Resume/Aadhav_Sivakumar_Transcript_NYU.pdf', pages: ['/Resume/preview/nyu-1.webp'] },
 ];
 
 export const skillGroupsData = [

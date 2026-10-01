@@ -1477,6 +1477,7 @@ html[data-theme="dark"] .resume-frame { background: #2a2a2a; }
 .resume-side-title { margin: 4px 0 0; font: 600 0.75rem var(--font-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--secondary-color); }
 .resume-doc { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-color); color: var(--text-color); font: 500 0.85rem var(--font-sans); text-align: left; cursor: pointer; }
 .resume-doc:hover, .skill-chip:hover { border-color: var(--accent-ink); }
+.resume-doc.is-on { border-color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 5%, var(--surface-color)); }   /* the transcript the viewer is showing */
 .resume-doc .doc-tile-badge { position: static; margin-left: auto; font-size: 0.68rem; padding: 2px 7px; }
 .skill-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .skill-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface-color); color: var(--text-color); font: 500 0.76rem var(--font-sans); cursor: pointer; }

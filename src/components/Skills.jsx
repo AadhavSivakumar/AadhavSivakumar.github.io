@@ -6,16 +6,12 @@ import { skillGroupsData, resumeDocsData } from '../data/siteData';
 
 // The RESUME page (the owner: "just make it resume section. The resume should
 // take up most of the space and the skills should be minor in comparison").
-// The resume itself fills most of the page — the PDF from this repo
-// (Resume/), with a tab for the extended CV — and beside it, small, the transcripts and
-// the skill groups as chips. Everything opens in the shared modal. The
+// The resume itself fills most of the page — the PDFs from this repo
+// (Resume/), shown as page images, with tabs for the extended CV and the two
+// transcripts — and beside it, small, the transcripts again (they switch the
+// viewer) and the skill groups as chips (each opens the shared modal). The
 // section keeps its id, `skills`, because the art's acts, the settle and the
 // nav are keyed on it.
-//
-// The preview is COVERED by a button: a cross-origin iframe swallows the
-// wheel, so the page could not be scrolled past it, and a click opens the
-// document full size instead. It is only mounted once the page is near, so
-// the Drive viewer is not fetched on load.
 const DocIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -24,8 +20,8 @@ const DocIcon = () => (
 );
 
 export default function Skills({ onCardClick, next }) {
-  const docs = resumeDocsData.filter(d => d.id === 'doc-resume' || d.id === 'doc-cv');
-  const transcripts = resumeDocsData.filter(d => !docs.includes(d));
+  const docs = resumeDocsData;
+  const transcripts = docs.filter(d => d.id.endsWith('transcript'));
   const [tab, setTab] = useState(0);
   const [near, setNear] = useState(false);
   const pageRef = useRef(null);
@@ -46,11 +42,6 @@ export default function Skills({ onCardClick, next }) {
     io.observe(el);
     return () => { clearTimeout(t); io.disconnect(); };
   }, []);
-  const openDoc = (el, doc) => onCardClick(el, {
-    id: doc.id,
-    title: doc.title,
-    modalContent: [{ type: 'embed', value: doc.embedUrl, title: doc.title }],
-  }, 'resume');
   const doc = docs[tab] || docs[0];
   return (
     <section id="skills" ref={pageRef} className="page page--wide resume-page" aria-labelledby="skills-title">
@@ -59,7 +50,7 @@ export default function Skills({ onCardClick, next }) {
         <div className="resume-viewer" ref={viewerRef}>
           <div className="resume-tabs" role="tablist" aria-label="Documents">
             {docs.map((d, i) => (
-              <button key={d.id} role="tab" aria-selected={i === tab} className={`resume-tab${i === tab ? ' is-on' : ''}`} onClick={() => setTab(i)}>{d.title}</button>
+              <button key={d.id} role="tab" aria-selected={i === tab} className={`resume-tab${i === tab ? ' is-on' : ''}`} onClick={() => setTab(i)}>{d.tab || d.title}</button>
             ))}
             <a className="resume-open" href={doc.embedUrl} target="_blank" rel="noopener noreferrer">Open PDF ↗</a>
             <a className="resume-open" href={doc.embedUrl} download>Download</a>
@@ -80,7 +71,7 @@ export default function Skills({ onCardClick, next }) {
         <aside className="resume-side" ref={sideRef}>
           <h3 className="resume-side-title">Transcripts</h3>
           {transcripts.map(d => (
-            <button key={d.id} className="resume-doc project-modal-trigger" onClick={e => openDoc(e.currentTarget, d)}>
+            <button key={d.id} className={`resume-doc${docs[tab] === d ? ' is-on' : ''}`} aria-pressed={docs[tab] === d} onClick={() => setTab(docs.indexOf(d))}>
               <DocIcon /><span>{d.title}</span>
             </button>
           ))}
