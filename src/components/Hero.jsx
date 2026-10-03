@@ -28,6 +28,9 @@ export default function Hero() {
 
   useEffect(() => {
     if (!nameRef.current) return;
+    // anime.js is outside <MotionConfig>: honour reduced motion here (the
+    // letters are visible by default, so skipping is all it takes)
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
     animate(nameRef.current.querySelectorAll('.hero-letter'), {
       y: { from: '0.8em' },
       opacity: { from: 0 },
@@ -38,52 +41,26 @@ export default function Hero() {
     });
   }, []);
 
-  // Ambient "living glass": slowly modulate the shared SVG displacement filter
-  // the chips reference from backdrop-filter, so the refracted wave field
-  // ripples. Frozen under reduced-motion; paused when the hero scrolls away
-  // (backdrop-filter over a moving field is GPU-costly off-screen).
+  // Ambient "living glass": the shared displacement filter the chips refract
+  // through ripples slowly. It used to be an anime.js loop calling
+  // setAttribute on the filter every frame — ~170 DOM mutations a second on a
+  // still hero (Oct 3 review). Now it is SMIL <animate> inside the filter
+  // (no DOM writes), paused while the hero is off screen and removed under
+  // reduced motion.
   useEffect(() => {
     const svg = glassRef.current;
-    if (!svg) return;
-    const turb = svg.querySelector('feTurbulence');
-    const disp = svg.querySelector('feDisplacementMap');
-    if (!turb || !disp) return;
-
-    const reduce =
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (reduce) {
-      disp.setAttribute('scale', '9');
-      turb.setAttribute('baseFrequency', '0.011 0.017');
-      return;
+    if (!svg) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      svg.querySelectorAll('animate').forEach(n => n.remove());
+      return undefined;
     }
-
-    const state = { s: 12, f: 0.009 };
-    const loop = animate(state, {
-      s: [10, 16],
-      f: [0.008, 0.014],
-      duration: 5600,
-      ease: 'inOutSine',
-      loop: true,
-      alternate: true,
-      onUpdate: () => {
-        disp.setAttribute('scale', state.s.toFixed(2));
-        turb.setAttribute('baseFrequency', `${state.f.toFixed(4)} ${(state.f * 1.6).toFixed(4)}`);
-      },
-    });
-
     const section = svg.closest('#hero');
-    let io;
-    if (section && 'IntersectionObserver' in window) {
-      io = new IntersectionObserver(
-        ([e]) => { e.isIntersecting ? loop.play?.() : loop.pause?.(); },
-        { threshold: 0.01 }
-      );
-      io.observe(section);
-    }
-    return () => { io && io.disconnect(); loop && loop.revert && loop.revert(); };
+    if (!section || !('IntersectionObserver' in window)) return undefined;
+    const io = new IntersectionObserver(([e]) => {
+      try { e.isIntersecting ? svg.unpauseAnimations() : svg.pauseAnimations(); } catch { /* no SMIL */ }
+    }, { threshold: 0.01 });
+    io.observe(section);
+    return () => io.disconnect();
   }, []);
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({
@@ -137,15 +114,21 @@ export default function Hero() {
           >
             <feTurbulence
               type="fractalNoise"
-              baseFrequency="0.010 0.016"
+              baseFrequency="0.006 0.0096"
               numOctaves="2" seed="7" stitchTiles="stitch"
               result="noise"
-            />
+            >
+              <animate attributeName="baseFrequency" dur="11.2s" repeatCount="indefinite"
+                values="0.005 0.008; 0.009 0.0144; 0.005 0.008" calcMode="spline" keyTimes="0; 0.5; 1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1" />
+            </feTurbulence>
             <feGaussianBlur in="noise" stdDeviation="0.5" result="softNoise" />
             <feDisplacementMap
               in="SourceGraphic" in2="softNoise"
-              scale="13" xChannelSelector="R" yChannelSelector="G"
-            />
+              scale="22" xChannelSelector="R" yChannelSelector="G"
+            >
+              <animate attributeName="scale" dur="11.2s" repeatCount="indefinite"
+                values="18; 30; 18" calcMode="spline" keyTimes="0; 0.5; 1" keySplines="0.45 0 0.55 1; 0.45 0 0.55 1" />
+            </feDisplacementMap>
           </filter>
         </defs>
       </svg>
@@ -204,18 +187,13 @@ export default function Hero() {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.8, duration: 0.8 }}
       >
-        <motion.span
-          animate={heroOnScreen ? { y: [0, 9, 0] } : { y: 0 }}
-          transition={
-            heroOnScreen
-              ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
-              : { duration: 0 }
-          }
-        >
+        {/* a CSS bob (compositor only, no DOM writes); paused with the rest
+            of the hero's loops via #hero[data-idle] and under reduced motion */}
+        <span className="hero-scroll-cue__bob">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />
           </svg>
-        </motion.span>
+        </span>
       </motion.button>
     </section>
   );

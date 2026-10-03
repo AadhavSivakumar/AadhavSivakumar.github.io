@@ -1606,6 +1606,28 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 3, type and the hero chips.** (1) The owner: "the font looks too
+much like AI". Geist (the Vercel/v0 default) is gone: headings, the name,
+page/card/modal titles, the wordmark and badge names are NEWSREADER (an
+editorial serif, `--font-display`, applied by one rule after the premium
+block's h1-h4), body and UI IBM PLEX SANS, labels IBM PLEX MONO. Chosen by
+rendering the hero and a card in twelve candidates; neutral grotesks
+(Plex, Instrument Sans, Hanken…) were indistinguishable from Geist at
+heading size. Every page still one screen at the five sizes. NOT yet
+re-done in the new type: the Manim clips' labels (Geist Mono, baked into
+the video) and `Media/web/og.jpg`. (2) The chips are LIQUID GLASS again
+("make it more cool/liquid glassy"): a near-clear body refracting the
+waves through `#hero-liquid-glass` (displacement 18-30, broader noise), a
+masked gradient RIM on `::before`, an inner top glare and bottom shade, a
+soft lift shadow — one block at the end of App.css (`#hero .hero-chip`).
+(3) The hero was not still: the filter ripple was an anime.js loop calling
+setAttribute every frame and the scroll cue a motion loop — 510 mutations
+in 3 s on an idle hero (found by the Oct 3 review). The ripple is SMIL
+`<animate>` inside the filter (paused off screen via pauseAnimations,
+removed under reduced motion), the cue a CSS keyframe paused by
+`#hero[data-idle]`: 0 mutations now. The name's anime.js cascade now
+honours reduced motion (it did not).
+
 **Sept 30, Glass-2-Bot gallery.** The owner's three demo videos (red,
 green, and green-and-red object detection) are the project's gallery:
 originals in `Media/projects/c_glass2bot/demo*.mp4`, web copies

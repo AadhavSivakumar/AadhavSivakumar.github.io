@@ -1612,8 +1612,14 @@ html[data-theme="dark"] {
   --surface-color: #FFFFFF;
   --border-color: #E6E3DC;
   --hair: color-mix(in srgb, var(--primary-color) 10%, transparent);
-  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Oct 3 (the owner: "the font looks too much like AI"): Geist is the
+     Vercel/v0 default, so every AI-built page wears it. Headings and the
+     name are now NEWSREADER, an editorial serif (high contrast, optical
+     sizes); body and UI IBM PLEX SANS, labels IBM PLEX MONO — IBM's
+     engineering family, technical without being the template look. */
+  --font-display: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 html[data-theme="dark"] {
   --primary-color: #EDECE8;
@@ -1625,6 +1631,9 @@ html[data-theme="dark"] {
 }
 body { font-family: var(--font-sans); letter-spacing: -0.006em; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 h1, h2, h3, h4 { font-family: var(--font-sans); font-weight: 500; letter-spacing: -0.025em; }
+/* the display serif: the name, page titles, card and modal titles, the
+   wordmark, the badge names */
+h1, h2, h3, .section-title, .exp-role, .mlan-name, header .logo a { font-family: var(--font-display) !important; letter-spacing: -0.012em !important; }
 p, li { text-wrap: pretty; }
 
 /* header: the wordmark in the grotesk; the active link a quiet surface pill */
@@ -1751,3 +1760,101 @@ header nav { justify-self: center; }
 /* self-hosted monochrome icons, drawn as a mask in the theme's icon colour */
 .skill-icon-mono { display: inline-block; background-color: var(--icon-resting-color); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 .skill-icon-mono--head { width: 64px; height: 64px; margin: 0 auto; display: block; }
+
+/* ── LIQUID-GLASS HERO CHIPS (Oct 3; the owner: "make it more cool/liquid
+   glassy"). The premium pass had flattened them to hairline mono pills.
+   Glass here is four things, each a layer:
+   1. a near-clear body that REFRACTS the gold waves behind it (the SVG
+      #hero-liquid-glass displacement in backdrop-filter, stronger now —
+      Hero.jsx) and saturates them a little;
+   2. a gradient RIM (::before, a masked ring): bright where the light hits
+      the top-left edge, almost gone at the bottom, the way a lens edge
+      catches light;
+   3. inner light: a curved glare across the top and a soft shade at the
+      bottom, so the pill reads as thick and rounded rather than flat;
+   4. a soft drop shadow that lifts it off the waves.
+   The pointer-tracked sheen and the 3D tilt (HeroChip.jsx) ride on top. */
+#hero .hero-chip {
+  font: 500 0.8rem var(--font-sans) !important;
+  letter-spacing: 0.005em !important;
+  text-transform: none !important;
+  color: var(--primary-color) !important;
+  padding: 11px 22px;
+  border: 0 !important;
+  background:
+    radial-gradient(130% 90% at 50% -30%, rgba(255,255,255,0.75), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0.08) 60%, rgba(255,255,255,0.16));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.95),
+    inset 0 -1px 1px rgba(255,255,255,0.35),
+    inset 0 -12px 18px -12px rgba(60,45,10,0.18),
+    0 10px 24px -12px rgba(50,38,12,0.40),
+    0 2px 5px -2px rgba(50,38,12,0.18);
+  -webkit-backdrop-filter: blur(1.5px) saturate(1.9) brightness(1.06);
+          backdrop-filter: blur(1.5px) saturate(1.9) brightness(1.06);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.55);
+}
+@supports (backdrop-filter: url(#hero-liquid-glass)) or (-webkit-backdrop-filter: url(#hero-liquid-glass)) {
+  #hero .hero-chip {
+    -webkit-backdrop-filter: blur(1.5px) saturate(1.9) brightness(1.06) url(#hero-liquid-glass);
+            backdrop-filter: blur(1.5px) saturate(1.9) brightness(1.06) url(#hero-liquid-glass);
+  }
+}
+#hero .hero-chip::before {
+  opacity: 1;
+  mix-blend-mode: normal;
+  padding: 1px;
+  background: linear-gradient(140deg,
+    rgba(255,255,255,1) 0%, rgba(255,255,255,0.35) 28%,
+    color-mix(in srgb, var(--accent-color) 45%, transparent) 55%,
+    rgba(255,255,255,0.15) 72%, rgba(255,255,255,0.8) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+#hero .hero-chip:hover, #hero .hero-chip:focus-visible {
+  color: var(--primary-color) !important;
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,1),
+    inset 0 -1px 1px rgba(255,255,255,0.45),
+    inset 0 -12px 18px -12px rgba(60,45,10,0.22),
+    0 16px 30px -12px rgba(50,38,12,0.45),
+    0 0 0 0.5px color-mix(in srgb, var(--accent-color) 60%, transparent),
+    0 0 22px -6px color-mix(in srgb, var(--accent-color) 70%, transparent);
+}
+html[data-theme="dark"] #hero .hero-chip {
+  background:
+    radial-gradient(130% 90% at 50% -30%, rgba(255,255,255,0.22), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 60%, rgba(255,255,255,0.06));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.35),
+    inset 0 -1px 1px rgba(255,255,255,0.08),
+    inset 0 -12px 18px -12px rgba(0,0,0,0.45),
+    0 12px 26px -12px rgba(0,0,0,0.75),
+    0 2px 5px -2px rgba(0,0,0,0.5);
+  -webkit-backdrop-filter: blur(1.5px) saturate(1.6) brightness(1.12) url(#hero-liquid-glass);
+          backdrop-filter: blur(1.5px) saturate(1.6) brightness(1.12) url(#hero-liquid-glass);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+}
+html[data-theme="dark"] #hero .hero-chip::before {
+  background: linear-gradient(140deg,
+    rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.12) 30%,
+    color-mix(in srgb, var(--accent-color) 40%, transparent) 55%,
+    rgba(255,255,255,0.05) 72%, rgba(255,255,255,0.45) 100%);
+}
+#hero .hero-chips { gap: 12px; }
+
+/* the hero's scroll cue bobs in CSS (it was a motion loop rewriting inline
+   styles every frame); stopped with the hero's other loops off screen */
+.hero-scroll-cue__bob { display: inline-block; animation: cue-bob 1.6s ease-in-out infinite; }
+@keyframes cue-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(9px); } }
+#hero[data-idle] .hero-scroll-cue__bob { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .hero-scroll-cue__bob { animation: none; } }
+/* the chips: more glass, less white pill; a gentler pointer sheen */
+#hero .hero-chip {
+  background:
+    radial-gradient(130% 90% at 50% -30%, rgba(255,255,255,0.55), rgba(255,255,255,0) 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 60%, rgba(255,255,255,0.10));
+}
+#hero .hero-chip__sheen { filter: opacity(0.6); }
+html[data-theme="dark"] #hero .hero-chip__sheen { filter: opacity(0.22); }
