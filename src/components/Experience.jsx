@@ -137,7 +137,8 @@ function ExperienceCard({ item, index, onCardClick }) {
           </div>
         )}
         <span className="exp-more">
-          {`${item.bullets.length} highlight${item.bullets.length > 1 ? 's' : ''}`}
+          {/* the owner, Oct 4: "click to learn more" instead of a highlights count */}
+          Learn more
           <span aria-hidden="true"> →</span>
         </span>
       </div>

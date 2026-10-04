@@ -1606,6 +1606,16 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 4, header and labels.** (1) The header's profile marks are the REAL
+logos in their own colours (`SOCIALS` in Header.jsx: LinkedIn blue with a
+white backing behind its cut-out letters, GitHub in the page ink, Gmail's
+four-colour M, a PDF-red document); the Contact links match. (2) The
+header is FROSTED GLASS in both states (the owner: the waves "clashing
+with the navigation options"): a translucent page-coloured fill, blur 18px
++ saturate 1.5, an inner top highlight and a hairline — the waves become a
+gold haze behind the links. One block at the end of App.css. (3) The
+experience cards' "N highlights →" reads "Learn more →".
+
 **Oct 3, type and the hero chips.** (1) The owner: "the font looks too
 much like AI". Geist (the Vercel/v0 default) is gone: headings, the name,
 page/card/modal titles, the wordmark and badge names are NEWSREADER (an

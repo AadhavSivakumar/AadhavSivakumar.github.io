@@ -1858,3 +1858,37 @@ html[data-theme="dark"] #hero .hero-chip::before {
 }
 #hero .hero-chip__sheen { filter: opacity(0.6); }
 html[data-theme="dark"] #hero .hero-chip__sheen { filter: opacity(0.22); }
+
+/* ── Oct 4: profile marks in their own colours; the nav on glass ─────────── */
+.social svg { width: 17px; height: 17px; display: block; }
+.social--github { color: #181717; }
+html[data-theme="dark"] .social--github { color: #F0EEE9; }
+.social:hover { background: color-mix(in srgb, var(--primary-color) 7%, transparent); transform: translateY(-1px); }
+.social { transition: transform 0.2s ease, background-color 0.2s ease; }
+.contact-body .social-links a[href*="linkedin"] { color: #0A66C2; }
+.contact-body .social-links a[href*="github"] { color: #181717; }
+html[data-theme="dark"] .contact-body .social-links a[href*="github"] { color: #F0EEE9; }
+.social-links a[href*="linkedin"] { color: #0A66C2; }
+.social-links a[href*="github"] { color: var(--primary-color); }
+
+/* The header sits on FROSTED GLASS at all times (the owner: "the waves are
+   clashing with the navigation options. Have the waves go behind a
+   frosted/liquid glass effect"). At the top of the page it was transparent
+   and the thickest wave rows ran straight through the links (measured 2.2:1
+   in dark). Now: a translucent page-coloured fill, a heavy blur that turns
+   the waves into a soft gold haze, a little saturation so the haze stays
+   warm, a bright inner top edge and a hairline under it — liquid glass, the
+   same language as the hero chips. Scrolled, it is a touch more opaque. */
+header {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--background-color) 62%, transparent),
+    color-mix(in srgb, var(--background-color) 48%, transparent)) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.5) !important;
+          backdrop-filter: blur(18px) saturate(1.5) !important;
+  border-bottom: 1px solid var(--hair);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 8px 24px -18px rgba(40,30,10,0.35) !important;
+}
+header.scrolled {
+  background: color-mix(in srgb, var(--background-color) 78%, transparent) !important;
+}
+html[data-theme="dark"] header { box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 24px -18px rgba(0,0,0,0.8) !important; }
