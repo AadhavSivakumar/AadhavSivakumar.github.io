@@ -1606,6 +1606,17 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 5, MATE ROV replaced** (the owner) by "Underwater Drone for
+Shipwreck Reconstruction" (id `'rov'`, same slot): the LAIR BlueROV2 work
+from the Extended CV (built and deployed for 3D reconstruction of
+shipwrecks; Isaac Sim 5.0 + OceanSim for mission planning — the CV says no
+more, so neither does the card). The cover is a STOCK photo of the platform,
+not the lab's unit: "BlueROV2 flying with ArduSub" by Yoleeth, Wikimedia
+Commons, CC BY-SA 4.0 — the licence requires the credit, which is in the
+modal with a link to the file page. Original in `Media/projects/o_bluerov/`,
+web copy `Media/web/projects/bluerov2.webp`. Replace with the owner's own
+photo when there is one.
+
 **Oct 4, later (the owner):** the header is NOT enlarged at the top any
 more (the Sept 30 large-at-top rules are deleted; 82px everywhere); the
 theme toggle sits on the LEFT beside the wordmark (`.header-start`); the
