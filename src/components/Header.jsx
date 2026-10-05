@@ -162,7 +162,14 @@ export default function Header({ theme, toggleTheme }) {
 
   return (
     <header ref={headerRef} className={scrolled ? 'scrolled' : ''}>
-      <div className="logo"><a href="#hero">AS.</a></div>
+      {/* left: the wordmark and the theme toggle (the owner, Oct 4: "make the
+          light dark mode toggle on the left side") */}
+      <div className="header-start">
+        <div className="logo"><a href="#hero">AS.</a></div>
+        <button id="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+          <ThemeIcon theme={theme} />
+        </button>
+      </div>
       {/* On a phone the seven links and the toggle are 750px of nav on a
           390px screen. They used to swipe sideways; they are a menu behind
           this button now, at the owner's request. Hidden above 768px by CSS. */}
@@ -196,12 +203,9 @@ export default function Header({ theme, toggleTheme }) {
         ))}
         <Socials className="socials--menu" />
       </nav>
-      {/* right: the profiles and the theme toggle; the links are centred */}
+      {/* right: the profiles; the links are centred */}
       <div className="header-end">
         <Socials className="socials--bar" />
-        <button id="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-          <ThemeIcon theme={theme} />
-        </button>
       </div>
     </header>
   );

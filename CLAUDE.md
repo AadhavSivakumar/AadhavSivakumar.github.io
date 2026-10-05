@@ -1606,6 +1606,12 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 4, later (the owner):** the header is NOT enlarged at the top any
+more (the Sept 30 large-at-top rules are deleted; 82px everywhere); the
+theme toggle sits on the LEFT beside the wordmark (`.header-start`); the
+profile marks are 40px targets with 22px marks (Gmail 27, PDF 26 — their
+artwork is padded). Measured clear of the centred links from 1024 up.
+
 **Oct 4, header and labels.** (1) The header's profile marks are the REAL
 logos in their own colours (`SOCIALS` in Header.jsx: LinkedIn blue with a
 white backing behind its cut-out letters, GitHub in the page ink, Gmail's
