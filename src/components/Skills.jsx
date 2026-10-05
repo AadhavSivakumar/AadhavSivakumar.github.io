@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import SectionTitle from './SectionTitle';
 import PageNext from './PageNext';
+import StarBorder from './reactbits/StarBorder';
 import useScrollReveal from '../hooks/useScrollReveal';
 import { skillGroupsData, resumeDocsData } from '../data/siteData';
 
@@ -47,13 +48,14 @@ export default function Skills({ onCardClick, next }) {
     <section id="skills" ref={pageRef} className="page page--wide resume-page" aria-labelledby="skills-title">
       <SectionTitle id="skills-title">Resume</SectionTitle>
       <div className="resume-layout">
-        <div className="resume-viewer" ref={viewerRef}>
+        <div className="resume-viewer" ref={viewerRef} onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - r.left}px`); e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - r.top}px`); }}>
           <div className="resume-tabs" role="tablist" aria-label="Documents">
             {docs.map((d, i) => (
               <button key={d.id} role="tab" aria-selected={i === tab} className={`resume-tab${i === tab ? ' is-on' : ''}`} onClick={() => setTab(i)}>{d.tab || d.title}</button>
             ))}
             <a className="resume-open" href={doc.embedUrl} target="_blank" rel="noopener noreferrer">Open PDF ↗</a>
-            <a className="resume-open" href={doc.embedUrl} download>Download</a>
+            {/* React Bits' StarBorder: a light that runs round the primary action's edge */}
+            <StarBorder as="a" className="resume-star" href={doc.embedUrl} download color="#D4B47C" speed="5s">Download</StarBorder>
           </div>
           <div className="resume-frame">
             {/* the PAGES as images (scripts/pdf-previews.mjs), scrolling inside

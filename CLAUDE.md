@@ -1606,6 +1606,40 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 5, REACT BITS across the site** (the owner: "use [TiltedCard] for
+the cards", then "refactor A LOT of things on the site with either
+reactbits or framer components, as many as you can"). Sources are copied
+into `src/components/reactbits/` with React Bits' licence (`LICENSE.md`:
+MIT + Commons Clause — fine on a website, not to be resold) and a notice
+per file; motion (Framer Motion) is the only dependency any of them needs.
+What uses what:
+- **TiltedCard** → `LiftCard.jsx` (every card): the card tilts toward the
+  pointer on TiltedCard's springs, scales up, and a caption ("View
+  project" / "Learn more" / "Read bio") follows the cursor, rotating with
+  its vertical speed. The tilt is RESET synchronously on click so the
+  modal measures the card at rest. Small project cards also take the
+  component's LOOK: the cover is the card (15px radius, 4:3; 16:11 / 16:10
+  on short screens), title and tags over it on a scrim, lifted 30px in z.
+- **BlurText** → `SectionTitle.jsx` (replaced the anime.js letter cascade).
+- **DecryptedText** → the hero eyebrow, once on view.
+- **Magnet** → the header profile marks and every page's down arrow (the
+  arrow's page-bottom position moved to `.page-next-magnet`).
+- **Dock** → the Get In Touch links (adapted: real <a> links, fixed height).
+- **ClickSpark** → gold sparks wherever you click (one fixed canvas).
+- **StarBorder** → the Resume page's Download button.
+- **SpotlightCard**, **GlareHover**, **ShinyText** → CSS adaptations: a light
+  under the pointer on experience/major cards and the resume viewer; a glare
+  sweep on skill chips, transcript buttons and modal buttons; a shine on
+  "Learn more" while its card is hovered.
+**Upstream loops that would have broken "a still page is still", fixed in
+the copies**: ClickSpark ran requestAnimationFrame forever (now only while
+sparks live); Magnet re-rendered on every mouse move anywhere (now writes
+the transform directly, only near it); ShinyText animates always (used as
+hover-only CSS instead). Measured 0 mutations in 3 s on all six pages.
+**ProfileCard was tried for the about card and dropped**: its holographic
+shine needs a dark cut-out portrait and texture maps; on this photo it
+flooded the card with rainbow and white.
+
 **Oct 5, MATE ROV replaced** (the owner) by "Underwater Drone for
 Shipwreck Reconstruction" (id `'rov'`, same slot): the LAIR BlueROV2 work
 from the Extended CV (built and deployed for 3D reconstruction of

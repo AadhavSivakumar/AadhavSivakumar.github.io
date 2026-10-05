@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
 import HeroChip from './HeroChip';
+import DecryptedText from './reactbits/DecryptedText';
 import portrait from '../../Media/hero/frontpagepfp.webp';
 
 // Keyword chips under the tagline, like the live /portfolio hero — clicking
@@ -152,7 +153,10 @@ export default function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        <span>New York &amp; San Francisco</span>
+        {/* React Bits' DecryptedText: the line resolves out of scrambled
+            characters once, left to right, then stays still */}
+        <DecryptedText text="New York & San Francisco" animateOn="view" sequential revealDirection="start" speed={38}
+          characters="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\_-" encryptedClassName="hero-eyebrow__scramble" />
       </motion.div>
 
       <h1 id="hero-title" ref={nameRef} aria-label={NAME}>

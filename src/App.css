@@ -1894,3 +1894,143 @@ header .social svg { width: 22px; height: 22px; }
 /* optical size: the Gmail and PDF marks carry their own padding */
 header .social--gmail svg { width: 27px; height: 27px; }
 header .social--pdf svg { width: 26px; height: 26px; }
+
+/* ── TILTED CARDS (Oct 5; React Bits' TiltedCard, adapted in LiftCard.jsx) ─
+   The owner: the cards "seem too AI" — white boxes with a hairline border and
+   outlined pill tags, the shadcn/v0 look — and "use [TiltedCard] for the
+   cards". Every card tilts toward the pointer with a caption following the
+   cursor; the SMALL project cards also take TiltedCard's look outright: the
+   cover IS the card (rounded 15px, as in the component), and the title and
+   tags float over it on a soft scrim, lifted 30px in z so they parallax
+   against the image as it tilts (the component's overlay). */
+.tilt-card { transform-style: preserve-3d; will-change: transform; }
+.tilt-card:hover { transform: none; }                       /* the old CSS lift; motion owns the transform now */
+.tilt-caption {
+  position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none;
+  padding: 4px 10px; border-radius: 4px; white-space: nowrap;
+  font: 500 0.66rem var(--font-mono); letter-spacing: 0.02em;
+  background: #fff; color: #2d2d2d; box-shadow: 0 4px 14px -6px rgba(0,0,0,0.35);
+  transform-origin: 0 0; margin: 14px 0 0 14px;               /* just below-right of the pointer */
+}
+html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
+
+/* the small card: media-first, text over the image */
+.small-projects-grid .small-project-card {
+  position: relative; overflow: visible !important;
+  background: none !important; border: 0 !important; box-shadow: none !important;
+  border-radius: 15px;
+}
+.small-projects-grid .small-project-card > img,
+.small-projects-grid .small-project-card > video {
+  aspect-ratio: 4 / 3 !important; border-radius: 15px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 26px -18px rgba(0,0,0,0.55);
+}
+.small-projects-grid .small-project-card::after {           /* the scrim the text sits on */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+  border-radius: 0 0 15px 15px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(8,8,10,0) 0%, rgba(8,8,10,0.55) 55%, rgba(8,8,10,0.82) 100%);
+}
+.small-projects-grid .small-project-content {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  padding: 0 14px 12px; transform: translateZ(30px);
+}
+.small-projects-grid .small-project-content h3 {
+  color: #F6F4EE !important; font-size: 1.02rem !important; line-height: 1.18 !important;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.45);
+}
+.small-projects-grid .small-project-content .project-tags-container { margin-top: 5px; gap: 0; -webkit-mask-image: none; mask-image: none; }
+.small-projects-grid .small-project-content .project-tag {
+  background: none !important; border: 0 !important; padding: 0 !important;
+  color: rgba(246,244,238,0.78) !important; font: 500 0.64rem var(--font-mono) !important; letter-spacing: 0.02em;
+}
+.small-projects-grid .small-project-content .project-tag + .project-tag::before { content: "·"; margin: 0 6px; opacity: 0.7; }
+.small-projects-grid .small-project-card:hover > img,
+.small-projects-grid .small-project-card:hover > video { box-shadow: 0 22px 40px -22px rgba(0,0,0,0.6); }
+@media (max-height: 880px) {
+  .small-projects-grid .small-project-card > img, .small-projects-grid .small-project-card > video { aspect-ratio: 16 / 11 !important; }
+}
+@media (max-height: 840px) {
+  .small-projects-grid .small-project-card > img, .small-projects-grid .small-project-card > video { aspect-ratio: 16 / 10 !important; }
+}
+/* stacking: image 1, scrim 2, text 3 (an older rule lifts every card child to z 2) */
+.small-projects-grid .small-project-card > img,
+.small-projects-grid .small-project-card > video { z-index: 1 !important; }
+.small-projects-grid .small-project-card::after { z-index: 2; }
+.small-projects-grid .small-project-content { z-index: 3 !important; position: absolute !important; }
+.tilt-card:hover { z-index: 10; }                           /* the hovered card (and its caption) rises over its neighbours */
+
+/* ── REACT BITS across the site (Oct 5; the owner: "refactor A LOT of things
+   on the site with either reactbits or framer components"). Components live
+   in src/components/reactbits/ (licence there); this block themes them to
+   the site and carries the CSS-only adaptations. ──────────────────────── */
+
+/* BlurText titles: words wrap naturally and stay centred */
+.section-title .blur-text { display: inline; }
+
+/* DecryptedText eyebrow: scrambled glyphs in the accent */
+.hero-eyebrow__scramble { color: var(--accent-ink); opacity: 0.75; }
+
+/* Magnet down-arrow: the wrapper takes the page-bottom position */
+.page-next-magnet { position: absolute !important; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 5; }
+.page-next-magnet .page-next { position: static; transform: none; }
+.page-next-magnet .page-next:hover { transform: translateY(3px); }
+@media (max-height: 840px) { .page-next-magnet { bottom: 8px; } }
+
+/* StarBorder Download: the site's ink pill inside a running gold edge */
+.resume-star { border-radius: 999px !important; margin-left: 6px; text-decoration: none; vertical-align: middle; flex: none; }
+.resume-star .inner-content {
+  padding: 6px 16px !important; border-radius: 999px !important; font: 500 0.82rem var(--font-sans) !important;
+  background: var(--primary-color) !important; color: var(--background-color) !important; border: 0 !important;
+}
+.resume-star .border-gradient-top, .resume-star .border-gradient-bottom { opacity: 0.9; }
+
+/* GlareHover (CSS adaptation): a light sweeps across on hover — skill chips,
+   transcript buttons, resume tabs, modal buttons */
+.skill-chip, .resume-doc, .modal-dynamic-button { position: relative; overflow: hidden; isolation: isolate; }
+.skill-chip::before, .resume-doc::before, .modal-dynamic-button::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(-45deg, transparent 60%, color-mix(in srgb, var(--accent-color) 45%, transparent) 70%, transparent 80%, transparent 100%);
+  background-size: 250% 250%, 100% 100%; background-repeat: no-repeat; background-position: -100% -100%, 0 0;
+  transition: background-position 650ms ease;
+}
+.skill-chip:hover::before, .resume-doc:hover::before, .modal-dynamic-button:hover::before { background-position: 100% 100%, 0 0; }
+
+/* SpotlightCard (adaptation): a soft light follows the pointer across the
+   experience and major-project cards and the resume viewer (--mouse-x/y are
+   set by LiftCard / Skills on pointer move) */
+.exp-card, .major-project-card, .resume-viewer { --mouse-x: 50%; --mouse-y: 50%; }
+.exp-card::after, .major-project-card:not(.about-me-card)::after, .resume-viewer::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  background: radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), color-mix(in srgb, var(--accent-color) 14%, transparent), transparent 70%);
+  opacity: 0; transition: opacity 0.5s ease;
+}
+.exp-card:hover::after, .major-project-card:hover::after, .resume-viewer:hover::after { opacity: 1; }
+.resume-viewer { position: relative; }
+
+/* ShinyText (CSS adaptation, hover-only so a still page stays still): the
+   "Learn more" label catches a moving shine while its card is hovered */
+.exp-card:hover .exp-more {
+  background-image: linear-gradient(110deg, var(--secondary-color) 0%, var(--secondary-color) 35%, var(--accent-ink) 50%, var(--secondary-color) 65%, var(--secondary-color) 100%);
+  background-size: 200% auto; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shiny-sweep 1.6s linear infinite;
+}
+@keyframes shiny-sweep { from { background-position: 150% center; } to { background-position: -50% center; } }
+
+/* Dock (Get In Touch) — themed: glass panel, the site's surfaces */
+.contact-body .dock-outer { position: relative; margin: 18px 0 0; justify-content: flex-start; }
+.contact-body .dock-panel {
+  position: absolute; left: 0; transform: none; bottom: 0;
+  background: color-mix(in srgb, var(--surface-color) 70%, transparent) !important;
+  border: 1px solid var(--hair) !important; padding: 0 10px 8px; gap: 12px;
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.contact-body .dock-item { background: var(--surface-color) !important; border: 1px solid var(--hair) !important; border-radius: 12px; }
+.contact-body .dock-icon svg { width: 60%; height: 60%; }
+.contact-body .dock-item:nth-child(1) { color: #0A66C2; }
+.contact-body .dock-item:nth-child(2) { color: var(--primary-color); }
+.contact-body .dock-label {
+  background: var(--primary-color) !important; color: var(--background-color) !important; border: 0 !important;
+  font: 500 0.7rem var(--font-mono) !important; top: -1.9rem !important;
+}
+@media (max-width: 768px) { .contact-body .dock-outer { justify-content: center; } .contact-body .dock-panel { left: 50%; transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .exp-card:hover .exp-more { animation: none; } }

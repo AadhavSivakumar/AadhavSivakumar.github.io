@@ -119,6 +119,9 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
       className={`${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`}
       delay={(index % 3) * 0.09}
       onClick={(e) => onCardClick(e.currentTarget, project, itemType)}
+      // React Bits' TiltedCard (see LiftCard): a small card tilts like its demo; a
+      // wide major row only a little
+      tilt={isMajor ? { amp: 4, scale: 1.015, caption: 'View project' } : { amp: 12, scale: 1.06, caption: 'View project' }}
     >
       {media}
       {isMajor ? (

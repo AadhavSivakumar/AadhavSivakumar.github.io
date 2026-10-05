@@ -9,6 +9,7 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
+import ClickSpark from './components/reactbits/ClickSpark';
 import Flourish3D from './components/Flourish3D';
 import LeftFilm from './components/LeftFilm';
 import WaveField from './components/WaveField';
@@ -135,6 +136,8 @@ function App() {
     // motion component cannot quietly opt out of it.
     <MotionConfig reducedMotion="user">
       <ScrollProgress />
+      {/* React Bits' ClickSpark: a burst of gold sparks wherever you click */}
+      <ClickSpark sparkColor="#C5A35C" />
       {/* Page-wide decorative flourishes: one canvas per side, fixed to the
           viewport behind all content, scrubbed by page scroll. NOT gated on
           width any more — they were invisible on every phone. The stage sizes

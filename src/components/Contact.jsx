@@ -1,8 +1,8 @@
 import React from 'react';
 import Reveal from './Reveal';
 import SectionTitle from './SectionTitle';
-import useScrollReveal from '../hooks/useScrollReveal';
 import AboutCard from './About';
+import Dock from './reactbits/Dock';
 
 const SOCIALS = [
   {
@@ -29,23 +29,21 @@ const SOCIALS = [
   },
 ];
 
-function SocialLink({ social, index }) {
-  const ref = useScrollReveal({ y: 20, delay: 0.2 + index * 0.1, duration: 500, amount: 0.2 });
-  return (
-    <a
-      ref={ref}
-      href={social.href}
-      target={social.href.startsWith('http') ? '_blank' : undefined}
-      rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-      aria-label={social.label}
-    >
-      {social.icon}
-    </a>
-  );
-}
+// The profiles as React Bits' Dock: the marks magnify as the pointer passes
+// along the row, each labelled on hover. Real links (adapted from upstream's
+// role=button items).
+const DOCK_ITEMS = [
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/aadhav-s/', icon: SOCIALS[0].icon },
+  { label: 'GitHub', href: 'https://github.com/AadhavSivakumar', icon: SOCIALS[1].icon },
+  { label: 'Email', href: 'mailto:sivakumaadhav@gmail.com', icon: SOCIALS[2].icon },
+];
 
-// The last page: the about card — portrait, name, the bio behind a click —
-// beside the invitation and the links.
+// The last page: the about card (portrait, name, the bio behind a click; it
+// tilts like every card, React Bits' TiltedCard via LiftCard) beside the
+// invitation and the links, which are a Dock. React Bits' ProfileCard was
+// tried here on Oct 5 and dropped: its holographic shine is built for a dark
+// cut-out portrait with texture maps, and on this photo it flooded the card
+// with rainbow and white.
 export default function Contact({ onCardClick }) {
   return (
     <section id="contact" className="page page--contact" aria-labelledby="contact-title">
@@ -59,11 +57,7 @@ export default function Contact({ onCardClick }) {
               New York and San Francisco. The fastest way to reach me is email.
             </p>
           </Reveal>
-          <div className="social-links">
-            {SOCIALS.map((s, i) => (
-              <SocialLink key={s.label} social={s} index={i} />
-            ))}
-          </div>
+          <Dock items={DOCK_ITEMS} panelHeight={64} baseItemSize={48} magnification={68} distance={140} dockHeight={0} className="contact-dock" />
         </div>
       </div>
     </section>

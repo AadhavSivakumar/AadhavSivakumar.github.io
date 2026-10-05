@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { onScroll } from '../scrollDriver';
+import Magnet from './reactbits/Magnet';
 
 // One link per page, in page order.
 const LINKS = [
@@ -31,10 +32,13 @@ function Socials({ className }) {
   return (
     <div className={`socials ${className || ''}`}>
       {SOCIALS.map(s => (
-        <a key={s.label} href={s.href} className={`social ${s.cls}`} aria-label={s.label} title={s.label}
+        // React Bits' Magnet: each mark drifts toward the pointer as it nears
+        <Magnet key={s.label} padding={26} magnetStrength={3}>
+        <a href={s.href} className={`social ${s.cls}`} aria-label={s.label} title={s.label}
           {...(s.href.startsWith('http') || s.href.endsWith('.pdf') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
           {s.icon}
         </a>
+        </Magnet>
       ))}
     </div>
   );

@@ -1,4 +1,5 @@
 import React from 'react';
+import Magnet from './reactbits/Magnet';
 
 // The down button at the bottom of every page: jumps to the next one.
 //
@@ -10,11 +11,14 @@ import React from 'react';
 // still page still"), and there would be six of them.
 export default function PageNext({ to, label }) {
   return (
+    // React Bits' Magnet: the button leans toward the pointer as it nears
+    <Magnet as="div" wrapperClassName="page-next-magnet" padding={50} magnetStrength={3}>
     <a className="page-next" href={`#${to}`} aria-label={`Next: ${label}`} title={label}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polyline points="6 9 12 15 18 9" />
       </svg>
     </a>
+    </Magnet>
   );
 }

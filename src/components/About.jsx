@@ -12,6 +12,7 @@ export default function AboutCard({ onCardClick }) {
     <LiftCard
       className="major-project-card project-modal-trigger about-me-card"
       onClick={(e) => onCardClick(e.currentTarget, aboutMeData, 'about')}
+      tilt={{ amp: 6, scale: 1.03, caption: 'Read bio' }}
     >
       <img
         src={aboutMeData.imageUrl}
