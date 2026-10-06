@@ -1,6 +1,7 @@
 import { snapshot } from '../snapshot';
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
+import GlassTag from './GlassTag';
 
 const EXPAND_EASE = [0.22, 1, 0.36, 1];
 // the CLOSE runs longer and evenly (the owner: "when the modal goes back into
@@ -333,7 +334,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             } else if (content.type === 'tags') {
               return (
                 <motion.div key={i} variants={contentItem} className="project-tags-container modal-tags">
-                  {content.items.map((t, j) => <span key={j} className="project-tag">{t}</span>)}
+                  {content.items.map((t, j) => <GlassTag key={j}>{t}</GlassTag>)}
                 </motion.div>
               );
             } else if (content.type === 'video') {

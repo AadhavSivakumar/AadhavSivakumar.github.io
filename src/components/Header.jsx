@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { onScroll } from '../scrollDriver';
-import Magnet from './reactbits/Magnet';
 import GlassSurface from './reactbits/GlassSurface';
 
 // wide screens get the floating glass capsules; a phone keeps its menu panel
@@ -14,7 +13,7 @@ const useWide = () => {
 // React Bits' GlassSurface: refracting liquid glass (an SVG displacement in
 // backdrop-filter; a frosted fallback on Firefox and Safari)
 const Glass = ({ on, className, children }) => on
-  ? <GlassSurface width="auto" height={46} borderRadius={23} brightness={52} opacity={0.9} blur={10} backgroundOpacity={0.12} saturation={1.4} distortionScale={-40} redOffset={0} greenOffset={4} blueOffset={8} displace={0.6} forceFallback className={`nav-glass ${className || ''}`}>{children}</GlassSurface>
+  ? <GlassSurface width="auto" height={54} borderRadius={27} brightness={52} opacity={0.9} blur={10} backgroundOpacity={0.12} saturation={1.4} distortionScale={-60} redOffset={0} greenOffset={0} blueOffset={0} displace={0.4} className={`nav-glass ${className || ''}`}>{children}</GlassSurface>
   : <>{children}</>;
 
 // One link per page, in page order.
@@ -46,13 +45,10 @@ function Socials({ className }) {
   return (
     <div className={`socials ${className || ''}`}>
       {SOCIALS.map(s => (
-        // React Bits' Magnet: each mark drifts toward the pointer as it nears
-        <Magnet key={s.label} padding={26} magnetStrength={3}>
-        <a href={s.href} className={`social ${s.cls}`} aria-label={s.label} title={s.label}
+        <a key={s.label} href={s.href} className={`social ${s.cls}`} aria-label={s.label} title={s.label}
           {...(s.href.startsWith('http') || s.href.endsWith('.pdf') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
           {s.icon}
         </a>
-        </Magnet>
       ))}
     </div>
   );

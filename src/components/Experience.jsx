@@ -7,6 +7,7 @@ import { experienceData } from '../data/siteData';
 import { badgeByName } from './badgeCards';
 
 import MotionLanyard from './MotionLanyard';
+import GlassTag from './GlassTag';
 
 // One PAGE of experience: two organisations, each a card with its lanyard
 // badge hanging beside it, the pair sized to fit one screen. Rendered twice
@@ -135,7 +136,7 @@ function ExperienceCard({ item, index, onCardClick }) {
       <div className="exp-foot">
         {item.tags?.length > 0 && (
           <div className="project-tags-container exp-tags">
-            {item.tags.slice(0, item.video ? SHOWN_TAGS_MEDIA : SHOWN_TAGS).map((t, i) => <span key={i} className="project-tag">{t}</span>)}
+            {item.tags.slice(0, item.video ? SHOWN_TAGS_MEDIA : SHOWN_TAGS).map((t, i) => <GlassTag key={i}>{t}</GlassTag>)}
           </div>
         )}
         <span className="exp-more">

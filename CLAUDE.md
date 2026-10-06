@@ -1616,6 +1616,22 @@ buttons, the Sand Table clips and the glove photo in its gallery. Twelve
 small cards now (5 · 5 · 2). Note: the ASL glove was the Mechatronics
 class, not Advanced Mechatronics; the card says so in its text.
 
+**Oct 6, the glass is REAL now (navbar AND tags).** The owner asked
+again ("are you using the glass things I sent… navbars and the tags").
+GlassSurface's SVG refraction is ON in Chromium (`forceFallback` removed):
+the earlier rainbow arcs were its colour split (red/green/blue offsets, now
+all 0) and the "grey block" came from layering `blur()` before the
+displacement in our own CSS (removed; a 50% page-colour tint keeps the link
+text legible over the waves). Firefox/Safari get its frosted mode, as
+upstream. Every tag is a GlassSurface too (`GlassTag.jsx`, carrying
+`.project-tag` so the size/fit rules hold; the look is the `TAGS are
+React Bits' GlassSurface` block at the end of App.css). FluidGlass is
+still NOT used: it refracts only its own three.js scene, not the page's
+HTML, and needs the ~3 MB r3f stack. The header's profile marks no longer
+follow the pointer (Magnet removed) and are 46px targets with 28px marks.
+Measured: Firefox scroll p50/p90 17.1, 0 mutations on still pages, pages
+one screen.
+
 **Oct 6, smaller asks.** No cursor caption on the cards any more ("don't
 have the learn more appear next to the mouse"): LiftCard still supports
 `tilt.caption`, nothing passes one. The lanyard badges' small text moved off

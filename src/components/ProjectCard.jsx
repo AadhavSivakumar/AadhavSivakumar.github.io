@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import LiftCard from './LiftCard';
 import { subscribe, getPlaying, getServerPlaying } from '../coverPlayback';
+import GlassTag from './GlassTag';
 
 const reduceMotion = () =>
   typeof window !== 'undefined' &&
@@ -138,7 +139,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
           {/* status first, then the tags, on one line: the card is a short
               sideways row now */}
           <div className="project-tags-container">
-            {tagsToShow?.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
+            {tagsToShow?.map((tag, i) => <GlassTag key={i}>{tag}</GlassTag>)}
           </div>
         </div>
       ) : (
@@ -147,7 +148,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
           {/* One row: status first, then the first two tags. The description
               lives in the modal — thirteen cards share one screen. */}
           <div className="project-tags-container">
-            {tagsToShow?.map((tag, i) => <span key={i} className="project-tag">{tag}</span>)}
+            {tagsToShow?.map((tag, i) => <GlassTag key={i}>{tag}</GlassTag>)}
           </div>
         </div>
       )}
