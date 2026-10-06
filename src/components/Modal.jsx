@@ -275,7 +275,13 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
       const fit = pick > 0 ? ' modal-image--fit' : '';
       mediaEl = isVid(cur)
         // `muted` is required or the browser blocks the autoplay outright.
-        ? <video key={cur} src={cur} poster={posterOf(cur)} className={`modal-image${fit}`} controls autoPlay loop muted playsInline />
+        ? <video key={cur} src={cur} poster={posterOf(cur)} className={`modal-image${fit}`} controls autoPlay loop muted playsInline
+            // the card's own clip continues where the flying copy is, not from 0
+            // (Oct 6; the owner: the video "jarringly jumps to a different point")
+            onLoadedMetadata={pick === 0 && media && media.isVideo ? (e => {
+              const t = flyVid.current ? flyVid.current.currentTime : media.time;
+              if (t && isFinite(t)) { try { e.currentTarget.currentTime = t % (e.currentTarget.duration || Infinity); } catch { /* not seekable yet */ } }
+            }) : undefined} />
         : <img key={cur} src={cur} alt={title} className={`modal-image${fit}`}
             onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x400/F7F5F2/BFA181?text=Img+Error'; }} />;
     }

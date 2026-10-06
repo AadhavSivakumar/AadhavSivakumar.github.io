@@ -30,6 +30,7 @@ function App() {
     () => typeof navigator === 'undefined' || (navigator.hardwareConcurrency ?? 8) >= 4
   );
   const lastClickedCardRef = useRef(null);
+  const lastMediaRef = useRef(null);   // the opened card's media record; the modal writes the close time into it
   const [modalState, setModalState] = useState({
     isOpen: false,
     itemData: null,
@@ -126,6 +127,8 @@ function App() {
     // Add animating-out class to card for visual effect
     cardElement.classList.add('animating-out');
     lastClickedCardRef.current = cardElement;
+    const media = mediaOf(cardElement);
+    lastMediaRef.current = media;
     setModalState({
       isOpen: true,
       itemData,
@@ -135,7 +138,7 @@ function App() {
       // the page and growing, rather than an empty surface
       cardHTML: frozenHTML(cardElement),
       cardClass: cardElement.className.replace('animating-out', ''),
-      media: mediaOf(cardElement),
+      media,
     });
   }, []);
 
@@ -146,6 +149,11 @@ function App() {
   const revealCard = useCallback(() => {
     const card = lastClickedCardRef.current;
     if (!card) return;
+    // the card's video picks up EXACTLY where the modal's was when it closed
+    // (the landing flyer is a still of that frame): it kept playing hidden
+    // while the modal was open, and reappeared at a different moment
+    const m = lastMediaRef.current, v = card.querySelector('video');
+    if (m && m.isVideo && v && isFinite(m.time)) { try { v.currentTime = m.time % (v.duration || Infinity); } catch { /* not seekable */ } }
     card.style.transition = 'none';
     card.classList.remove('animating-out');
     void card.offsetWidth;

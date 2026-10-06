@@ -1606,6 +1606,23 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, Roboflow footage, round 2 + video continuity.** Five more of the
+owner's clips in the Roboflow gallery (originals kept, NOT deployed, in
+`Media/projects/x_roboflow/`; web copies `x_roboflow/10-14.mp4`): the arm
+putting a bottle in a box (10), the Orbbec ToF live depth (11, title bar
+cropped), the ZED 2i stereo live depth (12), and the rivet-detection demo on
+a toy school bus split into its 3D reconstruction + rivet-column view (13)
+and its 2D detections window with the live count (14) — the screencast was a
+full desktop with a code editor, so only those windows are kept. The
+"Recording_2026-04-02" upload is the SAME Orbbec clip as TOFlive with the
+editor and terminal visible, so it is kept as an original only. Gallery
+order: 1, 2, 13, 14, 11, 12, 5, 6, 10, 7, 8, 9. **The card and modal
+videos now share one clock**: the modal's own video starts at the flying
+copy's time (it restarted from 0), and on close the card's video is set to
+the modal's close time before it is revealed (it had kept playing hidden and
+reappeared elsewhere). Measured in Firefox: open 4.40 → 6.15 s after 1.8 s;
+close at 8.17 → card resumes at 8.17.
+
 **Oct 6, fonts again** (the owner: "stop using fonts that claude commonly
 uses, change all of the standard ones"). Newsreader + IBM Plex (and Geist,
 Inter, Instrument, JetBrains Mono, Space Grotesk, Fraunces, DM Sans) are the
