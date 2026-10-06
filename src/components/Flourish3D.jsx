@@ -2181,10 +2181,16 @@ export default function Flourish3D({ side = 'right' }) {
       // job, Generalist's: pack the item into the box; the loop resets.
       ur: { k: UR_K, rootR: [FRAME_X + UR_DX, BAR_Y + 12, MOUNT_Z], rootL: [FRAME_X - UR_DX, BAR_Y + 12, MOUNT_Z], yawR: 270, yawL: 90,
             folded: [0.03, -1.7, -2.6, 2.4, 1.57, 0, 90],
-            taskR: { period: 11, W: UR_W_R, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+            // the arms TAKE TURNS at the shared box (Oct 6; the owner: "the
+            // bimanual UR arms are going into each other" — both ran the same
+            // loop in step and met inside the box): the right packs while the
+            // left waits over its item, then the left packs while the right
+            // waits. A repeated waypoint holds the arm still (the spline), and
+            // both loops still START at their rest pose, so the act seams hold.
+            taskR: { period: 18, W: [...UR_W_R, ...Array(4).fill(UR_W_R[0])], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.green }], events: [{ cube: 0, at: 2, drop: 6 }] },
-            taskL: { period: 11, W: UR_W_L, tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
-                     cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 2, drop: 6 }] } },
+            taskL: { period: 18, W: [...Array(4).fill(UR_W_L[0]), ...UR_W_L], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+                     cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 6, drop: 10 }] } },
       // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
       // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
       // horizontal flange normal) with the unit on it. The Fairino holds

@@ -745,7 +745,7 @@ html[data-theme="dark"] .f3d::before {
 
 
 /* All thirteen on one screen: five to a row, the last row centred. */
-.small-projects-grid { --cols: 5; --gap: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); }
+.small-projects-grid { --cols: 4; --gap: 14px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--gap); }
 .small-project-card { flex: 0 0 calc((100% - (var(--cols) - 1) * var(--gap)) / var(--cols)); min-width: 0; border-radius: 10px; }
 @media (max-width: 1000px) { .small-projects-grid { --cols: 4; } }
 @media (max-width: 860px) { .small-projects-grid { --cols: 3; } }
