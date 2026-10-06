@@ -1606,6 +1606,13 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, smaller asks.** No cursor caption on the cards any more ("don't
+have the learn more appear next to the mouse"): LiftCard still supports
+`tilt.caption`, nothing passes one. The lanyard badges' small text moved off
+the monospace ("still looks AI generated"): name in Zodiak, role, dates,
+holder, back meta and tags in Switzer with tabular figures, the hint below
+in Zodiak italic.
+
 **Oct 6, the navbar is floating glass** (the owner: React Bits' FluidGlass /
 GlassSurface "to make the navbar look more modern"). On screens ≥769px the
 header has no bar: three GlassSurface capsules (wordmark + theme, the links,

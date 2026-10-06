@@ -110,7 +110,7 @@ function ExperienceCard({ item, index, onCardClick }) {
       className={`exp-card exp-card--${index}${item.video ? ' exp-card--media' : ''} project-modal-trigger`}
       delay={index * 0.08}
       onClick={(e) => onCardClick(e.currentTarget, toModal(item), 'experience')}
-      tilt={{ amp: 3, scale: 1.012, caption: 'Learn more' }}
+      tilt={{ amp: 3, scale: 1.012 }}
     >
      <div className="exp-body">
       {/* A <div>, not a <header>: App.css styles the bare `header` element as
