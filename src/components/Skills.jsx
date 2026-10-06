@@ -49,14 +49,6 @@ export default function Skills({ onCardClick, next }) {
       <SectionTitle id="skills-title">Resume</SectionTitle>
       <div className="resume-layout">
         <div className="resume-viewer" ref={viewerRef} onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - r.left}px`); e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - r.top}px`); }}>
-          <div className="resume-tabs" role="tablist" aria-label="Documents">
-            {docs.map((d, i) => (
-              <button key={d.id} role="tab" aria-selected={i === tab} className={`resume-tab${i === tab ? ' is-on' : ''}`} onClick={() => setTab(i)}>{d.tab || d.title}</button>
-            ))}
-            <a className="resume-open" href={doc.embedUrl} target="_blank" rel="noopener noreferrer">Open PDF ↗</a>
-            {/* React Bits' StarBorder: a light that runs round the primary action's edge */}
-            <StarBorder as="a" className="resume-star" href={doc.embedUrl} download color="#D4B47C" speed="5s">Download</StarBorder>
-          </div>
           <div className="resume-frame">
             {/* the PAGES as images (scripts/pdf-previews.mjs), scrolling inside
                 the frame: a PDF in an iframe is blank on Android and one page
@@ -71,6 +63,27 @@ export default function Skills({ onCardClick, next }) {
           </div>
         </div>
         <aside className="resume-side" ref={sideRef}>
+          {/* the documents as LARGE buttons in the side column (Oct 6; the
+              owner: "have large Resume and Extended CV buttons above
+              transcripts, and remove the little navbar above the resume") —
+              they switch the viewer, as the transcript buttons do */}
+          <div className="resume-bigdocs">
+            {docs.filter(d => !d.id.endsWith('transcript')).map(d => (
+              <button key={d.id} className={`resume-bigdoc${docs[tab] === d ? ' is-on' : ''}`} aria-pressed={docs[tab] === d} onClick={() => setTab(docs.indexOf(d))}>
+                <DocIcon />
+                <span className="resume-bigdoc__text">
+                  <strong>{d.title}</strong>
+                  <small>{d.pages.length} page{d.pages.length > 1 ? 's' : ''} · PDF</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          {/* the shown document's actions (they lived in the removed bar) */}
+          <div className="resume-actions">
+            <a className="resume-open" href={doc.embedUrl} target="_blank" rel="noopener noreferrer">Open PDF ↗</a>
+            {/* React Bits' StarBorder: a light that runs round the primary action's edge */}
+            <StarBorder as="a" className="resume-star" href={doc.embedUrl} download color="#D4B47C" speed="5s">Download</StarBorder>
+          </div>
           <h3 className="resume-side-title">Transcripts</h3>
           {transcripts.map(d => (
             <button key={d.id} className={`resume-doc${docs[tab] === d ? ' is-on' : ''}`} aria-pressed={docs[tab] === d} onClick={() => setTab(docs.indexOf(d))}>

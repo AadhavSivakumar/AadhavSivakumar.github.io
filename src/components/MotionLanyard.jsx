@@ -51,10 +51,24 @@ function Badge({ card, pinTop, strap, siteDark }) {
     setTimeout(() => { dragged.current = false; }, 0);
   };
   // a pointer brushing past pushes it into a small sway
+  // a pointer brushing past gives ONE gentle nudge (Oct 6; the owner: "the
+  // lanyard physics are messed up when I put my mouse close to it"). It used
+  // to add to the running velocity on EVERY pointermove — 60-120 a second —
+  // so hovering near a badge compounded into a wild spin. Now: at most one
+  // nudge per 250 ms, only from a quick sideways move, never while the pointer
+  // is on the card itself (the hover tilt owns that), and the resulting swing
+  // speed is capped.
+  const lastBrush = useRef(0);
   const onBrush = e => {
     if (reduce || dragged.current) return;
-    const push = Math.max(-9, Math.min(9, -e.movementX * 0.5));
-    if (Math.abs(push) > 0.5) swingTo(0, swing.getVelocity() + push * 9);   // adds to any swing already going
+    if (e.target.closest && e.target.closest('.mlan-card-wrap')) return;
+    const now = performance.now();
+    if (now - lastBrush.current < 250) return;
+    const push = Math.max(-6, Math.min(6, -e.movementX * 0.4));
+    if (Math.abs(push) < 1.5) return;
+    lastBrush.current = now;
+    const v = Math.max(-70, Math.min(70, swing.getVelocity() + push * 6));
+    swingTo(0, v);
   };
   const onHover = e => {
     if (reduce || dragged.current) return;

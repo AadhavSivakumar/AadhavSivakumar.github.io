@@ -1606,6 +1606,20 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6.** (1) UCSC's role reads "Undergraduate Research Assistant · TML"
+(as NYU's carries "· LAIR"). (2) TAGS are small glass pills in the hero
+chips' language (tinted fill with a top light, a gradient hairline rim, a
+gold dot, warming toward the accent when the card is hovered); over a small
+card's picture they are frosted pills; 0.8rem in modals. (3) The badge
+"brush" nudge was COMPOUNDING: it added to the running velocity on every
+pointermove (60-120/s), so hovering near a badge spun it wildly ("the
+lanyard physics are messed up when I put my mouse close to it"). Now one
+nudge per 250 ms, only from a quick sideways move, never while on the card
+(the tilt owns that), speed capped at 70°/s. (4) The Resume page has no bar
+above the viewer: "Resume" and "Extended CV" are LARGE buttons at the top
+of the side column (`.resume-bigdoc`, title + page count), Open PDF /
+Download for the shown document under them, then the transcripts.
+
 **Oct 5, the modal's card copy keeps the card's type** (the owner: "when I
 click on a card, all the text/fonts suddenly change… a discontinuity when
 the modal is going back to the card"). The lifting/landing copy lives in

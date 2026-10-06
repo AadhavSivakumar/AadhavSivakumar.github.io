@@ -1087,7 +1087,8 @@ html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180d
 .modal-dynamic-list { margin: 0 0 20px; padding-left: 1.2em; line-height: 1.65; }
 .modal-dynamic-list li { margin: 8px 0; }
 .modal-dynamic-list li::marker { color: var(--accent-color); }
-.modal-tags { margin: 4px 0 24px; }
+.modal-tags { margin: 4px 0 24px; gap: 8px; }
+.modal-tags .project-tag { font-size: 0.8rem !important; padding: 4px 12px 4px 10px !important; }
 .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
 .modal-dynamic-button {
   display: inline-block; padding: 10px 20px; background-color: var(--accent-btn);
@@ -2057,3 +2058,68 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
   background: linear-gradient(180deg, rgba(8,8,10,0) 0%, rgba(8,8,10,0.55) 55%, rgba(8,8,10,0.82) 100%);
 }
 .modal-flyer .flyer-overlay .project-tag + .project-tag::before { content: "·"; margin: 0 6px; opacity: 0.7; }
+
+/* ── TAGS, upgraded (Oct 6; the owner: "make the tags a little better, it
+   looks too basic"). They were hairline-outlined mono text. Now small glass
+   pills in the hero chips' language: a soft tinted fill with a top light,
+   a gradient hairline rim, a gold dot, and they warm toward the accent when
+   their card is hovered. Over a small card's picture they are frosted pills. */
+.project-tag, html[data-theme="dark"] .project-tag {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  font: 500 0.7rem var(--font-sans) !important; letter-spacing: 0.005em;
+  padding: 3px 10px 3px 9px !important; border-radius: 999px !important;
+  color: var(--primary-color) !important;
+  border: 1px solid transparent !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-color) 92%, var(--accent-color)) 0%, var(--surface-color) 100%) padding-box,
+    linear-gradient(160deg, color-mix(in srgb, var(--accent-color) 55%, transparent), color-mix(in srgb, var(--primary-color) 10%, transparent) 55%, color-mix(in srgb, var(--accent-color) 30%, transparent)) border-box !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px -1px rgba(40,30,10,0.25);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, color 0.25s ease;
+}
+html[data-theme="dark"] .project-tag {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-color) 80%, var(--accent-color)) 0%, var(--surface-color) 100%) padding-box,
+    linear-gradient(160deg, color-mix(in srgb, var(--accent-color) 50%, transparent), rgba(255,255,255,0.06) 55%, color-mix(in srgb, var(--accent-color) 25%, transparent)) border-box !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 2px -1px rgba(0,0,0,0.6);
+}
+.project-tag::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 35%, #F3DFA8, var(--accent-color) 60%, color-mix(in srgb, var(--accent-color) 60%, #000));
+}
+.lift-card:hover .project-tag { box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 0.5px color-mix(in srgb, var(--accent-color) 45%, transparent), 0 3px 10px -5px color-mix(in srgb, var(--accent-color) 80%, transparent); }
+
+/* over a small card's picture: frosted pills, no dot separators */
+.small-projects-grid .small-project-content .project-tag,
+.modal-animator .modal-ghost.small-project-card .small-project-content .project-tag,
+.modal-flyer .flyer-overlay .project-tag {
+  color: rgba(250,248,242,0.92) !important; font-size: 0.64rem !important; padding: 2px 8px 2px 7px !important; gap: 5px;
+  background: rgba(255,255,255,0.14) !important; border: 1px solid rgba(255,255,255,0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2) !important;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.small-projects-grid .small-project-content .project-tag + .project-tag::before,
+.modal-animator .modal-ghost.small-project-card .small-project-content .project-tag + .project-tag::before,
+.modal-flyer .flyer-overlay .project-tag + .project-tag::before { content: ""; margin: 0; opacity: 1; }
+.small-projects-grid .small-project-content .project-tags-container,
+.modal-flyer .flyer-overlay .project-tags-container { gap: 5px !important; }
+@media (prefers-reduced-motion: reduce) { .project-tag { transition: none; } }
+
+/* Resume page (Oct 6): the documents are large buttons in the side column,
+   the viewer has no bar above it */
+.resume-bigdocs { display: grid; gap: 10px; }
+.resume-bigdoc {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer;
+  padding: 16px 18px; border-radius: 14px; color: var(--primary-color);
+  border: 1px solid var(--border-color); background: var(--surface-color);
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+.resume-bigdoc svg { width: 26px; height: 26px; flex: none; color: var(--accent-ink); }
+.resume-bigdoc__text { display: flex; flex-direction: column; gap: 3px; }
+.resume-bigdoc__text strong { font: 500 1.25rem/1.1 var(--font-display); letter-spacing: -0.01em; }
+.resume-bigdoc__text small { font: 500 0.72rem var(--font-mono); color: var(--secondary-color); }
+.resume-bigdoc:hover { border-color: color-mix(in srgb, var(--accent-color) 60%, var(--border-color)); transform: translateY(-1px); box-shadow: 0 8px 22px -14px rgba(40,30,10,0.4); }
+.resume-bigdoc.is-on { border-color: var(--primary-color); box-shadow: inset 0 0 0 1px var(--primary-color); }
+.resume-actions { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; }
+.resume-actions .resume-open, .resume-actions .resume-star { margin: 0 !important; }
+.resume-frame { border-top: 0; }
+@media (max-height: 840px) { .resume-bigdoc { padding: 11px 14px; } .resume-bigdoc__text strong { font-size: 1.1rem; } }

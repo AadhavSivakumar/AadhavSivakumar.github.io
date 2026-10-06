@@ -122,7 +122,7 @@ export const experienceData = [
     badge: 'UCSC',
     video: baseExperiencePath + 'ucsc-baskin.mp4',
     org: 'University of California, Santa Cruz',
-    role: 'Undergraduate Research Assistant',
+    role: 'Undergraduate Research Assistant · TML',
     degree: 'BS, Robotics Engineering · Minor in EE · GPA 3.8',
     location: 'Santa Cruz, CA',
     period: '2020 – 2024',
