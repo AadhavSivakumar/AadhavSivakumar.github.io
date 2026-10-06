@@ -1606,6 +1606,16 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, projects consolidated (the owner).** The tactile sensor's card is
+gone: its text is the UCSC entry's first bullet, its footage the UCSC
+modal's gallery, its two lab links the modal's buttons (`links` on an
+`experienceData` row — `toModal` turns them into buttons). PONG, the Sand
+Table and the ASL glove are ONE card, "Advanced Mechatronics" (id 'b';
+'a' and 'm' retired): PONG's cover, a section per build, both reports as
+buttons, the Sand Table clips and the glove photo in its gallery. Twelve
+small cards now (5 · 5 · 2). Note: the ASL glove was the Mechatronics
+class, not Advanced Mechatronics; the card says so in its text.
+
 **Oct 6, smaller asks.** No cursor caption on the cards any more ("don't
 have the learn more appear next to the mouse"): LiftCard still supports
 `tilt.caption`, nothing passes one. The lanyard badges' small text moved off

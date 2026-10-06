@@ -94,6 +94,7 @@ const toModal = item => ({
     item.summary && { type: 'text', value: item.summary },
     { type: 'list', items: item.bullets },
     item.tags?.length && { type: 'tags', items: item.tags },
+    ...(item.links || []).map(l => ({ type: 'button', text: l.text, link: l.link })),
   ].filter(Boolean),
 });
 
