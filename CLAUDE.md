@@ -1624,6 +1624,13 @@ and an ACT policy's successful rollout of it (3). Originals in
 `Media/web/gallery/x_nyu/1-3.mp4` + posters (silent, crf 27, native size,
 0.2-0.6 MB). The sim clips show the bimanual robot whose teleop data the
 work used, as the owner sent them; the TEXT still does not name it.
+Round 2 (same day): six more — VR teleoperation of that robot (4, first in
+the gallery), setting up the SO-ARM101 stations (5) and the lab workstation
+(6), unboxing (7) and wiring (8) the BlueROV2, and its OceanSim / Isaac Sim
+camera flying over a reconstruction (9; CROPPED to the viewport — the full
+frame had the Isaac Sim tab bar and a clideo.com converter watermark).
+Silent (phone audio dropped), 960 px phone clips, crf 28-31. Order: 4, 1,
+2, 3, 5-9. Colleagues appear in 6 and 7, as the owner filmed them.
 
 **Oct 6, the glass is REAL now (navbar AND tags).** The owner asked
 again ("are you using the glass things I sent… navbars and the tags").

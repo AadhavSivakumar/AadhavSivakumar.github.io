@@ -115,9 +115,13 @@ export const experienceData = [
       'Graduate TA for Math for Robotics, Foundations of Robotics and Mechatronics (50+ students): wrote the UR10e MuJoCo kinematics final project and the STM32 (NUCLEO-H503RB) Mechatronics midterm practical.',
     ],
     tags: ['π0 / π0.5', 'Isaac Sim', 'Gaussian Splatting', 'LeRobot', 'openpi / JAX'],
-    // the owner's own LAIR footage (Oct 6): a teleoperation view, a simulated
-    // training demonstration, and an ACT policy's successful cube-in-box rollout
-    gallery: gal('x_nyu', ['1.mp4', '2.mp4', '3.mp4']),
+    // the owner's own LAIR footage (Oct 6), in pipeline order: VR
+    // teleoperation of the bimanual robot (4), the teleop view (1), a
+    // simulated training demonstration (2), an ACT policy's successful
+    // cube-in-box rollout (3); then the lab: setting up the SO-ARM101
+    // stations (5) and the workstation (6), unboxing (7) and wiring (8) the
+    // BlueROV2, and its OceanSim / Isaac Sim mission environment (9)
+    gallery: gal('x_nyu', ['4.mp4', '1.mp4', '2.mp4', '3.mp4', '5.mp4', '6.mp4', '7.mp4', '8.mp4', '9.mp4']),
   },
   {
     id: 'exp-ucsc',
