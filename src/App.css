@@ -1863,6 +1863,8 @@ html[data-theme="dark"] #hero .hero-chip__sheen { filter: opacity(0.22); }
 .social svg { width: 17px; height: 17px; display: block; }
 .social--github { color: #181717; }
 html[data-theme="dark"] .social--github { color: #F0EEE9; }
+.social--x { color: #0F0F0F; }
+html[data-theme="dark"] .social--x { color: #F0EEE9; }
 .social:hover { background: color-mix(in srgb, var(--primary-color) 7%, transparent); transform: translateY(-1px); }
 .social { transition: transform 0.2s ease, background-color 0.2s ease; }
 .contact-body .social-links a[href*="linkedin"] { color: #0A66C2; }
@@ -2299,5 +2301,6 @@ html[data-theme="dark"] .project-tag.glass-tag.glass-surface--fallback {
 header .social { width: 46px; height: 46px; }
 header .social svg { width: 28px; height: 28px; }
 header .social--gmail svg { width: 33px; height: 33px; }
-header .social--pdf svg { width: 32px; height: 32px; }
+header .social--x svg { width: 24px; height: 24px; }
+header .social--instagram svg { width: 29px; height: 29px; }
 header[data-glass] .nav-glass--end .glass-surface__content { padding: 0 6px; gap: 2px; }
