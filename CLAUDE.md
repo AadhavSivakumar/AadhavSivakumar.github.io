@@ -1597,7 +1597,7 @@ at the owner's request ("consolidate the information").
 
 **Sept 29, header and share card.** The header is a three-column grid:
 wordmark left, the page links CENTRED, and on the right the owner's
-profiles (`SOCIALS` in Header.jsx: LinkedIn, GitHub, email, the resume PDF)
+profiles (`SOCIALS` in Header.jsx: LinkedIn, GitHub, email, X, Instagram — the resume PDF until Oct 6)
 as 17px line icons beside the theme toggle; on a phone the profiles sit at
 the bottom of the menu panel (`.socials--menu`) and the toggle and burger
 sit right. The link preview is `Media/web/og.jpg` (1200x630 JPG — WebP does
