@@ -2,6 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { onScroll } from '../scrollDriver';
 import Magnet from './reactbits/Magnet';
+import GlassSurface from './reactbits/GlassSurface';
+
+// wide screens get the floating glass capsules; a phone keeps its menu panel
+const useWide = () => {
+  const q = '(min-width: 769px)';
+  const [w, setW] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
+  useEffect(() => { const m = window.matchMedia(q); const on = () => setW(m.matches); m.addEventListener('change', on); return () => m.removeEventListener('change', on); }, []);
+  return w;
+};
+// React Bits' GlassSurface: refracting liquid glass (an SVG displacement in
+// backdrop-filter; a frosted fallback on Firefox and Safari)
+const Glass = ({ on, className, children }) => on
+  ? <GlassSurface width="auto" height={46} borderRadius={23} brightness={52} opacity={0.9} blur={10} backgroundOpacity={0.12} saturation={1.4} distortionScale={-40} redOffset={0} greenOffset={4} blueOffset={8} displace={0.6} forceFallback className={`nav-glass ${className || ''}`}>{children}</GlassSurface>
+  : <>{children}</>;
 
 // One link per page, in page order.
 const LINKS = [
@@ -164,15 +178,18 @@ export default function Header({ theme, toggleTheme }) {
     return () => observer.disconnect();
   }, []);
 
+  const wide = useWide();
   return (
-    <header ref={headerRef} className={scrolled ? 'scrolled' : ''}>
+    <header ref={headerRef} data-glass={wide ? '1' : undefined} className={scrolled ? 'scrolled' : ''}>
       {/* left: the wordmark and the theme toggle (the owner, Oct 4: "make the
           light dark mode toggle on the left side") */}
       <div className="header-start">
-        <div className="logo"><a href="#hero">AS.</a></div>
-        <button id="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
-          <ThemeIcon theme={theme} />
-        </button>
+        <Glass on={wide} className="nav-glass--start">
+          <div className="logo"><a href="#hero">AS.</a></div>
+          <button id="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+            <ThemeIcon theme={theme} />
+          </button>
+        </Glass>
       </div>
       {/* On a phone the seven links and the toggle are 750px of nav on a
           390px screen. They used to swipe sideways; they are a menu behind
@@ -187,6 +204,7 @@ export default function Header({ theme, toggleTheme }) {
       >
         <span /><span /><span />
       </button>
+      <Glass on={wide} className="nav-glass--links">
       <nav id="site-nav" ref={navRef} className={open ? 'nav--open' : ''}>
         {LINKS.map((link) => (
           <a
@@ -207,9 +225,12 @@ export default function Header({ theme, toggleTheme }) {
         ))}
         <Socials className="socials--menu" />
       </nav>
+      </Glass>
       {/* right: the profiles; the links are centred */}
       <div className="header-end">
-        <Socials className="socials--bar" />
+        <Glass on={wide} className="nav-glass--end">
+          <Socials className="socials--bar" />
+        </Glass>
       </div>
     </header>
   );

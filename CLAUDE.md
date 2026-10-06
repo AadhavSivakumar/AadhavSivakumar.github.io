@@ -1606,6 +1606,25 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, the navbar is floating glass** (the owner: React Bits' FluidGlass /
+GlassSurface "to make the navbar look more modern"). On screens ≥769px the
+header has no bar: three GlassSurface capsules (wordmark + theme, the links,
+the profiles) float over the page (`Glass` / `useWide` in Header.jsx; phones
+keep the frosted bar and menu). FluidGlass was NOT used: it needs
+@react-three/fiber, drei and maath, the ~3 MB stack the badges dropped.
+GlassSurface's SVG-displacement mode was tried in Chromium and REJECTED,
+each seen: clear glass let the waves run through the link text again (the
+problem the frosted bar fixed); the colour-split distortion drew rainbow
+arcs; and its feImage map renders misaligned inside backdrop-filter (a grey
+block in each capsule). So `forceFallback` (a prop added to the copy) uses
+its frosted mode in every browser, with the liquid look in CSS: blur 14px +
+saturate, a gradient rim (bright top-left, gold low-right), an inner top
+glare; darker fill on the dark theme. GlassSurface.css was adapted to follow
+the site's theme toggle (`data-theme`), not the OS setting. Also: the modal
+OPEN no longer flashes black — its flyer starts as a canvas still of the
+card's frame (`src/snapshot.js`, shared with the close) and the live video
+fades in on `playing`.
+
 **Oct 6, Resume page again** (the owner: skills "just show up on the left
 side where the resume is", bigger Resume button, a page-with-text icon and
 cascading pages for the CV). The skill chips no longer open a modal: they
