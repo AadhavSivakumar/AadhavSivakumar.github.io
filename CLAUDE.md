@@ -1616,6 +1616,15 @@ buttons, the Sand Table clips and the glove photo in its gallery. Twelve
 small cards now (5 · 5 · 2). Note: the ASL glove was the Mechatronics
 class, not Advanced Mechatronics; the card says so in its text.
 
+**Oct 6, NYU footage.** The owner's three LAIR clips are the NYU entry's
+modal gallery (`gallery` on `exp-nyu`): a first-person teleoperation view
+(1), a simulated training demonstration of "put the cube in the box" (2)
+and an ACT policy's successful rollout of it (3). Originals in
+`Media/projects/x_nyu/` (not deployed), web copies
+`Media/web/gallery/x_nyu/1-3.mp4` + posters (silent, crf 27, native size,
+0.2-0.6 MB). The sim clips show the bimanual robot whose teleop data the
+work used, as the owner sent them; the TEXT still does not name it.
+
 **Oct 6, the glass is REAL now (navbar AND tags).** The owner asked
 again ("are you using the glass things I sent… navbars and the tags").
 GlassSurface's SVG refraction is ON in Chromium (`forceFallback` removed):

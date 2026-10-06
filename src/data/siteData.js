@@ -115,6 +115,9 @@ export const experienceData = [
       'Graduate TA for Math for Robotics, Foundations of Robotics and Mechatronics (50+ students): wrote the UR10e MuJoCo kinematics final project and the STM32 (NUCLEO-H503RB) Mechatronics midterm practical.',
     ],
     tags: ['π0 / π0.5', 'Isaac Sim', 'Gaussian Splatting', 'LeRobot', 'openpi / JAX'],
+    // the owner's own LAIR footage (Oct 6): a teleoperation view, a simulated
+    // training demonstration, and an ACT policy's successful cube-in-box rollout
+    gallery: gal('x_nyu', ['1.mp4', '2.mp4', '3.mp4']),
   },
   {
     id: 'exp-ucsc',
