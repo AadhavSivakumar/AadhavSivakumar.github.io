@@ -2177,3 +2177,6 @@ html[data-theme="dark"] .resume-skill__icon:not(.skill-icon-mono) { background: 
 .small-projects-grid .small-project-content .project-tag,
 .modal-flyer .flyer-overlay .project-tag { padding: 2px 8px !important; }
 .modal-tags .project-tag { padding: 4px 12px !important; }
+.modal-flyer .modal-flyer-shot { position: absolute; inset: 0; }
+.modal-flyer .flyer-live { position: absolute; inset: 0; transition: opacity 0.12s linear; }
+.modal-flyer { background: transparent !important; }

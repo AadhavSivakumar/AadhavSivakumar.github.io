@@ -1,3 +1,4 @@
+import { snapshot } from '../snapshot';
 import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
 
@@ -107,23 +108,6 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // to a canvas, cropped exactly as object-fit: cover crops it, and that
   // canvas is what flies back to the card.
   const closeShot = useRef(null);
-  const snapshot = el => {
-    try {
-      const vw = el.videoWidth || el.naturalWidth, vh = el.videoHeight || el.naturalHeight;
-      const w = el.clientWidth, h = el.clientHeight;
-      if (!vw || !vh || !w || !h) return null;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const c = document.createElement('canvas');
-      c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
-      const fit = getComputedStyle(el).objectFit;
-      const k = fit === 'contain' ? Math.min(w / vw, h / vh) : Math.max(w / vw, h / vh);
-      const dw = vw * k, dh = vh * k;
-      const ctx = c.getContext('2d');
-      if (fit === 'contain') { ctx.fillStyle = '#111'; ctx.fillRect(0, 0, c.width, c.height); }
-      ctx.drawImage(el, (w - dw) / 2 * dpr, (h - dh) / 2 * dpr, dw * dpr, dh * dpr);
-      return c;
-    } catch { return null; }          // a tainted or undecoded source: fall back to the live copy
-  };
   // the flight's target needs the content mounted: re-render once after the
   // first (lift) paint so the flyer starts with the lift, not after it
   const [, force] = useState(0);
@@ -479,9 +463,18 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
         >
           {phase === 'collapse' && closeShot.current
             ? <div className="modal-flyer-shot" ref={d => { if (d && !d.firstChild) d.appendChild(closeShot.current); }} />
-            : media.isVideo
-            ? <video ref={v => { if (v && !flyVid.current) { flyVid.current = v; try { v.currentTime = media.time || 0; } catch {} } }} src={media.src} poster={media.poster} autoPlay muted loop playsInline />
-            : <img src={media.src} alt="" />}
+            : <>
+                {/* the card's frame as a still, on screen from the first
+                    paint (Oct 6: a fresh <video> flashed black/poster before
+                    its first frame) */}
+                {media.shot && <div className="modal-flyer-shot" ref={d => { if (d && !d.firstChild) d.appendChild(media.shot); }} />}
+                {media.isVideo
+                  ? <video className="flyer-live" style={{ opacity: media.shot ? 0 : 1 }}
+                      ref={v => { if (v && !flyVid.current) { flyVid.current = v; try { v.currentTime = media.time || 0; } catch {} } }}
+                      onPlaying={e => { e.currentTarget.style.opacity = 1; }}
+                      src={media.src} poster={media.poster} autoPlay muted loop playsInline />
+                  : <img src={media.src} alt="" />}
+              </>}
           {media.overlay && (
             // the card's own text and scrim, riding with the picture (see
             // App.jsx mediaOf): held through the lift, gone as the expand

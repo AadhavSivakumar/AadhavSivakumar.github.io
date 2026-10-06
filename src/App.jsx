@@ -1,3 +1,4 @@
+import { snapshot } from './snapshot';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { MotionConfig } from 'motion/react';
 import Header from './components/Header';
@@ -75,7 +76,7 @@ function App() {
       Object.assign(clone.style, { position: 'absolute', left: `${t.left - r.left}px`, bottom: `${r.bottom - t.bottom}px`, width: `${t.width}px`, margin: '0', transform: 'none' });
       overlay = clone.outerHTML;
     }
-    return { overlay, rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
+    return { overlay, shot: snapshot(m), rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
              src: isVideo ? (m.currentSrc || m.getAttribute('src')) : m.currentSrc || m.src, poster: isVideo ? m.poster : '', time: isVideo ? m.currentTime : 0,
              radius: getComputedStyle(m.closest('.exp-media') || m).borderRadius || '8px' };
   };
