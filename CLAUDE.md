@@ -1606,6 +1606,19 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, fonts again** (the owner: "stop using fonts that claude commonly
+uses, change all of the standard ones"). Newsreader + IBM Plex (and Geist,
+Inter, Instrument, JetBrains Mono, Space Grotesk, Fraunces, DM Sans) are the
+defaults of AI-built pages. Now ZODIAK (display) + SWITZER (body) from
+Indian Type Foundry's Fontshare (ITF Free Font License) and FRAGMENT MONO
+(OFL), chosen from four rendered pairings, SELF-HOSTED in
+`src/assets/fonts/` (Vite hashes them; licences beside them) — no Google
+Fonts request any more. Gotcha found doing it: Fontshare's CSS API with
+several families in one request registered only the first in Playwright;
+download the woff2 files instead. Switzer's word space is narrow, so body
+text has neutral tracking and `word-spacing: 0.05em`. Still in the OLD
+fonts: the Manim clips' baked labels and `Media/web/og.jpg`.
+
 **Oct 6.** (1) UCSC's role reads "Undergraduate Research Assistant · TML"
 (as NYU's carries "· LAIR"). (2) TAGS are small glass pills in the hero
 chips' language (tinted fill with a top light, a gradient hairline rim, a

@@ -1,3 +1,10 @@
+/* self-hosted fonts (see --font-display/--font-sans/--font-mono) */
+@font-face { font-family: 'Zodiak'; src: url('./assets/fonts/zodiak-400-normal.woff2') format('woff2'); font-weight: 400 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Zodiak'; src: url('./assets/fonts/zodiak-700-normal.woff2') format('woff2'); font-weight: 600 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Switzer'; src: url('./assets/fonts/switzer-400-normal.woff2') format('woff2'); font-weight: 300 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Switzer'; src: url('./assets/fonts/switzer-500-normal.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Switzer'; src: url('./assets/fonts/switzer-600-normal.woff2') format('woff2'); font-weight: 600 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Fragment Mono'; src: url('./assets/fonts/fragment-mono-400.woff2') format('woff2'); font-weight: 300 700; font-style: normal; font-display: swap; }
 /* FONT && THEME */
 :root {
   --primary-color: #1a1a1a;
@@ -1618,9 +1625,15 @@ html[data-theme="dark"] {
      name are now NEWSREADER, an editorial serif (high contrast, optical
      sizes); body and UI IBM PLEX SANS, labels IBM PLEX MONO — IBM's
      engineering family, technical without being the template look. */
-  --font-display: 'Newsreader', 'Iowan Old Style', Georgia, serif;
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Oct 6 (the owner: "stop using fonts that claude commonly uses, change
+     all of the standard ones"): Newsreader / IBM Plex / Geist / Inter /
+     Instrument / JetBrains are what AI-built pages default to. Now ZODIAK
+     (display serif) and SWITZER (sans), both from Indian Type Foundry's
+     Fontshare (ITF Free Font License: free for personal and commercial use),
+     and FRAGMENT MONO (SIL OFL) — self-hosted from src/assets/fonts. */
+  --font-display: 'Zodiak', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Switzer', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Fragment Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 html[data-theme="dark"] {
   --primary-color: #EDECE8;
@@ -2123,3 +2136,6 @@ html[data-theme="dark"] .project-tag {
 .resume-actions .resume-open, .resume-actions .resume-star { margin: 0 !important; }
 .resume-frame { border-top: 0; }
 @media (max-height: 840px) { .resume-bigdoc { padding: 11px 14px; } .resume-bigdoc__text strong { font-size: 1.1rem; } }
+/* Switzer's word space is narrow; with the site's slight negative tracking
+   words ran together ("therobotics") — neutral tracking, a little air */
+body { letter-spacing: 0 !important; word-spacing: 0.05em; }
