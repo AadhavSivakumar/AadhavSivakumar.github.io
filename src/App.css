@@ -2245,3 +2245,6 @@ html[data-theme="dark"] header[data-glass] .nav-link { color: #B4B1AA; }
 .mlan-back-tags { font-size: 0.62rem !important; }
 .mlan-hint { font: italic 400 0.78rem var(--font-display) !important; letter-spacing: 0 !important; }
 .mlan-name { font-size: 1.2rem !important; letter-spacing: -0.01em !important; }
+/* the card copy floats over the modal; a small card's own rules gave it
+   `position: relative`, so it took 175px of space above the content */
+.modal-animator .modal-ghost, .modal-animator .modal-ghost.small-project-card { position: absolute !important; top: 0; left: 0; }
