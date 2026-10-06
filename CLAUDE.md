@@ -1606,6 +1606,15 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, Resume page again** (the owner: skills "just show up on the left
+side where the resume is", bigger Resume button, a page-with-text icon and
+cascading pages for the CV). The skill chips no longer open a modal: they
+switch the VIEWER to that group (`skill` state in Skills.jsx; a grid of
+icon + name + description cards, `.resume-skills`); the document buttons
+switch it back. The document buttons are larger (20px padding, 48px icons,
+1.55rem titles) with drawn SVG icons: `ResumeIcon` (one page, a heading bar
+and text lines) and `CVIcon` (the same page with two cascading behind it).
+
 **Oct 6, video pass** (the owner: "go through all the videos on the site
 and see if anything can be optimized… keep the original"). Every card cover
 video now has a LIGHT copy, `<name>-card.mp4` — twice the card's display
