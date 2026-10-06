@@ -855,6 +855,7 @@ export default function Flourish3D({ side = 'right' }) {
         lastW = host.clientWidth;
         sizeCanvas();
         if (atlasGL) atlasGL.resize(fit, dpr);
+        if (robotGL) robotGL.resize(fit, dpr);
         readHostA();
         repaint();
       });
@@ -880,7 +881,8 @@ export default function Flourish3D({ side = 'right' }) {
     // which is also 28% fewer pixels to fill per frame. Every ink box in
     // this file's history was measured at 1.0; multiply.
     const ZOOM = 0.85;
-    const camState = { yaw: 0, pitch: 0, dolly: 0 };      // the last setCam, for the GL Atlas
+    const camState = { yaw: 0, pitch: 0, dolly: 0 };
+    let robotGL = null, GLON = false;                     // the GL backend, and whether this frame uses it      // the last setCam, for the GL Atlas
     const setCam = (yaw, pitch, dolly) => {
       camState.yaw = yaw; camState.pitch = pitch; camState.dolly = dolly;
       const cy = Math.cos(yaw), sy = Math.sin(yaw), cx = Math.cos(pitch), sx = Math.sin(pitch);
@@ -990,11 +992,13 @@ export default function Flourish3D({ side = 'right' }) {
     // polyline used to allocate its own array; this hands out slices of a
     // Float64Array instead and resets the cursor once per frame.
     let PTS = new Float64Array(1 << 14);
+    let PZ = new Float64Array(1 << 13);          // each point's view depth, for the GL backend's depth buffer
     let ptsN = 0;
     const ptsRoom = need => {
       if (ptsN + need <= PTS.length) return;
       let cap = PTS.length; while (cap < ptsN + need) cap *= 2;
       const next = new Float64Array(cap); next.set(PTS.subarray(0, ptsN)); PTS = next;
+      const nz = new Float64Array(cap >> 1); nz.set(PZ.subarray(0, ptsN >> 1)); PZ = nz;
     };
 
     const styleIds = new Map();
@@ -1024,7 +1028,7 @@ export default function Flourish3D({ side = 'right' }) {
             m[3] * q[0] + m[4] * q[1] + m[5] * q[2] + t[1],
             m[6] * q[0] + m[7] * q[1] + m[8] * q[2] + t[2],
           );
-          PTS[o + i * 2] = sc[0]; PTS[o + i * 2 + 1] = sc[1]; zsum += sc[2];
+          PTS[o + i * 2] = sc[0]; PTS[o + i * 2 + 1] = sc[1]; PZ[(o >> 1) + i] = sc[2]; zsum += sc[2];
         }
         // back-face cull by screen winding — no view-space normal needed
         let area = 0;
@@ -1082,7 +1086,7 @@ export default function Flourish3D({ side = 'right' }) {
             m[3] * q[0] + m[4] * q[1] + m[5] * q[2] + t[1],
             m[6] * q[0] + m[7] * q[1] + m[8] * q[2] + t[2],
           );
-          PTS[o + i * 2] = sc[0]; PTS[o + i * 2 + 1] = sc[1]; zsum += sc[2];
+          PTS[o + i * 2] = sc[0]; PTS[o + i * 2 + 1] = sc[1]; PZ[(o >> 1) + i] = sc[2]; zsum += sc[2];
         }
         ptsN += poly.length * 2;
         // nudged toward the viewer so a line ON a surface wins against it
@@ -1102,6 +1106,15 @@ export default function Flourish3D({ side = 'right' }) {
     function flush() {
       if (cap) { bucket.length = 0; ptsN = 0; return; }
       if (!bucket.length) return;
+      if (GLON) {                    // the GL backend: a depth buffer, no sort
+        for (let i = 0; i < bucket.length; i++) {
+          const e = bucket[i];
+          if (e.line) robotGL.line(PTS, PZ, e.o, e.n, e.c, Math.min(1, e.a * GMUL), LINE_BIAS);
+          else robotGL.poly(PTS, PZ, e.o, e.n, e.c, Math.min(1, e.a * GMUL));
+        }
+        bucket.length = 0; ptsN = 0;
+        return;
+      }
       const tf = PERF ? performance.now() : 0;
       // Sort by depth SLAB first, then by style. Ordering strictly by depth is
       // correct but interleaves styles, so almost nothing merges — and giving
@@ -1205,6 +1218,41 @@ export default function Flourish3D({ side = 'right' }) {
     // (0 = off).
     const HYST = typeof location !== 'undefined' && new URLSearchParams(location.search).has('hyst') ? +new URLSearchParams(location.search).get('hyst') : 0.2;
     let flips = 0;                 // faces that changed band this frame (dev read-out)
+    // The GL path for a baked mesh (robotGL.js): MESH_SCR already holds the
+    // projected vertices; the smooth normals go to VIEW space (the part's
+    // rotation, then the stage camera's yaw and pitch, as cam() does) and the
+    // GPU lights every pixel from them. No bands, no lines, no sort.
+    let MESH_NRM = new Float32Array(1 << 12);
+    const toLin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    const linRGB = rgb => [toLin(rgb[0] / 255), toLin(rgb[1] / 255), toLin(rgb[2] / 255)];
+    const glColCache = new Map();
+    const glMatRGB = mat => {
+      const rgb = !dark && mat === MAT.pla ? PLA_LIGHT : (matRGB[mat] || paperRGB);
+      return rgb;
+    };
+    function glMesh(part, m, mat, a) {
+      const nv = part.nv, vn = part.vn;
+      if (MESH_NRM.length < nv * 3) MESH_NRM = new Float32Array(nv * 3 * 2);
+      const cy = Math.cos(camState.yaw), sy = Math.sin(camState.yaw), cx = Math.cos(camState.pitch), sx = Math.sin(camState.pitch);
+      for (let i = 0; i < nv; i++) {
+        const x0 = vn[i * 3], y0 = vn[i * 3 + 1], z0 = vn[i * 3 + 2];
+        const x = m[0] * x0 + m[1] * y0 + m[2] * z0, y = m[3] * x0 + m[4] * y0 + m[5] * z0, z = m[6] * x0 + m[7] * y0 + m[8] * z0;
+        const X = x * cy + z * sy, Z0 = -x * sy + z * cy;
+        const Y = y * cx - Z0 * sx, Z = y * sx + Z0 * cx;
+        const l = Math.hypot(X, Y, Z) || 1;
+        MESH_NRM[i * 3] = X / l; MESH_NRM[i * 3 + 1] = Y / l; MESH_NRM[i * 3 + 2] = Z / l;
+      }
+      let rgb = glMatRGB(mat);
+      if (MESH_MIX) {
+        const b = glMatRGB(MESH_MIX.mat), k = clamp(MESH_MIX.k, 0, 1);
+        rgb = [rgb[0] + (b[0] - rgb[0]) * k, rgb[1] + (b[1] - rgb[1]) * k, rgb[2] + (b[2] - rgb[2]) * k];
+      }
+      const key = `${rgb[0] | 0},${rgb[1] | 0},${rgb[2] | 0}`;
+      let lin = glColCache.get(key);
+      if (!lin) { lin = linRGB(rgb); glColCache.set(key, lin); }
+      robotGL.mesh(nv, MESH_SCR, MESH_NRM, part.f, part.nf, lin, Math.min(1, a * GMUL));
+      segs += part.nf;
+    }
     function submitMesh(part, T, mat, a, lineCol, lineA) {
       if (a <= 0.004) return;
       const m = T.m, t = T.t;
@@ -1224,6 +1272,7 @@ export default function Flourish3D({ side = 'right' }) {
       cxs /= nv; cys /= nv;
       for (let i = 0; i < nv; i++) { const d = Math.abs(MESH_SCR[i * 3] - cxs) + Math.abs(MESH_SCR[i * 3 + 1] - cys); if (d > rmax) rmax = d; }
       if (cxs + rmax < 0 || cxs - rmax > W || cys + rmax < 0 || cys - rmax > H) return;
+      if (GLON && !cap) { glMesh(part, m, mat, a); return; }
       // faces: cull by screen winding, light by rotated normal, bucket as fills
       // (in capture mode only the facing is computed, for the lines below)
       for (let i = 0; i < nf; i++) {
@@ -2948,6 +2997,16 @@ export default function Flourish3D({ side = 'right' }) {
     // loaded lazily for the right stage once the page is near the end. When it
     // is up, drawAtlasE hands it the placements and draws nothing itself.
     let atlasGL = null, atlasGLLoading = false, atlasDrawn = false;
+    // The robots' GL backend (robotGL.js): once loaded, every frame's faces,
+    // lines and baked meshes go to it instead of the Canvas2D painter's sort.
+    // ?nogl keeps the Canvas2D path (and is what a browser without WebGL gets).
+    const NOGL = typeof location !== 'undefined' && new URLSearchParams(location.search).has('nogl');
+    let robotGLLoading = false;
+    const wantRobotGL = () => {
+      if (isLeft || robotGL || robotGLLoading || NOGL) return;
+      robotGLLoading = true;
+      import('./robotGL.js').then(m => { robotGL = m.createRobotGL(host, canvas); if (robotGL) { robotGL.resize(fit, dpr); if (lastY >= 0) draw(lastY); } }).catch(() => {});
+    };
     const wantAtlasGL = () => {
       if (isLeft || atlasGL || atlasGLLoading) return;
       atlasGLLoading = true;
@@ -3291,6 +3350,9 @@ export default function Flourish3D({ side = 'right' }) {
       segs = 0; calls = 0; flushMs = 0; flips = 0;
       atlasDrawn = false;
       const s = reduce ? Infinity : heroPhase(y);
+      if (s >= S_ART) wantRobotGL();
+      GLON = !!robotGL;
+      if (GLON) robotGL.begin();
       if (s < S_ART) prelude(s);
       else if (reduce) art();
       else {
@@ -3308,6 +3370,7 @@ export default function Flourish3D({ side = 'right' }) {
         else drawBimanualAct(i === 2 ? t : 1);
       }
       if (atlasGL && !atlasDrawn) atlasGL.hide();
+      if (GLON) { flush(); robotGL.end(); GLON = false; }
       ctx.globalAlpha = 1;
       // A debug read-out, and a DOM write: skipped while the settled loop is
       // running so "hold still and count mutations" still measures the page
@@ -3446,6 +3509,7 @@ export default function Flourish3D({ side = 'right' }) {
       sizeRO?.disconnect();
       themeWatch.disconnect();
       atlasGL?.dispose();
+      robotGL?.dispose();
     };
   }, [isLeft]);
 

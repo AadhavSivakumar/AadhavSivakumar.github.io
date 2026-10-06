@@ -2264,6 +2264,28 @@ reveals the real card INSTANTLY, transition suppressed — its own un-hide
 transition, a fade and grow from 95%, ran after the copy vanished and was the
 jump) → `settle` fades the copy off the card.
 
+### Oct 6: the right stage RASTERISES in WebGL (`robotGL.js`)
+
+The owner, repeatedly: "textures still glitching on the so-arm101", "I can
+see a lot of triangles". Both were the Canvas2D painter: one flat tone per
+triangle, and parts ordered by face centres in depth slabs. Now, once
+`robotGL.js` has loaded (lazily, as the hero leaves; three.js is already the
+Atlas's chunk), the SAME frame goes to WebGL: Flourish3D still does all
+geometry and projection (`cam()`), and `flush()` / `submitMesh` hand the
+projected points WITH their view depth (`PZ`, parallel to `PTS`) to a
+second canvas (`.f3d-gl--robots`, right after the 2D one, under the Atlas's)
+drawn by an orthographic camera over the stage box. Baked meshes are lit per
+pixel from their smooth normals rotated into view space (`glMesh`), in
+their real material colours (`PLA_LIGHT` for white PLA on the light theme);
+drawn props are unlit polygons in their Canvas2D tones; the line art is
+depth-tested lines. No bands, no seals, no mesh lines, no sort. Direct
+`stroke()`/`fill()` calls (the 2R pen trace) stay on the 2D canvas below.
+Without WebGL (headless Firefox here) `createRobotGL` returns null and the
+Canvas2D path below runs unchanged; `?nogl` forces it. Verified in
+SwiftShader Chromium: every settle point and three moments of every act in
+both themes, no page errors; still pages 0 mutations. Everything below
+about the Canvas2D renderer describes that fallback.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
