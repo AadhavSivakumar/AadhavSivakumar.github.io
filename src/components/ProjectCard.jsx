@@ -16,6 +16,13 @@ const posterFor = (src) => src.replace(/\.(mp4|webm)$/i, '-poster.webp');
 // Autoplaying every cover on mount used to fetch several MB of video for cards
 // far below the fold — <video> has no `loading="lazy"` equivalent, so playback
 // has to be driven manually.
+// Cards play a LIGHT copy of their cover (`<name>-card.mp4`: twice the card's
+// display size, a few seconds, no audio — Oct 6, 14.9 MB of card video down
+// to 5.7 MB); the modal still shows the full file, and the shared clock
+// (App.jsx / Modal.jsx) carries the playback time across the swap. The build
+// fails if a card copy is missing (scripts/copy-static.mjs).
+export const cardSrc = src => src.replace(/\.mp4$/i, '-card.mp4');
+
 export function CoverVideo({ src, title, placeholder }) {
   const ref = useRef(null);
   const [failed, setFailed] = useState(false);
@@ -76,7 +83,7 @@ export function CoverVideo({ src, title, placeholder }) {
   return (
     <video
       ref={ref}
-      src={src}
+      src={cardSrc(src)}
       poster={poster}
       preload="none"
       loop

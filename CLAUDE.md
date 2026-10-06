@@ -1606,6 +1606,23 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 6, video pass** (the owner: "go through all the videos on the site
+and see if anything can be optimized… keep the original"). Every card cover
+video now has a LIGHT copy, `<name>-card.mp4` — twice the card's display
+width (480 small / 880 major / 900 experience), no audio, crf 29-30 — and
+the CARD plays that (`cardSrc` in ProjectCard.jsx) while the MODAL plays the
+full file; the build fails if a card copy is missing. 14.9 MB → 8.4 MB of
+card video. **Card copies are FULL LENGTH on purpose**: trimmed to 8 s they
+were 5.7 MB, but a modal closed at 20 s into a 37 s clip would land on a
+card that cannot show 20 s, and the close would jump again. All mp4s were
+already faststart. 1.5 MB of deployed media nothing referenced any more
+(MATE ROV, the CV desk arm, the 2D lidar, the depth-camera card, Sluice) was
+removed from Media/web; the originals stay in Media/projects. Not changed:
+H.264 stays the codec (hardware-decoded almost everywhere; VP9/AV1 would be
+smaller but software-decoded on many machines, which is the owner's lag
+problem), and the long gallery clips (Roboflow 6 is 156 s) only load when
+picked in a modal.
+
 **Oct 6, Roboflow footage, round 2 + video continuity.** Five more of the
 owner's clips in the Roboflow gallery (originals kept, NOT deployed, in
 `Media/projects/x_roboflow/`; web copies `x_roboflow/10-14.mp4`): the arm

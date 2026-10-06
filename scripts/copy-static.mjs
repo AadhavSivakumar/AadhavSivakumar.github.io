@@ -59,6 +59,12 @@ const walk = (node) => {
   }
 };
 walk(data);
+// Every card cover video ships a light `-card.mp4` beside it (ProjectCard.jsx
+// cardSrc) — the card plays that, the modal the full file.
+for (const p of [...data.majorProjectsData, ...data.smallProjectsData]) {
+  if (/\.mp4$/i.test(p.imageUrl || '')) urls.add(p.imageUrl.replace(/\.mp4$/i, '-card.mp4'));
+}
+for (const e of data.experienceData) if (e.video) urls.add(e.video.replace(/\.mp4$/i, '-card.mp4'));
 
 const missing = [...urls].filter((u) => !existsSync(path.join(dist, decodeURIComponent(u))));
 
