@@ -2248,3 +2248,9 @@ html[data-theme="dark"] header[data-glass] .nav-link { color: #B4B1AA; }
 /* the card copy floats over the modal; a small card's own rules gave it
    `position: relative`, so it took 175px of space above the content */
 .modal-animator .modal-ghost, .modal-animator .modal-ghost.small-project-card { position: absolute !important; top: 0; left: 0; }
+/* small cards: a tag that does not fit is dropped whole, never spills off
+   the card — the row may wrap, but only its first line shows */
+.small-projects-grid .small-project-content .project-tags-container {
+  flex-wrap: wrap !important; overflow: hidden !important; max-height: 22px; row-gap: 8px !important;
+  -webkit-mask-image: none !important; mask-image: none !important;
+}
