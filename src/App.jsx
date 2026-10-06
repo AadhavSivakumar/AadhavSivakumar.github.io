@@ -61,7 +61,20 @@ function App() {
     const r = m.getBoundingClientRect();
     if (r.width < 20 || r.height < 20) return null;
     const isVideo = m.tagName === 'VIDEO';
-    return { rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
+    // a MEDIA-FIRST card (the small project cards: the picture is the card,
+    // the title and tags float over it) — the flying picture would cover that
+    // text, so the text and its scrim ride INSIDE the flyer: they stay as the
+    // card lifts, fade as it grows, and fade back in as it lands on close
+    let overlay = null;
+    const txt = el.querySelector('.small-project-content');
+    if (txt && el.classList.contains('small-project-card')) {
+      const t = txt.getBoundingClientRect();
+      const clone = txt.cloneNode(true);
+      freezeStyles(txt, clone);
+      Object.assign(clone.style, { position: 'absolute', left: `${t.left - r.left}px`, bottom: `${r.bottom - t.bottom}px`, width: `${t.width}px`, margin: '0', transform: 'none' });
+      overlay = clone.outerHTML;
+    }
+    return { overlay, rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
              src: isVideo ? (m.currentSrc || m.getAttribute('src')) : m.currentSrc || m.src, poster: isVideo ? m.poster : '', time: isVideo ? m.currentTime : 0,
              radius: getComputedStyle(m.closest('.exp-media') || m).borderRadius || '8px' };
   };
@@ -72,9 +85,34 @@ function App() {
   // which a detached copy does not match — the lifting copy showed its
   // picture and a blank white half where the text had dropped below the
   // clip (the owner: the lift should be the card itself rising).
+  const FROZEN_PROPS = ['font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'letter-spacing',
+    'text-transform', 'text-shadow', 'color', '-webkit-text-fill-color', 'white-space', 'text-overflow',
+    '-webkit-line-clamp', '-webkit-box-orient', 'display', 'overflow', 'background-color', 'background-image',
+    'border-radius', 'border-top', 'border-right', 'border-bottom', 'border-left', 'padding', 'gap', 'opacity',
+    // layout too: freezing `display: flex` without its direction laid the
+    // title, text and tags out side by side in the copy
+    'flex-direction', 'flex-wrap', 'align-items', 'justify-content', 'align-content', 'flex-grow', 'flex-shrink',
+    'flex-basis', 'grid-template-columns', 'grid-template-rows', 'text-align', 'margin-top', 'margin-bottom',
+    'margin-left', 'margin-right', 'min-width', 'max-width', 'mask-image', '-webkit-mask-image',
+    'background-clip', '-webkit-background-clip', 'background-size', 'background-position'];
+  const freezeStyles = (el, clone) => {
+    const src = [el, ...el.querySelectorAll('*')], dst = [clone, ...clone.querySelectorAll('*')];
+    src.forEach((e, i) => {
+      const k = dst[i]; if (!k || !k.style) return;
+      const cs = getComputedStyle(e);
+      for (const prop of FROZEN_PROPS) k.style.setProperty(prop, cs.getPropertyValue(prop));
+    });
+  };
   const frozenHTML = card => {
     const box = card.getBoundingClientRect();
     const clone = card.cloneNode(true);
+    // ...and every element's TYPE and paint frozen too (Oct 5; the owner:
+    // "when I click on a card, all the text/fonts suddenly change"): the
+    // card's fonts, sizes, colours and clamps come from rules scoped to its
+    // grid and page, which the copy inside the modal does not match, so the
+    // text visibly swapped style the moment it lifted — and swapped back
+    // when it landed on close
+    freezeStyles(card, clone);
     [...card.children].forEach((c, i) => {
       const k = clone.children[i]; if (!k) return;
       const r = c.getBoundingClientRect();

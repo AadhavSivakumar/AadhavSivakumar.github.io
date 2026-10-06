@@ -1606,6 +1606,23 @@ waves, rendered from an HTML page with Playwright; og/twitter image, type,
 size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
+**Oct 5, the modal's card copy keeps the card's type** (the owner: "when I
+click on a card, all the text/fonts suddenly change… a discontinuity when
+the modal is going back to the card"). The lifting/landing copy lives in
+the modal, outside the card's grid, so every grid-scoped rule fell away the
+moment it lifted. `frozenHTML` (App.jsx) now copies each element's COMPUTED
+type, colour, box and flex/grid layout inline (`FROZEN_PROPS` — freezing
+`display: flex` without `flex-direction` once laid a major card's title,
+text and tags out side by side; freezing a gradient without
+`background-clip` turned "Learn more" into a grey bar), and the small
+card's pseudo-elements (scrim, tag dots) have `.modal-ghost` copies of their
+rules. MEDIA-FIRST cards (small projects: the picture is the card) carry
+their text and scrim INSIDE the flying picture (`media.overlay`, Modal
+`.flyer-overlay`): held through the lift, faded as the expand starts, faded
+back in over the last 40% of the close, so the card lands whole. Checked by
+measuring real card vs copy element by element (identical up to the lift's
+1.06 scale) and by real-time recordings of open/close for every card type.
+
 **Oct 5, REACT BITS across the site** (the owner: "use [TiltedCard] for
 the cards", then "refactor A LOT of things on the site with either
 reactbits or framer components, as many as you can"). Sources are copied

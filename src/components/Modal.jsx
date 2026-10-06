@@ -476,6 +476,20 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             : media.isVideo
             ? <video ref={v => { if (v && !flyVid.current) { flyVid.current = v; try { v.currentTime = media.time || 0; } catch {} } }} src={media.src} poster={media.poster} autoPlay muted loop playsInline />
             : <img src={media.src} alt="" />}
+          {media.overlay && (
+            // the card's own text and scrim, riding with the picture (see
+            // App.jsx mediaOf): held through the lift, gone as the expand
+            // starts, and back over the last stretch of the close so the
+            // card lands whole and is revealed without a pop
+            <motion.div
+              className="flyer-overlay"
+              aria-hidden="true"
+              initial={{ opacity: phase === 'collapse' ? 0 : 1 }}
+              animate={{ opacity: phase === 'lift' || phase === 'collapse' ? 1 : 0 }}
+              transition={phase === 'collapse' ? { duration: CLOSE_S * 0.4, delay: CLOSE_S * 0.55, ease: 'easeOut' } : { duration: 0.22, delay: OPEN_HOLD, ease: 'easeIn' }}
+              dangerouslySetInnerHTML={{ __html: media.overlay }}
+            />
+          )}
         </motion.div>
       )}
     </>

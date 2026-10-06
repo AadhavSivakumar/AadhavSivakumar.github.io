@@ -1915,17 +1915,21 @@ header .social--pdf svg { width: 26px; height: 26px; }
 html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 
 /* the small card: media-first, text over the image */
-.small-projects-grid .small-project-card {
+.small-projects-grid .small-project-card,
+.modal-animator .modal-ghost.small-project-card {
   position: relative; overflow: visible !important;
   background: none !important; border: 0 !important; box-shadow: none !important;
   border-radius: 15px;
 }
 .small-projects-grid .small-project-card > img,
-.small-projects-grid .small-project-card > video {
+.small-projects-grid .small-project-card > video,
+.modal-animator .modal-ghost.small-project-card > img,
+.modal-animator .modal-ghost.small-project-card > video {
   aspect-ratio: 4 / 3 !important; border-radius: 15px;
   box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 26px -18px rgba(0,0,0,0.55);
 }
-.small-projects-grid .small-project-card::after {           /* the scrim the text sits on */
+.small-projects-grid .small-project-card::after,
+.modal-animator .modal-ghost.small-project-card::after {           /* the scrim the text sits on */
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
   border-radius: 0 0 15px 15px; pointer-events: none;
   background: linear-gradient(180deg, rgba(8,8,10,0) 0%, rgba(8,8,10,0.55) 55%, rgba(8,8,10,0.82) 100%);
@@ -1947,15 +1951,24 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 .small-projects-grid .small-project-card:hover > img,
 .small-projects-grid .small-project-card:hover > video { box-shadow: 0 22px 40px -22px rgba(0,0,0,0.6); }
 @media (max-height: 880px) {
-  .small-projects-grid .small-project-card > img, .small-projects-grid .small-project-card > video { aspect-ratio: 16 / 11 !important; }
+.small-projects-grid .small-project-card > img,
+.small-projects-grid .small-project-card > video,
+.modal-animator .modal-ghost.small-project-card > img,
+.modal-animator .modal-ghost.small-project-card > video { aspect-ratio: 16 / 11 !important; }
 }
 @media (max-height: 840px) {
-  .small-projects-grid .small-project-card > img, .small-projects-grid .small-project-card > video { aspect-ratio: 16 / 10 !important; }
+.small-projects-grid .small-project-card > img,
+.small-projects-grid .small-project-card > video,
+.modal-animator .modal-ghost.small-project-card > img,
+.modal-animator .modal-ghost.small-project-card > video { aspect-ratio: 16 / 10 !important; }
 }
 /* stacking: image 1, scrim 2, text 3 (an older rule lifts every card child to z 2) */
 .small-projects-grid .small-project-card > img,
-.small-projects-grid .small-project-card > video { z-index: 1 !important; }
-.small-projects-grid .small-project-card::after { z-index: 2; }
+.small-projects-grid .small-project-card > video,
+.modal-animator .modal-ghost.small-project-card > img,
+.modal-animator .modal-ghost.small-project-card > video { z-index: 1 !important; }
+.small-projects-grid .small-project-card::after,
+.modal-animator .modal-ghost.small-project-card::after { z-index: 2; }
 .small-projects-grid .small-project-content { z-index: 3 !important; position: absolute !important; }
 .tilt-card:hover { z-index: 10; }                           /* the hovered card (and its caption) rises over its neighbours */
 
@@ -2034,3 +2047,13 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 }
 @media (max-width: 768px) { .contact-body .dock-outer { justify-content: center; } .contact-body .dock-panel { left: 50%; transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .exp-card:hover .exp-more { animation: none; } }
+
+/* the ghost keeps the small card's own media-first box (its image slot is
+   hidden while the media flies separately) */
+.modal-animator .modal-ghost.small-project-card { background: none !important; border-radius: 15px; overflow: visible; }
+.modal-flyer .flyer-overlay { position: absolute; inset: 0; pointer-events: none; }
+.modal-flyer .flyer-overlay::before {   /* the small card's scrim, carried with the picture */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 62%;
+  background: linear-gradient(180deg, rgba(8,8,10,0) 0%, rgba(8,8,10,0.55) 55%, rgba(8,8,10,0.82) 100%);
+}
+.modal-flyer .flyer-overlay .project-tag + .project-tag::before { content: "·"; margin: 0 6px; opacity: 0.7; }
