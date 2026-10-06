@@ -2171,3 +2171,9 @@ body { letter-spacing: 0 !important; word-spacing: 0.05em; }
 .skill-chip.is-on { border-color: var(--primary-color) !important; background: color-mix(in srgb, var(--primary-color) 6%, var(--surface-color)) !important; }
 html[data-theme="dark"] .resume-skill__icon:not(.skill-icon-mono) { background: #EDECE8; border-radius: 6px; padding: 2px; }
 @media (prefers-reduced-motion: reduce) { .resume-skill { animation: none; } }
+/* no gold dot on the tags (the owner, Oct 6) */
+.project-tag::before { content: none !important; display: none !important; }
+.project-tag, html[data-theme="dark"] .project-tag { padding: 3px 10px !important; }
+.small-projects-grid .small-project-content .project-tag,
+.modal-flyer .flyer-overlay .project-tag { padding: 2px 8px !important; }
+.modal-tags .project-tag { padding: 4px 12px !important; }
