@@ -163,8 +163,11 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   const DEG = Math.PI / 180;
   const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
   const rotZ = a => { const c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; };
-  const FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, MOUNT_Z = -46, LEAN = 28, TABLE_Y = 80;
-  const leaning = (root, k, yaw, lean) => { const B = standing(root, k, yaw); const M = mul(rotZ(Math.PI), B.m); return { m: mul(rotX(lean * DEG), M), t: root }; };
+  // Generalist's cell (their GTC photo): the arms come off a black tower
+  // behind the table, each base plate TILTED OUTWARD (TILT about the stage's
+  // z) and a little toward the viewer (LEAN about x), so the pair makes a V
+  const FRAME_X = 0, UR_DX = 30, UR_K = 0.22, MOUNT_Y = -14, MOUNT_Z = -78, TILT = 55, LEAN = -14, TABLE_Y = 80;
+  const leaning = (root, k, yaw, lean) => { const B = standing(root, k, yaw); const sd = Math.sign(root[0] - FRAME_X) || 1; return { m: mul(rotX(lean * DEG), mul(rotZ(sd * TILT * DEG), B.m)), t: root }; };
   const toLocal = (base, p) => {                     // stage -> arm frame (mm)
     const k = UR_K, m = base.m, d = [p[0] - base.t[0], p[1] - base.t[1], p[2] - base.t[2]];
     return [(m[0] * d[0] + m[3] * d[1] + m[6] * d[2]) / (k * k), (m[1] * d[0] + m[4] * d[1] + m[7] * d[2]) / (k * k), (m[2] * d[0] + m[5] * d[1] + m[8] * d[2]) / (k * k)];
@@ -173,22 +176,34 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   const C = 60 * UR_K;                                  // the item, stage px
   const out = {};
   for (const [name, side, yaw] of [['R', 1, 270], ['L', -1, 90]]) {
-    const root = [FRAME_X + side * UR_DX, BAR_Y + 12, MOUNT_Z];
+    const root = [FRAME_X + side * UR_DX, MOUNT_Y, MOUNT_Z];
     const base = leaning(root, UR_K, yaw, LEAN);
     const down = dirLocal(base, [0, 1, 0]);
     const item = [FRAME_X + side * 58, TABLE_Y - C / 2, 40], box = [FRAME_X + side * 6, TABLE_Y - 160 * UR_K, 30];
     const T = { ITEM: item, ITEMUP: [item[0], item[1] - 44, item[2]], BOX: box, BOXUP: [box[0], box[1] - 26, box[2]] };
     out[name] = {};
-    for (const [k, p] of Object.entries(T)) {
-      // the left arm is seeded from the right arm's answer, so both land on
-      // the same elbow branch and the pair moves as a mirror
-      const seed = name === 'L' ? out.R[k] : [0, -1.4, -2.3, 2.1, 1.57, 0];
-      const s = solve(R, tcp, seed, [0, 1, 2, 3], { p: toLocal(base, p), z: down }, { limits: { 1: [-3.1, 0], 2: [-3.1, 3.1], 3: [-3.1, 3.1] } });
-      out[name][k] = s.q.map(r3);
-      console.log(`// ur ${name} ${k.padEnd(6)} err ${r3(s.err)}mm axis ${r3(s.zerr)}  ${fmt(s.q)}`);
+    // MULTI-START: the tilted mounts put the default seed on a bad branch.
+    // ITEMUP first, from many seeds (best error, then the elbow highest);
+    // the rest seeded from their neighbour so the loop stays on one branch.
+    let rnd = 12345; const rand = () => (rnd = (rnd * 16807) % 2147483647) / 2147483647;
+    const lim = { limits: { 1: [-3.1, 3.1], 2: [-3.1, 3.1], 3: [-3.1, 3.1] } };
+    const go = (p, seed) => solve(R, tcp, seed, [0, 1, 2, 3, 4], { p: toLocal(base, p), z: down }, lim);
+    const score = s => s.err + 60 * s.zerr;
+    let best = null;
+    for (let i = 0; i < 400; i++) {
+      const sd = [(rand() * 2 - 1) * 3.1, (rand() * 2 - 1) * 3.1, (rand() * 2 - 1) * 3.1, (rand() * 2 - 1) * 3.1, 1.57, 0];
+      const s2 = go(T.ITEMUP, sd);
+      if (!best || score(s2) < score(best) - 1e-6) best = s2;
+    }
+    out[name].ITEMUP = best.q.map(r3);
+    console.log(`// ur ${name} ITEMUP err ${r3(best.err)}mm axis ${r3(best.zerr)}  ${fmt(best.q)}`);
+    for (const [k, from] of [['ITEM', 'ITEMUP'], ['BOXUP', 'ITEMUP'], ['BOX', 'BOXUP']]) {
+      const s2 = go(T[k], out[name][from].slice());
+      out[name][k] = s2.q.map(r3);
+      console.log(`// ur ${name} ${k.padEnd(6)} err ${r3(s2.err)}mm axis ${r3(s2.zerr)}  ${fmt(s2.q)}`);
     }
   }
-  console.log('UR_LAYOUT =', JSON.stringify({ FRAME_X, BAR_Y, UR_DX, UR_K, MOUNT_Z, LEAN, TABLE_Y }));
+  console.log('UR_LAYOUT =', JSON.stringify({ FRAME_X, MOUNT_Y, UR_DX, UR_K, MOUNT_Z, TILT, LEAN, TABLE_Y }));
   console.log('UR_P =', JSON.stringify(out));
 }
 

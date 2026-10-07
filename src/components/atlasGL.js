@@ -120,19 +120,39 @@ export function createAtlasGL(host) {
   // owner's model is the blue-and-black product illustration; its geometry
   // stays, its materials are re-assigned here by part name.
   const LOOKS = {
-    alu: { c: 0xb9bbbe, r: 0.36, m: 0.55 },
-    graphite: { c: 0x2f3135, r: 0.5, m: 0.3 },
-    teal: { c: 0x22a7b6, r: 0.45, m: 0.2 },
+    alu: { c: 0xb4b6b9, r: 0.42, m: 0.6 },        // the satin aluminium shells
+    aluDk: { c: 0x8d9094, r: 0.45, m: 0.6 },      // the same, in shade: hands, wrist housings
+    graphite: { c: 0x2c2e32, r: 0.55, m: 0.25 },  // joints, shoulder pods, forearms, shins
+    teal: { c: 0x2aa3b8, r: 0.4, m: 0.2 },        // the bands at the wrists
     glass: { c: 0x0b0c0e, r: 0.12, m: 0.3 },
+    HIDE: 'hide',
   };
+  // first match wins: part-name rules, then the model's own material
+  const RULES = [
+    [/^Torso_(Shield|Chevron|Icon|ScreenUI|BackLED)/, 'HIDE'],          // the illustration's badges: Atlas has a plain shell
+    [/^Torso_(Screen|ScreenBezel)$/, 'graphite'],                       // the small status window under the collar
+    [/^Torso_(Drawer_\d|DrawerSlot)/, 'HIDE'],                          // the drawers go: what is left is the
+    [/^Torso_DrawerRecess/, 'graphite'],                                // dark front panel in a silver shell
+    [/^Torso_SidePanel/, 'alu'],
+    [/^(Waist_Fins|Pelvis_Barrel|Pelvis_Ribs)/, 'aluDk'],
+    [/^(Torso|Torso_BackPack|Pelvis_Block|Waist_Core|Neck)$/, 'alu'],
+    [/^Head_(EyeRing|EyeGlint|EyeCore)/, 'glass'],                      // no cyclops eye: a dark face and the ring
+    [/^Head_(Shell|SideCap|Bezel|BackBezel)/, 'alu'],                  // a silver helmet round the ring
+    [/^(Shoulder_Pitch|Shoulder_Band|Shoulder_Roll\b|Shoulder_Bracket|Hip_Actuator|Hip_Band|Knee\b|Ankle\b|Elbow\b|Forearm\b)/, 'graphite'],
+    [/^Forearm_Cover/, 'graphite'],
+    [/^UpperArm\b|^UpperArm\./, 'alu'],
+    [/^Wrist_Roll/, 'teal'],
+    [/^(Wrist_Pitch|Hand_Palm|Hand_Fingers|Hand_BackPlate)/, 'aluDk'],
+    [/^(Thigh\b|Thigh\.)/, 'alu'],
+    [/^Shin_Link/, 'graphite'],
+    [/^Shin_FrontPanel/, 'aluDk'],
+    [/^(Shin\b|Shin\.|Foot\b|Foot\.|Foot_Toe\b)/, 'graphite'],
+  ];
   const restyle = (part, mat) => {
-    if (/^(Torso_Drawer|Torso_Chevron|Torso_IconB|Torso_IconA|Torso_ScreenUI)/.test(part)) return LOOKS.graphite;
-    if (/^Head_(EyeRing|EyeGlint)/.test(part)) return LOOKS.glass;   // no cyclops eye: a dark face and the ring
-    if (/^Wrist_Roll/.test(part)) return LOOKS.teal;
-    if (/^Hand_(Fingers|Palm)/.test(part)) return LOOKS.graphite;
-    if (/^(Torso|Torso_BackPack|Pelvis_Block)$/.test(part)) return LOOKS.alu;
+    for (const [re, k] of RULES) if (re.test(part)) return LOOKS[k];
     if (mat === 'RB_Blue') return LOOKS.alu;
     if (mat === 'RB_Black') return LOOKS.graphite;
+    if (mat === 'RB_White') return LOOKS.alu;
     return null;
   };
   const matFor = (name, def, look) => {
@@ -162,12 +182,25 @@ export function createAtlasGL(host) {
     const Nn = new Int8Array(buf, o, nV * 4); o += nV * 4;
     const I = new Uint16Array(buf, o, hdr.parts.reduce((s, p) => s + p.iCount, 0));
     const mcache = {};
+    // the head is drawn a size smaller than the illustration's (Atlas's head
+    // is about two thirds of its chest's width): scaled about the bottom of
+    // its shell, where it sits on the neck
+    const HEAD_K = 0.84;
+    let hb = null;
+    for (const p of hdr.parts) if (/^Head_/.test(p.name)) for (let i = 0; i < p.vCount; i++) {
+      const k = (p.v0 + i) * 3, x = P[k] / 1e4, y = P[k + 1] / 1e4, z = P[k + 2] / 1e4;
+      if (!hb) hb = [x, x, y, y, z, z];
+      hb[0] = Math.min(hb[0], x); hb[1] = Math.max(hb[1], x); hb[2] = Math.min(hb[2], y); hb[3] = Math.max(hb[3], y); hb[4] = Math.min(hb[4], z); hb[5] = Math.max(hb[5], z);
+    }
+    const HO = hb ? [(hb[0] + hb[1]) / 2, hb[2], (hb[4] + hb[5]) / 2] : [0, 0, 0];
     for (const p of hdr.parts) {
-      const id = pieceOf(p.name), ref = refOf(id);
+      const id = pieceOf(p.name), ref = refOf(id), isHead = /^Head_/.test(p.name);
       const pos = new Float32Array(p.vCount * 3), nor = new Float32Array(p.vCount * 3);
       for (let i = 0; i < p.vCount; i++) {
         const k = (p.v0 + i) * 3, n = (p.v0 + i) * 4;
-        const c = conv([P[k] / 1e4, P[k + 1] / 1e4, P[k + 2] / 1e4], ref);
+        let q = [P[k] / 1e4, P[k + 1] / 1e4, P[k + 2] / 1e4];
+        if (isHead) q = q.map((v, j) => HO[j] + (v - HO[j]) * HEAD_K);
+        const c = conv(q, ref);
         pos[i * 3] = c[0]; pos[i * 3 + 1] = c[1]; pos[i * 3 + 2] = c[2];
         nor[i * 3] = Nn[n + 2] / 127; nor[i * 3 + 1] = Nn[n] / 127; nor[i * 3 + 2] = Nn[n + 1] / 127;   // same axis shuffle
       }
@@ -181,6 +214,7 @@ export function createAtlasGL(host) {
       let grp = groups.get(id);
       if (!grp) { grp = new THREE.Group(); grp.matrixAutoUpdate = false; grp.visible = false; yawG.add(grp); groups.set(id, grp); }
       const look = restyle(p.name, p.mat);
+      if (look === 'hide') continue;
       const mk = id + '|' + p.mat + '|' + (look ? look.c : '');   // materials PER PIECE, so a piece in flight can wear its source's look
       grp.add(new THREE.Mesh(g, mcache[mk] || (mcache[mk] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }, look))));
     }

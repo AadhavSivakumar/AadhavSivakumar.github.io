@@ -337,15 +337,16 @@ const MAT = {
   ochre: 9,           // Generalist's yellow 3D-printed gripper fingers
   orange: 10,         // Ultra's gripper tips and logo
   red: 11, green: 12, blue: 13,   // the cubes the robots handle
+  teal: 14,           // the anodised blue rails under Generalist's table
 };
 // hex per slot; `copper` and `paint` are filled in from theme tokens
-const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A', '#C9473F', '#4E9A5C', '#3F6FB8'];
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A', '#C9473F', '#4E9A5C', '#3F6FB8', '#2C5F78'];
 // Weight is inversely related to how much of the frame the part covers. A tint
 // worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
 // assembled machine into a coloured blob and throws away the line art. So the
 // big masses stay near the page colour and the small parts carry the colour —
 // and most of the separation is done by the LINEWORK, which costs no area.
-const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62, 0.72, 0.72, 0.72];
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62, 0.72, 0.72, 0.72, 0.72];
 const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
 
 const MOTOR_SPEC = [
@@ -1289,7 +1290,10 @@ export default function Flourish3D({ side = 'right' }) {
     // under real shading the line art's tints read wrong: 'steel' was a
     // blue-grey that came out sky blue on the poles and legs
     const GL_STEEL = [172, 174, 177];
-    const glMatRGB = mat => (!dark && mat === MAT.pla ? PLA_LIGHT : mat === MAT.steel ? GL_STEEL : (matRGB[mat] || paperRGB));
+    // the UR's caps are a PALE grey-blue in Generalist's photos (the MJCF's
+    // blue came out saturated), its links bare aluminium
+    const GL_URCAP = [166, 182, 194], GL_ALU = [196, 199, 203];
+    const glMatRGB = mat => (!dark && mat === MAT.pla ? PLA_LIGHT : mat === MAT.steel ? GL_STEEL : mat === MAT.urblue ? GL_URCAP : mat === MAT.alu ? GL_ALU : (matRGB[mat] || paperRGB));
     function glMesh(part, T, mat, a) {
       let rgb = glMatRGB(mat);
       if (MESH_MIX) {
@@ -1983,12 +1987,15 @@ export default function Flourish3D({ side = 'right' }) {
     // at a work surface in front. No torso, no head — a workcell, not a
     // humanoid.
     // ── the Generalist workcell ─────────────────────────────────────────
-    // Generalist's demos (generalistai.com, GEN-0/GEN-1): two UR e-series
-    // arms HANGING from a frame over a dark table, black wrists, yellow
-    // 3D-printed parallel fingers, packing things into boxes. So: two posts,
-    // a crossbar, the UR bases bolted to its underside, a table below.
-    const STAND_X = 12, FRAME_X = 0, BAR_Y = -104, UR_DX = 82, UR_K = 0.22, POST_X = 124;
-    const MOUNT_Z = -46, LEAN = 28, TABLE_Y = 80;                    // the arms hang from a bar set back, leaning in
+    // Generalist's cell (generalistai.com; their GTC photo): two UR arms off
+    // a black extrusion TOWER behind a black table, each base plate tilted
+    // OUTWARD so the pair makes a V and the arms reach down over the top;
+    // black wrists, yellow 3D-printed fingers, packing things into a box. The
+    // table stands on a black extrusion frame with blue lower rails.
+    const STAND_X = 12, FRAME_X = 0, UR_K = 0.22, POST_X = 124;      // POST_X: the table's half width + 12
+    const UR_DX = 30, MOUNT_Y = -14, MOUNT_Z = -78, TILT = 55, LEAN = -14, TABLE_Y = 80;   // keep in step with scripts/ik-poses.mjs
+    const TOWER_TOP = MOUNT_Y - 34, TOWER_W = 44, LEG = 70;
+    const urMountR = sd => mul(rotX(LEAN * DEG), rotZ(sd * TILT * DEG));   // a base plate's turn, stage space
     function drawFrame(u, alpha, off = [0, 0, 0]) {
       if (u <= 0.01 || alpha <= 0.01) return;
       const F = place(IDENT, off);
@@ -2002,24 +2009,31 @@ export default function Flourish3D({ side = 'right' }) {
         submit(boxFaces(w * u, h * u, d * u, X, Y, Z), F, mat, a);
         submitLines(boxWire(w * u, h * u, d * u, X, Y, Z), F, matLine[mat], LOOK.line * a, LOOK.width);
       };
-      // a heavy black frame: posts up from the table's back corners, the
-      // crossbar, a canted mount block under it for each arm
-      box(14, TABLE_Y - BAR_Y + 10, 14, FRAME_X - POST_X, (TABLE_Y + BAR_Y) / 2, MOUNT_Z, MAT.poly);
-      box(14, TABLE_Y - BAR_Y + 10, 14, FRAME_X + POST_X, (TABLE_Y + BAR_Y) / 2, MOUNT_Z, MAT.poly);
-      box(2 * POST_X + 14, 14, 14, FRAME_X, BAR_Y, MOUNT_Z, MAT.poly);
-      for (const x of [FRAME_X - UR_DX, FRAME_X + UR_DX]) {
-        const M = place(mul(rotX(LEAN * DEG), scaleM(u)), [ax + (x - ax) * u, ay + (BAR_Y + 8 - ay) * u, az + (MOUNT_Z - az) * u]);
-        submit(boxFaces(36, 10, 36, 0, 3, 0), M, MAT.poly, a);
-        submitLines(boxWire(36, 10, 36, 0, 3, 0), M, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+      // the tower: from the floor behind the table to above the mounts
+      const FY = TABLE_Y + 11 + LEG;
+      box(TOWER_W, FY - TOWER_TOP, 40, FRAME_X, (FY + TOWER_TOP) / 2, MOUNT_Z, MAT.poly);
+      // a base plate on each upper side, tilted with its arm, and the wedge
+      // that carries it off the tower
+      for (const sd of [-1, 1]) {
+        const R = urMountR(sd), c = [FRAME_X + sd * UR_DX, MOUNT_Y, MOUNT_Z];
+        const M = place(mul(R, scaleM(u)), [ax + (c[0] - ax) * u, ay + (c[1] - ay) * u, az + (c[2] - az) * u]);
+        submit(boxFaces(44, 8, 44, 0, 4, 0), M, MAT.poly, a);
+        submitLines(boxWire(44, 8, 44, 0, 4, 0), M, matLine[MAT.poly], LOOK.line * a, LOOK.width);
+        submit(boxFaces(30, 22, 36, -sd * 6, 19, 0), M, MAT.poly, a);
+        submitLines(boxWire(30, 22, 36, -sd * 6, 19, 0), M, matLine[MAT.poly], LOOK.line * a, LOOK.width);
       }
-      // the table: a dark top on a black frame, its back edge under the bar.
-      // Narrower than the frame: its near edge grows ~15% in perspective.
+      // the table: a dark top on a black frame, its back edge at the tower.
       // ONE slab. It was a dark top over a slightly larger steel slab whose
       // top face sat half a millimetre below the dark top's underside: the
       // two big faces sorted by centroid depth traded places as the camera
       // moved, and the table flickered grey / pale blue through the act.
       box(2 * POST_X - 24, 11, 150, FRAME_X, TABLE_Y + 5.5, 18, MAT.poly);
+      // its extrusion frame: four black legs, blue rails low down
+      for (const [lx, lz] of TABLE_LEGS) box(9, LEG, 9, lx, TABLE_Y + 11 + LEG / 2, lz, MAT.poly);
+      box(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, -48, MAT.teal); box(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, 84, MAT.teal);
+      box(6, 6, 126, FRAME_X - POST_X + 20, FY - 10, 18, MAT.teal); box(6, 6, 126, FRAME_X + POST_X - 20, FY - 10, 18, MAT.teal);
     }
+    const TABLE_LEGS = [[FRAME_X - POST_X + 20, -50], [FRAME_X + POST_X - 20, -50], [FRAME_X - POST_X + 20, 86], [FRAME_X + POST_X - 20, 86]];
     const drawStand = (u, alpha) => drawFrame(u, alpha);   // the procedural fallback still calls it by this name
     // The UR's gripper is Generalist's: a black body on the flange, two long
     // yellow printed fingers. In the wrist_3 frame the flange is 100 mm along
@@ -2046,7 +2060,7 @@ export default function Flourish3D({ side = 'right' }) {
     // (Generalist's come down over the table at an angle): standing, turned
     // over (a half turn about the stage's z; the yaw is measured after the
     // turn), then tilted about the stage's x. The root has a z.
-    const leaning = (root, k, yaw, lean = LEAN) => { const B = standing(root, k, yaw); return place(mul(rotX(lean * DEG), mul(rotZ(Math.PI), B.m)), [root[0], root[1], root[2] || 0]); };
+    const leaning = (root, k, yaw) => { const B = standing(root, k, yaw); return place(mul(urMountR(Math.sign(root[0] - FRAME_X) || 1), B.m), [root[0], root[1], root[2] || 0]); };
     const hanging = (root, k, yaw) => leaning(root, k, yaw, 0);
     // a UR with its gripper; the gap rides in q[6] (mm), 90 when absent
     function drawUR(base, q, a, ga = a) {
@@ -2055,6 +2069,27 @@ export default function Flourish3D({ side = 'right' }) {
       const B = a < 1 ? scaleT(base, a) : base;
       const Tw = bodyPlacements(ROBOTS.ur5e, B, q)[ROBOTS.ur5e.index.get('wrist3')];
       if (ga > 0.03) drawURGripper(ga < a ? scaleT(Tw, ga / a) : Tw, q[6] ?? 90, 1);   // the gripper grows on its flange, opaque
+      // the black cable Generalist loops off every arm: from the shoulder,
+      // sagging OUTBOARD of the arm, to the wrist camera (their GTC photo)
+      if (a > 0.98) {
+        const P = bodyPlacements(ROBOTS.ur5e, B, q), ix = n => P[ROBOTS.ur5e.index.get(n)].t;
+        const p0 = ix('shoulder'), p3 = ix('wrist2'), sd = Math.sign(base.t[0] - FRAME_X) || 1;
+        const L = Math.hypot(p3[0] - p0[0], p3[1] - p0[1], p3[2] - p0[2]);
+        const p1 = [p0[0] + sd * 0.55 * L, p0[1] + 0.25 * L, p0[2] + 6], p2 = [p3[0] + sd * 0.45 * L, p3[1] + 0.45 * L, p3[2] + 6];
+        const pts = [];
+        for (let i = 0; i <= 16; i++) {
+          const u = i / 16, v = 1 - u, b0 = v * v * v, b1 = 3 * v * v * u, b2 = 3 * v * u * u, b3 = u * u * u;
+          pts.push([0, 1, 2].map(c => b0 * p0[c] + b1 * p1[c] + b2 * p2[c] + b3 * p3[c]));
+        }
+        // a ribbon 2.4 px wide, turned to the viewer (a GL line is one pixel)
+        const fs = [], hw = 1.2;
+        for (let i = 0; i < 16; i++) {
+          const A = pts[i], Bp = pts[i + 1], dx = Bp[0] - A[0], dy = Bp[1] - A[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l * hw, ny = dx / l * hw;
+          const q4 = [[A[0] + nx, A[1] + ny, A[2]], [Bp[0] + nx, Bp[1] + ny, Bp[2]], [Bp[0] - nx, Bp[1] - ny, Bp[2]], [A[0] - nx, A[1] - ny, A[2]]];
+          fs.push(face(q4), face(q4.slice().reverse()));
+        }
+        submit(fs, place(IDENT, [0, 0, 0]), MAT.poly, 1);
+      }
     }
     // the cardboard box the pair packs, on the table between them: an open
     // box under the right arm's drop point, world-upright
@@ -2334,8 +2369,8 @@ export default function Flourish3D({ side = 'right' }) {
     // ...solved per arm, in stage coordinates, for the LEANING mounts (the
     // left arm is not the right one's mirror once the mounts lean)
     const urW = (IT, ITU, BX, BXU) => [ITU, IT, g(IT, 6, 60), g(ITU, 6, 60), g(BXU, 6, 60), g(BX, 6, 60), BX, BXU, ITU];
-    const UR_W_R = urW([-0.034, -1.149, -1.626, 1.693, 1.57, 0, 90], [0.201, -1.258, -2.023, 2.19, 1.57, 0, 90], [-1.121, -1.761, -1.562, 1.979, 1.57, 0, 90], [-0.969, -1.869, -1.675, 2.266, 1.57, 0, 90]);
-    const UR_W_L = urW([0.034, -0.588, -2.022, 0.551, 1.57, 0, 90], [-0.201, -0.148, -2.473, 0.571, 1.57, 0, 90], [-1.198, -1.568, -1.889, 1.695, 1.57, 0, 90], [-1.369, -1.74, -1.98, 2.043, 1.57, 0, 90]);
+    const UR_W_R = urW([0.062, -2.478, -1.913, 0.011, 0.629, 0, 90], [0.378, -2.04, -2.117, -0.678, 0.595, 0, 90], [0.532, -2.599, -2.047, -0.403, 0.631, 0, 90], [0.722, -2.38, -2.08, -0.806, 0.713, 0, 90]);
+    const UR_W_L = urW([3.555, -2.582, -1.815, 0.456, 2.253, 0, 90], [3.289, -2.218, -2.08, 0.156, 2.42, 0, 90], [3.149, -2.79, -1.938, 0.435, 2.486, 0, 90], [2.952, -2.554, -2.061, 0.06, 2.543, 0, 90]);
     // the OP1's small arms (right; the left is the mirror by construction)
     const op = (P, open) => ({ ...P, open });
     // ...solved in scripts/ik-poses.mjs with the arms kept OUTBOARD (roll,
@@ -2376,8 +2411,10 @@ export default function Flourish3D({ side = 'right' }) {
       // centre, each facing the box between them (the left is the right
       // turned half a turn about the vertical, so one task serves both). The
       // job, Generalist's: pack the item into the box; the loop resets.
-      ur: { k: UR_K, rootR: [FRAME_X + UR_DX, BAR_Y + 12, MOUNT_Z], rootL: [FRAME_X - UR_DX, BAR_Y + 12, MOUNT_Z], yawR: 270, yawL: 90,
-            folded: [0.03, -1.7, -2.6, 2.4, 1.57, 0, 90],
+      ur: { k: UR_K, rootR: [FRAME_X + UR_DX, MOUNT_Y, MOUNT_Z], rootL: [FRAME_X - UR_DX, MOUNT_Y, MOUNT_Z], yawR: 270, yawL: 90,
+            // packed: each arm's own rest with the elbow folded tight (one shared
+            // pose swung the left arm most of a turn on the tilted mounts)
+            foldedR: [0.378, -1.7, -2.8, -0.3, 0.595, 0, 90], foldedL: [3.289, -1.9, -2.8, 0.5, 2.42, 0, 90],
             // the arms TAKE TURNS at the shared box (Oct 6; the owner: "the
             // bimanual UR arms are going into each other" — both ran the same
             // loop in step and met inside the box): the right packs while the
@@ -2393,11 +2430,14 @@ export default function Flourish3D({ side = 'right' }) {
       // horizontal flange normal) with the unit on it. The Fairino holds
       // still while settled — the unit's arms do the work: fold the box's
       // four flaps up, then put the item in it; the loop resets.
-      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 62,
-            rest: [0.3, -1.3, 2.2, -0.9, 1.57, 0],
+      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 90,
+            rest: [0.3, -1.7, 1.7, 0, 1.57, 0],     // the unit held chest-high in front of the Fairino, its base below (Ultra's front photo)
             folded: [0.3, -1.6, 2.7, -0.9, 1.57, 0],
             unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
     };
+    { const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;   // dev: ?ulyaw=<deg>
+      if (qs && qs.has('ulyaw')) RB.ul.yaw = +qs.get('ulyaw');
+      if (qs && qs.has('ulq')) RB.ul.rest = qs.get('ulq').split('_').map(Number); }
     RB.so.rest = SO_W[0]; RB.fr.rest = FR_W[0]; RB.ur.restR = UR_W_R[0]; RB.ur.restL = UR_W_L[0];
     // Atlas joint signs, from rendering poses through ?dev (see CLAUDE.md)
     // (l_arm_shx rolls the left arm in the frontal plane: -1.3 hangs it at
@@ -2731,7 +2771,7 @@ export default function Flourish3D({ side = 'right' }) {
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
         const c = tpOf(TU, [BX + sx * 150, sy * 230, BZ - 42]);
         const h = FLOOR_Y - c[1];
-        if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.steel, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.steel], LOOK.line * alpha, LOOK.width); }
+        if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.poly, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.poly], LOOK.line * alpha, LOOK.width); }
       }
       const a = alpha * st.a;
       if (a <= 0.01) return;
@@ -2861,13 +2901,13 @@ export default function Flourish3D({ side = 'right' }) {
         drawCubes(stR, 1); drawCubes(stL, 1);
       } else {
         const h = win(t, 0.02, 0.8);
-        drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(h, 0.3, 0.6))), smooth(h));
+        drawMorph(ROBOTS.fr3, frBase, RB.fr.rest, ROBOTS.ur5e, rBase, lerpQ(RB.ur.foldedR, RB.ur.restR, smooth(win(h, 0.3, 0.6))), smooth(h));
         // the gripper grows on the arriving arm's wrist once the wrist is there
-        const qr = lerpQ(RB.ur.folded, RB.ur.restR, smooth(win(h, 0.5, 0.5)));
+        const qr = lerpQ(RB.ur.foldedR, RB.ur.restR, smooth(win(h, 0.5, 0.5)));
         const ga = smooth(win(h, 0.8, 0.2));
         if (ga > 0.03) drawURGripper(scaleT(bodyPlacements(ROBOTS.ur5e, rBase, qr)[ROBOTS.ur5e.index.get('wrist3')], ga), 90, 1);
         const gL = smooth(win(t, 0.5, 0.4));
-        if (gL > 0.01) drawUR(leaning(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), lerpQ(RB.ur.folded, RB.ur.restL, smooth(win(t, 0.6, 0.4))), gL);
+        if (gL > 0.01) drawUR(leaning(RB.ur.rootL, RB.ur.k * (0.4 + 0.6 * gL), RB.ur.yawL), lerpQ(RB.ur.foldedL, RB.ur.restL, smooth(win(t, 0.6, 0.4))), gL);
         drawCubes(taskState(ROBOTS.fr3, frBase, RB.fr.task, 0), 1 - smooth(win(t, 0.02, 0.25)));
         drawCubes(stR, propsA); drawCubes(stL, propsA);
       }
@@ -2986,22 +3026,32 @@ export default function Flourish3D({ side = 'right' }) {
       {
         const W6 = (2 * POST_X - 24) / 6, TY = TABLE_Y + 5.5;
         const strip = i => obAxis(W6, 11, 150, FRAME_X - (2 * POST_X - 24) / 2 + W6 / 2 + i * W6, TY, 18, MAT.poly);
-        const Hp = TABLE_Y - BAR_Y + 10, cyP = (TABLE_Y + BAR_Y) / 2, topP = cyP - Hp / 2;
-        const mount = x => { const R = rotX(LEAN * DEG); return OB(R, [x + R[1] * 3, BAR_Y + 8 + R[4] * 3, MOUNT_Z + R[7] * 3], [36, 10, 36], MAT.poly); };
+        const FY = TABLE_Y + 11 + LEG, Hp = FY - TOWER_TOP, cyP = (FY + TOWER_TOP) / 2;
+        const mount = sd => { const R = urMountR(sd); return OB(R, [FRAME_X + sd * UR_DX + R[1] * 4, MOUNT_Y + R[4] * 4, MOUNT_Z + R[7] * 4], [44, 8, 44], MAT.poly); };
+        const wedge = sd => { const R = urMountR(sd), o = [-sd * 6, 19, 0]; return OB(R, [FRAME_X + sd * UR_DX + R[0] * o[0] + R[1] * o[1], MOUNT_Y + R[3] * o[0] + R[4] * o[1], MOUNT_Z + R[6] * o[0] + R[7] * o[1]], [30, 22, 36], MAT.poly); };
+        const legBox = ([lx, lz]) => obAxis(9, LEG, 9, lx, TABLE_Y + 11 + LEG / 2, lz, MAT.poly);
         const pairs = [
           [strip(0), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly)],
           [strip(1), obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly)],
           [strip(4), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly)],
           [strip(5), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly)],
           [strip(3), obAxis(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly)],
-          [obAxis(14, Hp - 20, 14, FRAME_X - POST_X, cyP + 10, MOUNT_Z, MAT.poly), obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel)],
-          [obAxis(14, 20, 14, FRAME_X - POST_X, topP + 10, MOUNT_Z, MAT.poly), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu)],
-          [mount(FRAME_X - UR_DX), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
-          [mount(FRAME_X + UR_DX), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+          [obAxis(TOWER_W, Hp - 20, 40, FRAME_X, cyP + 10, MOUNT_Z, MAT.poly), obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel)],
+          [obAxis(TOWER_W, 20, 40, FRAME_X, TOWER_TOP + 10, MOUNT_Z, MAT.poly), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu)],
+          [mount(-1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+          [mount(1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+          [wedge(-1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+          [wedge(1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
+          // the table's legs and blue rails fold into the cart's base frame
+          ...TABLE_LEGS.map((L, i) => [legBox(L), obAxis(12, 10, 12, CART_X + (i % 2 ? 74 : -74), FLOOR_Y - 8, i < 2 ? -46 : 46, MAT.poly)]),
+          [obAxis(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, -48, MAT.teal), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly)],
+          [obAxis(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, 84, MAT.teal), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly)],
+          [obAxis(6, 6, 126, FRAME_X - POST_X + 20, FY - 10, 18, MAT.teal), obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly)],
+          [obAxis(6, 6, 126, FRAME_X + POST_X - 20, FY - 10, 18, MAT.teal), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly)],
         ];
-        const cartDone = mw(pairs.length - 1) >= 1;
+        const cartDone = mw(9) >= 1;                       // the stagger is capped: 19 pieces, the last nine leave together
         if (cartDone) drawCart(1, 1);
-        else pairs.forEach(([a, b], i) => obDraw(obLerp(a, b, mw(i))));
+        else pairs.forEach(([a, b], i) => obDraw(obLerp(a, b, mw(Math.min(i, 9)))));
         // the torso: strip 2 of the table becomes the unit's box, then the unit
         const wU = mw(4, 0.55);
         if (wU < 1) obDraw(obLerp(strip(2), obIn(TUn, UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2, MAT.poly), wU));
@@ -3012,7 +3062,7 @@ export default function Flourish3D({ side = 'right' }) {
         const J = [...fn.map(n => TF[UL.index.get(n)].t), tpOf(Tfl, [0, 0, 120])];
         const segL = J.slice(1).map((p, i) => Math.hypot(...v3sub(p, J[i])));
         const tot = segL.reduce((a, b) => a + b, 0) || 1;
-        const PL = [[FRAME_X + POST_X, TABLE_Y, MOUNT_Z], [FRAME_X + POST_X, BAR_Y, MOUNT_Z], [FRAME_X - POST_X, BAR_Y, MOUNT_Z]];
+        const PL = [[FRAME_X, FY, MOUNT_Z], [FRAME_X, TOWER_TOP, MOUNT_Z], [FRAME_X + UR_DX + 30, MOUNT_Y - 30, MOUNT_Z]];   // up the tower, out along the right plate
         const plen = [Math.hypot(...v3sub(PL[1], PL[0])), Math.hypot(...v3sub(PL[2], PL[1]))];
         const along = f => { let d = f * (plen[0] + plen[1]); if (d <= plen[0]) return PL[0].map((v, c) => v + (PL[1][c] - v) * d / plen[0]); d -= plen[0]; return PL[1].map((v, c) => v + (PL[2][c] - v) * Math.min(1, d / plen[1])); };
         let acc = 0, lastS = 1;

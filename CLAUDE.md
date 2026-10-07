@@ -2395,6 +2395,37 @@ franka.de, generalistai.com):
   from Media/projects (git-ignored, still on disk). It remains in git
   HISTORY of a public repo.
 
+**Oct 7: Ultra, Atlas and the Generalist cell matched to photos again** (the
+owner: "do iterative passes and comparisons to the real robots"). Each
+shot from several angles (`rob.mjs` / `acts.mjs` in the session scratch)
+against the makers' photos, both themes, every transition re-scanned:
+- **Generalist** (their GTC photo): the goalpost frame is GONE. The URs come
+  off a black extrusion TOWER behind the table (`TOWER_TOP`, `TOWER_W`),
+  each base on a plate tilted OUTWARD (`TILT` 55° about the stage's z, `LEAN`
+  −14° about x — `urMountR`, used by `leaning`), so the pair is a V reaching
+  down over the top; the table stands on black legs with dark blue rails
+  (`MAT.teal`); in GL the caps are a pale grey-blue (`GL_URCAP`) and the
+  links aluminium (`GL_ALU`); a black CABLE loops outboard off each arm,
+  drawn as a ribbon (a GL line is one pixel). The waypoints are re-solved in
+  `scripts/ik-poses.mjs` (same mount; MULTI-START, wrist2 free — the default
+  seed found a bad branch, and with wrist2 fixed the tool could not point
+  down; now < 0.5 mm, axis 0). Each arm has its own packed pose
+  (`foldedR` / `foldedL`). In the act-4 morph the tower becomes the signal
+  pole, the plates and wedges the pedestal, the legs and rails the cart's
+  base frame (stagger capped at nine).
+- **Ultra** (ultra.tech's front photo): `RB.ul.yaw` 62 → 90 so the torso and
+  its orange mark FACE the viewer with the Fairino behind, and the rest pose
+  holds the unit chest-high with the Fairino's base below it
+  ([0.3, −1.7, 1.7, 0, 1.57, 0]). The packing table's legs are black. Dev
+  hooks: `?ulyaw=<deg>`, `?ulq=j1_j2_j3_j4_j5_j6`.
+- **Atlas** (`RULES` in atlasGL.js): the illustration's drawers, shields,
+  chevrons and icons are hidden; what is left is a silver shell with a dark
+  chest panel (`Torso_DrawerRecess`), as photographed; silver waist drum and
+  pelvis, graphite shoulder pods, elbows, forearms, knees and shins, silver
+  upper arms and thighs, teal wrist bands, a silver helmet round the ring
+  light, and the head 0.84x (`HEAD_K`, scaled about the bottom of its shell).
+Measured: Firefox scroll p50/p90 17.1, 0 mutations on still pages.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
