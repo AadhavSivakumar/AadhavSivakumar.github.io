@@ -223,7 +223,7 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
 // upper arm hangs DOWN at pitch 0; pitch swings it forward about y, roll
 // swings it outward about x, elbow and wrist about the arm's local y.
 {
-  const S_Y = 170, S_Z = 300, L1 = 260, L2 = 250, L3 = 120;   // UNIT in Flourish3D.jsx
+  const S_Y = 240, S_Z = 205, L1 = 230, L2 = 220, L3 = 150;   // UNIT in Flourish3D.jsx
   const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
   const rotY = a => { const c = Math.cos(a), s = Math.sin(a); return [c, 0, s, 0, 1, 0, -s, 0, c]; };
   const mul = (A, B) => [A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8], A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8], A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8]];
@@ -241,7 +241,7 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   const solveArm = (target, side, seed, rollMax = 0.08) => {
     const P = { ...seed };
     const keys = ['pitch', 'roll', 'elbow', 'wrist'];
-    const err = () => { const t = fk(P, side); const e = [target.p[0] - t.p[0], target.p[1] - t.p[1], target.p[2] - t.p[2]]; if (target.z) e.push(120 * (target.z[0] - t.z[0]), 120 * (target.z[1] - t.z[1]), 120 * (target.z[2] - t.z[2])); return e; };
+    const err = () => { const t = fk(P, side); const e = [target.p[0] - t.p[0], target.p[1] - t.p[1], target.p[2] - t.p[2]]; if (target.z) { const w = target.w ?? 120; e.push(w * (target.z[0] - t.z[0]), w * (target.z[1] - t.z[1]), w * (target.z[2] - t.z[2])); }; return e; };
     for (let it = 0; it < 600; it++) {
       const e = err(); const n = Math.hypot(...e); if (n < 0.5) break;
       const J = e.map(() => new Array(4).fill(0)); const h = 1e-4;
@@ -254,39 +254,65 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
       // arm), so it is capped near zero — the arms stay outboard of their
       // shoulders and never cross in front of the torso
       P.roll = Math.max(-1.0, Math.min(rollMax, P.roll));
-      P.elbow = Math.max(0, Math.min(2.6, P.elbow));
+      P.elbow = Math.max(-2.6, Math.min(0, P.elbow));   // elbow DOWN: the upper arm hangs and the forearm reaches forward, as photographed
     }
     const e = err(); return { P, err: Math.hypot(e[0], e[1], e[2]) };
   };
-  const seed = { pitch: 0.6, roll: -0.2, elbow: 0.9, wrist: 0.5 };
+  const seed = { pitch: -0.3, roll: 0, elbow: -1.2, wrist: -0.3 };
   const down = [0, 0, -1];
   // The box, on a table in front: base BD (x) by BW (y) at z = BZ, walls BH
   // tall when folded; its centre BX forward of the torso. Flaps lie flat
   // outward from each base edge until an arm folds them up.
-  const BZ = -200, BX = 240, BW = 300, BD = 180, BH = 120;
+  const BZ = -200, BX = 230, BW = 300, BD = 180, BH = 120;   // OPB in Flourish3D.jsx
+  // The shoulders are 480 mm apart (Ultra's front photo), so an arm may
+  // swing inward to its box-side reaches without coming near the other;
+  // roll is still capped so neither crosses the torso's front.
+  const ROLL_MAX = 0.55;
   const T = {
-    // each arm's second flap is grabbed on ITS OWN side of the box (y ±120 of
-    // a 300-wide box): at y ±70 the arm had to swing inward to reach it
-    RIGHT: { FLAP: [BX, BW / 2 + 60, BZ + 15], FLAP_UP: [BX, BW / 2 - 12, BZ + BH + 8], FLAP2: [BX + BD / 2 + 50, 120, BZ + 15], FLAP2_UP: [BX + BD / 2 - 12, 120, BZ + BH + 8],
-             // the item and the box work on the RIGHT half (y > 0): reaching the
-             // box's centre took the right arm across in front of the left one
-             ITEM: [BX - 30, BW / 2 + 110, BZ + 40], ITEM_UP: [BX - 30, BW / 2 + 110, BZ + 240], OVER: [BX, 100, BZ + 250], IN: [BX, 100, BZ + 70],
-             // REST: elbow up, hand forward and clear of the table — hanging
-             // straight down the 630 mm arm put the fingertips 80 mm INTO the
-             // table top, which is 500 mm below the shoulder
-             REST: [200, 230, -60] },
-    LEFT:  { FLAP: [BX, -(BW / 2 + 60), BZ + 15], FLAP_UP: [BX, -(BW / 2 - 12), BZ + BH + 8], FLAP2: [BX - BD / 2 - 50, -120, BZ + 15], FLAP2_UP: [BX - BD / 2 + 12, -120, BZ + BH + 8], REST: [200, -230, -60] },
+    // each arm's second flap is grabbed on ITS OWN side of the box (y ±130 of
+    // a 300-wide box), so an arm never reaches across the middle
+    RIGHT: { FLAP: [BX, BW / 2 + 60, BZ + 15], FLAP_UP: [BX, BW / 2 - 12, BZ + BH + 8], FLAP2: [BX + BD / 2 + 50, 130, BZ + 15], FLAP2_UP: [BX + BD / 2 - 12, 130, BZ + BH + 8],
+             // the item and the box work on the RIGHT half (y > 0)
+             ITEM: [BX - 30, BW / 2 + 110, BZ + 40], ITEM_UP: [BX - 30, BW / 2 + 110, BZ + 240], OVER: [BX, 108, BZ + 185], IN: [BX, 108, BZ + 70],
+             // REST, as photographed: upper arm hanging, forearm reaching
+             // forward, the gripper pointing forward and down — clear above
+             // the table
+             REST: [330, 250, -70] },
+    LEFT:  { FLAP: [BX, -(BW / 2 + 60), BZ + 15], FLAP_UP: [BX, -(BW / 2 - 12), BZ + BH + 8], FLAP2: [BX - BD / 2 - 50, -130, BZ + 15], FLAP2_UP: [BX - BD / 2 + 12, -130, BZ + BH + 8], REST: [330, -250, -70] },
   };
+  const REST_DIR = [0.5, 0, -Math.sqrt(0.75)];
   const out = {};
   for (const [side, name, s] of [[1, 'RIGHT', T.RIGHT], [-1, 'LEFT', T.LEFT]]) {
     out[name] = {};
     for (const [k, p] of Object.entries(s)) {
-      // the drop into the box (right half, y 100) is the one reach that may
-      // swing a little inward; the other arm is at rest, outboard, then
-      const r = solveArm({ p, z: down }, side, seed, k === 'OVER' || k === 'IN' ? 0.3 : 0.08);
+      const r = solveArm({ p, z: k === "REST" ? REST_DIR : down, w: 25 }, side, seed, ROLL_MAX);   // a light hand on the tool axis: with the arm rolled inward it cannot point straight down, and the POSITION is what puts the gripper on the flap
       out[name][k] = { pitch: r3(r.P.pitch), roll: r3(r.P.roll), elbow: r3(r.P.elbow), wrist: r3(r.P.wrist) };
       console.log(`// op ${name} ${k.padEnd(8)} err ${r3(r.err)}mm  ${JSON.stringify(out[name][k])}`);
     }
+  }
+  // CHECK, along the loop (joint-space lerp between the waypoints, in the
+  // order Flourish3D's OPW_R / OPW_L run them): the lowest point of each arm
+  // (elbow, wrist, fingertips) against the table top, and the closest the
+  // two arms' elbows, wrists and tips come to each other
+  {
+    const R = out.RIGHT, L = out.LEFT;
+    const seqR = ['REST', 'FLAP', 'FLAP_UP', 'FLAP2', 'FLAP2_UP', 'ITEM_UP', 'ITEM', 'ITEM', 'ITEM_UP', 'OVER', 'IN', 'IN', 'OVER', 'REST'].map(k => R[k]);
+    const seqL = ['REST', 'FLAP', 'FLAP_UP', 'FLAP2', 'FLAP2_UP', ...Array(9).fill('REST')].map(k => L[k]);
+    const pts = (P, side) => {
+      const S = mul(rotX(-side * P.roll), rotY(P.pitch)), o = [0, side * S_Y, S_Z];
+      const e = ap(S, [0, 0, -L1]).map((x, i) => x + o[i]);
+      const E = mul(S, rotY(P.elbow)); const w = ap(E, [0, 0, -L2]).map((x, i) => x + e[i]);
+      const W = mul(E, rotY(P.wrist)); const t = ap(W, [0, 0, -L3]).map((x, i) => x + w[i]);
+      return [e, w, t];
+    };
+    const lp = (A, B, u) => Object.fromEntries(['pitch', 'roll', 'elbow', 'wrist'].map(k => [k, A[k] + (B[k] - A[k]) * u]));
+    let lo = Infinity, near = Infinity;
+    for (let i = 0; i < seqR.length - 1; i++) for (let j = 0; j <= 20; j++) {
+      const pr = pts(lp(seqR[i], seqR[i + 1], j / 20), 1), pl = pts(lp(seqL[i], seqL[i + 1], j / 20), -1);
+      for (const p of [...pr, ...pl]) lo = Math.min(lo, p[2]);
+      for (const a of pr) for (const b of pl) near = Math.min(near, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]));
+    }
+    console.log(`// op check: lowest arm point ${r3(lo - (BZ - 6))} mm above the table top; arms no closer than ${r3(near)} mm`);
   }
   console.log('OP_BOX =', JSON.stringify({ BZ, BX, BW, BD, BH }));
   console.log('OP_P =', JSON.stringify(out));

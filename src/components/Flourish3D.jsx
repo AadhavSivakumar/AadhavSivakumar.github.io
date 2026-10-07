@@ -590,11 +590,28 @@ const roundRect = (w, h, r, n = 5) => {
   for (const [cx, cy, a0] of cs) for (let i = 0; i <= n; i++) { const a = (a0 + (90 * i) / n) * DEG; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
   return pts;
 };
-const hornPts = z => Array.from({ length: 12 }, (_, i) => [15 * Math.cos((i / 12) * TAU), 15 * Math.sin((i / 12) * TAU), z]);
+const hornPts = (z, r = 15) => Array.from({ length: 12 }, (_, i) => [r * Math.cos((i / 12) * TAU), r * Math.sin((i / 12) * TAU), z]);
 const SERVO_HORNS = [face(hornPts(23.6)), face(hornPts(-23.6).reverse())];   // one polygon per face of the module
-const TORSO_SIL = roundRect(150, 200, 24, 3);
-const TORSO_SOLID = extrude(TORSO_SIL, 0, 330);
-const TORSO_WIRE = silWire(TORSO_SIL, 0, 330, 6);
+// The Ultra unit's torso, from Ultra's front photo: a T — a black case
+// (x forward 140, y across 180, rounded vertical edges) under a wider
+// SHOULDER COWL across its top (y ±150, 95 tall, its lower outer corners
+// chamfered up into the case), the arms' shoulder modules off its ends.
+// Numbers are UNIT's (Flourish3D's closure); they are repeated here because
+// the solids are built once at module scope.
+const U_W = 180, U_D = 140, U_H = 250, U_CH = 95, U_CW = 150;
+const TORSO_SIL = roundRect(U_D, U_W, 16, 3);
+const TORSO_SOLID = extrude(TORSO_SIL, 0, U_H - U_CH);
+const TORSO_WIRE = silWire(TORSO_SIL, 0, U_H - U_CH, 6);
+// the cowl: a profile in (y, z), extruded along x; placed with COWL_R
+// (local (a, b, c) → unit (y, z, x): a proper rotation, so it culls the same)
+const COWL_SIL = [[-112, U_H - U_CH], [112, U_H - U_CH], [U_CW, U_H - U_CH + 44], [U_CW, U_H], [-U_CW, U_H], [-U_CW, U_H - U_CH + 44]];
+const COWL_SOLID = extrude(COWL_SIL, -U_D / 2, U_D / 2);
+const COWL_WIRE = silWire(COWL_SIL, -U_D / 2, U_D / 2, 1);
+const COWL_R = [0, 0, 1, 1, 0, 0, 0, 1, 0];
+// Ultra's mark, as on the torso's front: a cup (two uprights on a base
+// bar) holding a ball, on a narrower step — in a plane, local x DOWN, y across
+const LOGO = [...plate(12, 62, 18, 0, 0), ...plate(38, 12, -7, -25, 0), ...plate(38, 12, -7, 25, 0), ...plate(9, 28, 28.5, 0, 0),
+  face(Array.from({ length: 14 }, (_, i) => [-9 + 12 * Math.cos((i / 14) * TAU), 12 * Math.sin((i / 14) * TAU), 0]))];
 const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
 const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
 const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
@@ -2111,34 +2128,67 @@ export default function Flourish3D({ side = 'right' }) {
     // and two black arms off the torso's top corners — shoulder, upper arm,
     // elbow, forearm, wrist — ending in parallel grippers with orange tips.
     const CART_X = STAND_X + 24, FLOOR_Y = 158;
-    const ULTRA_ROOT = [CART_X + 46, FLOOR_Y - 66];
+    const ULTRA_ROOT = [CART_X + 30, FLOOR_Y - 66];
+    // The cart, from Ultra's side photo (ultra.tech): an H of black box
+    // section on four casters — two long feet running FORWARD (the way the
+    // unit faces, toward the viewer), a crossbar behind — a black base plate,
+    // an OPEN black rack on it holding the electronics, with the black
+    // pedestal column inside it and the Fairino standing on its top plate;
+    // the signal pole rising beside the arm's base, a grey stack light lit
+    // green on top; a yellow e-stop on the left foot's rear end; a red cable coiled on
+    // the rack. ONE list, so the act-4 and act-5 morphs aim at the same
+    // boxes drawCart draws. Stage px, [w, h, d, x, y, z, mat].
+    const C_RX = ULTRA_ROOT[0], C_CX = C_RX - 6, C_RZ = -2, POLE = [C_RX - 33, -26];
+    const CART_BOXES = [
+      [12, 10, 190, C_CX - 74, FLOOR_Y - 8, 34, MAT.poly],            // 0 left foot
+      [12, 10, 190, C_CX + 74, FLOOR_Y - 8, 34, MAT.poly],            // 1 right foot
+      [136, 10, 12, C_CX, FLOOR_Y - 8, -42, MAT.poly],                // 2 crossbar
+      [132, 4, 70, C_CX, FLOOR_Y - 15, -14, MAT.poly],                // 3 base plate
+      [114, 4, 86, C_RX, FLOOR_Y - 64, C_RZ, MAT.poly],               // 4 the rack's top plate (the Fairino stands on it)
+      [30, 44, 30, C_RX, FLOOR_Y - 39, C_RZ, MAT.poly],               // 5 the pedestal column (drawn ROUND; a box to the morphs)
+      [34, 30, 56, C_RX - 36, FLOOR_Y - 32, C_RZ + 4, MAT.poly],      // 6 the electronics
+      ...[[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => [4, 45, 4, C_RX + sx * 55, FLOOR_Y - 39.5, C_RZ + sz * 41, MAT.poly]),   // 7-10 the rack's posts
+      [3, 246, 3, POLE[0], FLOOR_Y - 189, POLE[1], MAT.steel],          // 11 the signal pole
+      [7, 16, 7, POLE[0], FLOOR_Y - 320, POLE[1], MAT.alu],             // 12 the stack light's grey body
+      [8, 11, 8, POLE[0], FLOOR_Y - 333.5, POLE[1], MAT.green],         // 13 its lit green tier
+      [16, 8, 12, C_CX - 74, FLOOR_Y - 17, -50, MAT.ochre],             // 14 the e-stop box, on the left foot's rear end
+    ];
     function drawCart(u, alpha, off = [0, 0, 0]) {
       if (u <= 0.01 || alpha <= 0.01) return;
       const F = place(IDENT, off); const a = alpha;
       const ax = ULTRA_ROOT[0], ay = FLOOR_Y, az = 0;       // one piece, about the pedestal's foot (see drawFrame)
-      const box = (w, h, d, x, y, z, mat) => { const X = ax + (x - ax) * u, Y = ay + (y - ay) * u, Z = az + (z - az) * u; submit(boxFaces(w * u, h * u, d * u, X, Y, Z), F, mat, a); submitLines(boxWire(w * u, h * u, d * u, X, Y, Z), F, matLine[mat], LOOK.line * a, LOOK.width); };
-      // the base frame: two rails and two cross members, casters at the corners
-      box(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly); box(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly);
-      box(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly); box(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) drawDrum(place(mul(rotY(90 * DEG), scaleM(u)), [ax + (CART_X + sx * 74 - ax) * u, ay + (FLOOR_Y + 2 - ay) * u, az + (sz * 46 - az) * u]), 6, -4, 4, MAT.poly, a);
-      // the pedestal the arm stands on, the electronics box beside it
-      box(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly);
-      box(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly);
-      // the signal pole and its lamp
-      box(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel);
-      box(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.green);     // the stack light, green as in Ultra's photos
+      const S = p => [ax + (p[0] - ax) * u, ay + (p[1] - ay) * u, az + (p[2] - az) * u];
+      CART_BOXES.forEach(([w, h, d, x, y, z, mat], i) => {
+        if (i === 5) return;
+        const [X, Y, Z] = S([x, y, z]);
+        submit(boxFaces(w * u, h * u, d * u, X, Y, Z), F, mat, a);
+        if (i !== 11) submitLines(boxWire(w * u, h * u, d * u, X, Y, Z), F, matLine[mat], LOOK.line * a, LOOK.width);
+      });
+      const up = p => chain(F, place(mul(rotX(90 * DEG), scaleM(u)), S(p)));    // local z up
+      drawDrum(up([C_RX, FLOOR_Y - 17, C_RZ]), 15, 0, 45, MAT.poly, a);         // the pedestal column
+      drawDrum(up([C_CX - 74, FLOOR_Y - 21, -50]), 4.5, 0, 4, MAT.red, a);      // the e-stop's button
+      for (const sx of [-1, 1]) for (const z of [-56, 124]) drawDrum(chain(F, place(mul(rotY(90 * DEG), scaleM(u)), S([C_CX + sx * 74, FLOOR_Y + 2, z]))), 6, -4, 4, MAT.poly, a);
+      // the red cable, coiled on the rack's front
+      if (u > 0.98) submitLines([0, 1, 2].map(i => ringAt(12, C_RX - 30 + i * 2.5, FLOOR_Y - 34 + i * 1.5, C_RZ + 46, 14)), F, matLine[MAT.red], LOOK.line * a, 1.4);
     }
     // The unit, drawn in its own frame: x forward (where the ZED looks), y
     // across the shoulders, z UP, origin at the torso's bottom centre; mm,
-    // the scale carried by the placement.
-    const UNIT = { W: 200, D: 150, H: 330, SY: 170, SZ: 300, L1: 260, L2: 250, L3: 120 };
+    // the scale carried by the placement. From Ultra's front photo: the case
+    // W x D, H to the top of the shoulder cowl (CH tall, ±CW wide); the arms
+    // hang at ±SY from shoulders SZ up, upper arm L1, forearm L2, wrist +
+    // gripper L3 to the fingertips; the Fairino's flange FZ up the case's
+    // back. S: the unit is drawn S times the Fairino's scale — Ultra mounts
+    // it on a far smaller Fairino than the FR20 baked here, and at the FR20's
+    // own scale the unit read as a toy hanging off a crane.
+    const UNIT = { W: U_W, D: U_D, H: U_H, CH: U_CH, CW: U_CW, SY: 240, SZ: 205, L1: 230, L2: 220, L3: 150, FZ: 175, S: 1.4 };
     // The frame the unit hangs in: upright, its back on the Fairino's flange,
     // facing the way the flange points (projected flat — the torso is a
     // payload that stays level however the wrist is turned).
-    function unitFrame(Tf, k) {
+    function unitFrame(Tf, k0) {
+      const k = k0 * UNIT.S;
       let fx = Tf.m[2], fz = Tf.m[8];                       // the flange normal, flattened
       let L = Math.hypot(fx, fz);
-      if (L < 0.2 * k) { fx = Tf.m[0]; fz = Tf.m[6]; L = Math.hypot(fx, fz) || 1; }
+      if (L < 0.2 * k0) { fx = Tf.m[0]; fz = Tf.m[6]; L = Math.hypot(fx, fz) || 1; }
       fx /= L; fz /= L;
       const f = [fx, 0, fz], up = [0, -1, 0];
       const sd = [up[1] * f[2] - up[2] * f[1], up[2] * f[0] - up[0] * f[2], up[0] * f[1] - up[1] * f[0]];   // up × f
@@ -2147,9 +2197,9 @@ export default function Flourish3D({ side = 'right' }) {
       // front of the flange (the torso's back face used to sit ON the
       // flange face, and the coupling drum reached back INTO the wrist mesh
       // — coplanar and intersecting solids z-fight as the arm moves, which
-      // is the "glitching" the owner saw) and 210 mm below it
+      // is the "glitching" the owner saw) and FZ below it
       const g = (UNIT.D / 2 + 12) * k;
-      return { m, t: [Tf.t[0] + f[0] * g, Tf.t[1] + 210 * k, Tf.t[2] + f[2] * g] };
+      return { m, t: [Tf.t[0] + f[0] * g, Tf.t[1] + UNIT.FZ * k, Tf.t[2] + f[2] * g] };
     }
     // one of the unit's arms: frames of shoulder, elbow, wrist, and the tool
     // point between the fingertips. `P` = { pitch, roll, elbow, wrist, open }:
@@ -2162,99 +2212,71 @@ export default function Flourish3D({ side = 'right' }) {
       const tcp = [Wr.m[2] * -UNIT.L3 + Wr.t[0], Wr.m[5] * -UNIT.L3 + Wr.t[1], Wr.m[8] * -UNIT.L3 + Wr.t[2]];
       return { S, E, Wr, tcp };
     }
+    // horn discs on both joint faces of a module (one polygon a face)
+    const hornsOn = (hy, r) => [face(hornPts(hy, r)), face(hornPts(-hy, r).reverse())];
+    const HORN_S = hornsOn(31.6, 12);   // the shoulder output only: steel discs on every module read as a ladder of dots
     function drawSmallArm(TU, P, side, a) {
       if (a <= 0.01) return;
       const { S, E, Wr } = smallArmFrames(TU, P, side);
       const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
       const box = (F, w, d, h, x, y, z, mat) => { submit(boxFaces(w, d, h, x, y, z), F, mat, a); line(boxWire(w, d, h, x, y, z), F, mat); };
-      // The shoulder: a block hung OFF the torso's top corner — outside it; a
-      // block inside the torso's top shared its volume and the two z-fought,
-      // flickering as the arm moved — with a yaw drum on top and the pitch
-      // drum outboard, ringed in the orange of Ultra's joints.
-      const sy = side * (UNIT.W / 2 + 25);
-      box(TU, 70, 50, 60, 0, sy, UNIT.H - 30, MAT.poly);
-      drawDrum(chain(TU, place(IDENT, [0, sy, UNIT.H])), 20, 0, 26, MAT.poly, a);
-      drawDrum(chain(TU, place(rotX(90 * DEG), [0, side * UNIT.SY, UNIT.SZ])), 34, -20, 20, MAT.poly, a, matLine[MAT.orange]);
-      // the cable from the torso's back to the shoulder, sagging
-      const cable = [];
-      for (let i = 0; i <= 6; i++) { const u = i / 6; cable.push([-UNIT.D / 2 - 6 + 6 * u, side * (70 + (UNIT.SY - 70) * u), UNIT.H - 60 + 84 * u - Math.sin(Math.PI * u) * 34]); }
-      submitLines([cable], TU, matLine[MAT.poly], LOOK.line * a * 0.8, 1.3);
-      // the arm, as in Ultra's footage: a chain of small square black SERVO
-      // MODULES (a horn disc on the joint face), joined by pairs of thin steel
-      // BRACKETS, with a cable looping along it
-      const servo = (F, z, rotAx) => {
-        const G = rotAx ? chain(F, place(rotAx, [0, 0, z])) : chain(F, place(IDENT, [0, 0, z]));
-        // FILLS ONLY: at ~0.17 px/mm a module is ten pixels, and its twelve
-        // edges (lifted toward the viewer by LINE_BIAS) showed through its own
-        // faces — the arm read as a see-through lattice
-        submit(boxFaces(54, 46, 62, 0, 0, 0), G, MAT.poly, a);
-        submit(SERVO_HORNS, chain(G, place(rotX(90 * DEG), [0, 0, 0])), MAT.steel, a);   // the horns on both faces: flat discs (a drum each cost ~45 draw calls an arm)
-      };
-      const brackets = (F, z0, z1) => {
-        for (const sy of [-1, 1]) submit(boxFaces(34, 5, Math.abs(z1 - z0), 0, sy * 26, (z0 + z1) / 2), F, MAT.poly, a);
-      };
-      servo(S, -30);                                  // shoulder pitch
-      servo(S, -86, rotZ(90 * DEG));                  // shoulder roll, turned
-      brackets(S, -114, -UNIT.L1 + 30);
-      servo(S, -UNIT.L1 * 0.62);                      // upper-arm module
-      servo(E, 0);                                    // elbow
-      brackets(E, -28, -UNIT.L2 + 30);
-      servo(E, -UNIT.L2 * 0.55, rotZ(90 * DEG));      // forearm module
-      servo(Wr, 0);                                   // wrist pitch
-      submit(boxFaces(40, 40, 22, 0, 0, -22), Wr, MAT.poly, a);   // wrist roll
+      // modules are FILLS ONLY: at ~0.27 px/mm a module is a dozen pixels,
+      // and its edges (lifted toward the viewer by LINE_BIAS) showed through
+      // its own faces — the arm read as a see-through lattice
+      const fill = (F, w, d, h, x, y, z) => submit(boxFaces(w, d, h, x, y, z), F, MAT.poly, a);
+      const horns = (F, H, z) => submit(H, chain(F, place(rotX(90 * DEG), [0, 0, z])), MAT.steel, a);
+      // The shoulder, as in the front photo: an actuator bridging out from
+      // the cowl's end to the shoulder module, whose output faces outward;
+      // the arm hangs from it
+      fill(TU, 58, UNIT.SY - UNIT.CW - 30, 58, 0, side * (UNIT.CW + UNIT.SY - 30) / 2, UNIT.SZ);
+      fill(S, 66, 62, 76, 0, 0, -4);  horns(S, HORN_S, -4);                  // shoulder module
+      fill(S, 52, 44, UNIT.L1 - 82, 0, 0, -UNIT.L1 / 2 - 4);                 // upper arm: a black link nearly a module wide
+      fill(E, 62, 58, 66, 0, 0, 0);                                          // elbow module
+      fill(E, 46, 40, UNIT.L2 - 74, 0, 0, -UNIT.L2 / 2);                     // forearm
+      fill(Wr, 54, 52, 56, 0, 0, 4);                                         // wrist pitch module
+      submit(drum(21, -50, -23), Wr, MAT.poly, a);                           // wrist roll, down the tool axis
       // the cable: along the outside of the chain, sagging between clips
       const cab = [];
-      const pts = [tpOf(S, [30, 0, -30]), tpOf(S, [34, 0, -UNIT.L1 * 0.62]), tpOf(E, [34, 0, 0]), tpOf(E, [30, 0, -UNIT.L2 * 0.55]), tpOf(Wr, [28, 0, 0])];
+      const pts = [tpOf(S, [34, 0, -20]), tpOf(S, [22, 0, -UNIT.L1 * 0.6]), tpOf(E, [32, 0, 0]), tpOf(E, [20, 0, -UNIT.L2 * 0.55]), tpOf(Wr, [28, 0, 0])];
       for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k <= 6; k++) { const u = k / 6; const p0 = pts[i], p1 = pts[i + 1]; cab.push([p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u + Math.sin(Math.PI * u) * 4 * detScale(TU.m), p0[2] + (p1[2] - p0[2]) * u]); }
       submitLines([cab], place(IDENT, [0, 0, 0]), matLine[MAT.poly], LOOK.line * a * 0.9, 1.2);
-      // the gripper: a body, its camera on the front, two fingers with pads
-      // on their inner faces, orange tips — the parallel grippers in the photos
-      box(Wr, 62, 38, 34, 0, 0, -47, MAT.poly);
-      box(Wr, 20, 18, 22, 40, 0, -47, MAT.poly);
-      line([ringAt(5, 0, 0, 0.5, 12), ringAt(2.5, 0, 0, 0.8, 8)], chain(Wr, place(rotY(90 * DEG), [50.5, 0, -47])), MAT.steel);
+      // the gripper, as photographed: a WIDE black body across the wrist (the
+      // fingers slide along it, on two steel rails on its face), a finger at
+      // each end pointing down the tool axis, orange tips
+      box(Wr, 50, 156, 50, 0, 0, -74, MAT.poly);
+      line([[[25.6, -64, -64], [25.6, 64, -64]], [[25.6, -64, -84], [25.6, 64, -84]]], Wr, MAT.steel);
       for (const sg of [-1, 1]) {
-        const x = sg * (P.open / 2 + 6);
-        box(Wr, 10, 30, 44, x, 0, -86, MAT.poly);
-        box(Wr, 2, 26, 36, x - sg * 6, 0, -92, MAT.steel);
-        box(Wr, 10, 30, 18, x, 0, -117, MAT.orange);
+        const y = sg * (P.open / 2 + 9);
+        box(Wr, 32, 20, 34, 0, y, -116, MAT.poly);
+        box(Wr, 30, 20, 17, 2, y, -141.5, MAT.orange);
       }
     }
     function drawUnit(TU, PR, PL, a, ga = 1) {
       if (a <= 0.01) return;
       const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
-      // the torso: the box, a top plate, a panel seam across its face, the
-      // orange logo, an e-stop on the plate
-      // the torso: a tall black case with ROUNDED vertical edges (Ultra's
-      // footage — a plain box read as a crate), a proud front panel with its
-      // seam, a handle slot on each side
+      // the torso: the black case, and the shoulder cowl across its top
       submit(TORSO_SOLID, TU, MAT.poly, a);
       line(TORSO_WIRE, TU, MAT.poly);
-      submit(boxFaces(8, UNIT.W - 56, UNIT.H - 70, UNIT.D / 2 + 4, 0, UNIT.H / 2 - 10), TU, MAT.poly, a);
-      line(boxWire(8, UNIT.W - 56, UNIT.H - 70, UNIT.D / 2 + 4, 0, UNIT.H / 2 - 10), TU, MAT.iron);
-      for (const sy of [-1, 1]) line([rect(60, 14, 0, UNIT.H * 0.78, 0)].map(pl => pl.map(([x, z]) => [x, sy * (UNIT.W / 2 + 0.6), z])), TU, MAT.iron);
-      submit(boxFaces(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly, a);
-      line(boxWire(UNIT.D + 8, UNIT.W + 8, 6, 0, 0, UNIT.H + 3), TU, MAT.poly);
-      // the SHOULDER YOKE (Ultra's footage): a horizontal black beam across the
-      // torso's top, out to both shoulders, with a steel edge
-      submit(boxFaces(56, 2 * UNIT.SY + 40, 44, 0, 0, UNIT.SZ + 32), TU, MAT.poly, a);
-      line(boxWire(56, 2 * UNIT.SY + 40, 44, 0, 0, UNIT.SZ + 32), TU, MAT.poly);
-      line([[[28.5, -UNIT.SY - 20, UNIT.SZ + 18], [28.5, UNIT.SY + 20, UNIT.SZ + 18]]], TU, MAT.steel);
-      // vent slots on the torso's side
-      for (const sy of [-1, 1]) line(Array.from({ length: 5 }, (_, i) => [[-30 + i * 14, sy * (UNIT.W / 2 + 0.5), UNIT.H * 0.3], [-30 + i * 14, sy * (UNIT.W / 2 + 0.5), UNIT.H * 0.55]]), TU, MAT.steel);
-      line([[[UNIT.D / 2 + 0.4, -UNIT.W / 2 + 10, UNIT.H * 0.66], [UNIT.D / 2 + 0.4, UNIT.W / 2 - 10, UNIT.H * 0.66]]], TU, MAT.steel);
-      // Ultra's mark: an orange cup (two uprights and a base) with two
-      // squares inside it, on the front panel
-      { const LG = chain(TU, place(rotY(90 * DEG), [UNIT.D / 2 + 8.6, 0, UNIT.H * 0.42]));
-        submit([...plate(12, 66, 22, 0, 0), ...plate(46, 12, 5, -27, 0), ...plate(46, 12, 5, 27, 0), ...plate(14, 14, -6, -9, 0), ...plate(14, 14, -6, 9, 0)], LG, MAT.orange, a); }
-      drawDrum(chain(TU, place(IDENT, [-40, -70, UNIT.H + 6])), 9, 0, 10, MAT.orange, a);
-      // the mast, and the ZED 2i on it (a real mesh), looking forward
-      submit(boxFaces(24, 24, 60, 0, 0, UNIT.H + 36), TU, MAT.poly, a);
-      line(boxWire(24, 24, 60, 0, 0, UNIT.H + 36), TU, MAT.poly);
+      const TC = chain(TU, place(COWL_R, [0, 0, 0]));
+      submit(COWL_SOLID, TC, MAT.poly, a);
+      line(COWL_WIRE, TC, MAT.poly);
+      // Ultra's mark, low on the case front, as in the photos
+      submit(LOGO, chain(TU, place(mul(rotY(90 * DEG), scaleM(1.35)), [UNIT.D / 2 + 0.8, 0, 62])), MAT.orange, a);
+      // the ZED's mount: a black column on the cowl, a small bracket, and
+      // the ZED 2i on it (a real mesh), looking forward
+      drawDrum(chain(TU, place(IDENT, [0, 0, UNIT.H])), 32, 0, 50, MAT.poly, a);
+      submit(boxFaces(30, 44, 44, 0, 0, UNIT.H + 72), TU, MAT.poly, a);
       const zed = ROBOTS.ultra.parts.find(p => p.body === 'zed');
-      if (zed) submitMesh(zed, chain(TU, place(IDENT, [12, 0, UNIT.H + 84])), MAT.poly, a, matLine[MAT.poly]);
+      if (zed) submitMesh(zed, chain(TU, place(IDENT, [10, 0, UNIT.H + 112])), MAT.poly, a, matLine[MAT.poly]);
+      // the cable from the case's back up to each shoulder, sagging
+      for (const sd of [-1, 1]) {
+        const cable = [];
+        for (let i = 0; i <= 6; i++) { const u = i / 6; cable.push([-UNIT.D / 2 - 5 + 10 * u, sd * (50 + (UNIT.SY - 80) * u), UNIT.H - 40 - Math.sin(Math.PI * u) * 30]); }
+        line([cable], TU, MAT.poly, 1.3);
+      }
       // the coupling to the Fairino's flange: the 12 mm between the torso's
       // back and the flange face, orange-ringed, touching both and inside neither
-      drawDrum(chain(TU, place(rotY(90 * DEG), [-UNIT.D / 2, 0, 210])), 44, -12, 0, MAT.alu, a, matLine[MAT.orange]);
+      drawDrum(chain(TU, place(rotY(90 * DEG), [-UNIT.D / 2, 0, UNIT.FZ])), 44, -12, 0, MAT.alu, a, matLine[MAT.orange]);
       // arms arriving grow out of their shoulders rather than fading in
       if (ga > 0.03) for (const [P, sd] of [[PR, 1], [PL, -1]]) {
         const sh = [TU.m[1] * sd * UNIT.SY + TU.m[2] * UNIT.SZ + TU.t[0], TU.m[4] * sd * UNIT.SY + TU.m[5] * UNIT.SZ + TU.t[1], TU.m[7] * sd * UNIT.SY + TU.m[8] * UNIT.SZ + TU.t[2]];
@@ -2272,8 +2294,8 @@ export default function Flourish3D({ side = 'right' }) {
       // an orange annulus on the housing's outer face, white inside it
       { const Te = growPlacements(robot, B, q, grow)[robot.index.get('forearm_link')];
         if (detScale(Te.m) > 0.02 * detScale(B.m)) {
-          drawDrum(Te, 104, 133, 136, MAT.orange, alpha);
-          drawDrum(Te, 84, 133, 138, MAT.pla, alpha);
+          drawDrum(Te, 80, 132.4, 134.4, MAT.orange, alpha);
+          drawDrum(Te, 63, 132.4, 135.2, MAT.pla, alpha);
         } }
       const Tf = bodyPlacements(robot, B, q)[robot.index.get('wrist3_link')];
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(B.m));
@@ -2281,7 +2303,22 @@ export default function Flourish3D({ side = 'right' }) {
       const gu = bodyAlpha ? (bodyAlpha.unit ?? 1) : 1;
       const TUd = gu < 1 ? scaleAbout(TU, gu, Tf.t) : TU;
       if (gu > 0.03) drawUnit(TUd, PR, PL, 1, armAlpha);
-      return TUd;                                   // the unit AS DRAWN (the arm morph aims at it)
+      // the WHITE braided cable in Ultra's photos: from under the unit's
+      // case, down the front of the Fairino to its base (a ribbon turned to
+      // the viewer, both faces; a GL line is one pixel)
+      if (alpha > 0.98 && gu >= 1 && !bodyAlpha) {
+        const p0 = tpOf(TU, [-UNIT.D / 2 + 30, 40, 0]), p3 = [B.t[0] + 8, B.t[1] - 30, B.t[2] + 24];
+        const p1 = [p0[0], p0[1] + 50, p0[2] + 16], p2 = [p3[0] + 4, p3[1] - 50, p3[2] + 14];
+        const fs = [], hw = 1.3, pts = [];
+        for (let i = 0; i <= 14; i++) { const u = i / 14, v = 1 - u; pts.push([0, 1, 2].map(c => v * v * v * p0[c] + 3 * v * v * u * p1[c] + 3 * v * u * u * p2[c] + u * u * u * p3[c])); }
+        for (let i = 0; i < 14; i++) {
+          const A = pts[i], Bp = pts[i + 1], dx = Bp[0] - A[0], dy = Bp[1] - A[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l * hw, ny = dx / l * hw;
+          const q4 = [[A[0] + nx, A[1] + ny, A[2]], [Bp[0] + nx, Bp[1] + ny, Bp[2]], [Bp[0] - nx, Bp[1] - ny, Bp[2]], [A[0] - nx, A[1] - ny, A[2]]];
+          fs.push(face(q4), face(q4.slice().reverse()));
+        }
+        submit(fs, place(IDENT, [0, 0, 0]), MAT.pla, 1);
+      }
+      return TUd;                                  // the unit AS DRAWN (the arm morph aims at it)
     }
     const UL_ORDER = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link', 'unit', 'zed'];
 
@@ -2373,18 +2410,15 @@ export default function Flourish3D({ side = 'right' }) {
     const UR_W_L = urW([3.555, -2.582, -1.815, 0.456, 2.253, 0, 90], [3.289, -2.218, -2.08, 0.156, 2.42, 0, 90], [3.149, -2.79, -1.938, 0.435, 2.486, 0, 90], [2.952, -2.554, -2.061, 0.06, 2.543, 0, 90]);
     // the OP1's small arms (right; the left is the mirror by construction)
     const op = (P, open) => ({ ...P, open });
-    // ...solved in scripts/ik-poses.mjs with the arms kept OUTBOARD (roll,
-    // which swings an arm inward in this chain, capped near zero; a little
-    // inward only for the drop into the box, when the other arm is at rest),
-    // each arm's second flap grabbed on its own side, and a rest pose with
-    // the elbow up: hanging, the 630 mm arms put their fingertips 80 mm into
-    // the table top
-    const OP_REST = { pitch: -1.562, roll: -0.149, elbow: 1.805, wrist: -0.242 };
-    const OP_R = { FLAP: { pitch: -1.105, roll: -0.078, elbow: 1.074, wrist: 0.031 }, FLAP_UP: { pitch: -1.555, roll: 0.078, elbow: 1.635, wrist: -0.08 },
-                   FLAP2: { pitch: -0.791, roll: 0.08, elbow: 0, wrist: 0.72 }, FLAP2_UP: { pitch: -1.526, roll: 0.08, elbow: 1.291, wrist: 0.235 },
-                   ITEM: { pitch: -1.174, roll: -0.181, elbow: 1.294, wrist: -0.119 }, ITEM_UP: { pitch: -1.937, roll: -0.28, elbow: 2.068, wrist: -0.131 },
-                   OVER: { pitch: -2.01, roll: 0.225, elbow: 1.991, wrist: 0.019 }, IN: { pitch: -1.315, roll: 0.15, elbow: 1.361, wrist: -0.046 } };
-    const OP_L = { FLAP: { pitch: -1.105, roll: -0.078, elbow: 1.074, wrist: 0.031 }, FLAP_UP: { pitch: -1.555, roll: 0.078, elbow: 1.635, wrist: -0.08 }, FLAP2: { pitch: -0.976, roll: 0.08, elbow: 1.456, wrist: -0.48 }, FLAP2_UP: { pitch: -1.477, roll: 0.08, elbow: 1.875, wrist: -0.398 } };
+    // ...solved in scripts/ik-poses.mjs (roll, which swings an arm inward in
+    // this chain, capped at 0.55 — the arms are 480 mm apart and come no
+    // closer than 270 mm; the lowest point of either stays 20 mm above the
+    // table), each arm's second flap grabbed on its own side
+    // (Oct 7: re-solved for the arms as photographed — shoulders 480 mm
+    // apart, the ELBOW DOWN: upper arm hanging, forearm reaching forward)
+    const OP_REST = { pitch: -0.218, roll: -0.036, elbow: -1.721, wrist: 1.415 };
+    const OP_R = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: -0.92, roll: 0.274, elbow: -0.096, wrist: 1.016 }, FLAP2_UP: { pitch: -0.433, roll: 0.375, elbow: -1.417, wrist: 1.85 }, ITEM: { pitch: 0.085, roll: -0.054, elbow: -1.718, wrist: 1.633 }, ITEM_UP: { pitch: -0.425, roll: -0.118, elbow: -2.218, wrist: 2.644 }, OVER: { pitch: -0.197, roll: 0.536, elbow: -1.946, wrist: 2.142 }, IN: { pitch: -0.047, roll: 0.374, elbow: -1.613, wrist: 1.66 } };
+    const OP_L = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: 0.557, roll: 0.274, elbow: -1.852, wrist: 1.294 }, FLAP2_UP: { pitch: 0.24, roll: 0.375, elbow: -2.161, wrist: 1.92 } };
     const OPW_R = [op(OP_REST, 60), op(OP_R.FLAP, 60), op(OP_R.FLAP_UP, 60), op(OP_R.FLAP2, 60), op(OP_R.FLAP2_UP, 60),
                    op(OP_R.ITEM_UP, 100), op(OP_R.ITEM, 100), op(OP_R.ITEM, 76), op(OP_R.ITEM_UP, 76), op(OP_R.OVER, 76), op(OP_R.IN, 76), op(OP_R.IN, 100), op(OP_R.OVER, 100), op(OP_REST, 60)];
     const OPW_L = [op(OP_REST, 60), op(OP_L.FLAP, 60), op(OP_L.FLAP_UP, 60), op(OP_L.FLAP2, 60), op(OP_L.FLAP2_UP, 60),
@@ -2720,7 +2754,7 @@ export default function Flourish3D({ side = 'right' }) {
       drawOpenBox([d[0], d[1] + 80 * k, d[2]], 240, 240, 160, R_UP, k, MAT.iron, alpha);
     }
     // the OP1's job, in the unit's frame: the box's flaps and the item
-    const OPB = { BZ: -200, BX: 210, BW: 300, BD: 180, BH: 120 };
+    const OPB = { BZ: -200, BX: 230, BW: 300, BD: 180, BH: 120, TW: 260, TL: 600 };   // TW x TL: the packing table under the box
     const lerpArm = (A, B, k) => ({ pitch: A.pitch + (B.pitch - A.pitch) * k, roll: A.roll + (B.roll - A.roll) * k, elbow: A.elbow + (B.elbow - A.elbow) * k, wrist: A.wrist + (B.wrist - A.wrist) * k, open: A.open + (B.open - A.open) * k });
     const ARM_KEYS = ['pitch', 'roll', 'elbow', 'wrist', 'open'];
     const armArr = P => ARM_KEYS.map(k => P[k]);
@@ -2766,10 +2800,10 @@ export default function Flourish3D({ side = 'right' }) {
       const { BZ, BX, BW, BD, BH } = OPB;
       const k = detScale(TU.m);
       // the packing table under the box, its legs down to the floor
-      submit(boxFaces(340, 500, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
-      submitLines(boxWire(340, 500, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
+      submit(boxFaces(OPB.TW, OPB.TL, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
+      submitLines(boxWire(OPB.TW, OPB.TL, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
       for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-        const c = tpOf(TU, [BX + sx * 150, sy * 230, BZ - 42]);
+        const c = tpOf(TU, [BX + sx * (OPB.TW / 2 - 20), sy * (OPB.TL / 2 - 20), BZ - 42]);
         const h = FLOOR_Y - c[1];
         if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.poly, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.poly], LOOK.line * alpha, LOOK.width); }
       }
@@ -3030,24 +3064,20 @@ export default function Flourish3D({ side = 'right' }) {
         const mount = sd => { const R = urMountR(sd); return OB(R, [FRAME_X + sd * UR_DX + R[1] * 4, MOUNT_Y + R[4] * 4, MOUNT_Z + R[7] * 4], [44, 8, 44], MAT.poly); };
         const wedge = sd => { const R = urMountR(sd), o = [-sd * 6, 19, 0]; return OB(R, [FRAME_X + sd * UR_DX + R[0] * o[0] + R[1] * o[1], MOUNT_Y + R[3] * o[0] + R[4] * o[1], MOUNT_Z + R[6] * o[0] + R[7] * o[1]], [30, 22, 36], MAT.poly); };
         const legBox = ([lx, lz]) => obAxis(9, LEG, 9, lx, TABLE_Y + 11 + LEG / 2, lz, MAT.poly);
+        const CB = i => obAxis(...CART_BOXES[i]);
         const pairs = [
-          [strip(0), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly)],
-          [strip(1), obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly)],
-          [strip(4), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly)],
-          [strip(5), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly)],
-          [strip(3), obAxis(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly)],
-          [obAxis(TOWER_W, Hp - 20, 40, FRAME_X, cyP + 10, MOUNT_Z, MAT.poly), obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel)],
-          [obAxis(TOWER_W, 20, 40, FRAME_X, TOWER_TOP + 10, MOUNT_Z, MAT.poly), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu)],
-          [mount(-1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
-          [mount(1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
-          [wedge(-1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
-          [wedge(1), obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly)],
-          // the table's legs and blue rails fold into the cart's base frame
-          ...TABLE_LEGS.map((L, i) => [legBox(L), obAxis(12, 10, 12, CART_X + (i % 2 ? 74 : -74), FLOOR_Y - 8, i < 2 ? -46 : 46, MAT.poly)]),
-          [obAxis(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, -48, MAT.teal), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly)],
-          [obAxis(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, 84, MAT.teal), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly)],
-          [obAxis(6, 6, 126, FRAME_X - POST_X + 20, FY - 10, 18, MAT.teal), obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly)],
-          [obAxis(6, 6, 126, FRAME_X + POST_X - 20, FY - 10, 18, MAT.teal), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly)],
+          [strip(0), CB(0)], [strip(1), CB(2)], [strip(4), CB(3)], [strip(5), CB(1)], [strip(3), CB(6)],
+          // the tower becomes the signal pole, its top the stack light's grey body (a tower-sized block turning green mid-flight read as a glitch)
+          [obAxis(TOWER_W, Hp - 20, 40, FRAME_X, cyP + 10, MOUNT_Z, MAT.poly), CB(11)],
+          [obAxis(TOWER_W, 20, 40, FRAME_X, TOWER_TOP + 10, MOUNT_Z, MAT.poly), CB(12)],
+          // the plates and wedges: the pedestal, the rack's top, the light's body, the e-stop
+          [mount(-1), CB(5)], [mount(1), CB(4)], [wedge(-1), CB(13)], [wedge(1), CB(14)],
+          // the table's legs become the rack's posts, its blue rails the cart's H
+          ...TABLE_LEGS.map((L, i) => [legBox(L), CB(7 + i)]),
+          [obAxis(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, -48, MAT.teal), CB(2)],
+          [obAxis(2 * POST_X - 40, 6, 6, FRAME_X, FY - 10, 84, MAT.teal), CB(3)],
+          [obAxis(6, 6, 126, FRAME_X - POST_X + 20, FY - 10, 18, MAT.teal), CB(0)],
+          [obAxis(6, 6, 126, FRAME_X + POST_X - 20, FY - 10, 18, MAT.teal), CB(1)],
         ];
         const cartDone = mw(9) >= 1;                       // the stagger is capped: 19 pieces, the last nine leave together
         if (cartDone) drawCart(1, 1);
@@ -3136,7 +3166,7 @@ export default function Flourish3D({ side = 'right' }) {
         const src = OB(R_UP, [dP[0], dP[1] + 80 * kP, dP[2]], [240 * kP, 240 * kP, 160 * kP], MAT.iron);
         const TUn2 = unitFrame(chain(bodyPlacements(ROBOTS.ultra, base, q)[ROBOTS.ultra.index.get('wrist3_link')], place(IDENT, [0, 0, 120])), RB.ul.k);
         const wB = smooth(win(t, 0.2, 0.6));
-        if (wB < 1) obDraw(obLerp(src, obIn(TUn2, 340, 500, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly), wB));
+        if (wB < 1) obDraw(obLerp(src, obIn(TUn2, OPB.TW, OPB.TL, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly), wB));
         else growUnitProps(TUn2, unitTaskState(TUn2, 0), 1);
       }
       flush();
@@ -3420,11 +3450,7 @@ export default function Flourish3D({ side = 'right' }) {
           const plate = OB(IDENT, floorC, [180, 2, 80], MAT.poly);
           const wF = smooth(win(t, 0.04, 0.6));
           if (wF < 1) {
-            const cartOB = [obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, -46, MAT.poly), obAxis(170, 10, 12, CART_X, FLOOR_Y - 8, 46, MAT.poly),
-              obAxis(12, 10, 104, CART_X - 79, FLOOR_Y - 8, 0, MAT.poly), obAxis(12, 10, 104, CART_X + 79, FLOOR_Y - 8, 0, MAT.poly),
-              obAxis(48, 56, 48, ULTRA_ROOT[0], FLOOR_Y - 41, -2, MAT.poly), obAxis(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly),
-              obAxis(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel), obAxis(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu),
-              obIn(TU5, 340, 500, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly)];
+            const cartOB = [...CART_BOXES.map(b => obAxis(...b)), obIn(TU5, OPB.TW, OPB.TL, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly)];
             if (wF <= 0) { drawCart(1, 1); growUnitProps(TU5, unitTaskState(TU5, 0), 1); }
             else {
               const f1 = smooth(clamp(wF / 0.3, 0, 1)), f2 = smooth(clamp((wF - 0.25) / 0.5, 0, 1));
@@ -3456,7 +3482,7 @@ export default function Flourish3D({ side = 'right' }) {
       drawMorph(ROBOTS.ultra, ulBase, RB.ul.rest, g1, base, qFinal, smooth(win(t, 0.06, 0.6)), true);
       const travel = smooth(win(t, 0.12, 0.6));
       const Tt = bodyPlacements(g1, base, H.rest)[torso];
-      const TL = lerpT(TU, Tt, travel, RB.ul.k, RB.hum.k);
+      const TL = lerpT(TU, Tt, travel, detScale(TU.m), RB.hum.k);
       const ua = 1 - smooth(win(t, 0.45, 0.3));
       if (ua > 0.03) drawUnit(scaleT(TL, ua), RB.ul.unit.R[0], RB.ul.unit.L[0], 1);
       const ga = smooth(win(t, 0.38, 0.25));
