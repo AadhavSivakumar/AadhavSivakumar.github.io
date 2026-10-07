@@ -2519,10 +2519,10 @@ export default function Flourish3D({ side = 'right' }) {
     // the side, +1.3 puts it straight up; l_arm_elx bends the elbow in that
     // same plane, so with the upper arm raised out at 45° the forearm swings
     // toward and away from the head — which IS a wave)
-    const HUM_SHX_DOWN = -1.3;       // hanging at the side
+    const HUM_SHX_DOWN = -1.46;      // hanging at the side, close in (Atlas's hands hang just outside its hips)
     const HUM_ELX_REST = 0.35;       // a little bend at the elbow, hanging
     const HUM_ELX_FOLD = 0.9;        // bent a little more than at rest, packed (at 2.0 the forearms swung out sideways and the crouch was as wide as the stage)
-    const HUM_WAVE_SHZ = 0, HUM_WAVE_SHX = 0.75, HUM_WAVE_ELY = 0, HUM_WAVE_ELX = 1.6;   // upper arm out and up, forearm up beside the head
+    const HUM_WAVE_SHZ = 0, HUM_WAVE_SHX = 0.75, HUM_WAVE_ELY = 0, HUM_WAVE_ELX = 1.4;   // upper arm out and up, forearm up beside the head
     // ── the humanoid: Boston Dynamics' ATLAS, and its goodbye ───────────
     // The DRC-era Atlas (v5), from Drake's model — thirty revolute joints,
     // consumed by the forward kinematics in the bake's body order. A pose is
@@ -2545,7 +2545,7 @@ export default function Flourish3D({ side = 'right' }) {
     const HUM_ARM = [0, HUM_SHX_DOWN, 0, HUM_ELX_REST, 0, 0, 0];
     const HUM_REST = humMap(HUM_LEG, {}, armL(HUM_ARM), armR(HUM_ARM));
     const humWave = (elx, lwy, bkz) => humMap(HUM_LEG, { ltorso: bkz }, armL([HUM_WAVE_SHZ, HUM_WAVE_SHX, HUM_WAVE_ELY, elx, 0, 0, lwy]), armR(HUM_ARM));
-    const HUM_UP = humWave(HUM_WAVE_ELX, 0, -0.1), HUM_A = humWave(HUM_WAVE_ELX - 0.45, 0.3, -0.12), HUM_B = humWave(HUM_WAVE_ELX + 0.35, -0.3, -0.12);
+    const HUM_UP = humWave(HUM_WAVE_ELX, 0, -0.1), HUM_A = humWave(HUM_WAVE_ELX - 0.35, 0.3, -0.12), HUM_B = humWave(HUM_WAVE_ELX + 0.2, -0.3, -0.12);
     // packed, as it comes out of the unit: crouched, arms folded in
     const HUM_FOLDED = humMap(legs(-1.2, 2.1, -0.9), { mtorso: 0.35 }, armL([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]), armR([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]));
     RB.hum = { k: 0.25, root: [10, 236], yaw: 255,   // 255 faces the reader (the head's sensor face shows); 75 showed the back of the cage

@@ -98,6 +98,56 @@ export function createAtlasGL(host) {
   }
   const RIGID = { torso: { body: 'utorso', ref: TORSO }, pelvis: { body: 'pelvis', ref: PELVIS } };
   const refOf = id => (RIGID[id] ? RIGID[id].ref : LIMBS.find(l => l.id === id).P);
+
+  // ── PROPORTIONS: the illustration re-proportioned to Atlas's photos ──
+  // (bostondynamics.com/products/atlas; measured in head heights off the
+  // front photos and the product render, then off our own renders). Every
+  // change is a deformation in MODEL space, applied to the vertices AND to
+  // the joint points the pieces hang from, so a limb never parts:
+  // - SEG: a limb segment stretched along its bone (model y) between two
+  //   heights [hi, lo], the joints above and below kept rigid (so the
+  //   elbow and knee drums stay round) and everything below `lo` carried
+  //   down/up by the change. The illustration had the forearm 0.8 of the
+  //   upper arm (Atlas: ~1.05) and the thigh 0.9 of the shin (Atlas: ~1.05);
+  //   thigh + shin keep their sum, so the feet stay on the floor ring.
+  // - the hand is a size larger (Atlas's grippers are big: ~2/3 of the
+  //   upper arm), scaled about the wrist.
+  // - the waist drum was 0.73 of the chest's width (Atlas: 0.5-0.6), the
+  //   chest 0.80 of its own height (Atlas: 0.70-0.74), and the hip barrel
+  //   0.32 of the chest's height (Atlas: 0.42-0.48).
+  const SEG = {
+    upper: [1.190, 0.985, 0.80],     // shoulder pod rigid; the arm tube shortened
+    fore: [0.940, 0.795, 1.15],      // elbow rigid; the forearm tube lengthened
+    thigh: [0.700, 0.525, 1.145],    // hip yaw and knee rigid
+    shin: [0.405, 0.140, 0.905],     // knee and ankle rigid
+  };
+  const HAND_K = 1.14;
+  const segY = (y, [hi, lo, s]) => y >= hi ? y : y >= lo ? hi - (hi - y) * s : y - (hi - lo) * (s - 1);
+  const segIn = (y, [hi, lo]) => y < hi && y > lo;
+  const CHEST_K = 0.90, POD_IN = 0.155, POD_OUT = 0.225;
+  const WAIST_KX = 0.74, WAIST_KZ = 0.86, MID_Z = -0.01;
+  const PELVIS_K = 1.3, HIP_Y = 0.80;
+  // q: a model point; id its piece; part its part name (null for a joint
+  // point). Returns [point, normal scale [sx, sy, sz]] — normals scale by
+  // the inverse of the deformation's local stretch.
+  const deform = (id, q, part) => {
+    let [x, y, z] = q, ns = [1, 1, 1];
+    const t = id.replace(/^[lr](?=upper|fore|hand|thigh|shin|foot)/, '');   // 'lupper' -> 'upper'
+    if (SEG[t]) { if (segIn(y, SEG[t])) ns[1] = 1 / SEG[t][2]; y = segY(y, SEG[t]); }
+    if (t === 'hand') { const P = refOf(id); x = P[0] + (x - P[0]) * HAND_K; y = P[1] + (y - P[1]) * HAND_K; z = P[2] + (z - P[2]) * HAND_K; }
+    if (id === 'torso' && part) {
+      if (/^Torso/.test(part)) { x *= CHEST_K; ns[0] = 1 / CHEST_K; }
+      else if (/^Shoulder_(Pitch|Band)/.test(part)) {     // the pods reach in to the narrower chest; their outer face stays
+        const s = (POD_OUT - POD_IN * CHEST_K) / (POD_OUT - POD_IN), ax = Math.abs(x);
+        x = Math.sign(x) * (POD_OUT - (POD_OUT - ax) * s); ns[0] = 1 / s;
+      } else if (/^Waist_/.test(part)) { x *= WAIST_KX; z = MID_Z + (z - MID_Z) * WAIST_KZ; ns[0] = 1 / WAIST_KX; ns[2] = 1 / WAIST_KZ; }
+    }
+    if (id === 'pelvis' && part) {                     // a taller hip barrel, its drums kept round, about the hip axis
+      y = HIP_Y + (y - HIP_Y) * PELVIS_K; z = MID_Z + (z - MID_Z) * PELVIS_K; ns[1] = ns[2] = 1 / PELVIS_K;
+    }
+    return [[x, y, z], ns];
+  };
+  const dp = (id, q) => deform(id, q, null)[0];      // a joint point, deformed with its piece
   // each limb's rest frame (fwd, left, up columns → a bone-aligned basis)
   const norm = v => { const L = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
   const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -107,7 +157,7 @@ export function createAtlasGL(host) {
     const e0 = norm(fwd.map((v, i) => v - dot(fwd, e2) * e2[i]));
     return [e0, cross(e2, e0), e2];
   };
-  for (const L of LIMBS) if (L.C) { L.len = Math.hypot(...conv(L.C, L.P)); L.rest = frame(conv(L.C, L.P), [1, 0, 0]); }
+  for (const L of LIMBS) if (L.C) { L.end = conv(dp(L.id, L.C), L.P); L.len = Math.hypot(...L.end); L.rest = frame(L.end, [1, 0, 0]); }
 
   const groups = new Map();              // piece id -> Group (matrix set per frame)
   const bbox = new Map();                // piece id -> local bounding box (mm)
@@ -185,7 +235,7 @@ export function createAtlasGL(host) {
     // the head is drawn a size smaller than the illustration's (Atlas's head
     // is about two thirds of its chest's width): scaled about the bottom of
     // its shell, where it sits on the neck
-    const HEAD_K = 0.84;
+    const HEAD_K = 0.86;
     let hb = null;
     for (const p of hdr.parts) if (/^Head_/.test(p.name)) for (let i = 0; i < p.vCount; i++) {
       const k = (p.v0 + i) * 3, x = P[k] / 1e4, y = P[k + 1] / 1e4, z = P[k + 2] / 1e4;
@@ -200,9 +250,11 @@ export function createAtlasGL(host) {
         const k = (p.v0 + i) * 3, n = (p.v0 + i) * 4;
         let q = [P[k] / 1e4, P[k + 1] / 1e4, P[k + 2] / 1e4];
         if (isHead) q = q.map((v, j) => HO[j] + (v - HO[j]) * HEAD_K);
-        const c = conv(q, ref);
+        const [qd, ns] = deform(id, q, p.name);
+        const c = conv(qd, ref);
         pos[i * 3] = c[0]; pos[i * 3 + 1] = c[1]; pos[i * 3 + 2] = c[2];
-        nor[i * 3] = Nn[n + 2] / 127; nor[i * 3 + 1] = Nn[n] / 127; nor[i * 3 + 2] = Nn[n + 1] / 127;   // same axis shuffle
+        const nx = Nn[n] / 127 * ns[0], ny = Nn[n + 1] / 127 * ns[1], nz = Nn[n + 2] / 127 * ns[2], nl = Math.hypot(nx, ny, nz) || 1;
+        nor[i * 3] = nz / nl; nor[i * 3 + 1] = nx / nl; nor[i * 3 + 2] = ny / nl;   // same axis shuffle
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -249,7 +301,7 @@ export function createAtlasGL(host) {
         if (!root) { setGroup(L.id, null, false); continue; }
         // the pivot: the model's joint point carried by the piece above
         const rootRef = refOf(L.root);
-        const pivot = apply(root, conv(L.P, rootRef));
+        const pivot = apply(root, conv(dp(L.root, L.P), rootRef));
         if (!L.C) {                            // the foot: its skeleton body's orientation, at the ankle
           const F = at(L.body);
           const k = F ? scaleOf(F) : 0;
@@ -327,7 +379,7 @@ export function createAtlasGL(host) {
         const L = LIMBS.find(l => l.id === id);
         const c = [(bb.min[0] + bb.max[0]) / 2, (bb.min[1] + bb.max[1]) / 2];
         const p0 = L && L.C ? P.T.t : apply(P.T, [c[0], c[1], L ? bb.max[2] : bb.min[2]]);
-        const p1 = L && L.C ? apply(P.T, conv(L.C, L.P)) : apply(P.T, [c[0], c[1], L ? bb.min[2] : bb.max[2]]);
+        const p1 = L && L.C ? apply(P.T, L.end) : apply(P.T, [c[0], c[1], L ? bb.min[2] : bb.max[2]]);
         out[id] = { T: P.T, bb, p0, p1 };
       }
       return out;
