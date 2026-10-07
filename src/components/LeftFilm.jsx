@@ -139,17 +139,9 @@ export default function LeftFilm() {
 
     const stopScroll = onScroll(y => {
       // the stage fades in as the hero leaves (it used to form from the waves)
-      // DIMMED to a background texture while the lanyard badges share its
-      // column (Experience and Research): the camera showed through the gaps
-      // around the badges and read as clutter; full strength again as the
-      // reader leaves Research
-      const ex = document.getElementById('experience'), pr = document.getElementById('projects');
-      let dim = 1;
-      if (ex && pr) {
-        const a = ex.offsetTop - innerHeight * 0.5, z = pr.offsetTop - innerHeight * 0.35;
-        dim = y < a || y > z ? 1 : 0.28 + 0.72 * Math.max(smooth(win(a + innerHeight * 0.4 - y, 0, innerHeight * 0.4)), smooth(win(y, z - innerHeight * 0.4, innerHeight * 0.4)));
-      }
-      host.style.opacity = String(0.95 * smooth(win(heroPhase(y), 0.3, 0.62)) * dim);
+      // (Oct 7: no longer dimmed on Experience and Research — the owner found
+      // it too faint there; the badges' own halos keep the column legible)
+      host.style.opacity = String(0.95 * smooth(win(heroPhase(y), 0.3, 0.62)));
       const s = actAt(y);
       if (s.i === state.i && Math.abs(s.t - state.t) < 0.002) return;
       state = s;

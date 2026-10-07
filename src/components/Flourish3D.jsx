@@ -1309,8 +1309,8 @@ export default function Flourish3D({ side = 'right' }) {
     const GL_STEEL = [172, 174, 177];
     // the UR's caps are a PALE grey-blue in Generalist's photos (the MJCF's
     // blue came out saturated), its links bare aluminium
-    const GL_URCAP = [166, 182, 194], GL_ALU = [196, 199, 203];
-    const glMatRGB = mat => (!dark && mat === MAT.pla ? PLA_LIGHT : mat === MAT.steel ? GL_STEEL : mat === MAT.urblue ? GL_URCAP : mat === MAT.alu ? GL_ALU : (matRGB[mat] || paperRGB));
+    const GL_URCAP = [166, 182, 194], GL_ALU = [196, 199, 203], GL_OCHRE = [238, 162, 32];   // Generalist's fingers are orange-yellow, not mustard
+    const glMatRGB = mat => (!dark && mat === MAT.pla ? PLA_LIGHT : mat === MAT.steel ? GL_STEEL : mat === MAT.urblue ? GL_URCAP : mat === MAT.alu ? GL_ALU : mat === MAT.ochre ? GL_OCHRE : (matRGB[mat] || paperRGB));
     function glMesh(part, T, mat, a) {
       let rgb = glMatRGB(mat);
       if (MESH_MIX) {

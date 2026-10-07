@@ -1532,7 +1532,7 @@ html[data-theme="dark"] {
    column at 0.28 on these two pages, and its camera sat right behind the
    first badge (the dark theme read its apertures as "0 0 0 0"). A page-
    coloured halo, static, hides it where the badge hangs and nowhere else. */
-.mlan::before { content: ""; position: absolute; z-index: -1; left: -220px; top: -60px; width: 440px; height: 600px; background: radial-gradient(closest-side, var(--background-color) 66%, color-mix(in srgb, var(--background-color) 0%, transparent)); pointer-events: none; }   /* z -1: under every card and badge in the section, still over the film */
+/* .mlan::before (a page-coloured halo hiding the left film behind each badge) removed Oct 7: the owner wants the film seen on Experience and Research */
 .mlan-pin { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff 0 12%, #b9b6ae 38%, #5c5a55 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.3); z-index: 3; }
 .mlan-hang { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 /* the strap is WOVEN, in the card's own colour (dark on the light site, pale
