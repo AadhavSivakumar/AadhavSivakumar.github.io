@@ -1159,36 +1159,92 @@ class IdleUntrained(Scene):
         idle(self, S0, IDLE_T * 1.5)
 
 
-def splat_set(loose=0.0, seed=3):
-    """Gaussian splats over the shot's surfaces, in the photo's colours:
-    anisotropic, rotated, translucent. loose 1 = scattered and bloated (the
-    start of the optimisation), 0 = settled on the surfaces."""
+def _splat_specs(seed=3):
+    """The splats of the reconstruction, once: where each SETTLES on a surface
+    of the shot (the table top, its front lip, the three cubes), its size and
+    angle there, its colour (the photo's, lifted off the page), and where it
+    STARTS: a loose, bloated blob somewhere in the volume over the table (the
+    initialisation the optimisation starts from), never outside the frame."""
     rnd = random.Random(seed)
-    samp = sampler(shot("real", 0.0, "static"))
-    g = VGroup()
-    pts = []
-    for _ in range(70):                                   # the table
-        pts.append((fp(rnd.uniform(-0.95, 0.95), rnd.uniform(0.03, 0.97)), 0.16, 0.05))
-    for (p, s) in [(A0, RED_S)] + DISTRACT:               # the cubes
+    W, yb, yt = frame_box()
+    tab = ManimColor(PAL["table"]).interpolate(ManimColor(PAL["soft"]), 0.42)
+    lip = ManimColor(PAL["lip"]).interpolate(ManimColor(PAL["soft"]), 0.3)
+    out = []
+
+    def add(pos, w, h, ang, col, op, key, lo=None):
+        if lo is None:
+            lo = fp(rnd.uniform(-0.85, 0.85), rnd.uniform(0.05, 0.95), rnd.uniform(0.05, 0.75))
+            lo = lo + np.array([rnd.uniform(-0.15, 0.15), rnd.uniform(-0.15, 0.15), 0])
+        lo = np.array(lo, dtype=float)
+        lo[0] = min(max(lo[0], -W + 0.25), W - 0.25)
+        lo[1] = min(max(lo[1], yb + 0.2), yt - 0.35)
+        out.append(dict(p=np.array(pos, dtype=float), lo=lo, w=w, h=h, ang=ang, ang0=rnd.uniform(-1.6, 1.6),
+                        col=col, op=op, key=key + rnd.uniform(0, 0.25)))
+
+    # the table top: jittered on a 9 x 6 grid so it is covered evenly, flat
+    # (wide and foreshortened), turned a little with the perspective
+    for i in range(9):
+        for j in range(6):
+            uu = -0.9 + 1.8 * (i + rnd.uniform(0.15, 0.85)) / 9
+            vv = 0.02 + 0.96 * (j + rnd.uniform(0.15, 0.85)) / 6
+            q = fp(uu, vv)
+            k = 1 - 0.3 * vv
+            add(q, 0.24 * k, 0.07 * k, -0.18 * uu * vv + rnd.uniform(-0.12, 0.12), tab, 0.5, 0.55 * (1 - vv))
+    # its front lip: a row of thin splats along the near edge
+    for i in range(8):
+        uu = -0.92 + 1.84 * (i + 0.5) / 8
+        q = fp(uu, 0) + np.array([0, -0.06, 0])
+        add(q, 0.3, 0.06, rnd.uniform(-0.05, 0.05), lip, 0.75, 0.0)
+    # the cubes: small splats filling each cube's projected prism, coloured by
+    # the face they land on
+    for (p, s), tgt in [((A0, RED_S), True)] + [(d, False) for d in DISTRACT]:
         q = fp(p[0], p[1], 0)
         sz = s * SC_K * (1 - 0.3 * p[1])
-        for _ in range(16):
-            pts.append((q + np.array([rnd.uniform(-0.25, 0.5) * sz, rnd.uniform(0.05, 1.3) * sz, 0]), 0.09, 0.04))
-    for (pos, w, h) in pts:
-        col = samp(pos[0], pos[1])
-        if col.to_hex().upper() == ManimColor(PAL["table"]).to_hex().upper():
-            col = ManimColor(PAL["soft"])
-        elif col.to_hex().upper() == ManimColor(PAL["cube"]).to_hex().upper() or col.to_hex().upper() == ManimColor(PAL["cube"]).darker(0.05).to_hex().upper():
-            col = ManimColor(PAL["ink"])
-        jit = np.array([rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0]) * 0.45 * loose
-        e = Ellipse(width=w * (1 + 1.0 * loose), height=h * (1 + 1.4 * loose), fill_color=col, fill_opacity=0.32 + 0.18 * (1 - loose), stroke_width=0)
-        e.rotate(rnd.uniform(-0.6, 0.6) + loose * rnd.uniform(-1.2, 1.2)).move_to(pos + jit)
-        g.add(e)
+        x = q[0] - sz * 0.22
+        dd = sz * 0.45
+        base = ManimColor(PAL["copper"]) if tgt else ManimColor(PAL["soft"])
+        n = 22 if tgt else 16
+        for _ in range(n):
+            t = rnd.uniform(0, 1) ** 1.4
+            px, py = x + rnd.uniform(-0.42, 0.42) * sz, q[1] + rnd.uniform(0.08, 0.92) * sz
+            pos = np.array([px + t * dd, py + t * dd, 0])
+            face = "front" if t < 0.3 else ("top" if py > q[1] + sz * 0.55 else "side")
+            col = base.lighter(0.25) if face == "top" else (base.darker(0.25) if face == "side" else base)
+            r = sz * (0.32 if tgt else 0.36)
+            lo = q + np.array([rnd.uniform(-0.55, 0.55), rnd.uniform(0.1, 0.9), 0])
+            add(pos, r * rnd.uniform(0.8, 1.2), r * rnd.uniform(0.45, 0.7), rnd.uniform(-0.8, 0.8), col,
+                0.62 if tgt else 0.6, 0.35 + 0.3 * p[1], lo=lo)
+    return out
+
+
+_SPLATS = {}
+
+
+def splat_set(loose=0.0, seed=3, a=1.0):
+    """Gaussian splats over the shot's surfaces: each a soft core in a fainter
+    halo (a Gaussian's falloff), anisotropic, rotated. loose 1 = the
+    initialisation (bloated, scattered over the table's volume, faint);
+    0 = settled on the surfaces. Splats settle in their own order (the lip
+    and near table first), so the optimisation reads as converging."""
+    if seed not in _SPLATS:
+        _SPLATS[seed] = _splat_specs(seed)
+    g = VGroup()
+    for sp in _SPLATS[seed]:
+        t = smooth01((1 - loose) * 1.45 - sp["key"] * 0.6) if 0 < loose < 1 else 1 - loose
+        L = 1 - t
+        pos = lerp(sp["p"], sp["lo"], L)
+        w = sp["w"] * (1 + 0.7 * L)
+        h = sp["h"] * (1 + 1.5 * L)
+        ang = lerp(sp["ang"], sp["ang0"], L)
+        op = sp["op"] * (1 - 0.5 * L) * a
+        halo = Ellipse(width=w * 1.7, height=h * 1.7, fill_color=sp["col"], fill_opacity=op * 0.22, stroke_width=0)
+        core = Ellipse(width=w, height=h, fill_color=sp["col"], fill_opacity=op, stroke_width=0)
+        g.add(VGroup(halo, core).rotate(ang).move_to(pos))
     return g
 
 
 def view_cam(p, target, s=0.16):
-    """A small camera glyph at p looking at target, with its view lines."""
+    """A small camera glyph at p looking at target."""
     d = target - p
     ang = math.atan2(d[1], d[0])
     body = Rectangle(width=s * 1.6, height=s, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to(p).rotate(ang)
@@ -1196,40 +1252,105 @@ def view_cam(p, target, s=0.16):
     return VGroup(body, lens)
 
 
-VIEWS = [np.array([-1.45, 2.55, 0]), np.array([0.0, 2.85, 0]), np.array([1.45, 2.55, 0])]
+VIEWS = [np.array([-1.3, 2.35, 0]), np.array([0.0, 2.6, 0]), np.array([1.3, 2.35, 0])]
+VIEW_AT = fp(0.05, 0.5, 0.15)
+
+
+def view_frustum(i):
+    """What view i sees: hairlines from its lens to the table's four corners,
+    and a faint wash over the table it captures."""
+    v = VIEWS[i]
+    lens = v + (VIEW_AT - v) / np.linalg.norm(VIEW_AT - v) * 0.2
+    corners = [fp(-1, 0), fp(1, 0), fp(1, 1), fp(-1, 1)]
+    lines = VGroup(*[Line(lens, q, stroke_color=PAL["copper"], stroke_width=1.2, stroke_opacity=0.45) for q in corners])
+    wash = Polygon(*corners, fill_opacity=0, stroke_color=PAL["copper"], stroke_width=1.6, stroke_opacity=0.8)
+    return VGroup(lines, wash)
 
 
 class Act1(Base):
-    """REAL2SIM. Multi-view capture; the photo dissolves into Gaussian splats
-    that settle onto the surfaces; the sim twin draws in under them."""
+    """REAL2SIM. Three views capture the scene; the photo gives way to Gaussian
+    splats that start as a loose cloud and converge onto the surfaces; the
+    sim twin draws in under them and the splats are retired."""
     def construct(self):
+        # draw order by z_index (Scene.play would otherwise re-stack what it
+        # animates on top of the arm): backdrop or twin grid, mark, cubes, splats,
+        # arm, viewfinder, view cameras, tracker/caption
+        Z = dict(bg=0, grid=0, mark=1, cubes=2, splat=3, arm=5, frame=6, cam=7, ui=8)
         s0 = S0()
         sh, tr_, ms_, cap = s0
+        for m, z in ((sh[0], "bg"), (sh[1], "mark"), (sh[2], "cubes"), (sh[3], "arm"), (sh[4], "frame"),
+                     (tr_, "arm"), (ms_, "arm"), (cap, "ui")):
+            m.set_z_index(Z[z])
         self.add(s0)
         p = ValueTracker(0)
-        # 1 · the real/sim/real bar arrives; three views of the scene
-        self.play(FadeOut(cap), FadeOut(tr_), FadeOut(ms_), Create(tracker(0)), run_time=0.45)
-        self.add(always_redraw(lambda: tracker(p.get_value())))
-        tgt = fp(0.1, 0.5, 0.2)
-        cams = VGroup(*[view_cam(v, tgt) for v in VIEWS])
-        self.play(LaggedStart(*[DrawBorderThenFill(c, stroke_color=PAL["ink"], stroke_width=1.5) for c in cams], lag_ratio=0.25), run_time=0.45)
-        rays = VGroup(*[Line(v, q, stroke_color=PAL["copper"], stroke_width=2.5) for v in VIEWS for q in (fp(-1, 1, 0), fp(1, 0, 0), fp(0.42, 0.4, 0.3))])
-        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.06), run_time=0.6)
-        # 2 · the photo dissolves into splats, loose and bloated
-        loose = splat_set(1.0)
-        self.play(FadeOut(VGroup(sh[0], sh[2], sh[4])), LaggedStart(*[DrawBorderThenFill(e, stroke_color=e.get_fill_color(), stroke_width=1.2) for e in loose], lag_ratio=0.006),
-                  FadeOut(cams), p.animate.set_value(0.5), run_time=0.7)
-        # 3 · the optimisation: splats tighten onto the surfaces
-        tight = splat_set(0.0)
-        self.play(Transform(loose, tight), p.animate.set_value(0.8), run_time=0.7, rate_func=smooth)
-        # 4 · the twin's hard geometry draws in under them, front to back, and
-        # the arm becomes its model
+        # the photo (wall, floor, table, real cubes, viewfinder) dims as one,
+        # by its own opacities: it never re-stacks and never pops
+        photo = ValueTracker(1.0)
+        base_op = {}
+        for grp in (sh[0], sh[2], sh[4]):
+            for m in grp.family_members_with_points():
+                base_op[id(m)] = (m.get_fill_opacity(), m.get_stroke_opacity())
+
+        def dim(grp):
+            v = photo.get_value()
+            for m in grp.family_members_with_points():
+                fo, so = base_op[id(m)]
+                m.set_fill(opacity=fo * v)
+                m.set_stroke(opacity=so * v)
+        for grp in (sh[0], sh[2], sh[4]):
+            grp.add_updater(dim)
+
+        # 1 · the caption and the failed grasps go; the real/sim/real bar draws in
+        t0 = tracker(0).set_z_index(Z["ui"])
+        labels = VGroup(t0[2], t0[4], t0[6])
+        rest = VGroup(*[m for m in t0 if m not in labels])
+        self.play(FadeOut(cap), FadeOut(tr_), FadeOut(ms_), Create(rest, lag_ratio=0.15), show(labels, lag_ratio=0.2),
+                  run_time=0.45, rate_func=smooth)
+        self.remove(rest, labels)
+        self.add(always_redraw(lambda: tracker(p.get_value()).set_z_index(Z["ui"])))
+
+        # 2 · three views of the scene: each camera draws in, then shows what
+        # it sees (its frustum onto the table), one after another
+        cams = [view_cam(v, VIEW_AT).set_z_index(Z["cam"]) for v in VIEWS]
+        self.play(LaggedStart(*[DrawBorderThenFill(c, stroke_color=PAL["ink"], stroke_width=1.2) for c in cams], lag_ratio=0.3),
+                  run_time=0.35)
+        frs = [view_frustum(i).set_z_index(Z["cam"]) for i in range(3)]
+        self.play(LaggedStart(*[Succession(Create(fr, lag_ratio=0.0, run_time=0.36, rate_func=smooth),
+                                           FadeOut(fr, run_time=0.2)) for fr in frs], lag_ratio=0.62),
+                  p.animate.set_value(0.18), run_time=1.0)
+
+        # 3 · the reconstruction starts: the photo dims and the splats'
+        # initial cloud draws in over the table's volume; the cameras go
+        cloud = splat_set(1.0).set_z_index(Z["splat"])
+        self.play(photo.animate.set_value(0.35),
+                  LaggedStart(*[FadeIn(e) for e in cloud], lag_ratio=0.01),
+                  *[FadeOut(c) for c in cams], p.animate.set_value(0.35), run_time=0.55, rate_func=smooth)
+
+        # 4 · the optimisation: the splats converge onto the surfaces as the
+        # photo fades out under them; what is left is the splat model
+        L = ValueTracker(1.0)
+        self.remove(cloud, *cloud)
+        conv = always_redraw(lambda: splat_set(L.get_value()).set_z_index(Z["splat"]))
+        self.add(conv)
+        self.play(L.animate.set_value(0.0), photo.animate.set_value(0.0), p.animate.set_value(0.7),
+                  run_time=0.85, rate_func=smooth)
+        for grp in (sh[0], sh[2], sh[4]):
+            grp.clear_updaters()
+        self.remove(sh[0], sh[2], sh[4])
+
+        # 5 · the twin's geometry draws in under the splats, back to front,
+        # cube by cube; the arm becomes its model; the splats are retired
+        conv.clear_updaters()
         twin = shot("sim", 0.0, "static")
-        lines = twin[0]
-        self.play(LaggedStart(*[Create(l) for l in lines], lag_ratio=0.04), FadeIn(twin[2]),
-                  ReplacementTransform(sh[3], twin[3]), ReplacementTransform(sh[1], twin[1]),
-                  Uncreate(loose, lag_ratio=0.01), p.animate.set_value(1.0), run_time=0.75)
-        self.play(show(r2s_cap()), run_time=0.35)
+        twin[0].set_z_index(Z["grid"])
+        twin[2].set_z_index(Z["cubes"])
+        twin[3].set_z_index(Z["arm"])
+        self.play(LaggedStart(*[Create(l) for l in twin[0]], lag_ratio=0.05),
+                  LaggedStart(*[DrawBorderThenFill(c, stroke_color=PAL["ink"], stroke_width=1.2) for c in twin[2]], lag_ratio=0.25),
+                  ReplacementTransform(sh[3], twin[3]),
+                  LaggedStart(*[FadeOut(e) for e in conv], lag_ratio=0.004),
+                  p.animate.set_value(1.0), run_time=0.8, rate_func=smooth)
+        self.play(show(r2s_cap()), run_time=0.3)
         self.finish(S1())
 
 
