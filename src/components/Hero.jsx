@@ -12,10 +12,10 @@ import portrait from '../../Media/hero/frontpagepfp.webp';
 // tagline says the same thing in a sentence.
 const KEYWORDS = [
   { label: 'Robotics', target: 'projects' },
-  { label: 'VLAs', target: 'skills' },
-  { label: 'World Models', target: 'research' },
-  { label: 'Reinforcement Learning', target: 'research' },
-  { label: 'Simulation', target: 'projects' },
+  { label: 'VLAs', target: 'research' },               // the π0 work (NYU)
+  { label: 'World Models', target: 'experience' },      // the Cosmos work (Roboflow)
+  { label: 'Reinforcement Learning', target: 'projects' },   // the Go2 PPO policy
+  { label: 'Simulation', target: 'research' },          // the Real2Sim twins (NYU)
   { label: 'Embodied AI', target: 'experience' },
 ];
 
