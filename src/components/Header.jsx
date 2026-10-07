@@ -13,7 +13,7 @@ const useWide = () => {
 // React Bits' GlassSurface: refracting liquid glass (an SVG displacement in
 // backdrop-filter; a frosted fallback on Firefox and Safari)
 const Glass = ({ on, className, children }) => on
-  ? <GlassSurface width="auto" height={54} borderRadius={27} brightness={52} opacity={0.9} blur={10} backgroundOpacity={0.12} saturation={1.4} distortionScale={-60} redOffset={0} greenOffset={0} blueOffset={0} displace={0.4} className={`nav-glass ${className || ''}`}>{children}</GlassSurface>
+  ? <GlassSurface width="auto" height={64} borderRadius={32} brightness={52} opacity={0.9} blur={10} backgroundOpacity={0.12} saturation={1.4} distortionScale={-60} redOffset={0} greenOffset={0} blueOffset={0} displace={0.4} className={`nav-glass ${className || ''}`}>{children}</GlassSurface>
   : <>{children}</>;
 
 // One link per page, in page order.

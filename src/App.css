@@ -2303,3 +2303,34 @@ header .social svg { width: 28px; height: 28px; }
 header .social--gmail svg { width: 33px; height: 33px; }
 header .social--x svg { width: 24px; height: 24px; }
 header[data-glass] .nav-glass--end .glass-surface__content { padding: 0 6px; gap: 2px; }
+
+/* the floating navbar, larger (Oct 7; the owner: "make the navbar larger and
+   wider, as well as the icons on the top right and left"): 64px capsules,
+   bigger link type with more room per link, a bigger wordmark, theme icon
+   and profile marks; the header's own padding drops to keep it ~84px tall */
+@media (min-width: 769px) {
+  header[data-glass] { padding-top: 10px; padding-bottom: 10px; }
+  header[data-glass] .nav-glass .glass-surface__content { padding: 0 8px; gap: 4px; }
+  header[data-glass] nav { gap: 4px; }
+  header[data-glass] .nav-link { font-size: 1.02rem; padding: 10px 20px; }
+  header[data-glass] .nav-glass--start .glass-surface__content { padding: 0 18px 0 24px; gap: 16px; }
+  header[data-glass] .logo a { font-size: 1.32rem; }
+  header[data-glass] #theme-toggle { font-size: 1.5rem; }
+  header[data-glass] #theme-toggle svg { width: 26px; height: 26px; }
+  header[data-glass] .nav-glass--end .glass-surface__content { padding: 0 10px; gap: 6px; }
+  header .social { width: 52px; height: 52px; }
+  header .social svg { width: 32px; height: 32px; }
+  header .social--gmail svg { width: 37px; height: 37px; }
+  header .social--x svg { width: 28px; height: 28px; }
+}
+/* under 1280px the three capsules would overlap at that size */
+@media (min-width: 769px) and (max-width: 1279px) {
+  header[data-glass] .nav-link { font-size: 0.9rem; padding: 8px 11px; }
+  header[data-glass] nav { gap: 0; }
+  header[data-glass] .nav-glass--start .glass-surface__content { padding: 0 12px 0 16px; gap: 10px; }
+  header[data-glass] .logo a { font-size: 1.15rem; }
+  header .social { width: 42px; height: 42px; }
+  header .social svg { width: 26px; height: 26px; }
+  header .social--gmail svg { width: 30px; height: 30px; }
+  header .social--x svg { width: 22px; height: 22px; }
+}
