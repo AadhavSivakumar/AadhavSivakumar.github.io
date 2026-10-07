@@ -27,6 +27,13 @@ const SOCIALS = [
       <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 48 48"><path fill="#4caf50" d="M45 16.2l-5 2.75-5 4.75V40h7c1.66 0 3-1.34 3-3V16.2z" /><path fill="#1e88e5" d="M3 16.2l3.61 1.71L13 23.7V40H6c-1.66 0-3-1.34-3-3V16.2z" /><path fill="#e53935" d="M35 11.2l-11 8.25-11-8.25-1 5.8 1 6.7 11 8.25 11-8.25 1-6.7z" /><path fill="#c62828" d="M3 12.3v3.9l10 7.5V11.2L9.88 8.86A4.3 4.3 0 0 0 7.3 8 4.3 4.3 0 0 0 3 12.3z" /><path fill="#fbc02d" d="M45 12.3v3.9l-10 7.5V11.2l3.12-2.34A4.3 4.3 0 0 1 40.7 8 4.3 4.3 0 0 1 45 12.3z" /></svg>
     ),
   },
+  {
+    label: 'X Profile',
+    href: 'https://x.com/sivakumaadhav',
+    icon: (
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="36" height="36"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" /></svg>
+    ),
+  },
 ];
 
 // The profiles as React Bits' Dock: the marks magnify as the pointer passes
@@ -36,6 +43,7 @@ const DOCK_ITEMS = [
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/aadhav-s/', icon: SOCIALS[0].icon },
   { label: 'GitHub', href: 'https://github.com/AadhavSivakumar', icon: SOCIALS[1].icon },
   { label: 'Email', href: 'mailto:sivakumaadhav@gmail.com', icon: SOCIALS[2].icon },
+  { label: 'X', href: 'https://x.com/sivakumaadhav', icon: SOCIALS[3].icon },
 ];
 
 // The last page: the about card (portrait, name, the bio behind a click; it

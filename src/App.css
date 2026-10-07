@@ -2056,7 +2056,7 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 .contact-body .dock-item { background: var(--surface-color) !important; border: 1px solid var(--hair) !important; border-radius: 12px; }
 .contact-body .dock-icon svg { width: 60%; height: 60%; }
 .contact-body .dock-item:nth-child(1) { color: #0A66C2; }
-.contact-body .dock-item:nth-child(2) { color: var(--primary-color); }
+.contact-body .dock-item:nth-child(2), .contact-body .dock-item:nth-child(4) { color: var(--primary-color); }
 .contact-body .dock-label {
   background: var(--primary-color) !important; color: var(--background-color) !important; border: 0 !important;
   font: 500 0.7rem var(--font-mono) !important; top: -1.9rem !important;
@@ -2302,5 +2302,4 @@ header .social { width: 46px; height: 46px; }
 header .social svg { width: 28px; height: 28px; }
 header .social--gmail svg { width: 33px; height: 33px; }
 header .social--x svg { width: 24px; height: 24px; }
-header .social--instagram svg { width: 29px; height: 29px; }
 header[data-glass] .nav-glass--end .glass-surface__content { padding: 0 6px; gap: 2px; }
