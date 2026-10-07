@@ -3,3 +3,6 @@ dist/
 .DS_Store
 *.local
 manim/__pycache__/
+
+# Award letter: carries a student ID, NYU email and signature. Kept on disk, never public.
+Media/projects/b_solegait/2.png
