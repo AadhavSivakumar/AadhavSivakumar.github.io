@@ -1,46 +1,62 @@
-"""The LEFT stage of the site, as Manim scenes (the owner: "refactor the whole
-left side animation in manim").
+"""The LEFT stage of the site, as Manim scenes, scrubbed by the scroll.
 
-One story, real -> sim -> real, in five acts that the page scrubs with the
-scroll, plus a short idle loop for every page the reader can stop on:
+One story — the owner's pipeline, real -> sim -> real — in five acts (one per
+page boundary) and six idle loops (one per page the reader can stop on). ONE
+shot recurs: a table, three cubes, a copper target mark and a small arm
+clamped to the table's far-left corner (the SO-ARM101 of the right-hand
+stage, drawn flat). The real shot and the sim shot are the same geometry in
+two looks, so real -> sim and sim -> real are true morphs.
 
-  Rest     (Experience)          the depth camera, projecting its field of view
-  Act0     Experience -> Research  it explodes, the sensor comes out, light lands on it
-  Act1     Research -> Projects    VLA: patches -> tokens -> transformer -> action chunk
-  Act2     Projects -> More        world model: encoder, latent dynamics, imagined frames
-  Act3     More -> Resume          real2sim: splat -> sim twin, domain randomization, training
-  Act4     Resume -> Contact       sim2real: the sim becomes the real table, the policy runs
+  IdleRest      (Experience)   the D435i over the table, its view cone on it
+  Act0          Exp -> Research  shutter: light down the cone onto the sensor,
+                                 the frame is read out row by row, a mosaic
+                                 that resolves into the photo
+  IdleUntrained (Research)     REAL, untrained policy: the arm grasps at air
+                                 (a trail, an x at each empty grasp)
+  Act1          -> Projects    REAL2SIM: multi-view capture, the photo
+                                 dissolves into Gaussian splats that settle
+                                 onto the surfaces, the sim twin draws in
+  IdleTwin      (Projects)     the twin simulates: the red cube drops, bounces
+  Act2          -> More        SIM DATA: the twin tiles a wall of randomised
+                                 copies, each arm runs a demonstration; a
+                                 world model rolls one forward in latent space
+  IdleData      (More)         six demonstrations running, out of phase
+  Act3          -> Resume      TRAIN: the wall stacks into a dataset, a frame
+                                 is patched into tokens beside the instruction,
+                                 the VLA's predicted action chunk converges on
+                                 the demonstration as the loss falls
+  IdleTrain     (Resume)       forward / backward passes, chunk on target
+  Act4          -> Contact     SIM2REAL: the VLA folds into a chip that flies
+                                 into the arm's base; the twin is re-lit as the
+                                 real shot
+  IdleReal      (Contact)      the SAME shot as IdleUntrained, now succeeding
 
-Every act starts from the state the previous act ended on, built by the SAME
-function (`state0` ... `state4`), and ends by swapping in that function's
-output, so the seams between clips are exact by construction.
+Seams are exact by construction: every act starts from S(K-1)() and ends with
+finish(SK()), the builders the idles use.
 
-Render (see scripts/render-left.sh, which renders both themes and encodes):
+Render (scripts/render-left.sh renders both themes and encodes):
   THEME=light manim -qh --disable_caching manim/left.py Act1
 """
 from manim import *
 import math
 import os
+import random
 
 THEME = os.environ.get("THEME", "light")
-# The site's own language (the owner: "the background doesn't blend in with
-# the site. The manim animation still looks a little too AIcoded"): ink
-# hairlines, near-white fills, ONE accent — the target cube, the flows, the
-# tracker — and Geist Mono labels. No primary-coloured props, no filled
-# panels. The background is the PAGE'S OWN colour (App.css --background-color,
-# light and dark): then the stage's opacity and its dimming mix like with
-# like and no box shows. (Blending a white/black clip with multiply/screen
-# was tried: the stage's opacity isolates it, and it blended against nothing
-# — a black box in the dark theme.) Change these if the page colour changes.
+# The site's language: ink hairlines, near-white fills, ONE accent (terracotta).
+# The background is the PAGE'S OWN colour (App.css --background-color, light
+# and dark): change these if the page colour changes.
 PAL = {
     "light": dict(bg="#F6F5F1", ink="#1A1917", soft="#8C8981", line="#D9D5CD", gold="#1A1917",
-                  copper="#C0553A", red="#C0553A", green="#D9D5CD", blue="#B8B4AB",
+                  copper="#C0553A", red="#C0553A",
                   panel="#FFFFFF", body="#E6E3DC", plate="#1E1E1F", steel="#C9C6BF",
-                  pcb="#B8B4AB", table="#F1EFEA", wall="#FAF9F6", slab="#F6F4EF", cube="#F3F1EC"),
-    "dark": dict(bg="#0C0C0D", ink="#E9E7E2", soft="#77746E", line="#34332F", gold="#E9E7E2",
-                 copper="#E0735A", red="#E0735A", green="#3A3935", blue="#55534E",
-                 panel="#000000", body="#4A4946", plate="#161617", steel="#5A5955",
-                 pcb="#3A3935", table="#141413", wall="#0A0A0A", slab="#111110", cube="#1C1B1A"),
+                  pcb="#B8B4AB", slab="#F6F4EF", cube="#F3F1EC",
+                  wall="#ECEAE4", floor="#E2DFD7", table="#FBFAF7", lip="#D3CFC6", arm="#FBFAF7", shadow="#1A1917"),
+    "dark": dict(bg="#0C0C0D", ink="#E9E7E2", soft="#8A8780", line="#3A3935", gold="#E9E7E2",
+                 copper="#E0735A", red="#E0735A",
+                 panel="#161615", body="#77746E", plate="#2C2C2E", steel="#6A6863",
+                 pcb="#4A4946", slab="#131312", cube="#1E1D1C",
+                 wall="#171716", floor="#121211", table="#252422", lip="#33322F", arm="#3A3936", shadow="#000000"),
 }[THEME]
 
 # the stage is 340 x 660 on the page; rendered at 1.5x
@@ -49,24 +65,33 @@ config.pixel_height = 990
 config.frame_height = 8.0
 config.frame_width = 8.0 * 510 / 990
 config.frame_rate = 30
+# The ACTS are scrubbed by the scroll and every frame of them is a keyframe,
+# so their size is per frame: 20 fps is ~a frame per 9 px of scroll, smooth
+# under a scrub, and a third lighter. The idles PLAY, at 30.
+import sys
+if any(a.startswith("Act") for a in sys.argv[1:]):
+    config.frame_rate = 20
 config.background_color = PAL["bg"]
 
 import manimpango
 from pathlib import Path
-manimpango.register_font(str(Path(__file__).parent / "fonts" / "GeistMono.ttf"))
-FONT = "Geist Mono"
-ACT_T = 3.5      # seconds per act
-IDLE_T = 4.0     # seconds per idle loop
+# the site's own label face (src/assets/fonts/fragment-mono-400.woff2, as TTF)
+manimpango.register_font(str(Path(__file__).parent / "fonts" / "FragmentMono-Regular.ttf"))
+FONT = "Fragment Mono"
+IDLE_T = 4.0
 
 
 def label(s, size=13, color=None):
     return Text(s, font=FONT, font_size=size - 1, color=color or PAL["soft"], weight=NORMAL)
 
 
+def caption(s, y, x=0.0):
+    return label(s, 13, PAL["soft"]).move_to([x, y, 0])
+
+
 def fade(m, a):
     """Scale a mobject's EXISTING stroke and fill opacities by `a`. (Manim's
-    set_opacity sets fill opacity too, which fills outline-only shapes — a
-    frame or a curve — with a solid white.)"""
+    set_opacity sets fill opacity too, which fills outline-only shapes.)"""
     for sm in m.family_members_with_points():
         sm.set_stroke(opacity=sm.get_stroke_opacity() * a)
         sm.set_fill(opacity=sm.get_fill_opacity() * a)
@@ -78,8 +103,17 @@ def smooth01(x):
     return x * x * (3 - 2 * x)
 
 
+def lerp(a, b, t):
+    return a + (b - a) * t
+
+
+def show(m, **kw):
+    """Text appears by fading up (Write draws heavy outlines in the dark theme)."""
+    return FadeIn(m, shift=UP * 0.08, **kw)
+
+
 # ── the real -> sim -> real tracker at the top ─────────────────────────────
-TRK_Y, TRK_X = 3.5, [-1.15, 0.0, 1.15]
+TRK_Y, TRK_X = 3.6, [-1.15, 0.0, 1.15]
 
 
 def tracker(p, a=1.0):
@@ -92,20 +126,81 @@ def tracker(p, a=1.0):
         on = abs(p - i) < 0.5
         g.add(Circle(0.075, stroke_color=PAL["copper"] if on else PAL["line"], stroke_width=2.5,
                      fill_color=PAL["bg"], fill_opacity=1).move_to([TRK_X[i], y, 0]))
-        g.add(label(t, 11, PAL["copper"] if on else PAL["soft"]).move_to([TRK_X[i], y - 0.22, 0]))
+        g.add(label(t, 12, PAL["copper"] if on else PAL["soft"]).move_to([TRK_X[i], y - 0.23, 0]))
     g.add(Dot([x, y, 0], radius=0.055, color=PAL["copper"]))
     return fade(g, a) if a < 1 else g
 
 
-# ── the pick-and-place loop, shared by the picture and the table ───────────
-# keys: (u, spot, level (1 high / 0 at the cube), open, phase of the red cube
-# during the segment that starts here: 0 at A, 1 carried, 2 at B, 3 carried)
+# ═══════════════════════════ THE SHOT ═════════════════════════════════════
+# The table in perspective: uu -1..1 across, vv 0 (near) .. 1 (far), hh up.
+SC_C, SC_K = (0.0, -0.45), 0.92
+
+
+def fp(uu, vv, hh=0.0, c=SC_C, sc=SC_K):
+    return np.array([c[0] + sc * uu * (1.75 - 0.55 * vv), c[1] + sc * (-0.75 + 1.35 * vv + hh), 0.0])
+
+
+def frame_box(c=SC_C, sc=SC_K, top=2.1):
+    """(x half-width, bottom y, top y) of the shot's picture frame."""
+    return 1.72 * sc / SC_K, c[1] - 0.95 * sc, c[1] + top * sc
+
+
+# the task: the red cube from A onto the copper mark at B; two distractors
+A0, B0 = (0.42, 0.40), (-0.38, 0.30)
+CUBES = [(0.34, "red"), ((0.02, 0.80), 0.24, "cube"), ((0.78, 0.74), 0.27, "cube")]
+DISTRACT = [((0.02, 0.80), 0.24), ((0.78, 0.74), 0.27)]
+RED_S = 0.34
+HOME = (-0.1, 0.42, 1.0)
+BASE_UV = (-1.02, 0.92)
+
+
+def iso_cube(x, y, s, target, look="real", a=1.0, sw=1.4):
+    """A cube in cabinet projection, its front face's bottom centre at (x, y).
+    The TARGET is solid copper; every other cube is a hairline box."""
+    d = s * 0.45
+    ink = ManimColor(PAL["ink"])
+    if target:
+        fill = ManimColor(PAL["copper"])
+        fo = 1.0 if look == "real" else 0.85
+        st = 0
+    else:
+        fill = ManimColor(PAL["cube"])
+        fo = 1.0 if look == "real" else 0.0
+        st = sw
+    x0, x1, y0, y1 = x - s / 2, x + s / 2, y, y + s
+    front = Polygon([x0, y0, 0], [x1, y0, 0], [x1, y1, 0], [x0, y1, 0], fill_color=fill, fill_opacity=fo * a,
+                    stroke_color=ink, stroke_width=st, stroke_opacity=a)
+    top = Polygon([x0, y1, 0], [x1, y1, 0], [x1 + d, y1 + d, 0], [x0 + d, y1 + d, 0],
+                  fill_color=fill.lighter(0.25) if target else fill, fill_opacity=fo * a, stroke_color=ink, stroke_width=st, stroke_opacity=a)
+    side = Polygon([x1, y0, 0], [x1 + d, y0 + d, 0], [x1 + d, y1 + d, 0], [x1, y1, 0],
+                   fill_color=fill.darker(0.25) if target else fill.darker(0.05), fill_opacity=fo * a, stroke_color=ink, stroke_width=st, stroke_opacity=a)
+    return VGroup(side, top, front)
+
+
+def cube_at(uu, vv, hh, s, target, look, c, sc, a=1.0):
+    p = fp(uu, vv, hh, c, sc)
+    sz = s * sc * (1 - 0.3 * vv)
+    k = sc / SC_K
+    return iso_cube(p[0] - sz * 0.22, p[1], sz, target, look, a, sw=max(0.6, 1.4 * k))
+
+
+def mark(B, c, sc, look="real"):
+    """The target: a dashed copper square on the table."""
+    h = 0.15
+    pts = [fp(B[0] - h, B[1] - h * 0.8, 0, c, sc), fp(B[0] + h, B[1] - h * 0.8, 0, c, sc),
+           fp(B[0] + h, B[1] + h * 0.8, 0, c, sc), fp(B[0] - h, B[1] + h * 0.8, 0, c, sc)]
+    k = sc / SC_K
+    return DashedVMobject(Polygon(*pts), num_dashes=16, dashed_ratio=0.55).set_stroke(PAL["copper"], max(0.8, 2.0 * k))
+
+
+# ── the pick-and-place: keys (u, spot, level (1 up / 0 at the cube), open,
+# cube phase during the segment that starts here: 0 at A, 1 carried, 2 at B)
 PICK = [
-    (0.00, "H", 1, 1, 0), (0.10, "A", 1, 1, 0), (0.18, "A", 0, 1, 0), (0.22, "A", 0, 0, 1),
-    (0.32, "A", 1, 0, 1), (0.42, "B", 1, 0, 1), (0.50, "B", 0, 0, 1), (0.54, "B", 0, 1, 2),
-    (0.60, "B", 1, 1, 2), (0.66, "B", 1, 1, 2), (0.72, "B", 0, 1, 2), (0.76, "B", 0, 0, 3),
-    (0.84, "A", 1, 0, 3), (0.90, "A", 0, 0, 3), (0.94, "A", 0, 1, 0), (1.00, "H", 1, 1, 0),
+    (0.00, "H", 1, 1, 0), (0.09, "A", 1, 1, 0), (0.17, "A", 0, 1, 0), (0.22, "A", 0, 0, 1),
+    (0.31, "A", 1, 0, 1), (0.43, "B", 1, 0, 1), (0.51, "B", 0, 0, 1), (0.56, "B", 0, 1, 2),
+    (0.64, "B", 1, 1, 2), (0.76, "H", 1, 1, 2), (1.00, "H", 1, 1, 2),
 ]
+GRASP_H = 0.12          # gripper anchor (between the fingertips) above the table, at a grasp
 
 
 def pick_key(u):
@@ -118,43 +213,50 @@ def pick_key(u):
     return k0, k1, f
 
 
-# ── the picture: a table, three cubes, a gripper (picture units: x -1..1, y -1..1) ──
-PA, PB = (0.28, -0.28), (-0.22, -0.12)          # where the red cube goes, A and B
-CUBES = [(PA, 0.22, "red"), ((0.62, -0.42), 0.19, "green"), ((-0.64, -0.48), 0.16, "blue")]
-
-
-def pic_state(u):
+def pick3(u, A=A0, B=B0):
+    """-> gripper (uu, vv, hh), opening 0..1, red cube (uu, vv, hh, alpha)."""
     k0, k1, f = pick_key(u)
 
     def spot(sp, lv):
         if sp == "H":
-            return (-0.45, 0.55)
-        c = PA if sp == "A" else PB
-        return (c[0], 0.3) if lv else (c[0], c[1] + 0.2)
+            return HOME
+        c = A if sp == "A" else B
+        return (c[0], c[1], 0.62) if lv else (c[0], c[1], GRASP_H)
     p0, p1 = spot(k0[1], k0[2]), spot(k1[1], k1[2])
-    g = (p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f)
+    g = tuple(p0[i] + (p1[i] - p0[i]) * f for i in range(3))
     op = k0[3] + (k1[3] - k0[3]) * f
     ph = k0[4]
-    cube = (g[0], g[1] - 0.2) if ph in (1, 3) else (PB if ph == 2 else PA)
+    uu = u % 1.0
+    if ph == 1:
+        cube = (g[0], g[1], g[2] - GRASP_H, 1.0)
+    elif ph == 2:
+        # placed; after the arm has gone home the episode resets: the cube
+        # fades off the mark and back in at A
+        if uu < 0.80:
+            cube = (B[0], B[1], 0.0, 1.0)
+        elif uu < 0.87:
+            cube = (B[0], B[1], 0.0, 1 - smooth01((uu - 0.80) / 0.07))
+        else:
+            cube = (A[0], A[1], 0.0, smooth01((uu - 0.88) / 0.08))
+    else:
+        cube = (A[0], A[1], 0.0, 1.0)
     return g, op, cube
 
 
-# the UNTRAINED policy (the owner: "have the robot moving in random
-# locations"): the gripper wanders between random spots over the table —
-# seeded, so every render is the same — dipping to the table at some and
-# closing on air, never on the cube; the loop starts and ends at home
-def _wander_keys(n=7, seed=11):
-    import random as _r
-    rnd = _r.Random(seed)
-    keys = [(-0.45, 0.55, 1.0)]
-    for i in range(n):
-        x = rnd.uniform(-0.8, 0.85)
-        if abs(x - PA[0]) < 0.28:                     # never onto the red cube
-            x += 0.4 if x < PA[0] else -0.4
-        dip = rnd.random() < 0.55
-        y = rnd.uniform(-0.18, -0.05) if dip else rnd.uniform(0.1, 0.62)
-        keys.append((x, y, 0.0 if dip and rnd.random() < 0.7 else 1.0))
-    keys.append((-0.45, 0.55, 1.0))
+# the UNTRAINED policy: the arm wanders between seeded random spots, dips
+# and closes on air — never within 0.3 of a cube
+def _wander_keys(n=7, seed=5):
+    rnd = random.Random(seed)
+    keys = [(HOME[0], HOME[1], HOME[2], 1.0)]
+    avoid = [A0] + [p for p, _ in DISTRACT]
+    while len(keys) < n + 1:
+        uu, vv = rnd.uniform(-0.75, 0.8), rnd.uniform(0.12, 0.78)
+        q = fp(uu, vv)
+        if any(np.linalg.norm(q - (fp(a[0], a[1]) + [0, 0.15, 0])) < 0.5 for a in avoid):
+            continue
+        dip = rnd.random() < 0.6
+        keys.append((uu, vv, GRASP_H + 0.02 if dip else rnd.uniform(0.45, 0.85), 0.0 if dip else 1.0))
+    keys.append((HOME[0], HOME[1], HOME[2], 1.0))
     return keys
 
 
@@ -166,132 +268,186 @@ def fumble_state(u):
     n = len(WANDER) - 1
     k = min(n - 1, int(u * n))
     f = smooth01(u * n - k)
-    (x0, y0, o0), (x1, y1, o1) = WANDER[k], WANDER[k + 1]
-    # the jaw closes as it arrives at a dip and opens as it leaves
-    op = o1 if f > 0.7 else (o0 if f < 0.3 else o0 + (o1 - o0) * (f - 0.3) / 0.4)
-    return (x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + 0.08 * math.sin(math.pi * f)), op, PA
+    a, b = WANDER[k], WANDER[k + 1]
+    op = b[3] if f > 0.7 else (a[3] if f < 0.3 else a[3] + (b[3] - a[3]) * (f - 0.3) / 0.4)
+    g = (lerp(a[0], b[0], f), lerp(a[1], b[1], f), lerp(a[2], b[2], f) + 0.25 * math.sin(math.pi * f))
+    return g, op
 
 
-def iso_cube(c, s, color, depth=0.45):
-    """A cube in cabinet projection. The TARGET (the accent colour) is solid;
-    every other cube is a hairline box on a near-white fill, as a technical
-    drawing would draw it."""
-    x, y = c
-    d = s * depth
-    col = ManimColor(color)
-    target = color in (PAL["red"],)
-    ink = ManimColor(PAL["ink"])
-    fill = col if target else ManimColor(PAL["cube"])
-    sw = 0 if target else 1.4
-    front = Polygon([x - s / 2, y - s / 2, 0], [x + s / 2, y - s / 2, 0], [x + s / 2, y + s / 2, 0], [x - s / 2, y + s / 2, 0],
-                    fill_color=fill, fill_opacity=1, stroke_color=ink, stroke_width=sw)
-    top = Polygon([x - s / 2, y + s / 2, 0], [x + s / 2, y + s / 2, 0], [x + s / 2 + d, y + s / 2 + d, 0], [x - s / 2 + d, y + s / 2 + d, 0],
-                  fill_color=fill.lighter(0.25) if target else fill, fill_opacity=1, stroke_color=ink, stroke_width=sw)
-    side = Polygon([x + s / 2, y - s / 2, 0], [x + s / 2 + d, y - s / 2 + d, 0], [x + s / 2 + d, y + s / 2 + d, 0], [x + s / 2, y + s / 2, 0],
-                   fill_color=fill.darker(0.2) if target else fill.darker(0.04), fill_opacity=1, stroke_color=ink, stroke_width=sw)
-    return VGroup(side, top, front)
-
-
-def picture(u=0.0, w=3.3, h=2.1, center=(0, 2.0, 0), frame=True, fumble=False):
-    cx, cy = center[0], center[1]
-    sx, sy = w / 2, h / 2
-    P = lambda x, y: [cx + x * sx, cy + y * sy, 0]
+def misses(u, c, sc):
+    """An x where the untrained policy closed on air, fading after."""
     g = VGroup()
-    g.add(Rectangle(width=w, height=h, fill_color=PAL["wall"], fill_opacity=1, stroke_width=0).move_to([cx, cy, 0]))
-    g.add(Polygon(P(-1, -1), P(1, -1), P(1, -0.05), P(-1, -0.05), fill_color=PAL["table"], fill_opacity=1, stroke_width=0))
-    g.add(Line(P(-1, -0.05), P(1, -0.05), stroke_color=PAL["line"], stroke_width=1.5))
-    gp, op, cube = fumble_state(u) if fumble else pic_state(u)
-    for (c, s, col) in CUBES:
-        cc = cube if col == "red" else c
-        g.add(iso_cube((cx + cc[0] * sx, cy + cc[1] * sy), s * sx, PAL[col]))
-    # the gripper, down from the top edge
-    gx, gy = cx + gp[0] * sx, cy + gp[1] * sy
-    o = (0.13 + 0.07 * op) * sx
-    g.add(Line([gx, cy + sy, 0], [gx, gy + 0.2 * sy, 0], stroke_color=PAL["ink"], stroke_width=3))
-    g.add(Rectangle(width=2 * o + 0.1 * sx, height=0.06 * sy * 2, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to([gx, gy + 0.17 * sy, 0]))
+    n = len(WANDER) - 1
+    k_ = sc / SC_K
+    for k in range(1, n):
+        if WANDER[k][3] > 0.5:
+            continue
+        age = (u - k / n) % 1.0
+        if age > 0.32:
+            continue
+        a = 1 - smooth01((age - 0.12) / 0.2)
+        p = fp(WANDER[k][0], WANDER[k][1], 0, c, sc)
+        r = 0.09 * k_
+        g.add(Line(p + [-r, -r * 0.6, 0], p + [r, r * 0.6, 0], stroke_color=PAL["copper"], stroke_width=3, stroke_opacity=a),
+              Line(p + [-r, r * 0.6, 0], p + [r, -r * 0.6, 0], stroke_color=PAL["copper"], stroke_width=3, stroke_opacity=a))
+    return g
+
+
+def trail(u, c, sc):
+    """Where the untrained gripper has just been: a fading dotted trace."""
+    g = VGroup()
+    for i in range(1, 22):
+        uu = u - i * 0.012
+        gp, _ = fumble_state(uu)
+        p = fp(gp[0], gp[1], gp[2], c, sc)
+        g.add(Dot(p, radius=0.022, color=PAL["soft"]).set_opacity(0.75 * (1 - i / 22)))
+    return g
+
+
+def tick(p, a=1.0, r=0.13):
+    return VMobject().set_points_as_corners([p + [-r, 0, 0], p + [-r * 0.3, -r * 0.7, 0], p + [r * 1.1, r * 0.8, 0]]) \
+        .set_stroke(PAL["copper"], 3.5, opacity=a)
+
+
+# ── the arm: a 2-link planar arm drawn in screen space, base on the table's
+# far-left corner, the gripper hanging from the wrist
+def arm(g, op, c=SC_C, sc=SC_K, look="real", a=1.0):
+    k = sc / SC_K
+    anchor = fp(g[0], g[1], g[2], c, sc) + np.array([0.06 * k, 0, 0])
+    W = anchor + np.array([0, 0.46 * k, 0])
+    base = fp(BASE_UV[0], BASE_UV[1], 0, c, sc)
+    S = base + np.array([0, 0.42 * k, 0])
+    L1, L2 = 1.12 * k, 1.04 * k
+    d = W - S
+    dist = float(np.linalg.norm(d)) or 1e-6
+    dist_c = min(max(dist, 0.2 * k), (L1 + L2) * 0.995)
+    u_ = d / dist
+    Wc = S + u_ * dist_c
+    aa = (L1 ** 2 - L2 ** 2 + dist_c ** 2) / (2 * dist_c)
+    h = math.sqrt(max(L1 ** 2 - aa ** 2, 0.0))
+    perp = np.array([-u_[1], u_[0], 0])
+    E = S + u_ * aa + perp * h
+    if E[1] < (S + u_ * aa - perp * h)[1]:
+        E = S + u_ * aa - perp * h
+    o = (0.12 + 0.08 * op) * k
+    ink = PAL["ink"]
+    grp = VGroup()
+    if look == "real":
+        sw = max(2.0, 13 * k)
+        grp.add(Polygon(base + [-0.2 * k, -0.04 * k, 0], base + [0.2 * k, -0.04 * k, 0], base + [0.12 * k, 0.16 * k, 0], base + [-0.12 * k, 0.16 * k, 0],
+                        fill_color=ink, fill_opacity=a, stroke_width=0))
+        grp.add(Line(base + [0, 0.1 * k, 0], S, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+        for P, Q in ((S, E), (E, Wc)):
+            grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+            grp.add(Line(P, Q, stroke_color=PAL["arm"], stroke_width=sw * 0.62, stroke_opacity=a))
+        grp.add(Line(Wc, anchor + [0, 0.32 * k, 0], stroke_color=ink, stroke_width=sw * 0.7, stroke_opacity=a))
+        for J in (S, E, Wc):
+            grp.add(Circle(0.075 * k, fill_color=PAL["arm"], fill_opacity=a, stroke_color=ink, stroke_width=max(1.0, 2.2 * k), stroke_opacity=a).move_to(J))
+        fill_o = a
+    else:
+        sw = max(1.0, 2.2 * k)
+        grp.add(Polygon(base + [-0.2 * k, -0.04 * k, 0], base + [0.2 * k, -0.04 * k, 0], base + [0.12 * k, 0.16 * k, 0], base + [-0.12 * k, 0.16 * k, 0],
+                        fill_color=PAL["bg"], fill_opacity=0, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+        grp.add(Line(base + [0, 0.12 * k, 0], S, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+        for P, Q in ((S, E), (E, Wc)):
+            grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+            grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=0))
+        grp.add(Line(Wc, anchor + [0, 0.32 * k, 0], stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+        for J in (S, E, Wc):
+            grp.add(Circle(0.075 * k, fill_color=PAL["bg"], fill_opacity=a, stroke_color=ink, stroke_width=sw, stroke_opacity=a).move_to(J))
+        fill_o = 0.0
+    st = 0 if look == "real" else sw
+    grp.add(Rectangle(width=2 * o + 0.12 * k, height=0.08 * k, fill_color=ink, fill_opacity=fill_o, stroke_color=ink, stroke_width=st, stroke_opacity=a)
+            .move_to(anchor + [0, 0.3 * k, 0]))
     for sg in (-1, 1):
-        g.add(Rectangle(width=0.035 * sx * 2, height=0.2 * sy, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to([gx + sg * o, gy + 0.06 * sy, 0]))
-        g.add(Rectangle(width=0.035 * sx * 2, height=0.05 * sy, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to([gx + sg * o, gy - 0.05 * sy, 0]))
-    if frame:
-        g.add(Rectangle(width=w, height=h, stroke_color=PAL["soft"], stroke_width=1.1).move_to([cx, cy, 0]))
-    return g
+        grp.add(Rectangle(width=0.05 * k, height=0.27 * k, fill_color=ink, fill_opacity=fill_o, stroke_color=ink, stroke_width=st, stroke_opacity=a)
+                .move_to(anchor + [sg * o, 0.14 * k, 0]))
+        grp.add(Rectangle(width=0.05 * k, height=0.05 * k, fill_color=PAL["copper"], fill_opacity=a, stroke_width=0)
+                .move_to(anchor + [sg * o, 0.0, 0]))
+    return grp
 
 
-# ── act 0 pieces: the RealSense ─────────────────────────────────────────────
-CAM_C = (-0.12, 0.6)   # the stage overhangs the screen's left edge by up to ~20 px: keep the body clear of it
-LENS = [(-1.0, 0.16), (-0.45, 0.12), (0.5, 0.16), (1.02, 0.18)]      # IR, projector, IR, RGB
-
-
-def cam_casing():
-    x, y = CAM_C
-    depth = RoundedRectangle(width=3.0, height=0.82, corner_radius=0.41, fill_color=ManimColor(PAL["body"]).darker(0.35),
-                             fill_opacity=1, stroke_width=0).move_to([x - 0.13, y - 0.12, 0])
-    body = RoundedRectangle(width=3.0, height=0.82, corner_radius=0.41, fill_color=PAL["body"], fill_opacity=1,
-                            stroke_color=ManimColor(PAL["body"]).darker(0.3), stroke_width=1.5).move_to([x, y, 0])
-    return VGroup(depth, body)
-
-
-def cam_plate():
-    x, y = CAM_C
-    return RoundedRectangle(width=2.8, height=0.66, corner_radius=0.33, fill_color=PAL["plate"], fill_opacity=1,
-                            stroke_color=ManimColor(PAL["plate"]).lighter(0.2), stroke_width=1.5).move_to([x, y, 0])
-
-
-def cam_lenses():
-    x, y = CAM_C
+def backdrop(c, sc, look="real", tone=0.0, a=1.0):
+    """The REAL look: a photo — wall, floor, a table with its front lip and
+    soft cube shadows. The SIM look: a grid floor and a hairline horizon."""
+    W, yb, yt = frame_box(c, sc)
+    k = sc / SC_K
+    far = fp(0, 1, 0, c, sc)[1]
     g = VGroup()
-    for lx, r in LENS:
-        g.add(VGroup(Circle(r, fill_color="#111316", fill_opacity=1, stroke_color=PAL["gold"], stroke_width=2).move_to([x + lx, y, 0]),
-                     Circle(r * 0.5, stroke_color=PAL["gold"], stroke_width=1.2).move_to([x + lx, y, 0])))
+    corners = [fp(-1, 0, 0, c, sc), fp(1, 0, 0, c, sc), fp(1, 1, 0, c, sc), fp(-1, 1, 0, c, sc)]
+    if look == "real":
+        g.add(Polygon([-W + c[0], far + 0.18 * k, 0], [W + c[0], far + 0.18 * k, 0], [W + c[0], yt, 0], [-W + c[0], yt, 0],
+                      fill_color=PAL["wall"], fill_opacity=a, stroke_width=0))
+        g.add(Polygon([-W + c[0], yb, 0], [W + c[0], yb, 0], [W + c[0], far + 0.18 * k, 0], [-W + c[0], far + 0.18 * k, 0],
+                      fill_color=PAL["floor"], fill_opacity=a, stroke_width=0))
+        g.add(Polygon(corners[0], corners[1], corners[1] + [0, -0.12 * k, 0], corners[0] + [0, -0.12 * k, 0],
+                      fill_color=PAL["lip"], fill_opacity=a, stroke_width=0))
+        g.add(Polygon(*corners, fill_color=PAL["table"], fill_opacity=a, stroke_width=0))
+        for (p, s) in [(A0, RED_S)] + DISTRACT:
+            q = fp(p[0], p[1], 0, c, sc)
+            sz = s * sc * (1 - 0.3 * p[1])
+            g.add(Ellipse(width=sz * 1.5, height=sz * 0.35, fill_color=PAL["shadow"], fill_opacity=0.10 * a, stroke_width=0).move_to(q + [sz * 0.12, 0, 0]))
+    else:
+        if tone:
+            g.add(Polygon(*corners, fill_color=ManimColor(PAL["line"]), fill_opacity=0.25 * tone * a, stroke_width=0))
+        sw = max(0.7, 1.3 * k)
+        for i in range(7):
+            f = i / 6
+            g.add(Line(fp(-1 + 2 * f, 0, 0, c, sc), fp(-1 + 2 * f, 1, 0, c, sc), stroke_color=PAL["line"] if 0 < i < 6 else PAL["soft"], stroke_width=sw, stroke_opacity=a))
+        for i in range(7):
+            f = i / 6
+            g.add(Line(fp(-1, f, 0, c, sc), fp(1, f, 0, c, sc), stroke_color=PAL["line"] if 0 < i < 6 else PAL["soft"], stroke_width=sw, stroke_opacity=a))
     return g
 
 
-def cam_module():
-    x, y = CAM_C
-    board = Rectangle(width=2.5, height=0.4, fill_color=PAL["steel"], fill_opacity=1, stroke_color=ManimColor(PAL["steel"]).darker(0.3), stroke_width=1.2).move_to([x, y, 0])
-    barrels = VGroup(*[Circle(0.1, fill_color=ManimColor(PAL["steel"]).darker(0.4), fill_opacity=1, stroke_width=1, stroke_color=PAL["ink"]).move_to([x + lx, y, 0]) for lx, _ in (LENS[0], LENS[2])])
-    return VGroup(board, barrels)
-
-
-def rgb_barrel():
-    x, y = CAM_C
-    return VGroup(Circle(0.12, fill_color=ManimColor(PAL["steel"]).darker(0.4), fill_opacity=1, stroke_color=PAL["ink"], stroke_width=1.2),
-                  Circle(0.06, stroke_color=PAL["gold"], stroke_width=1.2)).move_to([x + LENS[3][0], y, 0])
-
-
-def cam_pcb():
-    x, y = CAM_C
-    return Rectangle(width=2.4, height=0.4, fill_color=PAL["pcb"], fill_opacity=1, stroke_width=1, stroke_color=ManimColor(PAL["pcb"]).darker(0.3)).move_to([x, y, 0])
-
-
-def capture_cone(a=1.0, sweep=None):
-    x, y = CAM_C[0] + LENS[3][0], CAM_C[1]
-    far = [[x + 0.42, y + 0.85, 0], [x + 0.95, y + 0.68, 0], [x + 0.95, y - 0.55, 0], [x + 0.42, y - 0.75, 0]]
-    o = [x, y, 0]
-    g = VGroup(Polygon(o, far[0], far[1], far[2], far[3], fill_color=PAL["copper"], fill_opacity=0.07 * a, stroke_width=0))
-    for c in far:
-        g.add(Line(o, c, stroke_color=PAL["copper"], stroke_width=1.3, stroke_opacity=0.7 * a))
-    g.add(Polygon(*far, stroke_color=PAL["copper"], stroke_width=1.3, stroke_opacity=0.7 * a, fill_opacity=0))
-    if sweep is not None:
-        d = sweep
-        pts = [[o[0] + (c[0] - o[0]) * d, o[1] + (c[1] - o[1]) * d, 0] for c in far]
-        g.add(Polygon(*pts, stroke_color=PAL["copper"], stroke_width=2, stroke_opacity=0.9 * (1 - d) * a, fill_opacity=0))
+def corners_mark(c=SC_C, sc=SC_K, a=1.0, top=2.1):
+    """Viewfinder corner brackets: this is a camera's view."""
+    W, yb, yt = frame_box(c, sc, top)
+    L = 0.22 * sc / SC_K
+    g = VGroup()
+    for sx in (-1, 1):
+        for y, sy in ((yb, 1), (yt, -1)):
+            x = c[0] + sx * W
+            g.add(VMobject().set_points_as_corners([[x, y + sy * L, 0], [x, y, 0], [x - sx * L, y, 0]]).set_stroke(PAL["ink"], 2.2, opacity=a))
     return g
 
 
-# ── the D435i IN 3D (the owner: "have the 3d camera BE in 3d, and slightly be
-# spinning around"). Manim's Cairo renderer sorts whole mobjects, so its 3D
-# solids painted end caps over the front plate; this is a small renderer of
-# its own instead: parts are EXTRUDED outlines (a stadium for the body and
-# the plate, circles for the lens barrels, rectangles for the boards) in the
-# camera's frame (x along the bar, y up, z out of the front), rotated by
-# yaw/pitch, back faces CULLED, faces shaded by a light and sorted by depth,
-# projected with a mild perspective, and drawn as flat polygons — so a frame
-# of it is drawn exactly like everything else here. `ex` explodes each part
-# out along the camera's OWN depth axis.
-C3 = np.array([-0.55, 0.55, 0.0])
-L3, R3, D3 = 2.2, 0.38, 0.62
-LIGHT = np.array([-0.45, 0.55, 0.7]) / np.linalg.norm([-0.45, 0.55, 0.7])
+def shot(look="real", u=0.0, policy="trained", c=SC_C, sc=SC_K, cubes_jig=None, A=A0, B=B0, tone=0.0,
+         grip=True, frame=None, held_a=1.0, red=None):
+    """The shot. Returns VGroup(backdrop, mark, cubes, arm, frame)."""
+    if policy == "untrained":
+        gp, op = fumble_state(u)
+        cube = (A[0], A[1], 0.0, 1.0)
+    elif policy == "static":
+        gp, op, cube = HOME, 1.0, (A[0], A[1], 0.0, 1.0)
+    else:
+        gp, op, cube = pick3(u, A, B)
+    if red is not None:
+        cube = red
+    bg = backdrop(c, sc, look, tone)
+    mk = mark(B, c, sc, look)
+    cubes = VGroup()
+    ds = cubes_jig or DISTRACT
+    items = [(p[0], p[1], 0.0, s, False, 1.0) for p, s in ds] + [(cube[0], cube[1], cube[2], RED_S, True, cube[3] * held_a)]
+    items.sort(key=lambda t: -t[1])           # far first
+    for uu, vv, hh, s, tgt, a in items:
+        if a > 0.01:
+            cubes.add(cube_at(uu, vv, hh, s, tgt, look, c, sc, a))
+    am = arm(gp, op, c, sc, look) if grip else VGroup()
+    fr = corners_mark(c, sc) if (frame if frame is not None else look == "real") else VGroup()
+    return VGroup(bg, mk, cubes, am, fr)
+
+
+# ── the D435i IN 3D, over the table (a small renderer of its own: extruded
+# outlines in the camera's frame, rotated, back faces culled, faces shaded
+# and depth-sorted, a mild perspective — Manim's Cairo 3D painted end caps
+# over the front plate). The camera looks DOWN onto the table.
+C3 = np.array([0.0, 2.45, 0.0])
+L3, R3, D3 = 2.0, 0.34, 0.56
+LENS = [(-1.0, 0.16), (-0.45, 0.12), (0.5, 0.16), (1.02, 0.18)]      # IR, projector, IR, RGB (x in units of L3/2.2)
+LIGHT = np.array([-0.45, 0.75, 0.5]) / np.linalg.norm([-0.45, 0.75, 0.5])
+YAW0, PITCH0 = 0.42, 0.62      # turned toward the reader and tipped down onto the table
+CAM_K = L3 / 2.2
 
 
 def _stadium_pts(L, R, n=14):
@@ -314,8 +470,6 @@ def _rect_pts(w, h):
 
 
 def extrude(outline, z0, z1, col):
-    """Faces of a prism: (points, outward normal, colour), in the part's frame.
-    The outline runs counter-clockwise."""
     faces = [([(x, y, z1) for x, y in outline], (0, 0, 1), col), ([(x, y, z0) for x, y in reversed(outline)], (0, 0, -1), col)]
     n = len(outline)
     for i in range(n):
@@ -333,13 +487,13 @@ def _rot(yaw, pitch):
     return Ry @ Rx
 
 
-def _proj(p):
-    k = 14.0 / (14.0 - p[2])                 # a mild perspective
-    return [C3[0] + p[0] * k, C3[1] + p[1] * k, 0]
+def _proj(p, s=1.0, at=None):
+    at = C3 if at is None else at
+    k = 14.0 / (14.0 - p[2])
+    return [at[0] + p[0] * k * s, at[1] + p[1] * k * s, 0]
 
 
-def render_parts(parts, yaw, pitch, alpha=None):
-    """parts: [(name, faces, offset_z)] -> a VGroup, parts back to front."""
+def render_parts(parts, yaw, pitch, alpha=None, s=1.0, at=None):
     R = _rot(yaw, pitch)
     drawn = []
     for name, faces, dz in parts:
@@ -350,13 +504,13 @@ def render_parts(parts, yaw, pitch, alpha=None):
         for pts, nrm, col in faces:
             n = R @ np.array(nrm)
             if n[2] <= 0.02:
-                continue                      # culled: faces away from the viewer
+                continue
             wp = [R @ np.array([x, y, z + dz]) for x, y, z in pts]
             lit = 0.55 + 0.45 * max(0.0, float(n @ LIGHT))
             c = ManimColor(col)
             shade = c.darker(1 - lit) if lit < 1 else c
             polys.append((sum(q[2] for q in wp) / len(wp),
-                          Polygon(*[_proj(q) for q in wp], fill_color=shade, fill_opacity=a, stroke_color=shade, stroke_width=0.6, stroke_opacity=a)))
+                          Polygon(*[_proj(q, s, at) for q in wp], fill_color=shade, fill_opacity=a, stroke_color=shade, stroke_width=0.6, stroke_opacity=a)))
         polys.sort(key=lambda t: t[0])
         zc = sum(t[0] for t in polys) / len(polys) if polys else 0
         drawn.append((zc, VGroup(*[p for _, p in polys])))
@@ -366,463 +520,537 @@ def render_parts(parts, yaw, pitch, alpha=None):
 
 def cam_parts(ex=0.0):
     parts = [("casing", extrude(_stadium_pts(L3, R3), -D3 / 2, D3 / 2, PAL["body"]), -0.55 * ex),
-             ("pcb", extrude(_rect_pts(L3 * 0.78, 0.36), -0.05, 0.0, PAL["pcb"]), -1.0 * ex),
-             ("module", extrude(_rect_pts(L3 * 0.8, 0.34), -0.04, 0.04, PAL["steel"]), 0.2 + 0.25 * ex),
+             ("pcb", extrude(_rect_pts(L3 * 0.78, 0.32), -0.05, 0.0, PAL["pcb"]), -1.0 * ex),
+             ("module", extrude(_rect_pts(L3 * 0.8, 0.30), -0.04, 0.04, PAL["steel"]), 0.2 + 0.25 * ex),
              ("plate", extrude(_stadium_pts(L3 * 0.94, R3 * 0.82), D3 / 2, D3 / 2 + 0.05, PAL["plate"]), 0.95 * ex)]
     for i, (lx, r) in enumerate(LENS):
-        parts.append((f"lens{i}", extrude(_circle_pts(r * 0.8, 16, lx * 0.95, 0), D3 / 2 + 0.05, D3 / 2 + 0.16, "#1B1D21"), 1.7 * ex))
+        parts.append((f"lens{i}", extrude(_circle_pts(r * 0.75 * CAM_K, 16, lx * 0.95 * CAM_K, 0), D3 / 2 + 0.05, D3 / 2 + 0.16, "#1B1D21"), 1.7 * ex))
     return parts
 
 
-def cam3d(yaw=0.95, pitch=0.2, ex=0.0, cone=1.0, sweep=None, others=1.0):
-    alpha = {k: others for k in ("casing", "pcb", "plate", "lens0", "lens1", "lens2", "lens3")}
-    g = render_parts(cam_parts(ex), yaw, pitch, alpha)
+def lens_pt(yaw, pitch, ex=0.0, s=1.0, at=None):
     R = _rot(yaw, pitch)
-    # gold rims on the lenses, when their fronts face the viewer
+    return np.array(_proj(R @ np.array([LENS[3][0] * 0.95 * CAM_K, 0, D3 / 2 + 0.17 + 1.7 * ex]), s, at))
+
+
+def die_pt(yaw, pitch, ex=0.0, s=1.0, at=None):
+    R = _rot(yaw, pitch)
+    return np.array(_proj(R @ np.array([LENS[3][0] * 0.95 * CAM_K, 0, 0.2 + 0.25 * ex + 0.05]), s, at))
+
+
+def table_quad(c=SC_C, sc=SC_K):
+    return [fp(-1, 0, 0, c, sc), fp(1, 0, 0, c, sc), fp(1, 1, 0, c, sc), fp(-1, 1, 0, c, sc)]
+
+
+def cone(yaw, pitch, a=1.0, sweep=None, ex=0.0, s=1.0, at=None):
+    """The RGB imager's view: from the lens down onto the table."""
+    O = lens_pt(yaw, pitch, ex, s, at)
+    F = table_quad()
+    g = VGroup(Polygon(*F, stroke_color=PAL["copper"], stroke_width=1.8, stroke_opacity=0.8 * a, fill_color=PAL["copper"], fill_opacity=0.05 * a),
+               *[Line(O, f, stroke_color=PAL["copper"], stroke_width=1.6, stroke_opacity=0.7 * a) for f in F])
+    if sweep is not None and sweep > 0.02:
+        g.add(Polygon(*[O + (f - O) * sweep for f in F], stroke_color=PAL["copper"], stroke_width=2.4, stroke_opacity=0.9 * (1 - sweep) * a, fill_opacity=0))
+    return g
+
+
+def cam3d(yaw=YAW0, pitch=PITCH0, ex=0.0, others=1.0, module=1.0, s=1.0, at=None):
+    alpha = {k: others for k in ("casing", "pcb", "plate", "lens0", "lens1", "lens2", "lens3")}
+    alpha["module"] = module
+    g = render_parts(cam_parts(ex), yaw, pitch, alpha, s, at)
+    R = _rot(yaw, pitch)
     if others > 0.01 and (R @ np.array([0, 0, 1]))[2] > 0.05:
         for lx, r in LENS:
-            ring = [_proj(R @ np.array([x, y, D3 / 2 + 0.165 + 1.7 * ex])) for x, y in _circle_pts(r * 0.62, 18, lx * 0.95, 0)]
-            g.add(Polygon(*ring, stroke_color=PAL["gold"], stroke_width=1.6, stroke_opacity=others, fill_opacity=0))
-    if cone > 0.01:
-        o = np.array([LENS[3][0] * 0.95, 0, D3 / 2 + 0.17])
-        D = 1.25                             # on the stage at the widest point of the sway
-        far = [o + np.array([sx * D * math.tan(0.6), sy * D * math.tan(0.37), D]) for sx, sy in ((-1, 1), (1, 1), (1, -1), (-1, -1))]
-        O, F = _proj(R @ o), [_proj(R @ f) for f in far]
-        cg = VGroup(Polygon(*F, stroke_color=PAL["copper"], stroke_width=1.5, stroke_opacity=0.75 * cone, fill_color=PAL["copper"], fill_opacity=0.06 * cone),
-                    *[Line(O, f, stroke_color=PAL["copper"], stroke_width=1.5, stroke_opacity=0.75 * cone) for f in F])
-        if sweep is not None:
-            cg.add(Polygon(*[_proj(R @ (o + (f - o) * sweep)) for f in far], stroke_color=PAL["copper"], stroke_width=2.2, stroke_opacity=0.9 * (1 - sweep) * cone, fill_opacity=0))
-        g.add(cg)
+            ring = [_proj(R @ np.array([x, y, D3 / 2 + 0.165 + 1.7 * ex]), s, at) for x, y in _circle_pts(r * 0.58 * CAM_K, 18, lx * 0.95 * CAM_K, 0)]
+            g.add(Polygon(*ring, stroke_color=PAL["soft"], stroke_width=1.4, stroke_opacity=others, fill_opacity=0))
     return g
 
 
-YAW0, PITCH0 = 0.95, 0.22      # turned well round to face INTO the stage, so the cone projects across it, not at the viewer or off the edge
+def faint_table(a=1.0):
+    """What the camera is looking at, before it has taken the picture."""
+    g = VGroup(Polygon(*table_quad(), stroke_color=PAL["soft"], stroke_width=1.6, stroke_opacity=a, fill_opacity=0))
+    for (p, s) in [(A0, RED_S)] + DISTRACT:
+        g.add(fade(cube_at(p[0], p[1], 0, s, False, "sim", SC_C, SC_K), 0.55 * a))
+    return g
 
 
-def camera_rest(sweep=None):
-    return VGroup(cam_casing(), cam_plate(), cam_lenses(), capture_cone(1.0, sweep))
+def rest_frame(u):
+    yaw = YAW0 + 0.32 * math.sin(math.tau * u)
+    pitch = PITCH0 + 0.05 * math.sin(math.tau * 2 * u)
+    return VGroup(faint_table(), cone(yaw, pitch, 1.0, sweep=(u * 3) % 1), cam3d(yaw, pitch))
 
 
-# ── the sensor, the end of act 0 ────────────────────────────────────────────
-SEN_C = (0.0, 0.9)
-PX_C, PX_R, PX = 8, 6, 0.3
-
-
-def pixel_colour(c, r):
-    """The picture, sampled at 8 x 6: wall, table, the three cubes."""
-    u = (c + 0.5) / PX_C * 2 - 1
-    v = 1 - (r + 0.5) / PX_R * 2
-    for (cc, s, col) in CUBES:
-        if abs(u - cc[0]) < s * 0.8 and abs(v - cc[1]) < s * 1.2:
-            return PAL[col]
-    return PAL["table"] if v < -0.05 else PAL["wall"]
-
-
-def sensor(lit=1.0, band=None):
-    x, y = SEN_C
-    w, h = PX_C * PX, PX_R * PX
-    g = VGroup()
-    g.add(Rectangle(width=w + 0.5, height=h + 0.5, fill_color=PAL["panel"], fill_opacity=1, stroke_color=PAL["ink"], stroke_width=1.5).move_to([x, y, 0]))
-    pins = VGroup()
-    for i in range(14):
-        px = x - (w + 0.5) / 2 + 0.15 + i * (w + 0.2) / 13.5
-        pins.add(Line([px, y + (h + 0.5) / 2, 0], [px, y + (h + 0.5) / 2 + 0.12, 0], stroke_color=PAL["soft"], stroke_width=1.5))
-        pins.add(Line([px, y - (h + 0.5) / 2, 0], [px, y - (h + 0.5) / 2 - 0.12, 0], stroke_color=PAL["soft"], stroke_width=1.5))
-    g.add(pins)
-    g.add(Rectangle(width=w + 0.08, height=h + 0.08, fill_color="#1A1B1E", fill_opacity=1, stroke_width=0).move_to([x, y, 0]))
-    n = PX_C * PX_R
+# ── pixel sampling (photosites, patch tokens): what colour is the shot at (x, y)?
+def _pip(x, y, vs):
+    inside = False
+    n = len(vs)
+    j = n - 1
     for i in range(n):
-        c, r = i % PX_C, i // PX_C
-        a = smooth01(lit * 1.3 - (i / n) * 0.3)
-        if a <= 0:
-            continue
-        g.add(Square(PX * 0.82 * (0.4 + 0.6 * a), fill_color=pixel_colour(c, r), fill_opacity=a, stroke_width=0)
-              .move_to([x - w / 2 + (c + 0.5) * PX, y + h / 2 - (r + 0.5) * PX, 0]))
-    if band is not None:
-        g.add(Rectangle(width=w + 0.1, height=0.12, fill_color=PAL["copper"], fill_opacity=0.35, stroke_width=0).move_to([x, y + h / 2 - band * h, 0]))
-    return g
+        xi, yi = vs[i][0], vs[i][1]
+        xj, yj = vs[j][0], vs[j][1]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-9) + xi:
+            inside = not inside
+        j = i
+    return inside
 
 
-def state0():
-    return VGroup(tracker(0), sensor(1.0))
+def sampler(mob):
+    polys = []
+    for m in mob.family_members_with_points():
+        if isinstance(m, Polygram) and m.get_fill_opacity() > 0.3:
+            polys.append((m.get_vertices(), m.get_fill_color()))
+        elif isinstance(m, Line) and m.get_stroke_width() >= 6 and m.get_stroke_opacity() > 0.5:
+            # the arm's links: a thick line as a thin quad
+            a, b = m.get_start(), m.get_end()
+            d = b - a
+            ln = np.linalg.norm(d) or 1
+            nrm = np.array([-d[1], d[0], 0]) / ln * 0.06
+            polys.append(([a + nrm, b + nrm, b - nrm, a - nrm], m.get_stroke_color()))
+
+    def at(x, y):
+        for vs, col in reversed(polys):
+            if _pip(x, y, vs):
+                return col
+        return ManimColor(PAL["bg"])
+    return at
 
 
-# ── act 1: the VLA ──────────────────────────────────────────────────────────
-TOK_Y, LANG_Y = 0.62, 0.3
-LAYER_Y = [-0.32, -0.64, -0.96, -1.28]
-NTOK = 13
+PXC, PXR = 14, 11
 
 
-def tok_x(k):
-    return (k - (NTOK - 1) / 2) * 0.245
-
-
-def patch_colour(k):
-    c, r = k % 4, k // 4
-    return pixel_colour(min(PX_C - 1, c * 2 + 1), min(PX_R - 1, r * 2 + 1))
-
-
-def tokens(hot=-1):
+def photosites(lit_rows=0.0, a=1.0, scl=1.0):
+    """The frame as a 14 x 11 mosaic read out row by row (rows below lit_rows dark)."""
+    W, yb, yt = frame_box()
+    cw, ch = 2 * W / PXC, (yt - yb) / PXR
+    samp = sampler(shot("real", 0.0, "untrained"))
     g = VGroup()
-    for k in range(NTOK):
-        col = PAL["red"] if k == 12 else patch_colour(k)
-        sq = iso_cube((tok_x(k), TOK_Y), 0.18, col, depth=0.35)
-        g.add(sq)
-        if k == 12 or k == hot:
-            g.add(Square(0.24, stroke_color=PAL["ink"], stroke_width=1.8).move_to([tok_x(k), TOK_Y, 0]))
+    for r in range(PXR):
+        f = min(max(lit_rows - r, 0.0), 1.0)
+        for cc in range(PXC):
+            x, y = -W + (cc + 0.5) * cw + SC_C[0], yt - (r + 0.5) * ch
+            col = samp(x, y)
+            dark = ManimColor(PAL["plate"])
+            fill = dark.interpolate(col, f) if f < 1 else col
+            g.add(Square(min(cw, ch) * 0.86 * scl, fill_color=fill, fill_opacity=a, stroke_width=0).move_to([x, y, 0]))
     return g
 
 
-def lang_tokens():
-    widths = [0.28, 0.24, 0.26, 0.32, 0.18, 0.24, 0.26]
-    g, x = VGroup(), -sum(widths) / 2 - 0.05 * 3
-    for wd in widths:
-        g.add(RoundedRectangle(width=wd, height=0.16, corner_radius=0.05, stroke_color=PAL["gold"], stroke_width=1.5).move_to([x + wd / 2, LANG_Y, 0]))
-        x += wd + 0.05
-    return g
+def readout_line(rows):
+    W, yb, yt = frame_box()
+    y = yt - rows * (yt - yb) / PXR
+    return Line([-W, y, 0], [W, y, 0], stroke_color=PAL["copper"], stroke_width=3)
 
 
-def layers(run=None):
-    g = VGroup()
-    for i, y in enumerate(LAYER_Y):
-        lit = 0.0 if run is None else max(0.0, 1 - abs(run * 4.4 - i) * 1.3)
-        g.add(RoundedRectangle(width=3.4, height=0.2, corner_radius=0.06, fill_color=PAL["slab"], fill_opacity=1,
-                               stroke_color=PAL["copper"] if lit > 0.3 else PAL["soft"], stroke_width=1.1 + 0.6 * lit).move_to([0, y, 0]))
-        if lit > 0:
-            g.add(RoundedRectangle(width=3.3 * lit + 0.01, height=0.08, corner_radius=0.03, fill_color=PAL["copper"], fill_opacity=0.35 * lit, stroke_width=0).move_to([0, y, 0]))
-    return g
+# ═══════════════════════ the states, S0 .. S4 ═══════════════════════════════
+CAP_Y = -1.72        # the one caption line under the shot
 
 
-def attention(hot, a=1.0):
-    g = VGroup()
-    src = tok_x(hot if hot >= 0 else 12)
-    for d in (-5, -2, 1, 4, 7):
-        k = min(max((hot if hot >= 0 else 12) + d, 0), NTOK - 1)
-        g.add(ArcBetweenPoints([src, TOK_Y - 0.13, 0], [tok_x(k) * 0.95, LAYER_Y[0] + 0.1, 0], angle=-0.5 if d > 0 else 0.5,
-                               stroke_color=PAL["copper"], stroke_width=1.2, stroke_opacity=0.55 * a))
-    return g
-
-
-PANEL_C = (0.0, -2.25)
-
-
-def action_panel(u=0.0, center=PANEL_C, scale=1.0, lab="action chunk", lab_a=1.0):
-    cx, cy = center
-    w, h = 2.2 * scale, 1.05 * scale
-    g = VGroup(RoundedRectangle(width=w, height=h, corner_radius=0.08 * scale, fill_color=PAL["panel"], fill_opacity=1,
-                                stroke_color=PAL["line"], stroke_width=1.5).move_to([cx, cy, 0]))
-    # the chunk: the next 16 steps of the gripper's path in the picture
-    pts = []
-    for i in range(24):
-        gp, _, _ = pic_state(u + i * 0.02)
-        pts.append([cx + gp[0] * w * 0.4, cy + (gp[1] - 0.05) * h * 0.55, 0])
-    g.add(VMobject(stroke_color=PAL["line"], stroke_width=2).set_points_smoothly(pts))
-    for i in range(16):
-        gp, op, _ = pic_state(u + i * 0.03)
-        g.add(Dot([cx + gp[0] * w * 0.4, cy + (gp[1] - 0.05) * h * 0.55, 0], radius=(0.05 if i == 0 else 0.028) * scale, color=PAL["copper"]))
-    if lab:
-        g.add(fade(label(lab, 12 if scale > 0.7 else 10).next_to(g[0], DOWN if scale > 0.7 else RIGHT, buff=0.1), lab_a))
-    return g
-
-
-def vla_label(a=1.0):
-    return fade(label("vla policy", 12).move_to([0, LAYER_Y[0] + 0.28, 0]), a)
-
-
-def state1(u=0.0, hot=-1, run=None):
-    return VGroup(tracker(0), picture(u), tokens(hot), lang_tokens(), attention(hot), layers(run),
-                  Line([0, LAYER_Y[-1] - 0.12, 0], [0, PANEL_C[1] + 0.55, 0], stroke_color=PAL["line"], stroke_width=2),
-                  vla_label(), action_panel(u))
-
-
-# ── act 2: the world model ──────────────────────────────────────────────────
-LAT_Y = -0.35
-LAT_X = [-1.5 + k * 0.75 for k in range(5)]
-FRAME_Y = -1.75
-PANEL_SMALL = (0.0, 0.62)
-
-
-def latents(pulse=None, grow=None, LAT_Y=LAT_Y):
-    g = VGroup()
-    for k, x in enumerate(LAT_X):
-        s = 1.0 if grow is None else grow(k)
-        if s <= 0.01:
-            continue
-        box = VGroup(Rectangle(width=0.4, height=0.55, fill_color=PAL["slab"], fill_opacity=1, stroke_color=PAL["soft"], stroke_width=1.1).move_to([x, LAT_Y, 0]))
-        hot = (k * 2) % 5
-        for c in range(5):
-            box.add(Line([x - 0.12, LAT_Y + 0.18 - c * 0.09, 0], [x + (0.12 if c == hot else 0.02 + 0.08 * ((c * 3 + k) % 3) / 2), LAT_Y + 0.18 - c * 0.09, 0],
-                         stroke_color=PAL["copper"] if c == hot else PAL["soft"], stroke_width=2 if c == hot else 1.2))
-        g.add(box.scale(s, about_point=[x, LAT_Y, 0]))
-        if k < 4 and (grow is None or grow(k + 1) > 0.5):
-            g.add(Arrow([x + 0.22, LAT_Y, 0], [LAT_X[k + 1] - 0.22, LAT_Y, 0], buff=0, stroke_width=2, color=PAL["soft"],
-                        max_tip_length_to_length_ratio=0.35))
-            ax = (x + LAT_X[k + 1]) / 2
-            g.add(Square(0.1, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to([ax, LAT_Y + 0.36, 0]))
-            g.add(Line([ax, LAT_Y + 0.3, 0], [ax, LAT_Y + 0.05, 0], stroke_color=PAL["copper"], stroke_width=1.5))
-    if pulse is not None:
-        g.add(Dot([LAT_X[0] + pulse * (LAT_X[4] - LAT_X[0]), LAT_Y, 0], radius=0.06, color=PAL["copper"]))
-    return g
-
-
-def imagined(u=0.0, grow=None, LAT_Y=LAT_Y, FRAME_Y=FRAME_Y):
-    g = VGroup()
-    for k in range(1, 5):
-        s = 1.0 if grow is None else grow(k)
-        if s <= 0.01:
-            continue
-        x = LAT_X[k]
-        g.add(fade(Line([x, LAT_Y - 0.3, 0], [x, FRAME_Y + 0.3, 0], stroke_color=PAL["line"], stroke_width=1.5), s))
-        pic = picture(u + k * 0.08, w=0.66, h=0.46, center=(x, FRAME_Y, 0))
-        fade(pic, s * (1 - (k - 1) * 0.13))
-        g.add(pic)
-    return g
-
-
-def wm_label(a=1.0):
-    return fade(label("world model", 12).move_to([LAT_X[0] + 0.3, LAT_Y + 0.52, 0]), a)
-
-
-def fut_label(a=1.0):
-    return fade(label("imagined futures", 12).move_to([0.37, FRAME_Y - 0.42, 0]), a)
-
-
-def state2(u=0.0, pulse=None):
-    return VGroup(tracker(0), picture(u), action_panel(u, PANEL_SMALL, 0.42, "actions"), latents(pulse), wm_label(), imagined(u), fut_label())
-
-
-# ── act 3: real2sim ─────────────────────────────────────────────────────────
-def floor_pt(uu, vv, hh=0.0, c=(0.0, -0.7), sc=1.0):
-    """The table in perspective: uu -1..1 across, vv 0 (near) .. 1 (far)."""
-    return [c[0] + sc * uu * (1.75 - 0.55 * vv), c[1] + sc * (-0.75 + 1.35 * vv + hh), 0]
-
-
-FL_CUBES = [((0.25, 0.45), 0.34, "red"), ((0.62, 0.32), 0.28, "green"), ((-0.6, 0.25), 0.24, "blue")]
-FL_A, FL_B = (0.25, 0.45), (-0.2, 0.62)
-
-
-def floor_grid(c=(0.0, -0.7), sc=1.0, a=1.0, solid=0.0):
-    g = VGroup()
-    if solid > 0:
-        g.add(Polygon(floor_pt(-1, 0, 0, c, sc), floor_pt(1, 0, 0, c, sc), floor_pt(1, 1, 0, c, sc), floor_pt(-1, 1, 0, c, sc),
-                      fill_color=PAL["table"], fill_opacity=solid, stroke_color=PAL["line"], stroke_width=2 * solid))
-        g.add(Polygon(floor_pt(-1, 0, 0, c, sc), floor_pt(1, 0, 0, c, sc), floor_pt(1, 0, -0.12, c, sc), floor_pt(-1, 0, -0.12, c, sc),
-                      fill_color=ManimColor(PAL["table"]).darker(0.2), fill_opacity=solid, stroke_width=0))
-    for i in range(7):
-        f = i / 6
-        g.add(Line(floor_pt(-1 + 2 * f, 0, 0, c, sc), floor_pt(-1 + 2 * f, 1, 0, c, sc), stroke_color=PAL["line"], stroke_width=1.3, stroke_opacity=a))
-        g.add(Line(floor_pt(-1, f, 0, c, sc), floor_pt(1, f, 0, c, sc), stroke_color=PAL["line"], stroke_width=1.3, stroke_opacity=a))
-    return g
-
-
-def floor_cubes(c=(0.0, -0.7), sc=1.0, jig=None, tints=None, red_at=None, a=1.0):
-    g = VGroup()
-    for i, (p, s, col) in enumerate(FL_CUBES):
-        uu, vv = p
-        if jig is not None:
-            uu += 0.18 * math.sin(jig + i * 2.3)
-            vv += 0.12 * math.cos(jig * 0.8 + i * 1.7)
-        base = floor_pt(uu, vv, 0, c, sc)
-        hh = 0.0
-        if i == 0 and red_at is not None:
-            base = floor_pt(red_at[0], red_at[1], 0, c, sc)
-            hh = red_at[2] * sc
-        sz = s * sc * (1 - 0.3 * vv)
-        colr = PAL[tints[i]] if tints else PAL[col]
-        g.add(fade(iso_cube((base[0], base[1] + sz / 2 + hh), sz, colr), a))
-    # far cubes behind near ones: draw in order of depth
-    return VGroup(*sorted(g, key=lambda m: -m.get_center()[1]))
-
-
-def splats(t, seed=3):
-    g = VGroup()
-    rnd = __import__("random").Random(seed)
-    for (p, s, col) in FL_CUBES:
-        base = floor_pt(p[0], p[1])
-        for j in range(26):
-            x = base[0] + (rnd.random() - 0.5) * s * 1.3
-            y = base[1] + rnd.random() * s * 1.1
-            r = 0.02 + rnd.random() * 0.035
-            g.add(fade(Dot([x, y, 0], radius=r, color=PAL[col]), 0.55 * t))
-    return g
-
-
-TWIN_L, TWIN_R, TWIN_SC = (-1.0, 2.1), (1.0, 2.1), 0.46
-
-
-def twins(jig=0.0, a=1.0):
-    g = VGroup()
-    for c, tints, ph in ((TWIN_L, ["blue", "red", "green"], 0.0), (TWIN_R, ["green", "blue", "red"], 2.2)):
-        g.add(floor_grid(c, TWIN_SC, a))
-        g.add(floor_cubes(c, TWIN_SC, jig=jig + ph, tints=tints, a=a))
-    return g
-
-
-CURVE_C = (0.0, -2.75)
-
-
-def curve(upto=1.0, flick=0.0, a=1.0, C=CURVE_C, w=2.4, h=0.8, lab="training in sim"):
-    cx, cy = C
-    g = VGroup(Line([cx - w / 2, cy - h / 2, 0], [cx + w / 2, cy - h / 2, 0], stroke_color=PAL["line"], stroke_width=1.8),
-               Line([cx - w / 2, cy - h / 2, 0], [cx - w / 2, cy + h / 2, 0], stroke_color=PAL["line"], stroke_width=1.8))
-    pts = []
-    n = 40
-    for i in range(n + 1):
-        x = i / n
-        if x > upto:
-            break
-        yv = 1 - math.exp(-x * 3.4) - math.sin(x * 19) * 0.05 * (1 - x) + flick * math.sin(x * 40 + flick * 9) * 0.03 * smooth01((x - 0.6) / 0.4)
-        pts.append([cx - w / 2 + x * w, cy - h / 2 + yv * h * 0.9, 0])
-    if len(pts) > 1:
-        g.add(VMobject(stroke_color=PAL["copper"], stroke_width=2.6).set_points_smoothly(pts))
-    g.add(label(lab, 12 if w > 2 else 11).next_to(g[0], DOWN, buff=0.1))
-    return fade(g, a) if a < 1 else g
-
-
-def state3(jig=0.0, flick=0.0):
-    return VGroup(tracker(1), floor_grid(), floor_cubes(), label("real2sim", 12).move_to([-1.1, 0.55, 0]),
-                  twins(jig), label("domain randomization", 12).move_to([0, 2.95, 0]), curve(1.0, flick))
-
-
-# ── act 4: sim2real ─────────────────────────────────────────────────────────
-def pick3(u):
-    k0, k1, f = pick_key(u)
-    CS = FL_CUBES[0][1] * (1 - 0.3 * 0.45)
-
-    def spot(sp, lv):
-        if sp == "H":
-            return (-0.55, 0.3, 1.4)
-        c = FL_A if sp == "A" else FL_B
-        return (c[0], c[1], 1.0) if lv else (c[0], c[1], CS * 0.55)
-    p0, p1 = spot(k0[1], k0[2]), spot(k1[1], k1[2])
-    g = tuple(p0[i] + (p1[i] - p0[i]) * f for i in range(3))
-    op = k0[3] + (k1[3] - k0[3]) * f
-    ph = k0[4]
-    cube = (g[0], g[1], g[2] - CS * 0.55) if ph in (1, 3) else ((FL_B[0], FL_B[1], 0.0) if ph == 2 else (FL_A[0], FL_A[1], 0.0))
-    return g, op, cube
-
-
-def gripper3(g, op, a=1.0, drop=0.0):
-    base = floor_pt(g[0], g[1], g[2] + drop)
-    x, y = base[0], base[1]
-    o = 0.2 + 0.09 * op
-    grp = VGroup(Line([x, 3.1, 0], [x, y + 0.36, 0], stroke_color=PAL["steel"], stroke_width=6),
-                 Rectangle(width=2 * o + 0.14, height=0.1, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to([x, y + 0.31, 0]))
-    for sg in (-1, 1):
-        grp.add(Rectangle(width=0.06, height=0.3, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to([x + sg * o, y + 0.13, 0]))
-        grp.add(Rectangle(width=0.06, height=0.06, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to([x + sg * o, y - 0.02, 0]))
-    return fade(grp, a) if a < 1 else grp
-
-
-def table_scene(u=0.0, a=1.0, drop=0.0):
-    g, op, cube = pick3(u)
-    cubes = floor_cubes(red_at=cube)
-    return VGroup(floor_grid(a=0.0, solid=1.0), cubes, gripper3(g, op, a, drop))
-
-
-def state4(u=0.0):
-    return VGroup(tracker(2), table_scene(u), label("sim2real", 12).move_to([-1.25, -2.05, 0]))
-
-
-# ═══════════════════ THE STORY, IN THE ORDER IT HAPPENS ═══════════════════
-# (the owner, on the first cut: "does the progression make sense?" — it did
-# not: the VLA drove the gripper perfectly BEFORE anything was trained, and
-# the sim section ended where it began. Now: real (an untrained policy
-# fumbles) -> real2sim -> sim data (randomised twins, a world model imagining
-# rollouts) -> train the VLA on it -> sim2real (the same gripper succeeds).)
-
-def untrained_label(a=1.0):
-    return fade(label("policy · untrained", 12).move_to([0, 0.72, 0]), a)
+def untrained_cap():
+    return caption("policy · untrained", CAP_Y)
 
 
 def S0(u=0.0):
-    """Real: the camera's picture, the untrained policy. (No tracker yet: the
-    real/sim/real bar arrives with real2sim — the owner: "the real to sim to
-    real bar is showing up too early".)"""
-    return VGroup(picture(u, fumble=True), untrained_label())
+    """REAL: the camera's picture; the untrained policy grasps at air."""
+    return VGroup(shot("real", u, "untrained"), trail(u, SC_C, SC_K), misses(u, SC_C, SC_K), untrained_cap())
 
 
-def r2s_label(a=1.0):
-    return fade(label("real2sim", 12).move_to([-1.1, 0.55, 0]), a)
+def r2s_cap():
+    return caption("real2sim · gaussian splat", CAP_Y)
 
 
-def scan_band(v):
-    """A scan line sweeping the sim twin, depth-wise."""
-    return Line(floor_pt(-1, v), floor_pt(1, v), stroke_color=PAL["copper"], stroke_width=2.5, stroke_opacity=0.6 * math.sin(math.pi * v))
+def drop_state(u):
+    """IdleTwin: the red cube falls from above A and bounces to rest (sim)."""
+    if u < 0.12 or u > 0.9:
+        return (A0[0], A0[1], 0.0, 1.0)
+    if u < 0.2:                                           # vanish
+        return (A0[0], A0[1], 0.0, 1 - smooth01((u - 0.12) / 0.08))
+    t = (u - 0.2) / 0.62                                  # 0..1 of the fall
+    if t < 0:
+        return (A0[0], A0[1], 1.2, 0.0)
+    # a drop from 1.2 with restitution 0.45: bounces of decreasing height
+    h0, e = 1.2, 0.45
+    T0 = math.sqrt(h0)                                    # time to fall, in arbitrary units
+    times = [T0]
+    v = T0
+    while len(times) < 6:
+        v *= e
+        times.append(2 * v)
+    total = sum(times)
+    tt = t * total * 1.25
+    if tt < T0:
+        return (A0[0], A0[1], h0 - tt * tt, min(1.0, tt / (0.25 * T0)))
+    tt -= T0
+    v = T0
+    for d in times[1:]:
+        v *= e
+        if tt < d:
+            return (A0[0], A0[1], max(0.0, v * tt - tt * tt), 1.0)
+        tt -= d
+    return (A0[0], A0[1], 0.0, 1.0)
 
 
-def S1(v=None):
-    """Real2sim: the sim twin."""
-    g = VGroup(tracker(1), floor_grid(), floor_cubes(), r2s_label())
-    if v is not None:
-        g.add(scan_band(v))
+def contact_burst(u):
+    """A brief copper ring where the falling cube first meets the table."""
+    T0 = math.sqrt(1.2)
+    times = [T0]
+    v = T0
+    while len(times) < 6:
+        v *= 0.45
+        times.append(2 * v)
+    t_hit = 0.2 + 0.62 * (T0 / (sum(times) * 1.25))
+    f = (u - t_hit) / 0.08
+    if not (0 <= f <= 1):
+        return VGroup()
+    p = fp(A0[0], A0[1], 0)
+    return Ellipse(width=0.5 + 0.5 * f, height=0.14 + 0.12 * f, stroke_color=PAL["copper"], stroke_width=2.5, stroke_opacity=1 - f).move_to(p)
+
+
+def S1(u=0.0):
+    """SIM: the twin of the shot."""
+    return VGroup(tracker(1), shot("sim", 0, "static", red=drop_state(u)), contact_burst(u), r2s_cap())
+
+
+# ── S2: a wall of randomised twins, each running a demonstration; a world model
+WALL = [(-0.9 + 1.8 * (i % 2), 2.32 - 1.14 * (i // 2)) for i in range(6)]
+CELL_K = 0.4
+CELL_TOP = 1.75
+WALL_CAP_Y = -0.66
+NC = len(WALL)
+
+
+def cell_c(i):
+    x, y = WALL[i]
+    return (x, y - 0.4 * CELL_K)
+
+
+def cell_params(i):
+    """Randomised per twin: cube layout, the target's start, floor tone."""
+    if i == 0:
+        return DISTRACT, A0, B0, 0.0
+    rnd = random.Random(100 + i)
+    ds = [((rnd.uniform(-0.6, 0.75), rnd.uniform(0.62, 0.9)), s) for _, s in DISTRACT]
+    A = (rnd.uniform(0.2, 0.6), rnd.uniform(0.3, 0.5))
+    B = (rnd.uniform(-0.55, -0.2), rnd.uniform(0.22, 0.4))
+    return ds, A, B, rnd.uniform(0.3, 1.0)
+
+
+def cell_box(i, a=1.0):
+    W, yb, yt = frame_box(cell_c(i), CELL_K, CELL_TOP)
+    c = cell_c(i)
+    return Rectangle(width=2 * W + 0.06, height=yt - yb, stroke_color=PAL["line"], stroke_width=1.2, stroke_opacity=a).move_to([c[0], (yb + yt) / 2, 0])
+
+
+def cell(i, u=0.0, box=True):
+    ds, A, B, tone = cell_params(i)
+    g = shot("sim", u, "trained", cell_c(i), CELL_K, cubes_jig=ds, A=A, B=B, tone=tone)
+    if box:
+        g.add(cell_box(i))
     return g
 
 
-C2, SC2 = (0.0, -0.15), 0.8            # the twin, moved up, while the data is made
-LAT2, FR2 = -1.85, -2.95
-
-
-def demo_path(c, sc, ph, prog=1.0):
-    """A demonstration in a twin: the red cube's pick-and-place arc, dashed."""
-    pts = []
-    for i in range(25):
-        f = i / 24
-        uu = 0.25 + (-0.45 - 0.25) * f + 0.1 * math.sin(ph)
-        vv = 0.45 + 0.15 * math.sin(math.pi * f + ph)
-        pts.append(floor_pt(uu, vv, 0.9 * math.sin(math.pi * f), c, sc))
+def demo_path(i, prog=1.0):
+    """The demonstration's end-effector path in twin i: A, up, over, down onto B."""
+    _, A, B, _ = cell_params(i)
+    pts = [fp(*pick3(t, A, B)[0], cell_c(i), CELL_K) + np.array([0.06 * CELL_K / SC_K, 0, 0]) for t in np.linspace(0.17, 0.51, 18)]
     path = VMobject().set_points_smoothly(pts)
-    return DashedVMobject(path, num_dashes=12).set_stroke(PAL["copper"], 1.8, opacity=0.85 * prog)
+    return DashedVMobject(path, num_dashes=9, dashed_ratio=0.6).set_stroke(PAL["copper"], 1.6, opacity=0.9 * prog)
 
 
-def S2(jig=0.0, pulse=None, u=0.0):
-    """Sim data: randomised twins producing demos; a world model imagining rollouts."""
-    g = VGroup(tracker(1), floor_grid(C2, SC2), floor_cubes(C2, SC2))
-    g.add(twins(jig))
-    g.add(demo_path(TWIN_L, TWIN_SC, jig), demo_path(TWIN_R, TWIN_SC, jig + 2.2))
-    g.add(label("domain randomization", 12).move_to([0, 2.95, 0]), label("1,000+ demos", 11).move_to([0, 1.5, 0]))
-    g.add(latents(pulse, LAT_Y=LAT2), label("world model", 12).move_to([LAT_X[0] + 0.3, LAT2 + 0.52, 0]),
-          imagined(u, LAT_Y=LAT2, FRAME_Y=FR2), label("imagined rollouts", 12).move_to([0.37, FR2 - 0.42, 0]))
+def cell_phase(i):
+    return (i * 0.37) % 1.0
+
+
+def wall(u=0.0):
+    g = VGroup()
+    for i in range(NC):
+        g.add(VGroup(cell(i, (u + cell_phase(i)) % 1.0), demo_path(i)))
     return g
 
 
-DATA_C = (-0.95, 2.2)
-CURVE3 = dict(C=(0.95, 2.25), w=1.45, h=0.62, lab="policy success")
+# the world model: an observed frame -> encoder -> latent z0 -> z1 -> z2 (an
+# action drops into each step) -> decoder -> imagined frames, fainter as the
+# rollout runs away from the data
+WM_Y = -1.5
+WM_FRAME_K = 0.2
+OBS_C = (-1.38, WM_Y - 0.12)
+ZX = [-0.42, 0.42, 1.26]
+IMG_Y = -2.72
 
 
-def dataset(a=1.0):
-    """The demos, as a stack of sim frames."""
+def latent(x, y, k, a=1.0, hot=None):
+    g = VGroup(RoundedRectangle(width=0.32, height=0.62, corner_radius=0.06, fill_color=PAL["slab"], fill_opacity=a,
+                                stroke_color=PAL["soft"], stroke_width=1.4, stroke_opacity=a).move_to([x, y, 0]))
+    rnd = random.Random(7 + k)
+    for j in range(6):
+        v = rnd.random()
+        on = hot is not None and j == hot
+        g.add(Dot([x, y + 0.22 - j * 0.088, 0], radius=0.018 + 0.03 * v,
+                  color=PAL["copper"] if on or (j == (k * 2) % 6) else PAL["soft"]).set_opacity(a))
+    return g
+
+
+def trapz(cx, cy, w0, w1, h, a=1.0, down=True):
+    """An encoder / decoder: a trapezoid narrowing toward the latent."""
+    if down:   # wide on the left, narrow on the right
+        pts = [[cx - h / 2, cy - w0 / 2, 0], [cx + h / 2, cy - w1 / 2, 0], [cx + h / 2, cy + w1 / 2, 0], [cx - h / 2, cy + w0 / 2, 0]]
+    else:
+        pts = [[cx - w1 / 2, cy + h / 2, 0], [cx + w1 / 2, cy + h / 2, 0], [cx + w0 / 2, cy - h / 2, 0], [cx - w0 / 2, cy - h / 2, 0]]
+    return Polygon(*pts, fill_color=PAL["slab"], fill_opacity=a, stroke_color=PAL["soft"], stroke_width=1.4, stroke_opacity=a)
+
+
+def wm_frame(k, u0=0.18, a=1.0):
+    """k = 0: the observed frame; k = 1, 2: imagined, decoded from z1, z2."""
+    if k == 0:
+        c = OBS_C
+    else:
+        c = (ZX[k], IMG_Y)
+    g = shot("sim", u0 + 0.12 * k, "trained", c, WM_FRAME_K, tone=0.0)
+    W, yb, yt = frame_box(c, WM_FRAME_K, 1.45)
+    box = Rectangle(width=2 * W + 0.06, height=yt - yb, stroke_color=PAL["soft"], stroke_width=1.3).move_to([c[0], (yb + yt) / 2, 0])
+    if k > 0:
+        box = DashedVMobject(box, num_dashes=22).set_stroke(PAL["soft"], 1.3)
+    g.add(box)
+    return fade(g, a * (1.0 if k == 0 else (0.85 if k == 1 else 0.6)))
+
+
+def world_model(pulse=None, a=1.0):
+    g = VGroup()
+    g.add(wm_frame(0))
+    g.add(trapz(-0.82, WM_Y, 0.62, 0.3, 0.34, a))                         # encoder
+    for k, x in enumerate(ZX):
+        g.add(latent(x, WM_Y, k, a))
+        if k < 2:
+            g.add(Arrow([x + 0.18, WM_Y, 0], [ZX[k + 1] - 0.18, WM_Y, 0], buff=0, stroke_width=2.2, color=PAL["soft"],
+                        max_tip_length_to_length_ratio=0.22, max_stroke_width_to_length_ratio=10))
+            ax = (x + ZX[k + 1]) / 2
+            g.add(Square(0.11, fill_color=PAL["copper"], fill_opacity=a, stroke_width=0).move_to([ax, WM_Y + 0.48, 0]))
+            g.add(Line([ax, WM_Y + 0.42, 0], [ax, WM_Y + 0.08, 0], stroke_color=PAL["copper"], stroke_width=1.6))
+    for k in (1, 2):
+        g.add(Arrow([ZX[k], WM_Y - 0.33, 0], [ZX[k], IMG_Y + 0.42, 0], buff=0, stroke_width=2.2, color=PAL["soft"],
+                    max_tip_length_to_length_ratio=0.3, max_stroke_width_to_length_ratio=10))   # decode
+        g.add(wm_frame(k))
+    if pulse is not None:
+        x = lerp(-0.82, ZX[2], pulse)
+        g.add(Dot([x, WM_Y, 0], radius=0.06, color=PAL["copper"]).set_opacity(math.sin(math.pi * pulse)))
+    return g
+
+
+def S2(u=0.0, pulse=None):
+    return VGroup(tracker(1), wall(u), caption("domain randomization · demos", WALL_CAP_Y),
+                  world_model(pulse), caption("world model · imagined rollout", -3.45))
+
+
+# ── S3: training the VLA
+STACK_C = (-1.05, 2.5)
+STACK_CARD_K = 0.3                     # a demo card in the stack
+CURVE_C, CURVE_W, CURVE_H = (0.95, 2.52), 1.4, 0.62
+TOK_Y, LANG_Y = 1.18, 0.78
+LAYER_Y = [0.22, -0.08, -0.38, -0.68]
+OUT_C, OUT_K = (0.0, -2.25), 0.5
+WORDS = ["pick", "red", "cube", "place"]
+PASS_X = (-0.75, -0.25, 0.25, 0.75)
+PASS_Y1 = OUT_C[1] + 0.5 * 1.7 + 0.02
+
+
+def stack(a=1.0):
     g = VGroup()
     for k in range(3):
-        c = (DATA_C[0] - 0.12 + k * 0.12, DATA_C[1] - 0.1 + k * 0.1)
-        card = VGroup(Rectangle(width=1.15, height=0.62, fill_color=PAL["panel"], fill_opacity=1, stroke_color=PAL["line"], stroke_width=1.3).move_to([c[0], c[1], 0]))
-        cc = (c[0], c[1] + 0.12)
-        card.add(floor_grid(cc, 0.3), floor_cubes(cc, 0.3, jig=k * 1.7))
+        cc = (STACK_C[0] - 0.1 + k * 0.1, STACK_C[1] - 0.1 + k * 0.1)
+        W, yb, yt = frame_box((0, 0), STACK_CARD_K, 1.45)
+        card = VGroup(Rectangle(width=2 * W + 0.1, height=yt - yb + 0.06, fill_color=PAL["panel"], fill_opacity=a,
+                                stroke_color=PAL["soft"], stroke_width=1.3, stroke_opacity=a).move_to([cc[0], cc[1], 0]))
+        if k == 2:
+            sh = shot("sim", 0.0, "static", (cc[0], cc[1] - (yt + yb) / 2), STACK_CARD_K)
+            card.add(fade(sh, a))
         g.add(card)
-    g.add(label("sim demos", 11).move_to([DATA_C[0], DATA_C[1] - 0.55, 0]))
+    g.add(fade(label("demos", 12).move_to([STACK_C[0], STACK_C[1] - 0.58, 0]), a))
+    return g
+
+
+def loss_y(x):
+    return 0.08 + 0.85 * math.exp(-x * 3.2) + 0.04 * math.sin(x * 23) * (1 - x)
+
+
+def loss_curve(upto=1.0, flick=0.0, a=1.0):
+    cx, cy = CURVE_C
+    w, h = CURVE_W, CURVE_H
+    g = VGroup(Line([cx - w / 2, cy - h / 2, 0], [cx + w / 2, cy - h / 2, 0], stroke_color=PAL["soft"], stroke_width=1.6),
+               Line([cx - w / 2, cy - h / 2, 0], [cx - w / 2, cy + h / 2, 0], stroke_color=PAL["soft"], stroke_width=1.6))
+    pts = []
+    n = 40
+    for i in range(n + 1):
+        x = i / n * max(upto, 0.001)
+        yv = loss_y(x) + (flick * 0.025 * math.sin(x * 37 + flick * 6) * smooth01((x - 0.75) / 0.25))
+        pts.append([cx - w / 2 + x * w, cy - h / 2 + yv * h, 0])
+    if upto > 0.02:
+        g.add(VMobject(stroke_color=PAL["copper"], stroke_width=2.6).set_points_smoothly(pts))
+        g.add(Dot(pts[-1], radius=0.04, color=PAL["copper"]))
+    g.add(label("training loss", 12).move_to([cx, cy - h / 2 - 0.2, 0]))
     return fade(g, a) if a < 1 else g
 
 
-def S3(u=0.0, hot=-1, run=None, upto=1.0, flick=0.0):
-    """Train the VLA on the sim demos."""
-    return VGroup(tracker(1), dataset(), curve(upto, flick, **CURVE3), tokens(hot), lang_tokens(), attention(hot), layers(run),
-                  Line([0, LAYER_Y[-1] - 0.12, 0], [0, PANEL_C[1] + 0.55, 0], stroke_color=PAL["line"], stroke_width=2),
-                  vla_label(), action_panel(u))
+def patch_tokens(a=1.0, hot=None):
+    """12 image tokens: the demo frame cut into 4 x 3 patches, each the colour
+    of its patch."""
+    samp = sampler(shot("sim", OUT_U, "trained", PATCH_SRC_C, PATCH_SRC_K))
+    g = VGroup()
+    for k in range(12):
+        col = patch_colour(k, samp)
+        x = -1.62 + k * 0.295
+        sq = Square(0.24, fill_color=col, fill_opacity=a, stroke_color=PAL["ink"], stroke_width=1.2, stroke_opacity=a).move_to([x, TOK_Y, 0])
+        g.add(sq)
+    return g
 
 
-PANEL4 = (0.0, 2.35)
+PATCH_SRC_C, PATCH_SRC_K = (0.0, 0.75), 0.42
+OUT_U = 0.3
+
+
+def patch_rect(k):
+    W, yb, yt = frame_box(PATCH_SRC_C, PATCH_SRC_K, 1.45)
+    cc, r = k % 4, k // 4
+    pw, ph = 2 * W / 4, (yt - yb) / 3
+    return np.array([-W + (cc + 0.5) * pw + PATCH_SRC_C[0], yt - (r + 0.5) * ph, 0]), pw, ph
+
+
+def patch_colour(k, samp):
+    p, pw, ph = patch_rect(k)
+    # the most saturated sample in the patch: a patch with the target in it is copper
+    best = None
+    for dx in (-0.3, 0, 0.3):
+        for dy in (-0.3, 0, 0.3):
+            col = samp(p[0] + dx * pw, p[1] + dy * ph)
+            if col.to_hex().upper() == ManimColor(PAL["copper"]).to_hex().upper() or col.to_hex().upper() == ManimColor(PAL["copper"]).lighter(0.25).to_hex().upper() or col.to_hex().upper() == ManimColor(PAL["copper"]).darker(0.25).to_hex().upper():
+                return ManimColor(PAL["copper"])
+            if best is None and col.to_hex().upper() != ManimColor(PAL["bg"]).to_hex().upper():
+                best = col
+    return ManimColor(PAL["slab"]) if best is None else best
+
+
+def token_x(k):
+    return -1.62 + k * 0.295
+
+
+def word_chips(a=1.0):
+    g = VGroup()
+    x = -1.35
+    for w in WORDS:
+        t = label(w, 13, PAL["ink"])
+        wd = t.width + 0.16
+        box = RoundedRectangle(width=wd, height=0.26, corner_radius=0.07, fill_color=PAL["panel"], fill_opacity=a,
+                               stroke_color=PAL["ink"], stroke_width=1.3, stroke_opacity=a).move_to([x + wd / 2, LANG_Y, 0])
+        g.add(VGroup(box, fade(t.move_to(box.get_center()), a)))
+        x += wd + 0.12
+    return g.move_to([0.0, LANG_Y, 0])
+
+
+def red_tokens():
+    samp = sampler(shot("sim", OUT_U, "trained", PATCH_SRC_C, PATCH_SRC_K))
+    return [k for k in range(12) if patch_colour(k, samp).to_hex().upper() == ManimColor(PAL["copper"]).to_hex().upper()]
+
+
+def attention(a=1.0, w=1.0):
+    """Cross-attention between the words "red", "cube" and the patch that has the
+    red cube in it — arcs ABOVE the token row."""
+    chips = word_chips()
+    g = VGroup()
+    rt = red_tokens() or [7]
+    for wi in (1, 2):
+        p0 = chips[wi][0].get_top()
+        for k in rt[:1]:
+            p1 = np.array([token_x(k), TOK_Y + 0.13, 0])
+            g.add(ArcBetweenPoints(p0 + [0, 0.0, 0], p1, angle=-1.2 if p0[0] < p1[0] else 1.2,
+                                   stroke_color=PAL["copper"], stroke_width=1.6 * w, stroke_opacity=0.8 * a))
+    return g
+
+
+def layers(a=1.0, lit=None):
+    g = VGroup()
+    for i, y in enumerate(LAYER_Y):
+        on = lit is not None and abs(lit - i) < 0.6
+        g.add(RoundedRectangle(width=3.4, height=0.2, corner_radius=0.06, fill_color=PAL["slab"], fill_opacity=a,
+                               stroke_color=PAL["copper"] if on else PAL["soft"], stroke_width=1.8 if on else 1.2, stroke_opacity=a).move_to([0, y, 0]))
+    return g
+
+
+def vla_cap():
+    return caption("VLA policy", LAYER_Y[-1] - 0.32)
+
+
+def chunk_pts(u0=OUT_U, n=8, step=0.035):
+    return [fp(*pick3(u0 + 0.02 + i * step)[0], OUT_C, OUT_K) + np.array([0.06 * OUT_K / SC_K, 0.0, 0]) for i in range(n)]
+
+
+def chunk(conv=1.0, a=1.0, seed=4):
+    """The predicted action chunk (copper) against the demonstration's (ink
+    rings): scattered at conv 0, on target at conv 1."""
+    tgt = chunk_pts()
+    rnd = random.Random(seed)
+    g = VGroup()
+    pred = []
+    for i, p in enumerate(tgt):
+        off = np.array([rnd.uniform(-0.5, 0.5), rnd.uniform(-0.35, 0.35), 0]) * (1 - conv)
+        pred.append(p + off)
+        g.add(Circle(0.05, stroke_color=PAL["ink"], stroke_width=1.3, stroke_opacity=0.8 * a).move_to(p))
+    g.add(VMobject().set_points_smoothly(pred).set_stroke(PAL["copper"], 1.8, opacity=0.7 * a))
+    for i, p in enumerate(pred):
+        g.add(Dot(p, radius=0.045 if i else 0.06, color=PAL["copper"]).set_opacity(a))
+    return g
+
+
+def out_frame(conv=1.0, a=1.0):
+    g = shot("sim", OUT_U, "trained", OUT_C, OUT_K)
+    W, yb, yt = frame_box(OUT_C, OUT_K, 1.7)
+    g.add(Rectangle(width=2 * W + 0.06, height=yt - yb, stroke_color=PAL["soft"], stroke_width=1.3).move_to([OUT_C[0], (yb + yt) / 2, 0]))
+    g.add(chunk(conv))
+    return fade(g, a) if a < 1 else g
+
+
+def chunk_cap():
+    W, yb, yt = frame_box(OUT_C, OUT_K, 1.7)
+    return caption("action chunk vs. demo", yb - 0.24)
+
+
+def S3(flick=0.0, lit=None):
+    return VGroup(tracker(1), stack(), loss_curve(1.0, flick), patch_tokens(), word_chips(), attention(),
+                  layers(lit=lit), vla_cap(), out_frame(1.0), chunk_cap())
+
+
+# ── S4: the SAME shot as S0, now with the trained policy
+def vla_tag(a=1.0, at=None, s=1.0):
+    """The trained policy, as a chip on the arm's base."""
+    p = fp(BASE_UV[0], BASE_UV[1], 0) + np.array([0.02, -0.26, 0]) if at is None else at
+    box = RoundedRectangle(width=0.5 * s, height=0.22 * s, corner_radius=0.05 * s, fill_color=PAL["copper"], fill_opacity=a, stroke_width=0).move_to(p)
+    t = label("VLA", int(12 * s) if s >= 1 else 12, PAL["bg"]).scale(min(1.0, s)).move_to(p)
+    return VGroup(box, fade(t, a))
+
+
+def placed_tick(u):
+    """A tick by the mark once the cube is down on it."""
+    if not (0.56 <= u % 1.0 <= 0.80):
+        return VGroup()
+    a = smooth01(((u % 1.0) - 0.56) / 0.04) * (1 - smooth01(((u % 1.0) - 0.76) / 0.04))
+    p = fp(B0[0], B0[1], 0) + np.array([0.42, 0.32, 0])
+    return tick(p, a)
+
+
+def waypoints(u):
+    """The action chunk the policy is executing: the next few gripper positions."""
+    g = VGroup()
+    for i in range(1, 8):
+        gp = pick3(u + i * 0.03)[0]
+        p = fp(*gp) + np.array([0.06, 0.0, 0])
+        g.add(Dot(p, radius=0.028, color=PAL["copper"]).set_opacity(0.85 * (1 - i / 9)))
+    return g
 
 
 def S4(u=0.0):
-    """Sim2real: the trained VLA drives the real gripper."""
-    return VGroup(tracker(2), action_panel(u, PANEL4, 0.42, "VLA policy"), table_scene(u),
-                  label("sim2real", 12).move_to([-1.25, -2.05, 0]), label("policy · trained in sim", 11).move_to([-0.45, -2.35, 0]))
+    return VGroup(tracker(2), shot("real", u, "trained"), waypoints(u), placed_tick(u), vla_tag(), caption("sim2real · trained policy", CAP_Y))
 
 
 # ═══════════════════════════ the scenes ═══════════════════════════════════
 class Base(Scene):
     def finish(self, final):
-        """End on exactly `final`, the builder the next act starts from."""
+        """End on exactly `final`, the builder the next idle starts from."""
         self.clear()
         self.add(final)
         self.wait(1 / config.frame_rate)
@@ -835,183 +1063,309 @@ def idle(scene, build, t):
 
 
 class IdleRest(Scene):
-    """The camera, in 3D, swaying about its vertical axis; a frame of light
-    sweeps out along its capture cone."""
+    """The D435i over the table, swaying; a frame of light sweeps down its view."""
     def construct(self):
-        u = ValueTracker(0)
-        self.add(always_redraw(lambda: cam3d(YAW0 + 0.32 * math.sin(math.tau * u.get_value()), PITCH0 + 0.06 * math.sin(math.tau * 2 * u.get_value()),
-                                             sweep=(u.get_value() * 3) % 1)))
-        self.play(u.animate.set_value(1), run_time=IDLE_T * 1.5, rate_func=linear)
+        idle(self, rest_frame, IDLE_T * 1.5)
 
 
 class Act0(Base):
-    """Real: the camera, in 3D, explodes along its depth; the stereo module turns
-    square-on, the barrel lifts, the sensor catches light, the pixels become
-    the picture."""
+    """REAL. The shutter: the camera opens to its sensor, light runs down the
+    view onto it, the frame is read out row by row and resolves into the photo."""
     def construct(self):
-        ex, yaw, oth, cone = ValueTracker(0), ValueTracker(YAW0), ValueTracker(1), ValueTracker(1)
-        self.add(always_redraw(lambda: cam3d(yaw.get_value(), PITCH0, ex.get_value(), cone.get_value(), others=oth.get_value())))
-        # 1 · the exploded view, turning a little further so the layers read
-        self.play(ex.animate.set_value(1), yaw.animate.set_value(1.15), cone.animate.set_value(0), run_time=1.1, rate_func=smooth)
-        # 2 · the rest goes; the camera turns square-on
-        self.play(oth.animate.set_value(0), yaw.animate.set_value(0), run_time=0.7)
-        self.clear()
-        # hand over to the flat module at the sensor
-        mc = np.array([SEN_C[0], SEN_C[1], 0])
-        module, barrel = cam_module(), rgb_barrel()
-        flat = VGroup(module, barrel)
-        flat.shift(mc - module[0].get_center()).scale(1.25, about_point=mc)
-        m3 = cam3d(0, PITCH0, 1, 0, others=0)
-        self.add(m3)
-        self.play(ReplacementTransform(m3, flat), run_time=0.45)
-        die_at = barrel.get_center()
-        die = Square(0.16, fill_color="#1A1B1E", fill_opacity=1, stroke_color=PAL["gold"], stroke_width=1.5).move_to(die_at)
-        self.add(die)
-        self.bring_to_front(barrel)
-        self.play(barrel.animate.shift([0.35, 0.55, 0]).rotate(0.6).set_opacity(0), run_time=0.4)
-        src = [die_at + np.array([0.5 + 0.12 * i, 1.1 - 0.05 * i, 0]) for i in range(5)]
-        rays = VGroup(*[Line(p, die_at, stroke_color=PAL["copper"], stroke_width=2) for p in src])
-        self.play(LaggedStart(*[ShowPassingFlash(r.copy(), time_width=0.6) for r in rays], lag_ratio=0.12), run_time=0.45)
-        self.play(Flash(die_at, color=PAL["copper"], line_length=0.14, num_lines=10, flash_radius=0.16), run_time=0.3)
-        sen = sensor(1.0)
-        self.play(FadeOut(module), ReplacementTransform(die, sen), run_time=0.5)
-        pic = picture(0, fumble=True)
-        self.play(ReplacementTransform(sen, pic), run_time=0.6)
-        self.play(Write(untrained_label()), run_time=0.45)
+        ex, oth, yaw, sw = ValueTracker(0), ValueTracker(1), ValueTracker(YAW0), ValueTracker(0)
+        table = faint_table()
+        self.add(table)
+        self.add(always_redraw(lambda: cone(yaw.get_value(), PITCH0, 1.0 - 0.0 * ex.get_value(), sweep=sw.get_value(), ex=0.0)))
+        self.add(always_redraw(lambda: cam3d(yaw.get_value(), PITCH0, ex.get_value(), others=oth.get_value())))
+        # 1 · the exploded view: casing back, plate and lenses forward, the
+        # sensor module bare between them
+        self.play(ex.animate.set_value(0.6), yaw.animate.set_value(0.2), run_time=0.9, rate_func=smooth)
+        # 2 · light comes back up the view onto the sensor die
+        D = die_pt(0.2, PITCH0, 0.6)
+        die = Square(0.2, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to(D)
+        rays = VGroup(*[Line(f, D, stroke_color=PAL["copper"], stroke_width=3) for f in table_quad()])
+        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.12), FadeIn(die, scale=0.3), run_time=0.6)
+        self.play(Flash(D, color=PAL["copper"], line_length=0.12, num_lines=10, flash_radius=0.14), run_time=0.3)
+        # 3 · the camera closes and lifts away; the die becomes the dark sensor
+        # array over the table, read out row by row (a rolling shutter)
+        rows = ValueTracker(0)
+        grid0 = photosites(0.0)
+        self.play(ex.animate.set_value(0), oth.animate.set_value(1), yaw.animate.set_value(YAW0),
+                  ReplacementTransform(die, grid0), FadeOut(table), run_time=0.6)
+        self.remove(grid0)
+        mos = always_redraw(lambda: photosites(rows.get_value()))
+        line = always_redraw(lambda: readout_line(rows.get_value()))
+        self.add(mos, line)
+        self.play(rows.animate.set_value(PXR + 0.01), run_time=0.8, rate_func=linear)
+        self.remove(line)
+        # 4 · the mosaic resolves into the photo; the camera is done
+        sh = shot("real", 0.0, "untrained")
+        final_mos = photosites(PXR + 1)
+        self.remove(mos)
+        self.add(final_mos)
+        cam_now = [m for m in self.mobjects if m not in (final_mos,)]
+        self.play(FadeIn(sh), LaggedStart(*[FadeOut(s, scale=0.4) for s in final_mos], lag_ratio=0.004),
+                  *[FadeOut(m, shift=UP * 0.4) for m in cam_now], run_time=0.6)
+        self.play(show(untrained_cap()), run_time=0.35)
         self.finish(S0())
 
 
 class IdleUntrained(Scene):
     def construct(self):
-        idle(self, S0, IDLE_T)
+        idle(self, S0, IDLE_T * 1.5)
+
+
+def splat_set(loose=0.0, seed=3):
+    """Gaussian splats over the shot's surfaces, in the photo's colours:
+    anisotropic, rotated, translucent. loose 1 = scattered and bloated (the
+    start of the optimisation), 0 = settled on the surfaces."""
+    rnd = random.Random(seed)
+    samp = sampler(shot("real", 0.0, "static"))
+    g = VGroup()
+    pts = []
+    for _ in range(70):                                   # the table
+        pts.append((fp(rnd.uniform(-0.95, 0.95), rnd.uniform(0.03, 0.97)), 0.16, 0.05))
+    for (p, s) in [(A0, RED_S)] + DISTRACT:               # the cubes
+        q = fp(p[0], p[1], 0)
+        sz = s * SC_K * (1 - 0.3 * p[1])
+        for _ in range(16):
+            pts.append((q + np.array([rnd.uniform(-0.25, 0.5) * sz, rnd.uniform(0.05, 1.3) * sz, 0]), 0.09, 0.04))
+    for (pos, w, h) in pts:
+        col = samp(pos[0], pos[1])
+        if col.to_hex().upper() == ManimColor(PAL["table"]).to_hex().upper():
+            col = ManimColor(PAL["soft"])
+        elif col.to_hex().upper() == ManimColor(PAL["cube"]).to_hex().upper() or col.to_hex().upper() == ManimColor(PAL["cube"]).darker(0.05).to_hex().upper():
+            col = ManimColor(PAL["ink"])
+        jit = np.array([rnd.uniform(-1, 1), rnd.uniform(-1, 1), 0]) * 0.45 * loose
+        e = Ellipse(width=w * (1 + 1.0 * loose), height=h * (1 + 1.4 * loose), fill_color=col, fill_opacity=0.32 + 0.18 * (1 - loose), stroke_width=0)
+        e.rotate(rnd.uniform(-0.6, 0.6) + loose * rnd.uniform(-1.2, 1.2)).move_to(pos + jit)
+        g.add(e)
+    return g
+
+
+def view_cam(p, target, s=0.16):
+    """A small camera glyph at p looking at target, with its view lines."""
+    d = target - p
+    ang = math.atan2(d[1], d[0])
+    body = Rectangle(width=s * 1.6, height=s, fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).move_to(p).rotate(ang)
+    lens = Triangle(fill_color=PAL["ink"], fill_opacity=1, stroke_width=0).scale(s * 0.55).rotate(ang - math.pi / 2).move_to(p + d / np.linalg.norm(d) * s * 0.95)
+    return VGroup(body, lens)
+
+
+VIEWS = [np.array([-1.45, 2.55, 0]), np.array([0.0, 2.85, 0]), np.array([1.45, 2.55, 0])]
 
 
 class Act1(Base):
-    """Real2sim: the bar arrives; the picture lies down; a Gaussian splat condenses into the sim twin."""
+    """REAL2SIM. Multi-view capture; the photo dissolves into Gaussian splats
+    that settle onto the surfaces; the sim twin draws in under them."""
     def construct(self):
-        pic, lab = S0()
-        self.add(pic, lab)
+        s0 = S0()
+        sh, tr_, ms_, cap = s0
+        self.add(s0)
         p = ValueTracker(0)
-        # the real / sim / real bar draws itself in, here, where sim begins
-        self.play(Unwrite(lab), Create(tracker(0)), run_time=0.5)
+        # 1 · the real/sim/real bar arrives; three views of the scene
+        self.play(FadeOut(cap), FadeOut(tr_), FadeOut(ms_), Create(tracker(0)), run_time=0.45)
         self.add(always_redraw(lambda: tracker(p.get_value())))
-        grid = floor_grid()
-        self.play(ReplacementTransform(pic, grid), p.animate.set_value(0.5), run_time=0.85)
-        sp = splats(1.0)
-        self.play(LaggedStart(*[GrowFromCenter(d) for d in sp], lag_ratio=0.01), Write(r2s_label()), run_time=0.6)
-        cubes = floor_cubes()
-        self.play(FadeOut(sp, scale=0.6), LaggedStart(*[GrowFromPoint(c, c.get_bottom()) for c in cubes], lag_ratio=0.2),
-                  p.animate.set_value(1.0), run_time=0.7)
-        self.play(Circumscribe(VGroup(grid, cubes), color=PAL["copper"], buff=0.08, stroke_width=2), run_time=0.55)
+        tgt = fp(0.1, 0.5, 0.2)
+        cams = VGroup(*[view_cam(v, tgt) for v in VIEWS])
+        self.play(LaggedStart(*[FadeIn(c, scale=0.5) for c in cams], lag_ratio=0.25), run_time=0.45)
+        rays = VGroup(*[Line(v, q, stroke_color=PAL["copper"], stroke_width=2.5) for v in VIEWS for q in (fp(-1, 1, 0), fp(1, 0, 0), fp(0.42, 0.4, 0.3))])
+        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.06), run_time=0.6)
+        # 2 · the photo dissolves into splats, loose and bloated
+        loose = splat_set(1.0)
+        self.play(FadeOut(VGroup(sh[0], sh[2], sh[4])), LaggedStart(*[GrowFromCenter(e) for e in loose], lag_ratio=0.006),
+                  FadeOut(cams), p.animate.set_value(0.5), run_time=0.7)
+        # 3 · the optimisation: splats tighten onto the surfaces
+        tight = splat_set(0.0)
+        self.play(Transform(loose, tight), p.animate.set_value(0.8), run_time=0.7, rate_func=smooth)
+        # 4 · the twin's hard geometry draws in under them, front to back, and
+        # the arm becomes its model
+        twin = shot("sim", 0.0, "static")
+        lines = twin[0]
+        self.play(LaggedStart(*[Create(l) for l in lines], lag_ratio=0.04), FadeIn(twin[2]),
+                  ReplacementTransform(sh[3], twin[3]), ReplacementTransform(sh[1], twin[1]),
+                  FadeOut(loose, scale=0.7), p.animate.set_value(1.0), run_time=0.75)
+        self.play(show(r2s_cap()), run_time=0.35)
         self.finish(S1())
 
 
 class IdleTwin(Scene):
     def construct(self):
-        idle(self, lambda u: S1(v=u), IDLE_T * 0.75)
+        idle(self, S1, IDLE_T)
 
 
 class Act2(Base):
-    """Sim data: the twin is randomised into demos, and a world model imagines rollouts."""
+    """SIM DATA. The twin tiles a wall of randomised copies; each runs a
+    demonstration; a world model rolls one forward in latent space."""
     def construct(self):
-        tr, grid, cubes, lab = S1()
-        self.add(tr, lab)
-        m = ValueTracker(0)
-        mv = lambda: (0.0, -0.7 + (C2[1] + 0.7) * m.get_value())
-        sc = lambda: 1.0 + (SC2 - 1.0) * m.get_value()
-        self.add(always_redraw(lambda: VGroup(floor_grid(mv(), sc()), floor_cubes(mv(), sc()))))
-        self.play(m.animate.set_value(1), Unwrite(lab), run_time=0.55)
-        # domain randomisation: the twin is copied out, re-arranged, re-tinted
-        tw = twins(0.0)
-        src = VGroup(floor_grid(C2, SC2), floor_cubes(C2, SC2))
-        self.play(TransformFromCopy(src, tw), Write(label("domain randomization", 12).move_to([0, 2.95, 0])), run_time=0.6)
-        self.play(Create(demo_path(TWIN_L, TWIN_SC, 0.0)), Create(demo_path(TWIN_R, TWIN_SC, 2.2)),
-                  Write(label("1,000+ demos", 11).move_to([0, 1.5, 0])), run_time=0.55)
-        # the world model: latents grow one after another, a pulse runs the chain
-        lat = latents(LAT_Y=LAT2)
-        self.play(LaggedStart(*[GrowFromCenter(m_) for m_ in lat], lag_ratio=0.05), Write(label("world model", 12).move_to([LAT_X[0] + 0.3, LAT2 + 0.52, 0])), run_time=0.75)
-        run = Line([LAT_X[0], LAT2, 0], [LAT_X[4], LAT2, 0], stroke_color=PAL["copper"], stroke_width=5)
-        self.play(ShowPassingFlash(run, time_width=0.35), run_time=0.5)
-        im = imagined(0, LAT_Y=LAT2, FRAME_Y=FR2)
-        self.play(LaggedStart(*[FadeIn(m_, shift=DOWN * 0.15) for m_ in im], lag_ratio=0.12), Write(label("imagined rollouts", 12).move_to([0.37, FR2 - 0.42, 0])), run_time=0.7)
+        s1 = S1()
+        tr, twin, burst, cap = s1
+        self.add(tr, twin, cap)
+        # 1 · the twin shrinks rigidly into the wall's first cell
+        c0 = cell(0, 0.0, box=False)
+        self.play(FadeOut(cap), twin.animate.scale(CELL_K / SC_K, about_point=fp(0, 0, 0)).shift(fp(0, 0, 0, cell_c(0), CELL_K) - fp(0, 0, 0)),
+                  run_time=0.6)
+        self.remove(twin)
+        self.add(c0)
+        # 2 · copies spread across the wall, each re-randomised as it lands
+        boxes = VGroup(*[cell_box(i) for i in range(NC)])
+        cells = [c0] + [cell(i, 0.0, box=False) for i in range(1, NC)]
+        self.play(Create(boxes[0]), LaggedStart(*[FadeIn(cells[i], target_position=c0.get_center(), scale=0.6, path_arc=0.4) for i in range(1, NC)], lag_ratio=0.1),
+                  LaggedStart(*[Create(boxes[i]) for i in range(1, NC)], lag_ratio=0.08), run_time=0.9)
+        # 3 · demonstrations: each arm runs, its path traced
+        ph = ValueTracker(0)
+        for i in range(NC):
+            self.remove(cells[i])
+        self.remove(boxes)
+        live = always_redraw(lambda: VGroup(*[VGroup(cell(i, (ph.get_value() * cell_phase(i))), demo_path(i, ph.get_value())) for i in range(NC)]))
+        self.add(live)
+        self.play(ph.animate.set_value(1.0), show(caption("domain randomization · demos", WALL_CAP_Y)), run_time=0.6)
+        # 4 · the world model: observe, encode, roll the latent forward, decode
+        wm = world_model()
+        obs, enc = wm[0], wm[1]
+        rest = VGroup(*wm[2:])
+        src = cell(0, cell_phase(0), box=False)
+        self.play(TransformFromCopy(src, obs), run_time=0.35)
+        self.play(GrowFromEdge(enc, LEFT), LaggedStart(*[FadeIn(m, scale=0.6) for m in rest], lag_ratio=0.06), run_time=0.6)
+        run = Line([-0.82, WM_Y, 0], [ZX[2], WM_Y, 0], stroke_color=PAL["copper"], stroke_width=5)
+        self.play(ShowPassingFlash(run, time_width=0.4), show(caption("world model · imagined rollout", -3.45)), run_time=0.4)
         self.finish(S2())
 
 
 class IdleData(Scene):
     def construct(self):
-        idle(self, lambda u: S2(jig=math.tau * u, pulse=(u * 3) % 1, u=u), IDLE_T * 1.5)
+        idle(self, lambda u: S2(u, pulse=(u * 2) % 1), IDLE_T * 1.5)
 
 
 class Act3(Base):
-    """Train the VLA on the sim data."""
+    """TRAIN. The wall stacks into a dataset; a frame is cut into patch
+    tokens beside the instruction's words; the VLA's predicted action chunk
+    converges on the demonstration as the loss falls."""
     def construct(self):
         s2 = S2()
+        tr, wl, wcap, wm, wmcap = s2
         self.add(s2)
-        rest = VGroup(*s2[1:])
-        # the sim data collapses into a dataset
-        self.play(rest.animate.scale(0.25).move_to([DATA_C[0], DATA_C[1], 0]).set_opacity(0), DrawBorderThenFill(dataset()), run_time=0.8)
-        self.remove(rest)
-        # it is tokenised into the VLA
-        tok = tokens()
-        self.play(LaggedStart(*[TransformFromCopy(Dot([DATA_C[0], DATA_C[1] - 0.2, 0], radius=0.04, color=PAL["copper"]), t) for t in tok], lag_ratio=0.04), run_time=0.65)
-        self.play(Circumscribe(VGroup(tok[12], tok[13]), color=PAL["red"], buff=0.05, stroke_width=2), run_time=0.4)
-        self.play(LaggedStart(*[Create(q) for q in lang_tokens()], lag_ratio=0.1), run_time=0.35)
-        lay = layers()
-        self.play(LaggedStart(*[GrowFromEdge(l, UP) for l in lay], lag_ratio=0.08), Write(vla_label()), Create(attention(-1)), run_time=0.5)
-        # a forward pass: flashes run down through the slabs to the action chunk
-        down = VGroup(*[Line([x, TOK_Y - 0.15, 0], [x * 0.6, PANEL_C[1] + 0.55, 0], stroke_color=PAL["copper"], stroke_width=3) for x in (-1.0, -0.3, 0.4, 1.1)])
-        self.play(Create(Line([0, LAYER_Y[-1] - 0.12, 0], [0, PANEL_C[1] + 0.55, 0], stroke_color=PAL["line"], stroke_width=2)),
-                  LaggedStart(*[ShowPassingFlash(d, time_width=0.5) for d in down], lag_ratio=0.15),
-                  FadeIn(action_panel(0), shift=DOWN * 0.15), run_time=0.55)
-        # and its success in sim climbs
-        cu = ValueTracker(0.02)
-        self.add(always_redraw(lambda: curve(cu.get_value(), **CURVE3)))
-        self.play(cu.animate.set_value(1.0), run_time=0.7, rate_func=linear)
-        self.play(Indicate(curve(1.0, **CURVE3)[-1], color=PAL["copper"], scale_factor=1.12), run_time=0.45)
+        # 1 · the wall slides into a stack (rigidly), the world model's
+        # imagined frames go with it as data
+        st = stack()
+        moves = [wl[i].animate.scale(STACK_CARD_K / CELL_K).move_to([STACK_C[0] + 0.1, STACK_C[1] + 0.12, 0]) for i in range(NC)]
+        self.play(LaggedStart(*moves, lag_ratio=0.05), FadeOut(wcap), FadeOut(wmcap), FadeOut(wm, shift=DOWN * 0.3),
+                  FadeIn(loss_curve(0.0)), run_time=0.75)
+        self.play(FadeOut(wl), FadeIn(st), run_time=0.25)
+        # 2 · a frame comes off the stack; a patch grid is laid over it
+        frame = shot("sim", OUT_U, "trained", PATCH_SRC_C, PATCH_SRC_K)
+        W, yb, yt = frame_box(PATCH_SRC_C, PATCH_SRC_K, 1.45)
+        fbox = Rectangle(width=2 * W, height=yt - yb, stroke_color=PAL["soft"], stroke_width=1.3).move_to([0, (yt + yb) / 2, 0])
+        self.play(FadeIn(VGroup(frame, fbox), shift=DOWN * 0.3, scale=0.6), run_time=0.4)
+        grid = VGroup(*[Line([-W + i * 2 * W / 4, yb, 0], [-W + i * 2 * W / 4, yt, 0], stroke_color=PAL["ink"], stroke_width=1.3) for i in (1, 2, 3)],
+                      *[Line([-W, yb + j * (yt - yb) / 3, 0], [W, yb + j * (yt - yb) / 3, 0], stroke_color=PAL["ink"], stroke_width=1.3) for j in (1, 2)])
+        self.play(LaggedStart(*[Create(l) for l in grid], lag_ratio=0.15), run_time=0.3)
+        # 3 · the patches become tokens, flying to their slots
+        toks = patch_tokens()
+        pieces = VGroup()
+        for k in range(12):
+            p, pw, ph = patch_rect(k)
+            pieces.add(Rectangle(width=pw * 0.94, height=ph * 0.94, fill_color=toks[k].get_fill_color(), fill_opacity=1, stroke_color=PAL["ink"], stroke_width=1.2).move_to(p))
+        self.play(FadeIn(pieces), FadeOut(frame), FadeOut(grid), FadeOut(fbox), run_time=0.2)
+        self.play(LaggedStart(*[ReplacementTransform(pieces[k], toks[k], path_arc=0.6) for k in range(12)], lag_ratio=0.05), run_time=0.6)
+        # 4 · the instruction, word tokens; cross-attention from words to patch
+        chips = word_chips()
+        self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.1) for c in chips], lag_ratio=0.12), run_time=0.35)
+        self.play(Create(attention()), LaggedStart(*[GrowFromEdge(l, UP) for l in layers()], lag_ratio=0.08), show(vla_cap()), run_time=0.45)
+        # 5 · training: forward pass (copper, down), backward pass (ink, up);
+        # the predicted chunk closes on the demonstration as the loss falls
+        it = ValueTracker(0.0)
+        self.add(out_frame(0.0)[:-1])
+        self.add(always_redraw(lambda: chunk(smooth01(it.get_value()))))
+        self.add(always_redraw(lambda: loss_curve(it.get_value())))
+        self.play(FadeIn(chunk_cap()), run_time=0.15)
+        for _ in range(1):
+            down = [Line([x, TOK_Y - 0.15, 0], [x, PASS_Y1, 0], stroke_color=PAL["copper"], stroke_width=3.5) for x in PASS_X]
+            up = [Line([x, PASS_Y1, 0], [x, LAYER_Y[0] + 0.12, 0], stroke_color=PAL["ink"], stroke_width=2.5) for x in PASS_X]
+            self.play(LaggedStart(*[ShowPassingFlash(d, time_width=0.6) for d in down], lag_ratio=0.1), it.animate.set_value(it.get_value() + 0.45), run_time=0.4)
+            self.play(LaggedStart(*[ShowPassingFlash(d, time_width=0.6) for d in up], lag_ratio=0.1), it.animate.set_value(it.get_value() + 0.35), run_time=0.35)
+        self.play(it.animate.set_value(1.0), run_time=0.3)
         self.finish(S3())
+
+
+def train_idle(u):
+    """Forward down (copper), backward up (ink), repeating; the chunk holds on
+    target; the loss tail flickers."""
+    ph = (u * 4) % 1.0
+    # the lit slab follows the forward pass down; nothing is lit at ph 0, so
+    # u = 0 is exactly S3()
+    lit = ph / 0.55 * 4.6 - 0.6 if ph < 0.55 else None
+    g = S3(flick=math.sin(math.tau * u), lit=lit)
+    if ph < 0.55:
+        f = ph / 0.55
+        for x in PASS_X:
+            a = np.array([x, TOK_Y - 0.15, 0])
+            b = np.array([x, PASS_Y1, 0])
+            g.add(Dot(a + (b - a) * f, radius=0.04, color=PAL["copper"]).set_opacity(math.sin(math.pi * f)))
+    else:
+        f = (ph - 0.55) / 0.45
+        for x in PASS_X:
+            a = np.array([x, PASS_Y1, 0])
+            b = np.array([x, LAYER_Y[0] + 0.12, 0])
+            g.add(Dot(a + (b - a) * f, radius=0.032, color=PAL["ink"]).set_opacity(math.sin(math.pi * f)))
+    return g
 
 
 class IdleTrain(Scene):
     def construct(self):
-        idle(self, lambda u: S3(u, hot=int(u * 26) % NTOK, run=(u * 3) % 1, flick=math.sin(math.tau * u)), IDLE_T * 2)
+        idle(self, train_idle, IDLE_T * 2)
 
 
 class Act4(Base):
-    """Sim2real: the trained VLA drives the real gripper."""
+    """SIM2REAL. The VLA folds into a chip and flies into the arm's base; the
+    twin draws in and is re-lit as the real shot."""
     def construct(self):
         s3 = S3()
-        tr, data, crv, tok, lang, att, lay, arrow, vlab, panel = s3
+        tr, st, crv, toks, chips, att, lay, vcap, outf, ccap = s3
         self.add(s3)
         p = ValueTracker(1.0)
         self.remove(tr)
         self.add(always_redraw(lambda: tracker(p.get_value())))
-        self.play(FadeOut(VGroup(data, crv, tok, lang, att, lay, arrow), lag_ratio=0.05), Unwrite(vlab),
-                  ReplacementTransform(panel, action_panel(0, PANEL4, 0.42, "VLA policy")), p.animate.set_value(1.5), run_time=0.8)
-        self.play(DrawBorderThenFill(floor_grid(a=0.0, solid=1.0)), LaggedStart(*[GrowFromPoint(c, c.get_bottom()) for c in floor_cubes()], lag_ratio=0.15), run_time=0.7)
-        d = ValueTracker(2.2)
-        g0, op0, _ = pick3(0)
-        self.add(always_redraw(lambda: gripper3(g0, op0, 1.0, d.get_value())))
-        self.play(d.animate.set_value(0.0), p.animate.set_value(2.0),
-                  Write(label("sim2real", 12).move_to([-1.25, -2.05, 0])), Write(label("policy · trained in sim", 11).move_to([-0.45, -2.35, 0])),
-                  run_time=1.0, rate_func=smooth)
-        self.play(Circumscribe(action_panel(0, PANEL4, 0.42, "VLA policy")[0], color=PAL["copper"], buff=0.05, stroke_width=2), run_time=0.45)
+        # 1 · the network folds together into one chip
+        chip = vla_tag(at=np.array([0.0, 0.25, 0]), s=2.0)
+        net = VGroup(toks, chips, att, lay)
+        self.play(FadeOut(VGroup(st, crv), shift=UP * 0.4), FadeOut(VGroup(outf, ccap), shift=DOWN * 0.4), FadeOut(vcap),
+                  FadeTransform(net, chip), p.animate.set_value(1.4), run_time=0.75)
+        # 2 · the twin draws in at the real shot's framing
+        twin = shot("sim", 0.0, "trained")
+        self.play(LaggedStart(*[Create(l) for l in twin[0]], lag_ratio=0.03), FadeIn(twin[1]), FadeIn(twin[2]), Create(twin[3]),
+                  chip.animate.shift(UP * 1.25).scale(0.5), run_time=0.6)
+        # 3 · the chip flies into the arm's base
+        dest = fp(BASE_UV[0], BASE_UV[1], 0) + np.array([0.02, -0.26, 0])
+        path = ArcBetweenPoints(chip.get_center(), dest, angle=1.0)
+        tag = vla_tag()
+        self.play(MoveAlongPath(chip, path), run_time=0.55)
+        self.remove(chip)
+        self.add(tag)
+        self.play(Flash(dest, color=PAL["copper"], line_length=0.12, num_lines=10, flash_radius=0.3), run_time=0.3)
+        # 4 · re-lit as real: the grid gives way front to back to the photo,
+        # the model becomes the arm; the bar reaches "real"
+        real = shot("real", 0.0, "trained")
+        self.bring_to_back(real[0])
+        self.play(LaggedStart(*[FadeOut(l) for l in reversed(list(twin[0]))], lag_ratio=0.03),
+                  LaggedStart(*[FadeIn(m) for m in real[0]], lag_ratio=0.15),
+                  ReplacementTransform(twin[2], real[2]), ReplacementTransform(twin[3], real[3]), ReplacementTransform(twin[1], real[1]),
+                  Create(real[4]), p.animate.set_value(2.0), run_time=0.85)
+        self.bring_to_front(real[1], real[2], real[3], tag)
+        self.play(show(caption("sim2real · trained policy", CAP_Y)), FadeIn(waypoints(0.0)), run_time=0.35)
         self.finish(S4())
 
 
 def grasp_burst(u):
-    """A small Flash-style burst at the cube, just after the jaw closes on it
-    (u 0.22-0.30) and when it lets go at B (u 0.54-0.62)."""
     g = VGroup()
-    for t0 in (0.22, 0.54):
-        f = (u - t0) / 0.08
-        if 0 <= f <= 1:
-            gg, _, cube = pick3(u)
-            c = floor_pt(cube[0], cube[1], cube[2] + 0.12)
-            for i in range(10):
-                ang = i / 10 * math.tau
-                r0, r1 = 0.18 + 0.12 * f, 0.26 + 0.14 * f
-                g.add(Line([c[0] + r0 * math.cos(ang), c[1] + r0 * math.sin(ang), 0], [c[0] + r1 * math.cos(ang), c[1] + r1 * math.sin(ang), 0],
-                           stroke_color=PAL["copper"], stroke_width=2, stroke_opacity=1 - f))
+    f = ((u % 1.0) - 0.22) / 0.08
+    if 0 <= f <= 1:
+        c = fp(A0[0], A0[1], 0.2)
+        for i in range(10):
+            ang = i / 10 * math.tau
+            r0, r1 = 0.22 + 0.12 * f, 0.3 + 0.14 * f
+            g.add(Line([c[0] + r0 * math.cos(ang), c[1] + r0 * math.sin(ang), 0], [c[0] + r1 * math.cos(ang), c[1] + r1 * math.sin(ang), 0],
+                       stroke_color=PAL["copper"], stroke_width=2, stroke_opacity=1 - f))
     return g
 
 

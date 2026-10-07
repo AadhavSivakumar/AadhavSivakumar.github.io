@@ -542,36 +542,50 @@ longer mounted — `App.jsx` renders `<LeftFilm />` instead — and what the
 sections below say about the left canvas describes code that is still in
 Flourish3D.jsx but unused. The right side (the robots) is unchanged.
 
-- **The story** (`manim/left.py`), RE-SEQUENCED Sept 28 into the order the
-  pipeline runs (the owner asked whether the first cut made sense; it did
-  not — the VLA drove the gripper perfectly before anything was trained,
-  and the sim section ended where it began). One act per page boundary,
-  an idle loop per page:
-  IdleRest (Experience: the D435i and its capture cone) · Act0, REAL (it
-  explodes, the sensor catches light, the pixels become the picture) ·
-  IdleUntrained (the untrained policy reaches, comes down BESIDE the cube,
-  closes on air — `FUMBLE`) · Act1, REAL2SIM (the picture lies down as a
-  floor, a Gaussian splat condenses into the sim twin) · IdleTwin (a scan
-  line sweeps the twin) · Act2, SIM DATA (randomised twins with dashed demo
-  paths, "1,000+ demos"; a world model's latent chain decoding imagined
-  rollouts) · IdleData · Act3, TRAIN (the sim data collapses into a
-  dataset stack, is tokenised into the VLA — tokens, language, four slabs,
-  the action chunk — and a "policy success" curve climbs) · IdleTrain ·
-  Act4, SIM2REAL (the trained VLA's panel moves up, the real table comes
-  in, the gripper descends) · IdleReal (the pick-and-place SUCCEEDS: the
-  payoff against IdleUntrained). The states are `S0`…`S4`; the tracker
-  reads (none), sim, sim, sim, real — it is NOT in S0: it draws itself in
-  at the start of real2sim (the owner: "the real to sim to real bar is
-  showing up too early"). The untrained policy WANDERS (`WANDER`, seeded
-  random spots, dipping and closing on air, never on the cube). Manim's
-  own effects carry each act (the owner: "have more of the manim effects
-  be present"): Write/Unwrite for every label, Uncreate for the cone,
-  ShowPassingFlash for light onto the die, down the latent chain and
-  through the transformer, Flash at the die, GrowFromCenter/GrowFromPoint
-  for splats, latents and cubes, TransformFromCopy for the twins and the
-  tokens, DrawBorderThenFill for the dataset and the table, Circumscribe
-  on the twin, the object token and the policy, Indicate on the success
-  label, and a flash burst at every grasp in IdleReal (`grasp_burst`).
+- **The story** (`manim/left.py`), REBUILT Oct 6 (the owner: "more
+  impressive… cooler transitions… make sure the content actually makes
+  sense"; a critic pass found disconnected stunts, mid-morph scribbles,
+  an Act3 that showed inference rather than training, and a real shot at
+  the start that did not match the real shot at the end). ONE SHOT recurs:
+  a table, two hairline cubes, the copper target cube, a dashed copper
+  MARK it belongs on, and a small 2-link ARM clamped to the table's
+  far-left corner (`arm`, screen-space IK; it replaced a gripper on a pole
+  from the sky). The shot has two LOOKS on the same geometry (`shot(look=
+  "real"|"sim")`): real = a photo (wall, floor, filled table, soft shadows,
+  viewfinder corners), sim = grid floor and hairline model — so real→sim
+  and sim→real are true morphs. One caption per state, no invented numbers.
+  IdleRest (Experience: the D435i over the table, its view cone on it) ·
+  Act0 REAL (exploded view, light runs back up the cone onto the sensor die,
+  the die becomes a dark 14×11 photosite array read out row by row — a
+  rolling shutter — and the mosaic resolves into the photo) ·
+  IdleUntrained (the arm grasps at air: a fading trail, an × at each empty
+  grasp, never within reach of a cube — `WANDER`) · Act1 REAL2SIM (three
+  view glyphs capture the scene, the photo dissolves into anisotropic
+  Gaussian splats in its colours that tighten onto the surfaces, the grid
+  and the model draw in under them) · IdleTwin (the twin SIMULATES: the red
+  cube drops and bounces, `drop_state`) · Act2 SIM DATA (the twin shrinks
+  rigidly into a 2×3 wall of randomised copies — layout, target start,
+  floor tone — each arm runs its demonstration, dashed path; then a world
+  model: observed frame → encoder → latents z0→z1→z2 with an action
+  dropping into each step → decoded imagined frames, fainter) · IdleData
+  (six demos out of phase) · Act3 TRAIN (the wall lands on a stack of
+  demos, a frame is cut into a 4×3 patch grid whose patches fly to token
+  slots, the instruction's words "pick red cube place" join them,
+  cross-attention arcs word ↔ red-cube patch, four slabs; then forward
+  passes (copper, down) and backward passes (ink, up) while the predicted
+  action chunk (copper dots) converges on the demonstration's (ink rings)
+  and the training loss falls) · IdleTrain · Act4 SIM2REAL (the network
+  FadeTransforms into a "VLA" chip, the twin draws in at the real framing,
+  the chip flies on an arc into the arm's base, and the grid gives way
+  front to back to the photo) · IdleReal (the SAME shot as IdleUntrained,
+  now succeeding: pick, place on the mark, a tick, the action chunk's
+  waypoints ahead of the gripper; the episode resets by fading the cube
+  back to its start). The tracker is NOT in S0 (the owner: "the real to
+  sim to real bar is showing up too early"); it draws in at Act1. Text
+  always FADES in (`show`): `Write` drew heavy white outlines in the dark
+  theme. Labels are FRAGMENT MONO (`manim/fonts/FragmentMono-Regular.ttf`,
+  the site's woff2 converted with fontTools; licence beside it); it has
+  no → or π glyphs.
 - **An act counts as finished at t ≥ 0.985** (`DONE` in LeftFilm.jsx):
   a snap on a real screen (fractional device pixels) could land a hair
   short of the section top, leaving t at 0.999 — the idle never started
@@ -582,8 +596,9 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
   in left.py (`cam_parts`, `render_parts`) — extruded outlines rotated by
   yaw/pitch, back faces culled, faces shaded by a light and depth-sorted,
   a mild perspective — because Manim's Cairo 3D sorts whole mobjects and
-  painted cylinder caps over the front plate. Yaw 0.95 (facing into the
-  stage), swaying ±0.32 rad at rest; it explodes along its own depth axis.
+  painted cylinder caps over the front plate. It hangs over the table at
+  the top of the stage, yaw 0.42 / pitch 0.62 (tipped down onto it),
+  swaying ±0.32 rad at rest; it explodes along its own depth axis.
 - **LeftFilm hides a clip until it has LANDED** (`visibility: hidden` from
   the source change until the first `seeked`/`loadeddata`): the old clip's
   frame used to stay up while the new one downloaded — the camera, showing
@@ -600,7 +615,7 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
   Manim is not in npm; this box has it from conda-forge via micromamba (pip
   needs the cairo/pango dev headers, which need root). ~11 MB for both
   themes; one act is 0.2-0.4 MB (mp4).
-- **Encoding**: act clips have EVERY FRAME A KEYFRAME (`-g 1`) so a scroll
+- **Encoding**: act clips are rendered at 20 fps (idles at 30; `left.py` switches on the scene name — a scrubbed act is ~a frame per 9 px of scroll, and its size is per frame) with EVERY FRAME A KEYFRAME (`-g 1`) so a scroll
   seek lands at once; idles use a normal GOP and loop. The MP4 (H.264,
   hardware-decoded almost everywhere) is 510x990 (1.5x); the WebM (VP9,
   the software-decoded fallback for browsers without H.264, e.g. Linux
@@ -1728,7 +1743,8 @@ Fonts request any more. Gotcha found doing it: Fontshare's CSS API with
 several families in one request registered only the first in Playwright;
 download the woff2 files instead. Switzer's word space is narrow, so body
 text has neutral tracking and `word-spacing: 0.05em`. Still in the OLD
-fonts: the Manim clips' baked labels and `Media/web/og.jpg`.
+fonts: `Media/web/og.jpg` (the Manim clips moved to Fragment Mono the same
+day).
 
 **Oct 6.** (1) UCSC's role reads "Undergraduate Research Assistant · TML"
 (as NYU's carries "· LAIR"). (2) TAGS are small glass pills in the hero
@@ -1912,7 +1928,7 @@ language: ink hairlines, near-white fills, ONE accent (the target cube, the
 flows, the tracker: terracotta #C0553A / #E0735A), no primary-coloured
 props (the other cubes are hairline boxes, `iso_cube`), no drop-shadow
 copies under the slabs and latent blocks, hairline frames, and Geist Mono
-labels (`manim/fonts/GeistMono.ttf`, SIL OFL, registered with manimpango).
+labels (since Oct 6: Fragment Mono, see the Manim section).
 
 **Sept 29, premium pass round 2** (the owner: "take some time, do a few
 renders, and make it an iterative process"). Found by rendering every page

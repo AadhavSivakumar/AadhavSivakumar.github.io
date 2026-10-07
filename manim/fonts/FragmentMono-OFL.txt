@@ -1,4 +1,7 @@
-Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font.git)
+Fragment Mono (FragmentMono-Regular.ttf, converted unchanged from the site's
+src/assets/fonts/fragment-mono-400.woff2 with fontTools).
+
+Copyright 2022 The Fragment Mono Project Authors (https://github.com/weiweihuanghuang/fragment-mono)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
