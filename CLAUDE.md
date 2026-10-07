@@ -2426,6 +2426,30 @@ against the makers' photos, both themes, every transition re-scanned:
   light, and the head 0.84x (`HEAD_K`, scaled about the bottom of its shell).
 Measured: Firefox scroll p50/p90 17.1, 0 mutations on still pages.
 
+**Oct 7, later: the Ultra unit rebuilt from Ultra's front and side photos**
+(the owner: "the ultra robot still doesn't look right"). Mismatch → fix:
+the torso was a tall box under a yoke beam → a T: a 180-wide case under a
+300-wide SHOULDER COWL with chamfered lower corners (`COWL_*`, module
+scope; `U_*` mirror `UNIT`); the arms hung 170 mm out, beside the case →
+240 (`UNIT.SY`), off actuators bridging from the cowl's ends; the arms were
+ladders of tiny servos with steel dots, elbow UP → modules + black links,
+ELBOW DOWN (upper arm hanging, forearm reaching forward, gripper pointing
+forward-down, as photographed; the IK clamp is now elbow ∈ [-2.6, 0]); the
+gripper was a T with specks of orange → a wide body across the wrist with
+steel rails, fingers at its ends sliding along y, big orange tips; the
+logo was a cup with two squares → a cup holding a ball on a step; the ZED
+sat on a square stick → a round column + bracket; the unit was a toy on the
+FR20 (Ultra uses a much smaller Fairino) → drawn at `UNIT.S` 1.4x the
+Fairino's scale (in `unitFrame`; everything in the unit frame — props,
+IK — is unaffected); the cart was a rectangle → an H on casters with the
+feet running forward, a base plate, an open rack with the pedestal column
+inside, the e-stop on the left foot's rear, a red cable coil (`CART_BOXES`:
+ONE list that drawCart, the act-4 pairs and the act-5 flattening all use);
+the elbow's orange ring stuck out past its housing → on the face (r 80);
+plus the white braided cable from the unit down the Fairino. The waypoints
+were re-solved (`scripts/ik-poses.mjs` prints a clearance check: lowest
+point 20 mm above the table, arms ≥ 270 mm apart, every target < 1 mm).
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
