@@ -862,7 +862,7 @@ export default function Flourish3D({ side = 'right' }) {
       sizeRO.observe(host);
     }
 
-    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); repaint(); });
+    const themeWatch = new MutationObserver(() => { readTheme(); readMaterials(); glToneCache.clear(); repaint(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 
@@ -1030,8 +1030,25 @@ export default function Flourish3D({ side = 'right' }) {
         G3[i * 3 + 2] = V[6] * x + V[7] * y + V[8] * z + V[11];
       }
     }
-    // Faces toned exactly as below; culled by the GPU (front = the winding
-    // the screen test here calls front), depth-tested instead of sorted.
+    // Faces in their REAL material colour, shaded by the same three light
+    // terms, culled by the GPU (front = the winding the screen test here
+    // calls front), depth-tested instead of sorted. The Canvas2D path tones
+    // them toward the PAGE (paperTone): line art's occluders. Under per-pixel
+    // lit robots that made every drawn prop — Ultra's black cart, torso and
+    // arms, Generalist's black frame — a pale ghost.
+    const glToneCache = new Map();
+    const glTone = (lit, mat) => {
+      const q = Math.round(lit * 24);
+      const key = q * 32 + mat;
+      let c = glToneCache.get(key);
+      if (c) return c;
+      const b = mat === MAT.neutral ? (dark ? [92, 92, 94] : [196, 194, 189]) : glMatRGB(mat);
+      const k = 0.52 + 0.62 * (q / 24);
+      c = `rgb(${Math.min(255, Math.round(b[0] * k))},${Math.min(255, Math.round(b[1] * k))},${Math.min(255, Math.round(b[2] * k))})`;
+      glToneCache.set(key, c);
+      return c;
+    };
+    const GL_LINE = 0.45;              // the line art under real shading: an accent, not the drawing
     function glFaces(faces, m, t, base, alpha) {
       const a = Math.min(1, alpha * LOOK.surface * GMUL);
       for (let fi = 0; fi < faces.length; fi++) {
@@ -1046,7 +1063,7 @@ export default function Flourish3D({ side = 'right' }) {
         let lit = 0.5 + 0.40 * key + 0.15 * -iny + 0.16 * grazing * grazing;
         lit = lit < 0 ? 0 : lit > 1 ? 1 : lit;
         glPts(f.v, m, t);
-        robotGL.poly(G3, f.v.length, paperTone(lit, base), a);
+        robotGL.poly(G3, f.v.length, glTone(lit, base), a);
         segs += f.v.length;
       }
     }
@@ -1117,7 +1134,7 @@ export default function Flourish3D({ side = 'right' }) {
       const m = T.m, t = T.t;
       if (cap) { for (let pi = 0; pi < polys.length; pi++) if (polys[pi].length > 1) record(polys[pi], m, t, color, alpha, width); return; }
       if (GLON) {
-        const a = Math.min(1, alpha * GMUL);
+        const a = Math.min(1, alpha * GMUL * GL_LINE);
         for (let pi = 0; pi < polys.length; pi++) {
           const poly = polys[pi];
           if (poly.length < 2) continue;
@@ -1269,7 +1286,10 @@ export default function Flourish3D({ side = 'right' }) {
     const toLin = c => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
     const linRGB = rgb => [toLin(rgb[0] / 255), toLin(rgb[1] / 255), toLin(rgb[2] / 255)];
     const glColCache = new Map();
-    const glMatRGB = mat => (!dark && mat === MAT.pla ? PLA_LIGHT : (matRGB[mat] || paperRGB));
+    // under real shading the line art's tints read wrong: 'steel' was a
+    // blue-grey that came out sky blue on the poles and legs
+    const GL_STEEL = [172, 174, 177];
+    const glMatRGB = mat => (!dark && mat === MAT.pla ? PLA_LIGHT : mat === MAT.steel ? GL_STEEL : (matRGB[mat] || paperRGB));
     function glMesh(part, T, mat, a) {
       let rgb = glMatRGB(mat);
       if (MESH_MIX) {
@@ -1573,9 +1593,101 @@ export default function Flourish3D({ side = 'right' }) {
       }
       return Tip;
     }
+    // ── the first piece on the right is now a PUMA (Oct 6; the owner:
+    // "instead of a 2r robot first, try and make it a basic PUMA robot",
+    // with a photo of a Unimate PUMA 500). Drawn, not baked, in mm, Z up
+    // (standing()), from the PUMA 560's numbers: the shoulder 660 mm up on a
+    // pedestal column, a 432 mm upper arm, a 433 mm forearm. What makes it
+    // read as one: the plain white column with the trunk turning on it, the
+    // BROAD tapered upper arm hung off the side of the trunk with a rounded
+    // counterweight tail behind the shoulder and a black stripe along it, a
+    // slimmer forearm on the inboard side, and the black spherical wrist.
+    // Settled, the tool traces the 2R arm's old figure-eight in the air (by
+    // inverse kinematics in the arm's plane) and leaves it in copper.
+    const PUMA = { root: [10, 215], k: 0.27, yaw: 200, H: 660, L2: 432, L3: 433, TOOL: 92, YU: 165, YF: 95 };
+    { const dv = typeof location !== 'undefined' && new URLSearchParams(location.search).get('puma');   // dev: ?puma=yaw,k,x,y
+      if (dv) { const [yw, kk, x, y] = dv.split(',').map(Number); PUMA.yaw = yw; PUMA.k = kk; PUMA.root = [x, y]; } }
+    // a tapered link: a circle of r0 at x0 and r1 at x1, hull wound like stadium()
+    const taper = (x0, x1, r0, r1, n = 10) => {
+      const pts = [];
+      for (let i = 0; i <= n; i++) { const a = (90 + (180 * i) / n) * DEG; pts.push([x0 + r0 * Math.cos(a), r0 * Math.sin(a)]); }
+      for (let i = 0; i <= n; i++) { const a = (-90 + (180 * i) / n) * DEG; pts.push([x1 + r1 * Math.cos(a), r1 * Math.sin(a)]); }
+      return pts;
+    };
+    const PUMA_UPPER = taper(-112, PUMA.L2, 100, 70), PUMA_FORE = taper(-58, PUMA.L3, 60, 42);
+    const PUMA_G = {
+      upper: extrude(PUMA_UPPER, -40, 40), upperW: silWire(PUMA_UPPER, -40, 40, 99),
+      fore: extrude(PUMA_FORE, -28, 28), foreW: silWire(PUMA_FORE, -28, 28, 99),
+      stripe: [...extrude(taper(-60, PUMA.L2 - 40, 9, 7, 4), 40, 42), ...extrude(taper(-60, PUMA.L2 - 40, 9, 7, 4), -42, -40)],   // on both faces
+    };
+    const pumaRoot = () => standing(PUMA.root, PUMA.k, PUMA.yaw);
+    // frames: F1 the turning trunk, S the shoulder (the upper arm's plane),
+    // E the elbow (the forearm's), W the wrist, tip the tool point
+    function pumaFrames(B, q) {
+      const F1 = chain(B, place(rotZ(q[0]), [0, 0, 0]));
+      const S = chain(F1, place(rotY(-q[1]), [0, PUMA.YU, PUMA.H]));
+      const E = chain(S, place(rotY(-q[2]), [PUMA.L2, PUMA.YF - PUMA.YU, 0]));
+      const W = chain(E, place(IDENT, [PUMA.L3, 0, 0]));
+      return { F1, S, E, W, tip: tpOf(W, [PUMA.TOOL, 0, 0]) };
+    }
+    // the figure-eight, in the base frame, and the joints that reach it
+    const pumaTarget = tau => [560 + 70 * Math.sin(tau) * Math.cos(tau), 150 * Math.sin(tau), 330];
+    const pumaIK = p => {
+      const L3 = PUMA.L3 + PUMA.TOOL;
+      const r = Math.hypot(p[0], p[1]), h = p[2] - PUMA.H;
+      const c3 = clamp((r * r + h * h - PUMA.L2 * PUMA.L2 - L3 * L3) / (2 * PUMA.L2 * L3), -1, 1);
+      const q3 = -Math.acos(c3);                                      // elbow up
+      const q2 = Math.atan2(h, r) - Math.atan2(L3 * Math.sin(q3), PUMA.L2 + L3 * Math.cos(q3));
+      return [Math.atan2(p[1], p[0]), q2, q3];
+    };
+    const PUMA_REST = pumaIK(pumaTarget(0));
+    const pumaQAt = tt => pumaIK(pumaTarget(tt * 0.9));
+    const pumaQ = () => {
+      if (!idleOn || settleU <= 0.001) return PUMA_REST;
+      return lerpQ(PUMA_REST, pumaQAt(idleT), settleU);
+    };
+    // B the base placement; q its joints; `sb` how much of the pedestal is
+    // left (it retracts into the trunk as the PUMA hands over to the SO-ARM)
+    function drawPuma(B, q, a, trail, sb = 1) {
+      if (a <= 0.004) return;
+      const { F1, S, E, W } = pumaFrames(B, q);
+      capId = 'base';
+      if (sb > 0.02) {
+        const P = chain(B, place(IDENT, [0, 0, PUMA.H * (1 - sb)]));
+        drawDrum(P, 150, 0, 22 * sb, MAT.paint, a);                    // the floor flange
+        drawDrum(P, 84, 22 * sb, 545 * sb, MAT.pla, a);                // the pedestal column
+        drawDrum(chain(P, place(IDENT, [96, 0, 0])), 34, 22 * sb, 90 * sb, MAT.pla, a);   // the cable boot beside it
+      }
+      capId = 'servo1';
+      drawDrum(F1, 104, PUMA.H - 125, PUMA.H + 70, MAT.pla, a);       // the trunk (joint 1)
+      drawDrum(chain(F1, place(rotX(-90 * DEG), [0, 86, PUMA.H])), 92, 0, 40, MAT.pla, a);   // the shoulder hub, out to the arm
+      capId = 'link1';
+      const Su = chain(S, place(rotX(-90 * DEG), [0, 0, 0]));
+      submit(PUMA_G.upper, Su, MAT.pla, a);
+      submitLines(PUMA_G.upperW, Su, matLine[MAT.pla], LOOK.line * a, LOOK.width);
+      submit(PUMA_G.stripe, Su, MAT.poly, a);                          // the black stripe along the outer face
+      capId = 'servo2';
+      drawDrum(chain(E, place(rotX(-90 * DEG), [0, 0, 0])), 58, -30, 34, MAT.pla, a);   // the elbow
+      capId = 'link2';
+      const Eu = chain(E, place(rotX(-90 * DEG), [0, 0, 0]));
+      submit(PUMA_G.fore, Eu, MAT.pla, a);
+      submitLines(PUMA_G.foreW, Eu, matLine[MAT.pla], LOOK.line * a, LOOK.width);
+      capId = 'tip';
+      const Wd = chain(W, place(rotY(90 * DEG), [0, 0, 0]));           // the wrist, its axis along the forearm
+      drawDrum(Wd, 40, -26, 46, MAT.poly, a);
+      drawDrum(Wd, 24, 46, 62, MAT.steel, a);
+      drawDrum(Wd, 7, 62, PUMA.TOOL, MAT.copper, a);
+      flush();
+      // what the tool has traced: the last stretch of the figure, fading
+      if (trail && !cap) {
+        const pts = [];
+        for (let i = 0; i <= 40; i++) pts.push(pumaFrames(B, pumaQAt(idleT - i * 0.07)).tip);
+        stroke([pts], place(IDENT, [0, 0, 0]), copper, 0.7 * trail * a, 1.6);
+      }
+    }
     function drawMotor() {
-      setCam(16 * DEG, 14 * DEG, 30);
-      drawPlanar(PLANAR_HOME, planarQ(), 1, idleOn ? settleU : 0);
+      setCam(16 * DEG, -8 * DEG, 0);
+      drawPuma(pumaRoot(), pumaQ(), 1, idleOn ? settleU : 0);
     }
     // Dev hook (kept — it has paid for itself three times): ?dev=<robot>:q1,q2,..;k;yaw;x;y
     // shows one baked machine at that pose.
@@ -1979,7 +2091,7 @@ export default function Flourish3D({ side = 'right' }) {
       box(54, 42, 44, CART_X - 44, FLOOR_Y - 34, 8, MAT.poly);
       // the signal pole and its lamp
       box(3, 260, 3, CART_X - 64, FLOOR_Y - 143, -32, MAT.steel);
-      box(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.alu);
+      box(8, 16, 8, CART_X - 64, FLOOR_Y - 280, -32, MAT.green);     // the stack light, green as in Ultra's photos
     }
     // The unit, drawn in its own frame: x forward (where the ZED looks), y
     // across the shoulders, z UP, origin at the torso's bottom centre; mm,
@@ -2121,6 +2233,13 @@ export default function Flourish3D({ side = 'right' }) {
       const grow = { ...(bodyAlpha || {}), zed: 0 };
       drawRobot(robot, base, q, alpha, grow);
       const B = alpha < 1 ? scaleT(base, alpha) : base;
+      // Ultra's orange ring on the Fairino's elbow housing (their photos):
+      // an orange annulus on the housing's outer face, white inside it
+      { const Te = growPlacements(robot, B, q, grow)[robot.index.get('forearm_link')];
+        if (detScale(Te.m) > 0.02 * detScale(B.m)) {
+          drawDrum(Te, 104, 133, 136, MAT.orange, alpha);
+          drawDrum(Te, 84, 133, 138, MAT.pla, alpha);
+        } }
       const Tf = bodyPlacements(robot, B, q)[robot.index.get('wrist3_link')];
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(B.m));
       // the unit grows out of the flange, its arms out of its shoulders — opaque
@@ -2244,13 +2363,13 @@ export default function Flourish3D({ side = 'right' }) {
             folded: [0, 0.3, 1.2, 0.8, 0, 0],
             // the tool point is between the two jaw tips with the jaw closed
             // on the cube, 12 mm back so the cube sits IN the fingers
-            task: { period: 14, W: SO_W, tcp: { body: 'gripper', off: [12.411, 0.531, -92.155] },
+            task: { period: 14, W: SO_W, grip: [5], tcp: { body: 'gripper', off: [12.411, 0.531, -92.155] },
                     cubes: [{ size: 30, mat: MAT.red }], events: [{ cube: 0, at: 2, drop: 6 }, { cube: 0, at: 10, drop: 14 }] } },
       // Franka: seven hinges then the hand's two finger slides. Its job:
       // stack the two loose cubes on the third, then unstack them.
       fr: { k: 0.33, root: [24, 262], yaw: 130,
             folded: [0, 0, 0, -0.3, 0, 0.6, 0.785, 0.01, 0.01],
-            task: { period: 24, W: FR_W, tcp: { body: 'hand', off: [0, 0, 103.4] },
+            task: { period: 24, W: FR_W, grip: [7, 8], tcp: { body: 'hand', off: [0, 0, 103.4] },
                     cubes: [{ size: 50, mat: MAT.red, at: FR_P1 }, { size: 50, mat: MAT.green }, { size: 50, mat: MAT.blue }],
                     events: [{ cube: 1, at: 2, drop: 5 }, { cube: 2, at: 8, drop: 11 }, { cube: 2, at: 14, drop: 17 }, { cube: 1, at: 20, drop: 23 }] } },
       // the UR pair hangs from the frame's crossbar, UR_DX either side of the
@@ -2265,9 +2384,9 @@ export default function Flourish3D({ side = 'right' }) {
             // left waits over its item, then the left packs while the right
             // waits. A repeated waypoint holds the arm still (the spline), and
             // both loops still START at their rest pose, so the act seams hold.
-            taskR: { period: 18, W: [...UR_W_R, ...Array(4).fill(UR_W_R[0])], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+            taskR: { period: 18, W: [...UR_W_R, ...Array(4).fill(UR_W_R[0])], grip: [6], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.green }], events: [{ cube: 0, at: 2, drop: 6 }] },
-            taskL: { period: 18, W: [...Array(4).fill(UR_W_L[0]), ...UR_W_L], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+            taskL: { period: 18, W: [...Array(4).fill(UR_W_L[0]), ...UR_W_L], grip: [6], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 6, drop: 10 }] } },
       // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
       // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
@@ -2485,14 +2604,26 @@ export default function Flourish3D({ side = 'right' }) {
     // repeated (the gripper closing) still holds the arm still, which is
     // where a real arm does pause.
     const TENSION = 0.42;
-    const splineAt = (P0, P1, P2, P3, u) => {
+    // ...EXCEPT where the hand acts. A grasp is two waypoints at the same
+    // place, open then closed (a drop the reverse), and a spline passes
+    // through them WITH velocity: the gripper dipped into the cube while it
+    // closed and the cube then snapped to the fingers, and a held cube was
+    // carried into the table before the release threw it back up — the
+    // owner: "the grippers and the cubes moving timing is off". So a
+    // waypoint whose neighbour differs only in the gripper (`grip`: those
+    // joints' indices) gets a ZERO tangent: the arm arrives, stops, the hand
+    // closes or opens, and only then does it move on.
+    const samePose = (A, B, grip) => { for (let j = 0; j < A.length; j++) if (!grip.includes(j) && Math.abs(A[j] - B[j]) > 1e-6) return false; return true; };
+    const splineAt = (P0, P1, P2, P3, u, grip) => {
       const u2 = u * u, u3 = u2 * u;
       const h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
-      return P1.map((_, j) => h00 * P1[j] + h10 * TENSION * (P2[j] - P0[j]) + h01 * P2[j] + h11 * TENSION * (P3[j] - P1[j]));
+      const s1 = grip && (samePose(P0, P1, grip) || samePose(P1, P2, grip)) ? 0 : TENSION;
+      const s2 = grip && (samePose(P1, P2, grip) || samePose(P2, P3, grip)) ? 0 : TENSION;
+      return P1.map((_, j) => h00 * P1[j] + h10 * s1 * (P2[j] - P0[j]) + h01 * P2[j] + h11 * s2 * (P3[j] - P1[j]));
     };
     const taskQ = (task, ph) => {
       const W = task.W, n = W.length, i = Math.floor(ph) % n, u = ph - Math.floor(ph);
-      return splineAt(W[(i - 1 + n) % n], W[i], W[(i + 1) % n], W[(i + 2) % n], u);
+      return splineAt(W[(i - 1 + n) % n], W[i], W[(i + 1) % n], W[(i + 2) % n], u, task.grip);
     };
     // A loop that does not return to where it started (an item packed into a
     // box) RESETS over its last segment: the props fade, go back to their
@@ -2566,7 +2697,7 @@ export default function Flourish3D({ side = 'right' }) {
       const task = RB.ul.unit, n = task.R.length;
       const st = ph0 => {
         const { a, ph } = taskReset({ reset: true }, ph0, n);
-        const at = (Wa, i) => { const j = Math.floor(i) % n, f = i - Math.floor(i); return armObj(splineAt(armArr(Wa[(j - 1 + n) % n]), armArr(Wa[j]), armArr(Wa[(j + 1) % n]), armArr(Wa[(j + 2) % n]), f)); };
+        const at = (Wa, i) => { const j = Math.floor(i) % n, f = i - Math.floor(i); return armObj(splineAt(armArr(Wa[(j - 1 + n) % n]), armArr(Wa[j]), armArr(Wa[(j + 1) % n]), armArr(Wa[(j + 2) % n]), f, [4])); };   // [4]: the arm's `open`
         const PR = at(task.R, ph0), PL = at(task.L, ph0);
         const tcpR = P => smallArmFrames(TU, P, 1).tcp;
         let itemPos = tcpR(task.R[task.item.at]), held = false;
@@ -2629,7 +2760,8 @@ export default function Flourish3D({ side = 'right' }) {
       // numerically). Every act tipped up by +10..+28 for two releases and the
       // owner saw the robots "from under angles"; the work is looked DOWN on
       // now, and each act starts at the pitch the last one ended on.
-      setCam(16 * DEG, (14 - 22 * a) * DEG, 30 * (1 - a));
+      setCam(16 * DEG, -8 * DEG, 0);      // the PUMA's view is already the SO-ARM's (a: kept for the seam history)
+      void a;
       // the arm grows out of the servo, base first, unfolding to its pose;
       // its cube arrives with it, and once settled it moves the cube
       const base = standing(RB.so.root, RB.so.k, RB.so.yaw);
@@ -2643,30 +2775,33 @@ export default function Flourish3D({ side = 'right' }) {
         drawCubes(taskState(ROBOTS.soarm, base, RB.so.task, 0), smooth(win(t, 0.8, 0.2)));
       }
       flush();
-      // (drawn AFTER the SO-ARM: it is in front of it, and drawPlanar draws
-      // layer by layer)
-      // the 2R arm BECOMES the SO-ARM's arm: it stays in its plane, slides and
-      // scales until its shoulder is on the SO-ARM's shoulder, and bends its
-      // two joints until its links lie along the SO-ARM's upper arm and
-      // forearm (as seen), then hands over as the SO-ARM grows into it; its
-      // base plate sinks away (it used to shrink to a point and vanish)
+      // the PUMA BECOMES the SO-ARM's arm: its joints swing until its upper
+      // arm and forearm lie along the SO-ARM's, as it slides and scales so its
+      // shoulder sits on the SO-ARM's shoulder; its pedestal retracts into the
+      // trunk; once the SO-ARM has grown into it, it shrinks into the shoulder.
+      // Solid throughout — a fading arm in the same place flickered.
       {
         const so = ROBOTS.soarm, TSo = bodyPlacements(so, standing(RB.so.root, RB.so.k, RB.so.yaw), RB.so.rest);
         const Psh = TSo[so.index.get('upper_arm')].t, Pel = TSo[so.index.get('lower_arm')].t, Pwr = TSo[so.index.get('wrist')].t;
-        const ang = (p, q) => Math.atan2(-(q[1] - p[1]), q[0] - p[0]);
-        const qs1 = ang(Psh, Pel), qs2 = ang(Pel, Pwr) - qs1;
-        const kTo = Math.hypot(Pel[0] - Psh[0], Pel[1] - Psh[1]) / PL.L1;
-        // SOLID and SHRINKING, never fading (the owner: "the so-arm101 has
-        // glitching textures during its animation"): a half-transparent 2R
-        // arm lying in the SO-ARM's own plane interleaved with it face by face
-        // in the depth sort and flickered. It sits 30 mm in front of it, at
-        // full alpha, and shrinks into the shoulder once the SO-ARM has grown
+        const B0 = pumaRoot(), kT = Math.hypot(Pel[0] - Psh[0], Pel[1] - Psh[1], Pel[2] - Psh[2]) / PUMA.L2;
+        // the SO-ARM's two links as directions in the PUMA's own (Z-up) frame
+        const Rm = B0.m.map(x => x / PUMA.k);
+        const loc = d => [Rm[0] * d[0] + Rm[3] * d[1] + Rm[6] * d[2], Rm[1] * d[0] + Rm[4] * d[1] + Rm[7] * d[2], Rm[2] * d[0] + Rm[5] * d[1] + Rm[8] * d[2]];
+        const d1 = loc([Pel[0] - Psh[0], Pel[1] - Psh[1], Pel[2] - Psh[2]]), d2 = loc([Pwr[0] - Pel[0], Pwr[1] - Pel[1], Pwr[2] - Pel[2]]);
+        const e1 = Math.atan2(d1[2], Math.hypot(d1[0], d1[1])), e2 = Math.atan2(d2[2], Math.hypot(d2[0], d2[1]));
+        const qT = [Math.atan2(d1[1], d1[0]), e1, e2 - e1];
         const m = smooth(win(t, 0.04, 0.46)), shr = 1 - smooth(win(t, 0.62, 0.26));
-        const k = 1.15 + (kTo - 1.15) * m;
-        const H = place(scaleM(k * shr), [-58 + (Psh[0] + 58) * m, 66 + (Psh[1] - 66) * m, (Psh[2] + 30) * m]);
         const wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
-        const q = [PLANAR_REST[0] + wrap(qs1 - PLANAR_REST[0]) * m, PLANAR_REST[1] + wrap(qs2 - PLANAR_REST[1]) * m];
-        if (shr > 0.02) drawPlanar(H, q, 1, 0, 1 - smooth(win(t, 0.04, 0.3)));
+        const q = PUMA_REST.map((x, i) => x + wrap(qT[i] - x) * m);
+        const k = PUMA.k + (kT - PUMA.k) * m;
+        // place the base so the shoulder lands where it should: at m 0 the
+        // PUMA's own home, at m 1 the SO-ARM's shoulder
+        const Bk = place(B0.m.map(x => x * k / PUMA.k), [0, 0, 0]);
+        const sh = pumaFrames(Bk, q).S.t, home = pumaFrames(B0, q).S.t;
+        const want = [home[0] + (Psh[0] + 0 - home[0]) * m, home[1] + (Psh[1] - home[1]) * m, home[2] + (Psh[2] + 30 - home[2]) * m];
+        let B = place(Bk.m, [want[0] - sh[0], want[1] - sh[1], want[2] - sh[2]]);
+        if (shr < 1) B = scaleAbout(B, Math.max(1e-3, shr), want);
+        if (shr > 0.02) drawPuma(B, q, 1, 0, 1 - smooth(win(t, 0.04, 0.3)));
       }
     }
     // where the SO-ARM's base servo sits on the stage — the motor lands there

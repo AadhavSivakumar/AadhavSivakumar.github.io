@@ -113,7 +113,29 @@ export function createAtlasGL(host) {
   const bbox = new Map();                // piece id -> local bounding box (mm)
   const mats = [], geos = [];
   let ready = false;
-  const matFor = (name, def) => {
+  // THE LOOK of the real electric Atlas (Boston Dynamics' own photos,
+  // bostondynamics.com/products/atlas): satin ALUMINIUM shells, GRAPHITE
+  // joints, forearms and shins, a dark chest panel, TEAL bands at the wrists,
+  // and a round head whose dark glass face carries only the ring light. The
+  // owner's model is the blue-and-black product illustration; its geometry
+  // stays, its materials are re-assigned here by part name.
+  const LOOKS = {
+    alu: { c: 0xb9bbbe, r: 0.36, m: 0.55 },
+    graphite: { c: 0x2f3135, r: 0.5, m: 0.3 },
+    teal: { c: 0x22a7b6, r: 0.45, m: 0.2 },
+    glass: { c: 0x0b0c0e, r: 0.12, m: 0.3 },
+  };
+  const restyle = (part, mat) => {
+    if (/^(Torso_Drawer|Torso_Chevron|Torso_IconB|Torso_IconA|Torso_ScreenUI)/.test(part)) return LOOKS.graphite;
+    if (/^Head_(EyeRing|EyeGlint)/.test(part)) return LOOKS.glass;   // no cyclops eye: a dark face and the ring
+    if (/^Wrist_Roll/.test(part)) return LOOKS.teal;
+    if (/^Hand_(Fingers|Palm)/.test(part)) return LOOKS.graphite;
+    if (/^(Torso|Torso_BackPack|Pelvis_Block)$/.test(part)) return LOOKS.alu;
+    if (mat === 'RB_Blue') return LOOKS.alu;
+    if (mat === 'RB_Black') return LOOKS.graphite;
+    return null;
+  };
+  const matFor = (name, def, look) => {
     const kd = def.kd, ke = def.ke;
     const lin = new THREE.Color().setRGB(kd[0], kd[1], kd[2], THREE.LinearSRGBColorSpace);
     const isMetal = /Metal/.test(name), isGrille = /Grille/.test(name);
@@ -124,6 +146,8 @@ export function createAtlasGL(host) {
     });
     const e = Math.max(ke[0], ke[1], ke[2]);
     if (e > 0) { m.emissive = new THREE.Color().setRGB(ke[0] / e, ke[1] / e, ke[2] / e, THREE.LinearSRGBColorSpace); m.emissiveIntensity = Math.min(2.2, e * 0.55); }
+    if (name === 'RB_Glow') m.emissive = new THREE.Color(0xd2f7dc);   // the ring light: a soft green-white, as photographed
+    if (look) { m.color.setHex(look.c); m.roughness = look.r; m.metalness = look.m; m.emissiveIntensity = 0; }
     m.userData.base = { color: m.color.clone(), ei: m.emissiveIntensity, r: m.roughness, mt: m.metalness };
     mats.push(m);
     return m;
@@ -156,8 +180,9 @@ export function createAtlasGL(host) {
       for (let i = 0; i < p.vCount; i++) for (let c = 0; c < 3; c++) { const v = pos[i * 3 + c]; if (v < bb.min[c]) bb.min[c] = v; if (v > bb.max[c]) bb.max[c] = v; }
       let grp = groups.get(id);
       if (!grp) { grp = new THREE.Group(); grp.matrixAutoUpdate = false; grp.visible = false; yawG.add(grp); groups.set(id, grp); }
-      const mk = id + '|' + p.mat;            // materials PER PIECE, so a piece in flight can wear its source's look
-      grp.add(new THREE.Mesh(g, mcache[mk] || (mcache[mk] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }))));
+      const look = restyle(p.name, p.mat);
+      const mk = id + '|' + p.mat + '|' + (look ? look.c : '');   // materials PER PIECE, so a piece in flight can wear its source's look
+      grp.add(new THREE.Mesh(g, mcache[mk] || (mcache[mk] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }, look))));
     }
     ready = true;
   }).catch(() => {});

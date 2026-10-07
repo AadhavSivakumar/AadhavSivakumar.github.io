@@ -104,7 +104,11 @@ export function createRobotGL(host, after) {
   // Surfaces are pushed back a hair in depth so the line art lying ON them wins
   // (the Canvas2D path nudges lines forward by LINE_BIAS instead).
   const OFFSET = { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 };
-  const flatMat = o => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.FrontSide, toneMapped: false,
+  // The props arrive in view space with the winding Flourish3D's screen test
+  // calls FRONT — which is clockwise as seen, i.e. three's BACK side (their
+  // world matrix is the identity, so nothing flips it). FrontSide here culled
+  // every visible face and drew the insides: the props came out hollow.
+  const flatMat = o => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, toneMapped: false,
     transparent: o, depthWrite: !o, ...OFFSET });
   const S = { flat: stream(), flatT: stream(), line: stream() };
   S.flat.obj = new THREE.Mesh(S.flat.geo, flatMat(false));
@@ -133,8 +137,21 @@ export function createRobotGL(host, after) {
     parts.set(part, e);
     return e;
   };
-  const litMat = o => new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.05, side: THREE.FrontSide,
-    transparent: o, depthWrite: !o, ...OFFSET });
+  // DOUBLE-sided, lit from the SMOOTH normal whichever side faces the
+  // camera: some baked meshes (the UR5e's) have patches wound the wrong way,
+  // and culling them opened holes into the part. three flips a back face's
+  // normal; here it is not flipped — the vertex normals are averaged from
+  // the outward shells and are right for both.
+  const litMat = o => {
+    const m = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide,
+      transparent: o, depthWrite: !o, ...OFFSET });
+    m.onBeforeCompile = sh => {
+      sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>',
+        THREE.ShaderChunk.normal_fragment_begin.replace(/gl_FrontFacing \? 1\.0 : - 1\.0/, '1.0'));
+    };
+    m.customProgramCacheKey = () => 'robot-ds';
+    return m;
+  };
   const instance = e => {
     let it = e.pool[e.used];
     if (!it) {

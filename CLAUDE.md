@@ -2340,6 +2340,45 @@ the dark metallic streaks on the SO-ARM. Now white PLA reads white with the
 key from the upper left. Seen at every settle point and mid-act in both
 themes against the previous build (geometry identical, props present).
 
+**Oct 6, evening (the owner: gripper/cube timing off, broken UR textures,
+Ultra and Atlas to look like the real ones, a PUMA first).** Each checked
+against the makers' photos (ultra.tech, bostondynamics.com/products/atlas,
+franka.de, generalistai.com):
+- **Props were hollow ghosts in GL.** The drawn props' front winding is
+  three's BACK side (identity world matrix, clockwise as seen), so FrontSide
+  culled every visible face; and they were toned toward the PAGE
+  (`paperTone`, line art's occluders). Now `BackSide`, and `glTone` uses the
+  real material colour (MAT.poly is black: Ultra's cart/torso/arms and
+  Generalist's frame/table read solid). Steel is a neutral silver in GL
+  (`GL_STEEL`; its tint came out sky blue). GL lines are at 0.45.
+- **UR meshes have wrongly wound patches**: robot meshes are DoubleSide,
+  lit from the smooth normal unflipped (`onBeforeCompile` replaces
+  `gl_FrontFacing ? 1.0 : -1.0` with 1.0).
+- **Grasp timing**: a grasp/drop is two waypoints at one place differing
+  only in the gripper, and the cardinal spline passed through them WITH
+  velocity — the hand dipped into the cube while closing, then the cube
+  snapped; a held cube went into the table before release. `splineAt` now
+  takes `grip` (the gripper's joint indices per task) and gives such a
+  waypoint a ZERO tangent: arrive, stop, close/open, leave.
+- **Ultra**: a green stack light, Ultra's orange ring on the Fairino's elbow
+  housing (`drawUltraRobot`).
+- **Atlas** (`restyle` in atlasGL.js): the owner's blue model's materials
+  re-assigned by part name — aluminium shells, graphite joints and chest
+  panel, teal wrist rolls, a dark glass face with only the ring light (no
+  eye, no screen icons).
+- **The first robot is a PUMA** (`drawPuma`, `PUMA`; PUMA 560 numbers: 660
+  shoulder, 432 / 433 links), drawn from the owner's Unimate PUMA 500 photo:
+  pedestal column, turning trunk, broad tapered upper arm with a counterweight
+  tail and a black stripe, inboard forearm, black wrist. Settled it traces
+  the old figure-eight by IK (`pumaIK`). Act 1: its joints swing onto the
+  SO-ARM's links while it slides/scales its shoulder onto the SO-ARM's, the
+  pedestal retracts, then it shrinks into the shoulder. `?puma=yaw,k,x,y`
+  reframes it. The 2R arm (`drawPlanar`) is kept for the fallback acts.
+- **Privacy**: the SoleGait gallery's second item was NYU's award LETTER
+  (student ID, NYU email, signature). Removed from Media/web and untracked
+  from Media/projects (git-ignored, still on disk). It remains in git
+  HISTORY of a public repo.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
