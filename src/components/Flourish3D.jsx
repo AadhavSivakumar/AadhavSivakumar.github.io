@@ -2052,25 +2052,66 @@ export default function Flourish3D({ side = 'right' }) {
     }
     const TABLE_LEGS = [[FRAME_X - POST_X + 20, -50], [FRAME_X + POST_X - 20, -50], [FRAME_X - POST_X + 20, 86], [FRAME_X + POST_X - 20, 86]];
     const drawStand = (u, alpha) => drawFrame(u, alpha);   // the procedural fallback still calls it by this name
-    // The UR's gripper is Generalist's: a black body on the flange, two long
-    // yellow printed fingers. In the wrist_3 frame the flange is 100 mm along
-    // y and the tool axis is +y (the MJCF's attachment_site); the tool point
-    // is 130 beyond the flange, between the fingertips. `gap` in mm.
+    // The UR's gripper is Generalist's, as in their GTC photo and lab clips:
+    // a Robotiq-style ADAPTIVE two-finger gripper — a black coupling on the
+    // flange, a flat black CAMERA PUCK across it (a rounded bar sticking out
+    // to one side, its lens on the underside looking down the fingers), a
+    // squat black body tapering toward the fingers, and on each side a
+    // parallelogram linkage: a yellow printed lattice link in front, a thin
+    // black link behind it, swinging out and down to a black distal finger
+    // whose inner face stays vertical (the pad) and whose tip tapers to a
+    // point. In the wrist_3 frame the flange is 100 mm along y and the tool
+    // axis is +y (the MJCF's attachment_site); the tool point is 130 beyond
+    // the flange, at the pads. `gap` in mm, between the pads. The fingertips
+    // stop short of a 60 mm item's bottom (z 160 here), so a placed item
+    // never puts the fingers through the table.
+    const UR_TCP = 275;                              // wrist_3 y of the tool point: the flange (100) + the gripper (175)
+    const GRIP_SIL = [[-34, 32], [34, 32], [34, 60], [28, 80], [-28, 80], [-34, 60]];   // the body seen along y (x, z)
+    const GRIP_PUCK = stadium(104, 26, 5).map(([x, y]) => [x - 38, y]);              // across the body, overhanging one side
+    const XZ = rotX(90 * DEG);                       // a silhouette's (x, y) becomes the gripper's (x, z)
     function drawURGripper(Tw, gap, a) {
       if (a <= 0.01) return;
       const G = chain(Tw, place(rotX(-90 * DEG), [0, 100, 0]));           // local z along the tool axis
-      drawDrum(G, 34, 0, 46, MAT.poly, a);
-      submit(boxFaces(100, 34, 14, 0, 0, 53), G, MAT.poly, a);
-      submitLines(boxWire(100, 34, 14, 0, 0, 53), G, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-      // the wrist camera on the body's side, looking down the fingers
-      submit(boxFaces(26, 20, 30, 0, 32, 40), G, MAT.poly, a);
-      submitLines(boxWire(26, 20, 30, 0, 32, 40), G, matLine[MAT.poly], LOOK.line * a, LOOK.width);
-      submitLines([ringAt(5, 0, 32, 55.5, 12)], G, ink, LOOK.line * a, LOOK.width);
-      // the fingers: long, wide, yellow — the printed ones in every Generalist clip
+      const lw = LOOK.line * a, P = matLine[MAT.poly];
+      // the coupling: a short black drum on the flange
+      submit([...surface([[0, 32], [12, 32]], 10), ...disc(0, 32, 12, 10)], G, MAT.poly, a);
+      submitLines([ring(32, 0, 14), ring(32, 12, 14)], G, P, lw, LOOK.width);
+      // the camera puck across the top of the body, its lens at the far end
+      submit(extrude(GRIP_PUCK, 12, 32), G, MAT.poly, a);
+      submitLines(silWire(GRIP_PUCK, 12, 32, 5), G, P, lw, LOOK.width);
+      submitLines([ringAt(12, 58, 0, 32.3, 10), ringAt(6, 58, 0, 32.3, 8)], G, matLine[MAT.alu], lw, LOOK.width);
+      // the body: a tapered block, 54 deep
+      const B = chain(G, place(XZ, [0, 0, 0]));
+      submit(extrude(GRIP_SIL, -27, 27), B, MAT.poly, a);
+      submitLines(silWire(GRIP_SIL, -27, 27, 3), B, P, lw, LOOK.width);
+      // the fingers, solved for the gap: a short black link swings out of
+      // the body to the knuckle; from there the long yellow printed finger
+      // runs down and IN, so the two converge on the item, ending in a black
+      // tip whose inner edge is the pad (at x ±gap/2, the tool point's depth)
+      const g = Math.max(10, Math.min(110, gap));
+      const PX = 30, PZ = 74, LP = 40;               // the link's pivot and length
+      const kx = g / 2 + 14;                         // the knuckle, 14 outboard of the pad
+      const s = Math.max(-0.95, Math.min(0.95, (kx - PX) / LP)), th = Math.asin(s), zK = PZ + LP * Math.cos(th);
+      const xi = g / 2, zT = zK + 58, zE = zK + 82;  // the yellow ends at zT, the black tip at zE
       for (const sg of [-1, 1]) {
-        const x = sg * (gap / 2 + 8);
-        submit(boxFaces(14, 26, 82, x, 0, 101), G, MAT.ochre, a);
-        submitLines(boxWire(14, 26, 82, x, 0, 101), G, matLine[MAT.ochre], LOOK.line * a, LOOK.width);
+        const L = chain(G, place(rotY(sg * th), [sg * PX, 0, PZ]));
+        submit(boxFaces(10, 20, LP + 8, 0, 0, LP / 2), L, MAT.poly, a);
+        submitLines(boxWire(10, 20, LP + 8, 0, 0, LP / 2), L, P, lw, LOOK.width);
+        const S = pts => { const o = pts.map(([x, z]) => [sg * x, z]); return sg < 0 ? o.reverse() : o; };
+        const fy = S([[kx - 10, zK - 4], [kx + 9, zK - 4], [xi + 11, zT], [xi, zT]]);
+        submit(extrude(fy, -14, 14), B, MAT.ochre, a);
+        submitLines(silWire(fy, -14, 14, 4), B, matLine[MAT.ochre], lw, LOOK.width);
+        // the lattice: windows down both broad faces
+        const win = [];
+        for (const [u0, u1] of [[0.1, 0.36], [0.46, 0.72]]) {
+          const e = (u, w) => { const xa = kx - 10 + (xi - kx + 10) * u, xb = kx + 9 + (xi + 11 - kx - 9) * u; return [sg * (xa + (xb - xa) * w), zK - 4 + (zT - zK + 4) * u]; };
+          for (const z of [-14.3, 14.3]) win.push([e(u0, 0.25), e(u0, 0.75), e(u1, 0.75), e(u1, 0.25), e(u0, 0.25)].map(([x, y]) => [x, y, z]));
+        }
+        submitLines(win, B, P, lw, LOOK.width);
+        // the black tip, turned in a little
+        const ft = S([[xi, zT], [xi + 12, zT], [xi + 7, zT + 12], [xi + 1, zE], [xi - 2, zE - 4]]);
+        submit(extrude(ft, -12, 12), B, MAT.poly, a);
+        submitLines(silWire(ft, -12, 12, 4), B, P, lw, LOOK.width);
       }
     }
     // An arm hanging from the frame's bar and LEANING in toward the viewer
@@ -2406,8 +2447,8 @@ export default function Flourish3D({ side = 'right' }) {
     // ...solved per arm, in stage coordinates, for the LEANING mounts (the
     // left arm is not the right one's mirror once the mounts lean)
     const urW = (IT, ITU, BX, BXU) => [ITU, IT, g(IT, 6, 60), g(ITU, 6, 60), g(BXU, 6, 60), g(BX, 6, 60), BX, BXU, ITU];
-    const UR_W_R = urW([0.062, -2.478, -1.913, 0.011, 0.629, 0, 90], [0.378, -2.04, -2.117, -0.678, 0.595, 0, 90], [0.532, -2.599, -2.047, -0.403, 0.631, 0, 90], [0.722, -2.38, -2.08, -0.806, 0.713, 0, 90]);
-    const UR_W_L = urW([3.555, -2.582, -1.815, 0.456, 2.253, 0, 90], [3.289, -2.218, -2.08, 0.156, 2.42, 0, 90], [3.149, -2.79, -1.938, 0.435, 2.486, 0, 90], [2.952, -2.554, -2.061, 0.06, 2.543, 0, 90]);
+    const UR_W_R = urW([0.129, -2.381, -1.988, -0.101, 0.61, 0, 90], [0.453, -1.953, -2.111, -0.878, 0.608, 0, 90], [0.607, -2.511, -2.073, -0.557, 0.658, 0, 90], [0.79, -2.311, -2.063, -0.954, 0.751, 0, 90]);
+    const UR_W_L = urW([3.501, -2.504, -1.893, 0.423, 2.29, 0, 90], [3.22, -2.132, -2.107, 0.026, 2.455, 0, 90], [3.075, -2.704, -1.996, 0.314, 2.514, 0, 90], [2.877, -2.461, -2.077, -0.128, 2.551, 0, 90]);
     // the OP1's small arms (right; the left is the mirror by construction)
     const op = (P, open) => ({ ...P, open });
     // ...solved in scripts/ik-poses.mjs (roll, which swings an arm inward in
@@ -2455,9 +2496,9 @@ export default function Flourish3D({ side = 'right' }) {
             // left waits over its item, then the left packs while the right
             // waits. A repeated waypoint holds the arm still (the spline), and
             // both loops still START at their rest pose, so the act seams hold.
-            taskR: { period: 18, W: [...UR_W_R, ...Array(4).fill(UR_W_R[0])], grip: [6], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+            taskR: { period: 18, W: [...UR_W_R, ...Array(4).fill(UR_W_R[0])], grip: [6], tcp: { body: 'wrist3', off: [0, UR_TCP, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.green }], events: [{ cube: 0, at: 2, drop: 6 }] },
-            taskL: { period: 18, W: [...Array(4).fill(UR_W_L[0]), ...UR_W_L], grip: [6], tcp: { body: 'wrist3', off: [0, 230, 0] }, reset: true,
+            taskL: { period: 18, W: [...Array(4).fill(UR_W_L[0]), ...UR_W_L], grip: [6], tcp: { body: 'wrist3', off: [0, UR_TCP, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 6, drop: 10 }] } },
       // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
       // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
@@ -3130,7 +3171,7 @@ export default function Flourish3D({ side = 'right' }) {
           // joint points: the UR's (body origins + the tool tip) and the
           // Ultra arm's (mount, shoulder, elbow, wrist, and three stations
           // down the tool axis to its tip)
-          const Pu = [...names.map(n => TA[ix(n)].t), tpOf(TA[ix('wrist3')], [0, 230, 0])];
+          const Pu = [...names.map(n => TA[ix(n)].t), tpOf(TA[ix('wrist3')], [0, UR_TCP, 0])];
           const td = nrm(sub(F.tcp, F.Wr.t)), L3 = Math.hypot(...sub(F.tcp, F.Wr.t));
           const Pt = [tpOf(TU, [0, side * UNIT.SY, UNIT.SZ + 70]), F.S.t, F.S.t, F.E.t, F.Wr.t,
                       F.Wr.t.map((v, c) => v + td[c] * L3 * 0.3), F.Wr.t.map((v, c) => v + td[c] * L3 * 0.6), F.tcp];
