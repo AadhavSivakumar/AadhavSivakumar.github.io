@@ -159,7 +159,7 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
 // construction the renderer uses (`hanging` then a lean about the stage's x).
 {
   const R = load('ur5e');
-  const tcp = { body: 'wrist3', off: [0, 230, 0], axis: [0, 1, 0] };
+  const tcp = { body: 'wrist3', off: [0, 275, 0], axis: [0, 1, 0] };   // = UR_TCP in Flourish3D.jsx: flange 100 + Generalist's gripper 175
   const DEG = Math.PI / 180;
   const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
   const rotZ = a => { const c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; };
@@ -189,8 +189,14 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
     const lim = { limits: { 1: [-3.1, 3.1], 2: [-3.1, 3.1], 3: [-3.1, 3.1] } };
     const go = (p, seed) => solve(R, tcp, seed, [0, 1, 2, 3, 4], { p: toLocal(base, p), z: down }, lim);
     const score = s => s.err + 60 * s.zerr;
-    let best = null;
-    for (let i = 0; i < 400; i++) {
+    // the branch the cell has been drawn on (solved for the shorter 230 mm
+    // tool): seeded from it first, so a longer gripper keeps the arms' pose
+    // family; the multi-start only if that seed fails
+    const BRANCH = { R: [0.378, -2.04, -2.117, -0.678, 0.595, 0], L: [3.289, -2.218, -2.08, 0.156, 2.42, 0] };
+    let best = go(T.ITEMUP, BRANCH[name].slice());
+    const seeded = best.err < 1 && best.zerr < 0.01;
+    if (!seeded) best = null;
+    for (let i = 0; i < 400 && !seeded; i++) {
       const sd = [(rand() * 2 - 1) * 3.1, (rand() * 2 - 1) * 3.1, (rand() * 2 - 1) * 3.1, (rand() * 2 - 1) * 3.1, 1.57, 0];
       const s2 = go(T.ITEMUP, sd);
       if (!best || score(s2) < score(best) - 1e-6) best = s2;

@@ -846,9 +846,20 @@ between mount and box.
 
 **The UR pair is Generalist's** (generalistai.com, GEN-0 / GEN-1 videos):
 two UR e-series coming DOWN from a heavy black frame over a dark table at an
-angle, black wrists with a wrist camera, big yellow 3D-printed parallel
-fingers (`MAT.ochre`, `drawURGripper`: the flange is 100 mm along wrist_3's
-y, the tool point 130 beyond it), packing things into boxes. The frame
+angle, packing things into boxes. **The gripper** (`drawURGripper`, Oct 7,
+from the GTC photo: "the grippers on the ur robots still doesn't look
+right") is a Robotiq-style adaptive two-finger gripper: a black coupling, a
+flat black CAMERA PUCK across it (a racetrack overhanging one side, lens
+underneath), a short tapered black body, and per side a black link swinging
+out to a knuckle, then a long yellow printed LATTICE finger (`MAT.ochre`,
+windows drawn as lines) running down and IN to a pointed black tip. The
+linkage is solved from the gap in q[6] (pads at ±gap/2). It used to be two
+straight yellow bars under a bar, too short: the tool point is now 175 mm
+past the flange (`UR_TCP` 275 on wrist_3's y, was 230), so the UR waypoints
+were re-solved in `ik-poses.mjs` (seeded from the old branch, `BRANCH`, so
+the arms keep their poses; the multi-start had flipped the left arm's
+elbow). Closed tips stop ~10 mm above a 60 mm item's bottom, so a placed
+item never puts them through the table. The frame
 (`drawFrame`) is black posts and a crossbar set back (`MOUNT_Z`) with the UR
 bases on canted blocks under it: `leaning` = standing, turned over (a half
 turn about the stage's z), then tilted `LEAN` (28°) about the stage's x
