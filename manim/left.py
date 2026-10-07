@@ -8,9 +8,11 @@ stage, drawn flat). The real shot and the sim shot are the same geometry in
 two looks, so real -> sim and sim -> real are true morphs.
 
   IdleRest      (Experience)   the D435i over the table, its view cone on it
-  Act0          Exp -> Research  shutter: light down the cone onto the sensor,
-                                 the frame is read out row by row, a mosaic
-                                 that resolves into the photo
+  Act0          Exp -> Research  the camera blows apart and its parts fly off
+                                 the stage, leaving the bare sensor die; light
+                                 runs up the view onto it, the die spreads into
+                                 the photosite array, read out row by row, a
+                                 mosaic that resolves into the photo
   IdleUntrained (Research)     REAL, untrained policy: the arm grasps at air
                                  (a trail, an x at each empty grasp)
   Act1          -> Projects    REAL2SIM: multi-view capture, the photo
@@ -507,19 +509,41 @@ def _proj(p, s=1.0, at=None):
     return [at[0] + p[0] * k * s, at[1] + p[1] * k * s, 0]
 
 
-def render_parts(parts, yaw, pitch, alpha=None, s=1.0, at=None):
+def _axis_rot(axis, ang):
+    """Rodrigues: a rotation of `ang` about the unit `axis`."""
+    k = np.array(axis, dtype=float)
+    k /= np.linalg.norm(k) or 1
+    K = np.array([[0, -k[2], k[1]], [k[2], 0, -k[0]], [-k[1], k[0], 0]])
+    return np.eye(3) + math.sin(ang) * K + (1 - math.cos(ang)) * (K @ K)
+
+
+def render_parts(parts, yaw, pitch, alpha=None, s=1.0, at=None, woff=None, spin=None):
+    """woff: name -> a WORLD offset (after the camera's rotation); spin:
+    name -> (axis, angle), a tumble about the part's own centre. Both are
+    for the explosion (Act0); the resting camera passes neither."""
     R = _rot(yaw, pitch)
     drawn = []
     for name, faces, dz in parts:
         a = 1.0 if alpha is None else alpha.get(name, 1.0)
         if a <= 0.01:
             continue
+        off = np.zeros(3) if not woff or name not in woff else np.array(woff[name], dtype=float)
+        Rp = R
+        ctr = np.zeros(3)
+        if spin and name in spin:
+            allp = np.array([[x, y, z + dz] for pts, _, _ in faces for x, y, z in pts])
+            ctr = allp.mean(axis=0)
+            Rp = R @ _axis_rot(*spin[name])
         polys = []
         for pts, nrm, col in faces:
-            n = R @ np.array(nrm)
+            n = Rp @ np.array(nrm)
             if n[2] <= 0.02:
                 continue
-            wp = [R @ np.array([x, y, z + dz]) for x, y, z in pts]
+            wp = [R @ ctr + Rp @ (np.array([x, y, z + dz]) - ctr) + off for x, y, z in pts]
+            if col == "RING":           # a lens's rim, drawn as a line (cam_burst)
+                polys.append((sum(q[2] for q in wp) / len(wp) + 1e-3,
+                              Polygon(*[_proj(q, s, at) for q in wp], stroke_color=PAL["soft"], stroke_width=1.4, stroke_opacity=a, fill_opacity=0)))
+                continue
             lit = 0.55 + 0.45 * max(0.0, float(n @ LIGHT))
             c = ManimColor(col)
             shade = c.darker(1 - lit) if lit < 1 else c
@@ -556,9 +580,9 @@ def table_quad(c=SC_C, sc=SC_K):
     return [fp(-1, 0, 0, c, sc), fp(1, 0, 0, c, sc), fp(1, 1, 0, c, sc), fp(-1, 1, 0, c, sc)]
 
 
-def cone(yaw, pitch, a=1.0, sweep=None, ex=0.0, s=1.0, at=None):
+def cone(yaw, pitch, a=1.0, sweep=None, ex=0.0, s=1.0, at=None, apex=None):
     """The RGB imager's view: from the lens down onto the table."""
-    O = lens_pt(yaw, pitch, ex, s, at)
+    O = lens_pt(yaw, pitch, ex, s, at) if apex is None else np.array(apex)
     F = table_quad()
     g = VGroup(Polygon(*F, stroke_color=PAL["copper"], stroke_width=1.8, stroke_opacity=0.8 * a, fill_color=PAL["copper"], fill_opacity=0.05 * a),
                *[Line(O, f, stroke_color=PAL["copper"], stroke_width=1.6, stroke_opacity=0.7 * a) for f in F])
@@ -577,6 +601,57 @@ def cam3d(yaw=YAW0, pitch=PITCH0, ex=0.0, others=1.0, module=1.0, s=1.0, at=None
             ring = [_proj(R @ np.array([x, y, D3 / 2 + 0.165 + 1.7 * ex]), s, at) for x, y in _circle_pts(r * 0.58 * CAM_K, 18, lx * 0.95 * CAM_K, 0)]
             g.add(Polygon(*ring, stroke_color=PAL["soft"], stroke_width=1.4, stroke_opacity=others, fill_opacity=0))
     return g
+
+
+# The explosion (Act0): every part flies out from the camera's centre on its
+# own line — the case up and back, the boards up and out, the front plate and
+# the four lenses out toward the reader and sideways, each tumbling — and
+# leaves the stage. World offsets at e = 1 (view space: y up, z to the reader).
+BURST = {
+    "casing": ((-0.8, 3.9, -2.5), ((1, 0.2, 0), 0.6)),
+    "module": ((1.3, 3.5, -1.0), ((0.3, 1, 0), 1.2)),
+    "pcb":    ((2.9, 2.7, -2.0), ((1, 0, 0.4), 1.5)),
+    "plate":  ((-2.0, 4.4, -0.6), ((0, 0.2, 1), 0.45)),
+    "lens0":  ((-3.6, 1.0, 2.2), ((1, 1, 0), 2.6)),
+    "lens1":  ((0.3, 4.4, 2.6), ((0, 1, 1), -2.8)),
+    "lens2":  ((2.0, 3.8, 2.4), ((1, 0, 1), 2.8)),
+    "lens3":  ((3.6, 0.7, 2.2), ((1, -1, 0), -2.4)),
+}
+
+
+BURST_SEP = 0.5       # how far the exploded view opens (cam_parts' ex) before the parts fly
+
+
+def burst_sep(e):
+    """The bang: the parts jump apart along the camera's own depth axis at
+    once (out-cubic over the first 30%), an exploded view for a moment..."""
+    x = min(max(e / 0.3, 0.0), 1.0)
+    return BURST_SEP * (1 - (1 - x) ** 3)
+
+
+def burst_fly(e):
+    """...then each flies off on its own line, accelerating (ease-in), and
+    is off the stage by e = 1."""
+    x = min(max((e - 0.12) / 0.88, 0.0), 1.0)
+    return x * x
+
+
+def cam_burst(e, yaw=YAW0, pitch=PITCH0):
+    """The D435i at explosion e: 0 is exactly cam3d(), 1 is every part gone."""
+    if e <= 1e-4:
+        return cam3d(yaw, pitch)
+    ex, f = burst_sep(e), burst_fly(e)
+    woff = {k: f * np.array(v[0]) for k, v in BURST.items()}
+    spin = {k: (v[1][0], (0.15 * ex / BURST_SEP + f) * v[1][1]) for k, v in BURST.items()}
+    # each lens carries its rim as a face, so it sorts and tumbles with it
+    parts = []
+    for name, faces, dz in cam_parts(ex):
+        if name.startswith("lens"):
+            lx, r = LENS[int(name[4:])]
+            rim = [(x, y, D3 / 2 + 0.165) for x, y in _circle_pts(r * 0.58 * CAM_K, 18, lx * 0.95 * CAM_K, 0)]
+            faces = faces + [(rim, (0, 0, 1), "RING")]
+        parts.append((name, faces, dz))
+    return render_parts(parts, yaw, pitch, None, woff=woff, spin=spin)
 
 
 def faint_table(a=1.0):
@@ -1113,44 +1188,64 @@ class IdleRest(Scene):
 
 
 class Act0(Base):
-    """REAL. The shutter: the camera opens to its sensor, light runs down the
-    view onto it, the frame is read out row by row and resolves into the photo."""
+    """REAL. The shutter: the camera blows apart, leaving its bare sensor die
+    in the air; light runs back up the view onto it, the die spreads into the
+    photosite array over the table, the frame is read out row by row and the
+    mosaic resolves into the photo."""
     def construct(self):
-        ex, oth, yaw, sw = ValueTracker(0), ValueTracker(1), ValueTracker(YAW0), ValueTracker(0)
+        e = ValueTracker(0)
         table = faint_table()
+        L0 = lens_pt(YAW0, PITCH0)
+        D = die_pt(YAW0, PITCH0, BURST_SEP)
         self.add(table)
-        self.add(always_redraw(lambda: cone(yaw.get_value(), PITCH0, 1.0 - 0.0 * ex.get_value(), sweep=sw.get_value(), ex=0.0)))
-        self.add(always_redraw(lambda: cam3d(yaw.get_value(), PITCH0, ex.get_value(), others=oth.get_value())))
-        # 1 · the exploded view: casing back, plate and lenses forward, the
-        # sensor module bare between them
-        self.play(ex.animate.set_value(0.6), yaw.animate.set_value(0.2), run_time=0.9, rate_func=smooth)
-        # 2 · light comes back up the view onto the sensor die
-        D = die_pt(0.2, PITCH0, 0.6)
+        # the cone's apex slides from the lens onto the die as the lens leaves
+        cn = always_redraw(lambda: cone(YAW0, PITCH0, 1.0, sweep=0.0,
+                                        apex=L0 + (D - L0) * smooth01((e.get_value() - 0.1) * 3)))
+        cam = always_redraw(lambda: cam_burst(e.get_value()))
+        self.add(cn, cam)
+        # 1 · the camera explodes: every part flies out from its centre and off
+        # the stage; the bare sensor die is left where it sat
         die = Square(0.2, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to(D)
-        rays = VGroup(*[Line(f, D, stroke_color=PAL["copper"], stroke_width=3) for f in table_quad()])
-        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.12), DrawBorderThenFill(die, stroke_color=PAL["copper"], stroke_width=1.5), run_time=0.6)
-        self.play(Flash(D, color=PAL["copper"], line_length=0.12, num_lines=10, flash_radius=0.14), run_time=0.3)
-        # 3 · the camera closes and lifts away; the die becomes the dark sensor
-        # array over the table, read out row by row (a rolling shutter)
-        rows = ValueTracker(0)
+        self.play(e.animate.set_value(1.0),
+                  Succession(Wait(0.3), DrawBorderThenFill(die, stroke_color=PAL["copper"], stroke_width=1.5, run_time=0.55)),
+                  run_time=1.3, rate_func=linear)
+        self.remove(cam)
+        # 2 · light comes back up the view onto the die
+        rays = VGroup(*[Line(f, D, stroke_color=PAL["copper"], stroke_width=4.5) for f in table_quad()])
+        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.12), run_time=0.4)
+        self.play(Flash(D, color=PAL["copper"], line_length=0.12, num_lines=10, flash_radius=0.16), run_time=0.2)
+        # 3 · the die spreads into the dark sensor array over the table, cell by
+        # cell nearest first; the view and the faint table are drawn out
         grid0 = photosites(0.0)
-        self.play(ex.animate.set_value(0), oth.animate.set_value(1), yaw.animate.set_value(YAW0),
-                  ReplacementTransform(die, grid0), FadeOut(table), run_time=0.6)
-        self.remove(grid0)
+        order = sorted(grid0, key=lambda q: np.linalg.norm(q.get_center() - D))
+        self.remove(cn)
+        cone_now = cone(YAW0, PITCH0, 1.0, sweep=0.0, apex=D)
+        self.add(cone_now)
+        # Uncreate runs its rate function backwards (rate(1 - t)), so this is
+        # "drawn out over the first 60% of the play"
+        early = lambda t: smooth(max(0.0, (t - 0.4) / 0.6))
+        self.play(Uncreate(cone_now, rate_func=early, lag_ratio=0), Uncreate(table, rate_func=early, lag_ratio=0),
+                  LaggedStart(*[TransformFromCopy(die, q) for q in order], lag_ratio=0.006, rate_func=smooth),
+                  FadeOut(die, rate_func=lambda t: smooth(min(1.0, t / 0.3))), run_time=0.6)
+        self.remove(*grid0)
+        # 4 · the frame is read out row by row (a rolling shutter)
+        rows = ValueTracker(0)
         mos = always_redraw(lambda: photosites(rows.get_value()))
         line = always_redraw(lambda: readout_line(rows.get_value()))
         self.add(mos, line)
-        self.play(rows.animate.set_value(PXR + 0.01), run_time=0.8, rate_func=linear)
-        self.remove(line)
-        # 4 · the mosaic resolves into the photo; the camera is done
-        sh = shot("real", 0.0, "untrained")
+        self.play(rows.animate.set_value(PXR + 0.01), run_time=0.75, rate_func=linear)
+        self.remove(line, mos)
+        # 5 · the mosaic resolves into the photo: each cell lets go of its colour
+        # onto the picture under it, top row first; the viewfinder draws on
+        s0 = S0()
+        sh, tr_, ms_, cap = s0
         final_mos = photosites(PXR + 1)
-        self.remove(mos)
-        self.add(final_mos)
-        cam_now = [m for m in self.mobjects if m not in (final_mos,)]
-        self.play(FadeIn(sh), LaggedStart(*[Uncreate(s) for s in final_mos], lag_ratio=0.004),
-                  *[FadeOut(m, shift=UP * 0.4) for m in cam_now], run_time=0.6)
-        self.play(show(untrained_cap()), run_time=0.35)
+        under = VGroup(sh[0], sh[1], sh[2], sh[3])
+        self.add(under, final_mos)
+        cells = sorted(final_mos, key=lambda q: (-q.get_center()[1], q.get_center()[0]))
+        self.play(LaggedStart(*[FadeOut(q, scale=0.4) for q in cells], lag_ratio=0.03),
+                  Create(sh[4]), FadeIn(tr_), FadeIn(ms_), run_time=0.6)
+        self.play(show(cap), run_time=0.35)
         self.finish(S0())
 
 
