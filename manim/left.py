@@ -331,36 +331,50 @@ def arm(g, op, c=SC_C, sc=SC_K, look="real", a=1.0):
         E = S + u_ * aa - perp * h
     o = (0.12 + 0.08 * op) * k
     ink = PAL["ink"]
+    real = look == "real"
+    # one drawing for both looks, element for element (real -> sim and back are
+    # ReplacementTransforms): real is filled ink and arm-grey, sim is hairline
+    sw = max(2.0, 13 * k) if real else max(1.0, 2.2 * k)
+    hw = max(1.0, 2.2 * k)
+    body = PAL["arm"] if real else PAL["bg"]
+    fo = a if real else 0.0                     # fill opacity of the solid parts
+    st = 0 if real else hw                      # their outline in the sim look
     grp = VGroup()
-    if look == "real":
-        sw = max(2.0, 13 * k)
-        grp.add(Polygon(base + [-0.2 * k, -0.04 * k, 0], base + [0.2 * k, -0.04 * k, 0], base + [0.12 * k, 0.16 * k, 0], base + [-0.12 * k, 0.16 * k, 0],
-                        fill_color=ink, fill_opacity=a, stroke_width=0))
-        grp.add(Line(base + [0, 0.1 * k, 0], S, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
-        for P, Q in ((S, E), (E, Wc)):
-            grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
-            grp.add(Line(P, Q, stroke_color=PAL["arm"], stroke_width=sw * 0.62, stroke_opacity=a))
-        grp.add(Line(Wc, anchor + [0, 0.32 * k, 0], stroke_color=ink, stroke_width=sw * 0.7, stroke_opacity=a))
-        for J in (S, E, Wc):
-            grp.add(Circle(0.075 * k, fill_color=PAL["arm"], fill_opacity=a, stroke_color=ink, stroke_width=max(1.0, 2.2 * k), stroke_opacity=a).move_to(J))
-        fill_o = a
-    else:
-        sw = max(1.0, 2.2 * k)
-        grp.add(Polygon(base + [-0.2 * k, -0.04 * k, 0], base + [0.2 * k, -0.04 * k, 0], base + [0.12 * k, 0.16 * k, 0], base + [-0.12 * k, 0.16 * k, 0],
-                        fill_color=PAL["bg"], fill_opacity=0, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
-        grp.add(Line(base + [0, 0.12 * k, 0], S, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
-        for P, Q in ((S, E), (E, Wc)):
-            grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
-            grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=0))
-        grp.add(Line(Wc, anchor + [0, 0.32 * k, 0], stroke_color=ink, stroke_width=sw, stroke_opacity=a))
-        for J in (S, E, Wc):
-            grp.add(Circle(0.075 * k, fill_color=PAL["bg"], fill_opacity=a, stroke_color=ink, stroke_width=sw, stroke_opacity=a).move_to(J))
-        fill_o = 0.0
-    st = 0 if look == "real" else sw
-    grp.add(Rectangle(width=2 * o + 0.12 * k, height=0.08 * k, fill_color=ink, fill_opacity=fill_o, stroke_color=ink, stroke_width=st, stroke_opacity=a)
+    # base: a foot plate, then a turntable the arm yaws on
+    grp.add(Polygon(base + [-0.2 * k, -0.04 * k, 0], base + [0.2 * k, -0.04 * k, 0], base + [0.12 * k, 0.16 * k, 0], base + [-0.12 * k, 0.16 * k, 0],
+                    fill_color=ink, fill_opacity=fo, stroke_color=ink, stroke_width=st, stroke_opacity=a))
+    grp.add(Ellipse(width=0.3 * k, height=0.07 * k, fill_color=body, fill_opacity=fo, stroke_color=ink, stroke_width=hw, stroke_opacity=a)
+            .move_to(base + [0, 0.17 * k, 0]))
+    grp.add(Line(base + [0, 0.18 * k, 0], S, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+    # a cable loop from the base up to the elbow, behind the links
+    # (it hugs the upper arm on the side away from the forearm)
+    d1 = (E - S) / (np.linalg.norm(E - S) or 1)
+    nc = np.array([-d1[1], d1[0], 0])
+    if np.dot(nc, Wc - S) > 0:
+        nc = -nc
+    grp.add(VMobject().set_points_smoothly([base + [-0.06 * k, 0.14 * k, 0], S + nc * 0.11 * k, (S + E) / 2 + nc * 0.075 * k, E + nc * 0.06 * k])
+            .set_stroke(ink, max(0.8, 2.6 * k) if real else hw * 0.7, opacity=(0.85 if real else 0.5) * a))
+    for P, Q in ((S, E), (E, Wc)):
+        dd = Q - P
+        n = np.array([-dd[1], dd[0], 0]) / (np.linalg.norm(dd) or 1)
+        grp.add(Line(P, Q, stroke_color=ink, stroke_width=sw, stroke_opacity=a))
+        grp.add(Line(P, Q, stroke_color=PAL["arm"], stroke_width=sw * 0.62, stroke_opacity=a if real else 0))
+        # a module seam across the link, two thirds along
+        m = P + dd * 0.62
+        grp.add(Line(m - n * 0.045 * k, m + n * 0.045 * k, stroke_color=ink, stroke_width=max(0.8, 1.8 * k), stroke_opacity=a))
+    grp.add(Line(Wc, anchor + [0, 0.32 * k, 0], stroke_color=ink, stroke_width=sw * 0.7, stroke_opacity=a))
+    # each joint: an actuator housing with a dark hub and a copper index mark
+    for J, r in ((S, 0.1), (E, 0.088), (Wc, 0.07)):
+        grp.add(Circle(r * k, fill_color=body, fill_opacity=a, stroke_color=ink, stroke_width=hw, stroke_opacity=a).move_to(J))
+        grp.add(Circle(r * 0.42 * k, fill_color=ink, fill_opacity=fo, stroke_color=ink, stroke_width=st * 0.6, stroke_opacity=a).move_to(J))
+        grp.add(Dot(J + [0, r * 0.72 * k, 0], radius=0.014 * k, color=PAL["copper"]).set_opacity(a))
+    # the wrist camera on the gripper's mount
+    grp.add(RoundedRectangle(width=0.13 * k, height=0.07 * k, corner_radius=0.02 * k, fill_color=ink, fill_opacity=fo,
+                             stroke_color=ink, stroke_width=st, stroke_opacity=a).move_to(anchor + [0.17 * k + o * 0.4, 0.38 * k, 0]))
+    grp.add(Rectangle(width=2 * o + 0.12 * k, height=0.08 * k, fill_color=ink, fill_opacity=fo, stroke_color=ink, stroke_width=st, stroke_opacity=a)
             .move_to(anchor + [0, 0.3 * k, 0]))
     for sg in (-1, 1):
-        grp.add(Rectangle(width=0.05 * k, height=0.27 * k, fill_color=ink, fill_opacity=fill_o, stroke_color=ink, stroke_width=st, stroke_opacity=a)
+        grp.add(Rectangle(width=0.05 * k, height=0.27 * k, fill_color=ink, fill_opacity=fo, stroke_color=ink, stroke_width=st, stroke_opacity=a)
                 .move_to(anchor + [sg * o, 0.14 * k, 0]))
         grp.add(Rectangle(width=0.05 * k, height=0.05 * k, fill_color=PAL["copper"], fill_opacity=a, stroke_width=0)
                 .move_to(anchor + [sg * o, 0.0, 0]))
@@ -847,7 +861,6 @@ TOK_Y, LANG_Y = 1.18, 0.78
 LAYER_Y = [0.22, -0.08, -0.38, -0.68]
 OUT_C, OUT_K = (0.0, -2.25), 0.5
 WORDS = ["pick", "red", "cube", "place"]
-PASS_X = (-0.75, -0.25, 0.25, 0.75)
 PASS_Y1 = OUT_C[1] + 0.5 * 1.7 + 0.02
 
 
@@ -963,12 +976,43 @@ def attention(a=1.0, w=1.0):
     return g
 
 
-def layers(a=1.0, lit=None):
+def flow_arrow(p0, p1, col, a=1.0, w=1.4):
+    d = (p1 - p0) / (np.linalg.norm(p1 - p0) or 1)
+    n = np.array([-d[1], d[0], 0])
+    tip = Polygon(p1, p1 - d * 0.09 + n * 0.05, p1 - d * 0.09 - n * 0.05, fill_color=col, fill_opacity=a, stroke_width=0)
+    return VGroup(Line(p0, p1 - d * 0.06, stroke_color=col, stroke_width=w, stroke_opacity=a), tip)
+
+
+LAYER_CELLS = 16                       # the 12 patch tokens and the 4 words, through every layer
+FWD_X, BWD_X = -1.82, 1.82             # the forward / backward pass arrows down each side
+
+
+def layers(a=1.0, lit=None, back=None, out_lit=0.0):
+    """The VLA as a transformer: four layers, each the SAME row of 16 token
+    slots (12 image patches, 4 words) the tokens above feed into; an arrow in
+    from the tokens and out to the action chunk. `lit` lights the layer the
+    forward pass is in (copper cells), `back` the one the backward pass is in
+    (an ink outline); `out_lit` the arrow into the predicted chunk."""
     g = VGroup()
+    cw = 3.0 / LAYER_CELLS
     for i, y in enumerate(LAYER_Y):
         on = lit is not None and abs(lit - i) < 0.6
-        g.add(RoundedRectangle(width=3.4, height=0.2, corner_radius=0.06, fill_color=PAL["slab"], fill_opacity=a,
-                               stroke_color=PAL["copper"] if on else PAL["soft"], stroke_width=1.8 if on else 1.2, stroke_opacity=a).move_to([0, y, 0]))
+        bk = back is not None and abs(back - i) < 0.6
+        slab = RoundedRectangle(width=3.3, height=0.2, corner_radius=0.06, fill_color=PAL["slab"], fill_opacity=a,
+                                stroke_color=PAL["copper"] if on else (PAL["ink"] if bk else PAL["soft"]),
+                                stroke_width=1.8 if (on or bk) else 1.2, stroke_opacity=a).move_to([0, y, 0])
+        cells = VGroup()
+        for k in range(LAYER_CELLS):
+            x = -1.5 + (k + 0.5) * cw
+            word = k >= 12
+            cells.add(Rectangle(width=cw * 0.62, height=0.09, fill_color=PAL["copper"] if on else PAL["panel"],
+                                fill_opacity=(0.85 if on else 1.0) * a, stroke_color=PAL["ink"] if word else PAL["soft"],
+                                stroke_width=0.8, stroke_opacity=(0.9 if word else 0.7) * a).move_to([x + (0.04 if word else 0), y, 0]))
+        g.add(VGroup(slab, cells))
+    top, bot = LAYER_Y[0] + 0.1, LAYER_Y[-1] - 0.1
+    g.add(flow_arrow(np.array([0, LANG_Y - 0.15, 0]), np.array([0, top + 0.02, 0]), PAL["soft"], a))
+    oc = ManimColor(PAL["soft"]).interpolate(ManimColor(PAL["copper"]), out_lit)
+    g.add(flow_arrow(np.array([-1.25, bot, 0]), np.array([-1.25, PASS_Y1 + 0.02, 0]), oc, a, 1.4 + 1.2 * out_lit))
     return g
 
 
@@ -1084,7 +1128,7 @@ class Act0(Base):
         D = die_pt(0.2, PITCH0, 0.6)
         die = Square(0.2, fill_color=PAL["copper"], fill_opacity=1, stroke_width=0).move_to(D)
         rays = VGroup(*[Line(f, D, stroke_color=PAL["copper"], stroke_width=3) for f in table_quad()])
-        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.12), FadeIn(die, scale=0.3), run_time=0.6)
+        self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.12), DrawBorderThenFill(die, stroke_color=PAL["copper"], stroke_width=1.5), run_time=0.6)
         self.play(Flash(D, color=PAL["copper"], line_length=0.12, num_lines=10, flash_radius=0.14), run_time=0.3)
         # 3 · the camera closes and lifts away; the die becomes the dark sensor
         # array over the table, read out row by row (a rolling shutter)
@@ -1104,7 +1148,7 @@ class Act0(Base):
         self.remove(mos)
         self.add(final_mos)
         cam_now = [m for m in self.mobjects if m not in (final_mos,)]
-        self.play(FadeIn(sh), LaggedStart(*[FadeOut(s, scale=0.4) for s in final_mos], lag_ratio=0.004),
+        self.play(FadeIn(sh), LaggedStart(*[Uncreate(s) for s in final_mos], lag_ratio=0.004),
                   *[FadeOut(m, shift=UP * 0.4) for m in cam_now], run_time=0.6)
         self.play(show(untrained_cap()), run_time=0.35)
         self.finish(S0())
@@ -1168,12 +1212,12 @@ class Act1(Base):
         self.add(always_redraw(lambda: tracker(p.get_value())))
         tgt = fp(0.1, 0.5, 0.2)
         cams = VGroup(*[view_cam(v, tgt) for v in VIEWS])
-        self.play(LaggedStart(*[FadeIn(c, scale=0.5) for c in cams], lag_ratio=0.25), run_time=0.45)
+        self.play(LaggedStart(*[DrawBorderThenFill(c, stroke_color=PAL["ink"], stroke_width=1.5) for c in cams], lag_ratio=0.25), run_time=0.45)
         rays = VGroup(*[Line(v, q, stroke_color=PAL["copper"], stroke_width=2.5) for v in VIEWS for q in (fp(-1, 1, 0), fp(1, 0, 0), fp(0.42, 0.4, 0.3))])
         self.play(LaggedStart(*[ShowPassingFlash(r, time_width=0.5) for r in rays], lag_ratio=0.06), run_time=0.6)
         # 2 · the photo dissolves into splats, loose and bloated
         loose = splat_set(1.0)
-        self.play(FadeOut(VGroup(sh[0], sh[2], sh[4])), LaggedStart(*[GrowFromCenter(e) for e in loose], lag_ratio=0.006),
+        self.play(FadeOut(VGroup(sh[0], sh[2], sh[4])), LaggedStart(*[DrawBorderThenFill(e, stroke_color=e.get_fill_color(), stroke_width=1.2) for e in loose], lag_ratio=0.006),
                   FadeOut(cams), p.animate.set_value(0.5), run_time=0.7)
         # 3 · the optimisation: splats tighten onto the surfaces
         tight = splat_set(0.0)
@@ -1184,7 +1228,7 @@ class Act1(Base):
         lines = twin[0]
         self.play(LaggedStart(*[Create(l) for l in lines], lag_ratio=0.04), FadeIn(twin[2]),
                   ReplacementTransform(sh[3], twin[3]), ReplacementTransform(sh[1], twin[1]),
-                  FadeOut(loose, scale=0.7), p.animate.set_value(1.0), run_time=0.75)
+                  Uncreate(loose, lag_ratio=0.01), p.animate.set_value(1.0), run_time=0.75)
         self.play(show(r2s_cap()), run_time=0.35)
         self.finish(S1())
 
@@ -1210,7 +1254,7 @@ class Act2(Base):
         # 2 · copies spread across the wall, each re-randomised as it lands
         boxes = VGroup(*[cell_box(i) for i in range(NC)])
         cells = [c0] + [cell(i, 0.0, box=False) for i in range(1, NC)]
-        self.play(Create(boxes[0]), LaggedStart(*[FadeIn(cells[i], target_position=c0.get_center(), scale=0.6, path_arc=0.4) for i in range(1, NC)], lag_ratio=0.1),
+        self.play(Create(boxes[0]), LaggedStart(*[Create(cells[i], lag_ratio=0.02) for i in range(1, NC)], lag_ratio=0.1),
                   LaggedStart(*[Create(boxes[i]) for i in range(1, NC)], lag_ratio=0.08), run_time=0.9)
         # 3 · demonstrations: each arm runs, its path traced
         ph = ValueTracker(0)
@@ -1226,7 +1270,7 @@ class Act2(Base):
         rest = VGroup(*wm[2:])
         src = cell(0, cell_phase(0), box=False)
         self.play(TransformFromCopy(src, obs), run_time=0.35)
-        self.play(GrowFromEdge(enc, LEFT), LaggedStart(*[FadeIn(m, scale=0.6) for m in rest], lag_ratio=0.06), run_time=0.6)
+        self.play(DrawBorderThenFill(enc, stroke_color=PAL["ink"], stroke_width=1.5), LaggedStart(*[Create(m) for m in rest], lag_ratio=0.06), run_time=0.6)
         run = Line([-0.82, WM_Y, 0], [ZX[2], WM_Y, 0], stroke_color=PAL["copper"], stroke_width=5)
         self.play(ShowPassingFlash(run, time_width=0.4), show(caption("world model · imagined rollout", -3.45)), run_time=0.4)
         self.finish(S2())
@@ -1256,7 +1300,7 @@ class Act3(Base):
         frame = shot("sim", OUT_U, "trained", PATCH_SRC_C, PATCH_SRC_K)
         W, yb, yt = frame_box(PATCH_SRC_C, PATCH_SRC_K, 1.45)
         fbox = Rectangle(width=2 * W, height=yt - yb, stroke_color=PAL["soft"], stroke_width=1.3).move_to([0, (yt + yb) / 2, 0])
-        self.play(FadeIn(VGroup(frame, fbox), shift=DOWN * 0.3, scale=0.6), run_time=0.4)
+        self.play(Create(fbox), Create(frame, lag_ratio=0.02), run_time=0.4)
         grid = VGroup(*[Line([-W + i * 2 * W / 4, yb, 0], [-W + i * 2 * W / 4, yt, 0], stroke_color=PAL["ink"], stroke_width=1.3) for i in (1, 2, 3)],
                       *[Line([-W, yb + j * (yt - yb) / 3, 0], [W, yb + j * (yt - yb) / 3, 0], stroke_color=PAL["ink"], stroke_width=1.3) for j in (1, 2)])
         self.play(LaggedStart(*[Create(l) for l in grid], lag_ratio=0.15), run_time=0.3)
@@ -1271,43 +1315,50 @@ class Act3(Base):
         # 4 · the instruction, word tokens; cross-attention from words to patch
         chips = word_chips()
         self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.1) for c in chips], lag_ratio=0.12), run_time=0.35)
-        self.play(Create(attention()), LaggedStart(*[GrowFromEdge(l, UP) for l in layers()], lag_ratio=0.08), show(vla_cap()), run_time=0.45)
-        # 5 · training: forward pass (copper, down), backward pass (ink, up);
-        # the predicted chunk closes on the demonstration as the loss falls
-        it = ValueTracker(0.0)
+        lay = layers()
+        self.play(Create(attention()), LaggedStart(*[Create(l) for l in lay], lag_ratio=0.1), show(vla_cap()), run_time=0.55)
+        # 5 · training: forward passes down the layers into the predicted
+        # chunk, backprop back up them; the chunk closes on the demonstration
+        # as the loss falls
+        it, ps = ValueTracker(0.0), ValueTracker(0.0)
+        self.remove(lay)
+        self.add(always_redraw(lambda: layers(**pass_state(ps.get_value() % 1.0)[0])))
+        self.add(always_redraw(lambda: pass_label(*pass_state(ps.get_value() % 1.0)[1:])))
         self.add(out_frame(0.0)[:-1])
         self.add(always_redraw(lambda: chunk(smooth01(it.get_value()))))
         self.add(always_redraw(lambda: loss_curve(it.get_value())))
         self.play(FadeIn(chunk_cap()), run_time=0.15)
-        for _ in range(1):
-            down = [Line([x, TOK_Y - 0.15, 0], [x, PASS_Y1, 0], stroke_color=PAL["copper"], stroke_width=3.5) for x in PASS_X]
-            up = [Line([x, PASS_Y1, 0], [x, LAYER_Y[0] + 0.12, 0], stroke_color=PAL["ink"], stroke_width=2.5) for x in PASS_X]
-            self.play(LaggedStart(*[ShowPassingFlash(d, time_width=0.6) for d in down], lag_ratio=0.1), it.animate.set_value(it.get_value() + 0.45), run_time=0.4)
-            self.play(LaggedStart(*[ShowPassingFlash(d, time_width=0.6) for d in up], lag_ratio=0.1), it.animate.set_value(it.get_value() + 0.35), run_time=0.35)
+        self.play(ps.animate.set_value(1.0), it.animate.set_value(0.8), run_time=0.9, rate_func=linear)
         self.play(it.animate.set_value(1.0), run_time=0.3)
         self.finish(S3())
 
 
+def pass_state(f):
+    """One training step, f 0..1: the forward pass runs down the layers into
+    the predicted chunk, then the loss runs back up them."""
+    if f < 0.5:
+        x = f / 0.5
+        return dict(lit=x * 4.4 - 0.6, out_lit=smooth01((x - 0.82) / 0.18)), "forward pass", math.sin(math.pi * x)
+    if f < 0.56:
+        return dict(out_lit=1.0 - smooth01((f - 0.5) / 0.06)), None, 0.0
+    x = (f - 0.56) / 0.44
+    return dict(back=3.6 - x * 4.2), "backprop", math.sin(math.pi * x)
+
+
+def pass_label(name, a):
+    if not name or a < 0.02:
+        return VGroup()
+    return fade(label(name, 12, PAL["copper"] if name.startswith("f") else PAL["ink"]).move_to([1.3, LAYER_Y[-1] - 0.32, 0]), a)
+
+
 def train_idle(u):
-    """Forward down (copper), backward up (ink), repeating; the chunk holds on
-    target; the loss tail flickers."""
-    ph = (u * 4) % 1.0
-    # the lit slab follows the forward pass down; nothing is lit at ph 0, so
-    # u = 0 is exactly S3()
-    lit = ph / 0.55 * 4.6 - 0.6 if ph < 0.55 else None
-    g = S3(flick=math.sin(math.tau * u), lit=lit)
-    if ph < 0.55:
-        f = ph / 0.55
-        for x in PASS_X:
-            a = np.array([x, TOK_Y - 0.15, 0])
-            b = np.array([x, PASS_Y1, 0])
-            g.add(Dot(a + (b - a) * f, radius=0.04, color=PAL["copper"]).set_opacity(math.sin(math.pi * f)))
-    else:
-        f = (ph - 0.55) / 0.45
-        for x in PASS_X:
-            a = np.array([x, PASS_Y1, 0])
-            b = np.array([x, LAYER_Y[0] + 0.12, 0])
-            g.add(Dot(a + (b - a) * f, radius=0.032, color=PAL["ink"]).set_opacity(math.sin(math.pi * f)))
+    """Training steps repeating: the forward pass lights each layer in turn
+    and the arrow into the action chunk, then backprop outlines them back up;
+    the chunk holds on target and the loss tail flickers. u = 0 is S3()."""
+    st, name, la = pass_state((u * 4) % 1.0)
+    g = S3(flick=math.sin(math.tau * u))
+    g.submobjects[6] = layers(**st)
+    g.add(pass_label(name, la))
     return g
 
 

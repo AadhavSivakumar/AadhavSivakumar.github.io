@@ -2461,6 +2461,23 @@ plus the white braided cable from the unit down the Fairino. The waypoints
 were re-solved (`scripts/ik-poses.mjs` prints a clearance check: lowest
 point 20 mm above the table, arms ≥ 270 mm apart, every target < 1 mm).
 
+**Oct 7, the left film (the owner).** (1) It is no longer dimmed on
+Experience and Research, and the badges' page-coloured halos
+(`.mlan::before`) are gone: "the animation on the left seems dim". The
+badges now sit over the film. (2) Things APPEAR by Manim's drawing
+animations, not by scaling in: `DrawBorderThenFill` (die, view cameras,
+splats, encoder; give it an explicit `stroke_color`, or the outline comes out
+Manim's default blue), `Create` (wall copies, layers, the demo frame) and
+`Uncreate` (the mosaic, the splats leaving). Text still FADES in (`show`).
+(3) The VLA's four bars read as nothing ("horizontal bars with dots going
+down"): each layer is now the same 16 token slots (12 patches, 4 words) the
+tokens feed into, with arrows in and out; a training step lights the layers
+copper top to bottom (forward pass) and the arrow into the action chunk, then
+outlines them in ink bottom to top (backprop), named beside the caption
+(`layers`, `pass_state`). (4) The arm has a turntable, actuator housings with
+hubs and index marks, module seams, a cable along the upper arm and a wrist
+camera, element for element in both looks.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
