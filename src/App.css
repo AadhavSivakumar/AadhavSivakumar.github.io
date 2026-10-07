@@ -2354,6 +2354,10 @@ header[data-glass] .nav-glass--end .glass-surface__content { padding: 0 6px; gap
 }
 html[data-theme="dark"] #hero .hero-chip { background: transparent !important; box-shadow: none !important; }
 .hero-chip__glass { position: absolute !important; inset: 0; z-index: 0; pointer-events: none; }
+/* NO blend modes inside a chip: a child with mix-blend-mode isolates the
+   button, the button becomes the glass's backdrop root, and the displaced
+   samples find nothing behind it (the chips showed no waves at all) */
+.hero-chip__sheen, .hero-chip::before, .hero-chip::after, #hero .hero-chip::before { mix-blend-mode: normal !important; }
 .hero-chip__glass .glass-surface__content { display: none; }
 .hero-chip__glass.glass-surface--svg {
   /* the body: brighter under the top edge, clear through the middle,

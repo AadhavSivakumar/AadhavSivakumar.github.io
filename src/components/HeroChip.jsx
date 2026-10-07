@@ -57,8 +57,8 @@ export default function HeroChip({ label, index, onClick }) {
       {/* the navbar's liquid glass (Oct 7; the owner: "have the tags be
           liquid glass too"): the waves bend at the pill's edge */}
       <GlassSurface width="100%" height="100%" borderRadius={999} brightness={50} opacity={0.93} blur={6}
-        backgroundOpacity={0} saturation={1.5} distortionScale={-75} redOffset={0} greenOffset={0} blueOffset={0}
-        displace={0.4} className="hero-chip__glass" />
+        backgroundOpacity={0} saturation={1.5} distortionScale={-110} redOffset={0} greenOffset={0} blueOffset={0}
+        displace={0.2} className="hero-chip__glass" />
       <motion.span
         className="hero-chip__sheen"
         aria-hidden="true"

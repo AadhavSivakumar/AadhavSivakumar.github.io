@@ -9,7 +9,7 @@ import GlassSurface from './reactbits/GlassSurface';
 export default function GlassTag({ children, className = '' }) {
   return (
     <GlassSurface width="auto" height="auto" borderRadius={999} brightness={50} opacity={0.93} blur={4}
-      backgroundOpacity={0.1} saturation={1.3} distortionScale={-55} redOffset={0} greenOffset={0} blueOffset={0}
+      backgroundOpacity={0.1} saturation={1.3} distortionScale={-90} redOffset={0} greenOffset={0} blueOffset={0}
       displace={0.3} className={`project-tag glass-tag ${className}`}>
       {children}
     </GlassSurface>
