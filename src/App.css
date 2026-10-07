@@ -2334,3 +2334,66 @@ header[data-glass] .nav-glass--end .glass-surface__content { padding: 0 6px; gap
   header .social--gmail svg { width: 30px; height: 30px; }
   header .social--x svg { width: 22px; height: 22px; }
 }
+
+/* ── LIQUID GLASS: hero chips and card tags (Oct 7; the owner: "have the
+   tags be liquid glass too", meaning the chips under the name and the tags
+   on every card). The same glass as the navbar: a clear body, the backdrop
+   BENT at the rim (GlassSurface's edge displacement, Chromium; frosted
+   elsewhere), the rim darkening inward like a lens, a bright top edge.
+   The chip's own backdrop-filter goes: a filtered parent is a backdrop
+   root, and the glass layer inside it would see nothing. */
+#hero .hero-chip, html[data-theme="dark"] #hero .hero-chip,
+#hero .hero-chip:hover, #hero .hero-chip:focus-visible {
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+#hero .hero-chip {
+  background: transparent !important;
+  /* no drop shadow: the glass layer refracts it into grey arcs inside */
+  box-shadow: none !important;
+  isolation: isolate;
+}
+html[data-theme="dark"] #hero .hero-chip { background: transparent !important; box-shadow: none !important; }
+.hero-chip__glass { position: absolute !important; inset: 0; z-index: 0; pointer-events: none; }
+.hero-chip__glass .glass-surface__content { display: none; }
+.hero-chip__glass.glass-surface--svg {
+  /* the body: brighter under the top edge, clear through the middle,
+     a little light again at the bottom, so it reads as a thick lens */
+  background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.04) 48%, rgba(255,255,255,0.08) 75%, rgba(255,255,255,0.32)) !important;
+  /* only a thin rim: a 10px inset shade (the navbar's) greys a 39px pill */
+  box-shadow:
+    inset 0 0 1px 0.5px rgba(60,45,10,0.22), inset 0 2px 1.5px -0.5px rgba(255,255,255,1),
+    inset 0 -2px 2px -0.5px rgba(255,255,255,0.75) !important;
+}
+html[data-theme="dark"] .hero-chip__glass.glass-surface--svg {
+  background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01) 48%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.06)) !important;
+  box-shadow:
+    inset 0 0 1px 0.5px rgba(255,255,255,0.3), inset 0 1.5px 1px -0.5px rgba(255,255,255,0.3),
+    inset 0 -1.5px 1.5px -0.5px rgba(255,255,255,0.1) !important;
+}
+.hero-chip__glass.glass-surface--fallback {
+  border: 0 !important;
+  background: color-mix(in srgb, var(--background-color) 30%, transparent) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(1.6) !important; backdrop-filter: blur(4px) saturate(1.6) !important;
+  box-shadow: inset 0 0 1px 0.5px rgba(0,0,0,0.16), inset 0 1.5px 1px -0.5px rgba(255,255,255,0.95) !important;
+}
+html[data-theme="dark"] .hero-chip__glass.glass-surface--fallback {
+  box-shadow: inset 0 0 1px 0.5px rgba(255,255,255,0.3), inset 0 1.5px 1px -0.5px rgba(255,255,255,0.3) !important;
+}
+/* the tags: the same lens, small — a thin rim, a bright top edge, a body
+   lit at top and bottom and clear between (a wide inset shade greys a
+   22px pill), the card or cover bent through it at the rim */
+.project-tag.glass-tag.glass-surface--svg, .project-tag.glass-tag.glass-surface--fallback {
+  border: 0 !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.2) 72%, rgba(255,255,255,0.6)) !important;
+  box-shadow:
+    inset 0 0 1px 0.5px rgba(60,45,10,0.26), inset 0 1.5px 1px -0.5px rgba(255,255,255,1),
+    inset 0 -1.5px 1.5px -0.5px rgba(255,255,255,0.8), 0 2px 5px -3px rgba(40,30,10,0.35) !important;
+}
+html[data-theme="dark"] .project-tag.glass-tag.glass-surface--svg,
+html[data-theme="dark"] .project-tag.glass-tag.glass-surface--fallback {
+  border: 0 !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.04) 72%, rgba(255,255,255,0.10)) !important;
+  box-shadow:
+    inset 0 0 1px 0.5px rgba(255,255,255,0.32), inset 0 1.5px 1px -0.5px rgba(255,255,255,0.35),
+    inset 0 -1.5px 1.5px -0.5px rgba(255,255,255,0.1), 0 2px 6px -3px rgba(0,0,0,0.8) !important;
+}
