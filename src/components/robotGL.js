@@ -1,28 +1,24 @@
-// The right stage's WebGL backend (Oct 6). Flourish3D still does all of the
-// geometry: kinematics, the grow-ins, the morphs, the jobs, and the
-// projection of every point onto the 340x660 stage (`cam()`). It hands the
-// projected result here, and this draws it with a DEPTH BUFFER and per-pixel
-// light instead of a painter's sort of flat-filled triangles.
+// The right stage's WebGL renderer (Oct 6). Flourish3D still owns the
+// kinematics: the grow-ins, the morphs, the jobs, every body's placement and
+// the stage camera's yaw / pitch / dolly. What it no longer does in the GL
+// path is touch a mesh vertex: each baked part is uploaded to the GPU ONCE as
+// a static BufferGeometry, and a frame hands over one matrix per part — the
+// part's placement composed with the camera's view (`V`, a 3x4 from setCam
+// in Flourish3D) — and the GPU projects and lights every vertex. Before this,
+// the CPU projected and re-uploaded ~6-9k triangles a robot every frame.
 //
-// Why (the owner, more than once: "textures still glitching on the
-// so-arm101", "I can see a lot of triangles"): Canvas2D fills each triangle
-// with ONE tone, so a curved surface shows its facets, and it orders parts by
-// sorting face centres into depth slabs, so two parts close in depth trade
-// places frame to frame. Here a baked robot is lit from its smooth vertex
-// normals, and every face, prop and line is depth-tested per pixel.
+// The camera reproduces Flourish3D's cam() exactly: a perspective divide at
+// PERSP from the stage centre, scaled by ZOOM. In GL terms that is a camera at
+// z = PERSP looking down -z with tan(fov/2) = (H/2) / (PERSP * ZOOM). View
+// space here is cam()'s rotated space with y flipped to point UP (V does the
+// flip), so the lights below are in the same space as before.
 //
-// Everything arrives in STAGE SCREEN SPACE — x right, y down, in drawing
-// units, plus the view depth z (toward the viewer positive) that cam()
-// already computes — and is drawn by an orthographic camera over exactly the
-// stage box, so it lands on the pixel the line art would have used. Three
-// kinds of geometry, rebuilt per frame into growable buffers:
-//   lit   the baked meshes: per-vertex view-space normals, MeshStandardMaterial
-//   flat  the drawn props' faces (already toned by Flourish3D): unlit
-//   lines the line art: unlit, depth-tested, so hidden lines are hidden
-// Faces with alpha < 1 go to a second, transparent pass of each kind.
+// The drawn props (cubes, flaps, the UR frame, the cart, the OP1's unit) are
+// still built per frame — they are a few hundred faces — and arrive already
+// in view space, as toned polygons and lines, in growable streams.
 import * as THREE from 'three';
 
-const W = 340, H = 660;
+const W = 340, H = 660, PERSP = 600, ZOOM = 0.85;
 
 // 'rgb(r,g,b)' / '#rrggbb' -> linear [r,g,b], cached (the styles repeat)
 const colCache = new Map();
@@ -42,46 +38,35 @@ function parseCol(s) {
   colCache.set(s, v);
   return v;
 }
-export const linRGB = rgb => [toLin(rgb[0] / 255), toLin(rgb[1] / 255), toLin(rgb[2] / 255)];
 
-// A growable vertex stream: position (3), colour (4), optional normal (3),
-// optional index. One BufferGeometry, re-uploaded per frame.
-function stream(withNormal, indexed) {
-  const s = { n: 0, ni: 0, pos: new Float32Array(3 * 4096), col: new Float32Array(4 * 4096),
-              nrm: withNormal ? new Float32Array(3 * 4096) : null, idx: indexed ? new Uint32Array(3 * 8192) : null };
+// A growable vertex stream for the per-frame props: position (3), colour (4).
+function stream() {
+  const s = { n: 0, pos: new Float32Array(3 * 4096), col: new Float32Array(4 * 4096) };
   s.geo = new THREE.BufferGeometry();
   const bind = () => {
     s.geo.setAttribute('position', new THREE.BufferAttribute(s.pos, 3).setUsage(THREE.DynamicDrawUsage));
     s.geo.setAttribute('color', new THREE.BufferAttribute(s.col, 4).setUsage(THREE.DynamicDrawUsage));
-    if (s.nrm) s.geo.setAttribute('normal', new THREE.BufferAttribute(s.nrm, 3).setUsage(THREE.DynamicDrawUsage));
-    if (s.idx) s.geo.setIndex(new THREE.BufferAttribute(s.idx, 1).setUsage(THREE.DynamicDrawUsage));
   };
   bind();
-  s.room = (verts, inds = 0) => {
-    let grow = false;
-    if ((s.n + verts) * 3 > s.pos.length) {
-      let c = s.pos.length / 3; while (c < s.n + verts) c *= 2;
-      const p = new Float32Array(c * 3); p.set(s.pos.subarray(0, s.n * 3)); s.pos = p;
-      const q = new Float32Array(c * 4); q.set(s.col.subarray(0, s.n * 4)); s.col = q;
-      if (s.nrm) { const r = new Float32Array(c * 3); r.set(s.nrm.subarray(0, s.n * 3)); s.nrm = r; }
-      grow = true;
-    }
-    if (s.idx && s.ni + inds > s.idx.length) {
-      let c = s.idx.length; while (c < s.ni + inds) c *= 2;
-      const i2 = new Uint32Array(c); i2.set(s.idx.subarray(0, s.ni)); s.idx = i2;
-      grow = true;
-    }
-    if (grow) { s.geo.dispose(); s.geo = new THREE.BufferGeometry(); bind(); if (s.obj) s.obj.geometry = s.geo; }
+  s.room = verts => {
+    if ((s.n + verts) * 3 <= s.pos.length) return;
+    let c = s.pos.length / 3; while (c < s.n + verts) c *= 2;
+    const p = new Float32Array(c * 3); p.set(s.pos.subarray(0, s.n * 3)); s.pos = p;
+    const q = new Float32Array(c * 4); q.set(s.col.subarray(0, s.n * 4)); s.col = q;
+    s.geo.dispose(); s.geo = new THREE.BufferGeometry(); bind(); if (s.obj) s.obj.geometry = s.geo;
   };
   s.commit = () => {
-    const g = s.geo;
-    for (const k of ['position', 'color', 'normal']) {
-      const a = g.getAttribute(k); if (!a) continue;
+    for (const k of ['position', 'color']) {
+      const a = s.geo.getAttribute(k);
       a.clearUpdateRanges(); a.addUpdateRange(0, s.n * a.itemSize); a.needsUpdate = true;
     }
-    if (s.idx) { const ix = g.getIndex(); ix.clearUpdateRanges(); ix.addUpdateRange(0, s.ni); ix.needsUpdate = true; }
-    g.setDrawRange(0, s.idx ? s.ni : s.n);
-    if (s.obj) s.obj.visible = (s.idx ? s.ni : s.n) > 0;
+    s.geo.setDrawRange(0, s.n);
+    s.obj.visible = s.n > 0;
+  };
+  s.put = (P, i, c, a) => {
+    const j = s.n++;
+    s.pos[j * 3] = P[i]; s.pos[j * 3 + 1] = P[i + 1]; s.pos[j * 3 + 2] = P[i + 2];
+    s.col[j * 4] = c[0]; s.col[j * 4 + 1] = c[1]; s.col[j * 4 + 2] = c[2]; s.col[j * 4 + 3] = a;
   };
   return s;
 }
@@ -102,102 +87,134 @@ export function createRobotGL(host, after) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
-  renderer.sortObjects = true;
 
   const scene = new THREE.Scene();
-  // stage box: x 0..W, y 0..-H (stage y is down), view depth z
-  const camera = new THREE.OrthographicCamera(0, W, 0, -H, -4000, 4000);
-  camera.position.set(0, 0, 0);
+  scene.matrixWorldAutoUpdate = false;           // every object's matrix is set by hand
+  const camera = new THREE.PerspectiveCamera(2 * Math.atan((H / 2) / (PERSP * ZOOM)) * 180 / Math.PI, W / H, 10, 8000);
+  camera.position.set(0, 0, PERSP);
+  camera.updateMatrixWorld();
   // a soft studio in VIEW space: sky/ground fill, a key from the upper left
   // front (the line art's KEY light), a cool rim from behind on the right
   const hemi = new THREE.HemisphereLight(0xf7f4ef, 0x55514b, 1.35); scene.add(hemi);
   const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(-0.45, 0.62, 0.64); scene.add(key);
   const fillL = new THREE.DirectionalLight(0xffffff, 0.35); fillL.position.set(0.5, -0.1, 0.85); scene.add(fillL);
   const rim = new THREE.DirectionalLight(0xd2ddff, 0.8); rim.position.set(0.6, 0.35, -0.7); scene.add(rim);
+  for (const l of [hemi, key, fillL, rim]) l.updateMatrixWorld();
 
-  const litMat = o => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide,
-    transparent: o, depthWrite: !o });
-  const flatMat = o => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false,
-    transparent: o, depthWrite: !o, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
-  const S = {
-    lit: stream(true, true), litT: stream(true, true),
-    flat: stream(false, false), flatT: stream(false, false),
-    line: stream(false, false),
-  };
-  S.lit.obj = new THREE.Mesh(S.lit.geo, litMat(false));
-  S.litT.obj = new THREE.Mesh(S.litT.geo, litMat(true));
+  // Surfaces are pushed back a hair in depth so the line art lying ON them wins
+  // (the Canvas2D path nudges lines forward by LINE_BIAS instead).
+  const OFFSET = { polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 };
+  const flatMat = o => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.FrontSide, toneMapped: false,
+    transparent: o, depthWrite: !o, ...OFFSET });
+  const S = { flat: stream(), flatT: stream(), line: stream() };
   S.flat.obj = new THREE.Mesh(S.flat.geo, flatMat(false));
   S.flatT.obj = new THREE.Mesh(S.flatT.geo, flatMat(true));
   S.line.obj = new THREE.LineSegments(S.line.geo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, toneMapped: false, depthWrite: false }));
-  S.lit.obj.renderOrder = 0; S.flat.obj.renderOrder = 1; S.litT.obj.renderOrder = 2; S.flatT.obj.renderOrder = 3; S.line.obj.renderOrder = 4;
-  for (const s of Object.values(S)) { s.obj.frustumCulled = false; s.obj.matrixAutoUpdate = false; scene.add(s.obj); }
+  S.flat.obj.renderOrder = 1; S.flatT.obj.renderOrder = 3; S.line.obj.renderOrder = 4;
+  for (const s of Object.values(S)) { s.obj.frustumCulled = false; s.obj.matrixAutoUpdate = false; s.obj.updateMatrixWorld(); scene.add(s.obj); }
 
-  let shown = false;
-  const put = (s, x, y, z, c, a) => {
-    const i = s.n++;
-    s.pos[i * 3] = x; s.pos[i * 3 + 1] = -y; s.pos[i * 3 + 2] = z;
-    s.col[i * 4] = c[0]; s.col[i * 4 + 1] = c[1]; s.col[i * 4 + 2] = c[2]; s.col[i * 4 + 3] = a;
-    return i;
+  // ── the baked parts: one static geometry each, a pool of instances ──────
+  // A part can be drawn more than once in a frame (the SO-ARM's servo STL is
+  // placed five times; a morph draws both robots), so each geometry keeps a
+  // pool of meshes, and a frame takes them in order. Each instance has its
+  // own opaque and transparent material, because its colour is set per frame
+  // (materials blend between two during a morph).
+  const parts = new Map();                     // part -> { geo, pool: [], used }
+  let live = [], prev = [], frame = 0;         // instances shown this frame / last frame
+  const geoOf = part => {
+    let e = parts.get(part);
+    if (e) return e;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(part.v, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(part.vn, 3));
+    geo.setIndex(new THREE.BufferAttribute(part.nv < 65536 ? new Uint16Array(part.f) : new Uint32Array(part.f), 1));
+    geo.computeBoundingSphere();
+    e = { geo, pool: [], used: 0 };
+    parts.set(part, e);
+    return e;
+  };
+  const litMat = o => new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.05, side: THREE.FrontSide,
+    transparent: o, depthWrite: !o, ...OFFSET });
+  const instance = e => {
+    let it = e.pool[e.used];
+    if (!it) {
+      it = new THREE.Mesh(e.geo, null);
+      it.mats = [litMat(false), litMat(true)];
+      it.matrixAutoUpdate = false;
+      it.visible = false;
+      scene.add(it);
+      e.pool.push(it);
+    }
+    e.used++;
+    return it;
   };
 
+  let shown = false;
   return {
     resize(fit, dpr) {
       renderer.setPixelRatio(dpr);
       renderer.setSize(Math.round(W * fit), Math.round(H * fit), false);
       canvas.style.width = `${W * fit}px`; canvas.style.height = `${H * fit}px`;
     },
-    begin() { for (const s of Object.values(S)) { s.n = 0; s.ni = 0; } },
-    // a baked mesh, already projected: scr = x,y,z per vertex (stage screen),
-    // nrm = unit view-space normals per vertex (stage axes, y down), f/nf its
-    // faces, rgb LINEAR, alpha
-    mesh(nv, scr, nrm, f, nf, rgb, a) {
-      const s = a < 0.999 ? S.litT : S.lit;
-      s.room(nv, nf * 3);
-      const base = s.n;
-      for (let i = 0; i < nv; i++) {
-        put(s, scr[i * 3], scr[i * 3 + 1], scr[i * 3 + 2], rgb, a);
-        const j = (base + i) * 3;
-        s.nrm[j] = nrm[i * 3]; s.nrm[j + 1] = -nrm[i * 3 + 1]; s.nrm[j + 2] = nrm[i * 3 + 2];
-      }
-      const ix = s.idx;
-      for (let i = 0; i < nf * 3; i++) ix[s.ni + i] = base + f[i];
-      s.ni += nf * 3;
+    begin() {
+      for (const s of Object.values(S)) s.n = 0;
+      for (const e of parts.values()) e.used = 0;
+      const t = prev; prev = live; live = t; live.length = 0; frame++;
     },
-    // a toned polygon (a fan) from the Canvas2D path's point buffer
-    poly(P, Z, o, n, colour, a) {
+    // A baked part at placement (m 3x3 row-major, t) seen through the view V
+    // (12 numbers: a 3x3 row-major then a translation), in LINEAR rgb.
+    mesh(part, m, t, V, rgb, a) {
+      const it = instance(geoOf(part));
+      const o = a < 0.999;
+      const mat = it.mats[o ? 1 : 0];
+      mat.color.setRGB(rgb[0], rgb[1], rgb[2]);
+      mat.opacity = a;
+      it.material = mat;
+      it.renderOrder = o ? 2 : 0;
+      // matrixWorld = V ∘ [m | t]
+      const e = it.matrixWorld.elements;      // column-major
+      for (let r = 0; r < 3; r++) {
+        const v0 = V[r * 3], v1 = V[r * 3 + 1], v2 = V[r * 3 + 2];
+        e[r] = v0 * m[0] + v1 * m[3] + v2 * m[6];
+        e[4 + r] = v0 * m[1] + v1 * m[4] + v2 * m[7];
+        e[8 + r] = v0 * m[2] + v1 * m[5] + v2 * m[8];
+        e[12 + r] = v0 * t[0] + v1 * t[1] + v2 * t[2] + V[9 + r];
+      }
+      e[3] = 0; e[7] = 0; e[11] = 0; e[15] = 1;
+      it.visible = true; it.frame = frame;
+      live.push(it);
+    },
+    // a toned polygon (a fan), its points already in view space (3 per point)
+    poly(P, n, colour, a) {
       if (n < 3) return;
       const s = a < 0.999 ? S.flatT : S.flat, c = parseCol(colour);
       s.room((n - 2) * 3);
-      const zo = o >> 1;
-      for (let i = 1; i < n - 1; i++) {
-        put(s, P[o], P[o + 1], Z[zo], c, a);
-        put(s, P[o + i * 2], P[o + i * 2 + 1], Z[zo + i], c, a);
-        put(s, P[o + i * 2 + 2], P[o + i * 2 + 3], Z[zo + i + 1], c, a);
-      }
+      for (let i = 1; i < n - 1; i++) { s.put(P, 0, c, a); s.put(P, i * 3, c, a); s.put(P, i * 3 + 3, c, a); }
     },
-    // a polyline (bias already in Z)
-    line(P, Z, o, n, colour, a, bias) {
+    // a polyline, view space
+    line(P, n, colour, a) {
       if (n < 2) return;
       const s = S.line, c = parseCol(colour);
       s.room((n - 1) * 2);
-      const zo = o >> 1;
-      for (let i = 0; i < n - 1; i++) {
-        put(s, P[o + i * 2], P[o + i * 2 + 1], Z[zo + i] + bias, c, a);
-        put(s, P[o + i * 2 + 2], P[o + i * 2 + 3], Z[zo + i + 1] + bias, c, a);
-      }
+      for (let i = 0; i < n - 1; i++) { s.put(P, i * 3, c, a); s.put(P, i * 3 + 3, c, a); }
     },
     // draw the frame; true if anything was drawn
     end() {
-      let any = false;
+      for (const it of prev) if (it.frame !== frame) it.visible = false;
+      let any = live.length > 0;
       for (const s of Object.values(S)) { s.commit(); if (s.n) any = true; }
       if (!any) { this.hide(); return false; }
       if (!shown) { canvas.style.visibility = 'visible'; shown = true; }
       renderer.render(scene, camera);
       return true;
     },
-    hide() { if (shown) { renderer.clear(); canvas.style.visibility = 'hidden'; shown = false; } },
+    hide() {
+      for (const it of live) it.visible = false;
+      if (shown) { renderer.clear(); canvas.style.visibility = 'hidden'; shown = false; }
+    },
     dispose() {
       for (const s of Object.values(S)) { s.geo.dispose(); s.obj.material.dispose(); }
+      for (const e of parts.values()) { e.geo.dispose(); for (const it of e.pool) for (const mt of it.mats) mt.dispose(); }
       renderer.dispose(); canvas.remove();
     },
   };

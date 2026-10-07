@@ -2318,6 +2318,28 @@ SwiftShader Chromium: every settle point and three moments of every act in
 both themes, no page errors; still pages 0 mutations. Everything below
 about the Canvas2D renderer describes that fallback.
 
+**Later the same day: the GPU projects, not the CPU** (the owner chose
+"three.js for all of it" over removing it). Each baked part is uploaded ONCE
+as a static BufferGeometry (`geoOf` in robotGL.js, keyed by the part object,
+with a pool of instances because a part can be drawn several times a frame);
+a frame hands over one matrix per part — `VIEW` (cam()'s rotation and dolly
+as a 3x4, y flipped up, written by `setCam`) composed with the placement —
+and a PerspectiveCamera at z = PERSP with tan(fov/2) = (H/2)/(PERSP·ZOOM)
+does cam()'s divide. No mesh vertex is touched in JS any more (`submitMesh`
+returns before projecting). The drawn props still stream per frame, but in
+view space (`glPts` / `glFaces`), not projected. Faces are FrontSide: three
+flips the front face for V's negative determinant, and the props' winding
+is the one the Canvas2D screen test calls front. Measured on this box with
+`?perf` (dataset `ms` minus `gl`, settled, median): JS per frame 0.7-1.4 ms
+→ 0.3-1.0 ms, and the ~200 KB/frame vertex re-upload is gone; the GPU side
+cannot be measured here (SwiftShader). **The lighting changed, and the old
+look was the bug**: the earlier ortho path flipped y on positions, which
+mirrored the winding, so under DoubleSide every outward face was a "back"
+face and the shader flipped its normal — the robots were lit from inside,
+the dark metallic streaks on the SO-ARM. Now white PLA reads white with the
+key from the upper left. Seen at every settle point and mid-act in both
+themes against the previous build (geometry identical, props present).
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
