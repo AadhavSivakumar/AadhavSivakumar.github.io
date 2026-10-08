@@ -1,0 +1,15 @@
+// Cloudflare Workers (static assets) — serves the site at aadhav.dev.
+// Workers Builds runs `npm run build` (vite + scripts/copy-static.mjs) and
+// then `npx wrangler deploy`, which uploads dist/ as the Worker's assets.
+// There is no Worker script: every request is a static file.
+// `name` must match the Worker's name in the Cloudflare dashboard, or the
+// build fails.
+{
+  "name": "aadhav-dev",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // a path that is not a file gets the page, not an error
+    "not_found_handling": "single-page-application"
+  }
+}
