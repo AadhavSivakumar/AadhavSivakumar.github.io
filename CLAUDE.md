@@ -1891,7 +1891,11 @@ publishing: the GTC quality-control screen recording is CROPPED to the app
 internal IP, bookmarks to internal tools and the dock. Order: part-presence
 app, the stacked inspection view, the workcell, the annotated frames, the
 QC dashboard, the xArm pick-and-place, the owner at the xArm, the arm with
-a trim panel, gesture control. (Oct 6: the workcell and annotated-frames clips — files 3 and 4,
+a trim panel, gesture control. (Oct 8: a STILL, `16.webp`, after the
+two inspection clips: the owner's AnomalyGen screenshot, a dead knot
+inpainted onto four clean boards at 0 / 500 / 1000 / 1500 training
+iterations; the original PNG is in `Media/projects/x_roboflow/`, the web copy
+cropped of the next column's and row's slivers.) (Oct 6: the workcell and annotated-frames clips — files 3 and 4,
 the modal's items 4 and 5 — were removed at the owner's request.)
 
 **Sept 30, the header grows at the top.** At the very top of the page the

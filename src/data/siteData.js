@@ -52,7 +52,9 @@ export const experienceData = [
     video: baseExperiencePath + 'roboflow.mp4',
     // The owner's own work footage (their Drive folder, Sept 30), shown in the
     // modal: silent, web-sized; the screen recording cropped to the app.
-    gallery: gal('x_roboflow', ['15.mp4', '1.mp4', '2.mp4', '13.mp4', '14.mp4', '11.mp4', '12.mp4', '5.mp4', '6.mp4', '10.mp4', '7.mp4', '8.mp4', '9.mp4']),
+    // 16.webp (Oct 8) is a still: AnomalyGen inpainting a dead knot onto
+    // clean boards at 0-1500 training iterations, cropped to its four rows.
+    gallery: gal('x_roboflow', ['15.mp4', '1.mp4', '2.mp4', '16.webp', '13.mp4', '14.mp4', '11.mp4', '12.mp4', '5.mp4', '6.mp4', '10.mp4', '7.mp4', '8.mp4', '9.mp4']),
     org: 'Roboflow',
     role: 'AI Engineer',
     degree: 'Edge AI engineering team · Solutions R&D',
