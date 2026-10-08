@@ -1731,7 +1731,7 @@ header nav { justify-self: center; }
 .header-end { justify-self: end; display: flex; align-items: center; gap: 4px; }
 #theme-toggle { margin-left: 6px; font-size: 1.2rem; }
 .socials { display: flex; align-items: center; gap: 2px; }
-.social { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; color: var(--secondary-color); transition: color 0.2s ease, background-color 0.2s ease; }
+.social { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; color: var(--secondary-color); transition: color 0.2s ease, background-color 0.2s ease; }
 .social:hover { color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 7%, transparent); }
 .socials--menu { display: none; }
 @media (max-width: 768px) {
