@@ -157,7 +157,10 @@ That is the owner's stated goal, and three things follow from it:
 
 - **The content follows the owner's Extended CV** (Sept 27; "for the site
   content, use the cv"): the experience rows, the about text, the major
-  project descriptions and several small cards were rewritten from it. Kept
+  project descriptions and several small cards were rewritten from it
+  (Oct 8: replaced with the owner's new copy, which marks DGAM "incomplete;
+  concept stage" — the site now says so wherever DGAM appears — and
+  Project Millet INCOMPLETE, which its card already said). Kept
   off the page even though the CV has them: partner names for
   integrations, a customer rig's cost, NVIDIA's unreleased product names (Cosmos 3 Edge is RELEASED — the owner, Oct 1 — so it may be named),
   and the name of the robot whose teleop data the π0 work used.
