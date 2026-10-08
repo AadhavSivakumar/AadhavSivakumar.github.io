@@ -67,7 +67,7 @@ function App() {
     // the title and tags float over it) — the flying picture would cover that
     // text, so the text and its scrim ride INSIDE the flyer: they stay as the
     // card lifts, fade as it grows, and fade back in as it lands on close
-    let overlay = null;
+    let overlay = null, zk = 1;
     const txt = el.querySelector('.small-project-content');
     if (txt && el.classList.contains('small-project-card')) {
       const t = txt.getBoundingClientRect();
@@ -75,10 +75,66 @@ function App() {
       freezeStyles(txt, clone);
       Object.assign(clone.style, { position: 'absolute', left: `${t.left - r.left}px`, bottom: `${r.bottom - t.bottom}px`, width: `${t.width}px`, margin: '0', transform: 'none' });
       overlay = clone.outerHTML;
+      // on a hovered card the text floats translateZ(30px) toward the viewer
+      // under the tilt's perspective(900px), drawn that much larger: the
+      // flyer's copy starts at that size and settles to 1 over the lift
+      const tz = new DOMMatrixReadOnly(getComputedStyle(txt).transform === 'none' ? undefined : getComputedStyle(txt).transform).m43;
+      if (tz > 0 && tz < 400) zk = 900 / (900 - tz);
     }
-    return { overlay, shot: snapshot(m), rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
+    // the card's clip holds still while the modal is up (hidden, it kept
+    // playing and was 1-3 s elsewhere by the close); it is seeked to the
+    // modal's time as the close starts and resumes after the landing
+    if (isVideo) { m.__wasPlaying = !m.paused; m.pause(); }
+    return { el: m, overlay, zk, shot: snapshot(m), rect: { top: r.top, left: r.left, width: r.width, height: r.height }, isVideo,
              src: isVideo ? (m.currentSrc || m.getAttribute('src')) : m.currentSrc || m.src, poster: isVideo ? m.poster : '', time: isVideo ? m.currentTime : 0,
-             radius: getComputedStyle(m.closest('.exp-media') || m).borderRadius || '8px' };
+             radius: cornersOf(m, el), backdrop: backdropOf(m) };
+  };
+
+  // Colours as rgba() strings motion can interpolate. Computed colours can
+  // come back as `color(srgb …)` (color-mix tokens); a canvas pixel
+  // normalises any of them.
+  const px = useRef(null);
+  const rgba = c => {
+    if (!px.current) { const k = document.createElement('canvas'); k.width = k.height = 1; px.current = k.getContext('2d', { willReadFrequently: true }); }
+    const g = px.current;
+    g.clearRect(0, 0, 1, 1); g.fillStyle = 'rgba(0,0,0,0)'; g.fillStyle = c; g.fillRect(0, 0, 1, 1);
+    const [R, G, B, A] = g.getImageData(0, 0, 1, 1).data;
+    return [R, G, B, A / 255];
+  };
+  const css = ([R, G, B, A]) => `rgba(${R}, ${G}, ${B}, ${+A.toFixed(3)})`;
+  const over = (top, bot) => { const a = top[3] + bot[3] * (1 - top[3]); return a ? [0, 1, 2].map(i => (top[i] * top[3] + bot[i] * bot[3] * (1 - top[3])) / a).concat(a) : [0, 0, 0, 0]; };
+  const varColor = name => { const p = document.createElement('i'); p.style.cssText = `display:none;color:var(${name})`; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return rgba(c); };
+  // the colour a picture sits on in its card (seen through its transparent
+  // pixels): its ancestors' backgrounds over the page's
+  const backdropOf = m => {
+    const layers = [];
+    for (let n = m.parentElement; n && n !== document.body; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor);
+      if (c[3] > 0) layers.push(c);
+      if (c[3] >= 1) break;
+    }
+    return css(layers.reduceRight((acc, c) => over(c, acc), varColor('--background-color')));
+  };
+  // the picture's corners as drawn: its own radius, or the card's where it
+  // runs to the card's edge and the card's clip rounds it (a major card's
+  // cover has none of its own)
+  const cornersOf = (m, card) => {
+    const box = m.closest('.exp-media') || m, b = box.getBoundingClientRect(), c = card.getBoundingClientRect();
+    const own = getComputedStyle(box), cs = getComputedStyle(card), bw = parseFloat(cs.borderTopWidth) || 0;
+    const near = (a, z) => Math.abs(a - z) < 1.5;
+    const L = near(b.left, c.left + bw), R = near(b.right, c.right - bw), T = near(b.top, c.top + bw), B = near(b.bottom, c.bottom - bw);
+    const k = (o, cr, on) => `${Math.max(parseFloat(own[o]) || 0, on ? Math.max(0, (parseFloat(cs[cr]) || 0) - bw) : 0)}px`;
+    return [k('borderTopLeftRadius', 'borderTopLeftRadius', T && L), k('borderTopRightRadius', 'borderTopRightRadius', T && R),
+            k('borderBottomRightRadius', 'borderBottomRightRadius', B && R), k('borderBottomLeftRadius', 'borderBottomLeftRadius', B && L)].join(' ');
+  };
+  // one plain shadow as `rgba() x y blur spread`, the form every shadow in
+  // Modal.jsx takes so motion can interpolate between them
+  // (the first outer shadow of a list: a small card's picture carries a
+  // faint inset rim as well)
+  const shadowOf = s => {
+    const outer = (s || '').split(/,(?![^(]*\))/).map(x => x.trim()).find(x => x && x !== 'none' && !x.includes('inset'));
+    const m = outer && outer.match(/^((?:rgba?|color)\([^)]*\)|#\w+)\s+(-?[\d.]+)px\s+(-?[\d.]+)px\s+(-?[\d.]+)px(?:\s+(-?[\d.]+)px)?$/);
+    return m ? `${css(rgba(m[1]))} ${m[2]}px ${m[3]}px ${m[4]}px ${m[5] || 0}px` : 'rgba(0, 0, 0, 0) 0px 0px 0px 0px';
   };
 
   // The card's markup with each direct child FROZEN at the place it has on
@@ -103,6 +159,11 @@ function App() {
       const k = dst[i]; if (!k || !k.style) return;
       const cs = getComputedStyle(e);
       for (const prop of FROZEN_PROPS) k.style.setProperty(prop, cs.getPropertyValue(prop));
+      // a line clamp needs `display: -webkit-box`, which Firefox reports as
+      // `flow-root`: frozen as reported, the copy's clamp let go and a two-line
+      // description came out three lines on the first frame
+      const clamp = cs.getPropertyValue('-webkit-line-clamp');
+      if (clamp && clamp !== 'none') k.style.setProperty('display', '-webkit-box');
     });
   };
   const frozenHTML = card => {
@@ -115,21 +176,53 @@ function App() {
     // text visibly swapped style the moment it lifted — and swapped back
     // when it landed on close
     freezeStyles(card, clone);
-    [...card.children].forEach((c, i) => {
-      const k = clone.children[i]; if (!k) return;
+    // each box pinned where it is, with !important: on a phone the experience
+    // card's text column is `display: contents` (its children are the grid's)
+    // and its video `position: relative !important`, so pinning only the
+    // direct children left the copy laid out 12-24px off (Oct 8)
+    const pin = (src, dst) => [...src.children].forEach((c, i) => {
+      const k = dst.children[i]; if (!k) return;
+      if (getComputedStyle(c).display === 'contents') { pin(c, k); return; }
       const r = c.getBoundingClientRect();
-      Object.assign(k.style, { position: 'absolute', left: `${r.left - box.left}px`, top: `${r.top - box.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: '0' });
+      const set = { position: 'absolute', left: `${r.left - box.left}px`, top: `${r.top - box.top}px`, width: `${r.width}px`, height: `${r.height}px`, margin: '0', right: 'auto', bottom: 'auto' };
+      for (const p in set) k.style.setProperty(p, set[p], 'important');
     });
+    pin(card, clone);
     return clone.innerHTML;
   };
 
+  // MEASURED AT REST, THEN HIDDEN (Oct 8; the owner: "a small weirdness
+  // with graphics right at the start of the opening animation and right at
+  // the end of the modal closing animation"). LiftCard has just put the
+  // card's tilt back to zero WITHOUT its 0.3s transform transition (inline
+  // `transition: none`) and recorded the pose it was drawn in; before, the
+  // reset was animated and `animating-out` (scale 0.95) was added before
+  // anything was measured, so the modal started from — and the close landed
+  // on — the hovered, tilted outline, 2.5-5% too big, and the real card
+  // appeared 6-15px smaller at the end of every desktop close. The modal
+  // starts from the card at rest IN that pose (Modal.jsx) and the card is
+  // hidden in the same frame as the modal's first paint (`hideCard`, from
+  // the modal's lift), not here: an instant hide here could show a frame of
+  // neither.
   const handleCardClick = useCallback((cardElement, itemData, itemType) => {
+    // what is on screen: the hover's border and shadow — unless the screen
+    // cannot hover, where a tap leaves `:hover` stuck on for a frame the card
+    // never showed (the surface's first frame came up with a shadow)
+    const look0 = getComputedStyle(cardElement);
+    const hoverable = window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+    const paint = hoverable ? { border: css(rgba(look0.borderTopColor)), shadow: look0.boxShadow } : { border: css(varColor('--hair')), shadow: 'none' };
+    cardElement.style.transition = 'none';
+    cardElement.style.transform = 'none';
     const rect = cardElement.getBoundingClientRect();
-    // Add animating-out class to card for visual effect
-    cardElement.classList.add('animating-out');
     lastClickedCardRef.current = cardElement;
     const media = mediaOf(cardElement);
     lastMediaRef.current = media;
+    const small = cardElement.classList.contains('small-project-card');
+    const cs = getComputedStyle(cardElement);
+    const pose = cardElement.__tiltPose || { rx: 0, ry: 0, s: 1 };
+    // the light under the pointer (SpotlightCard, `:hover::after`) rides on
+    // the copy and fades over the lift instead of switching off
+    const lit = hoverable && cardElement.matches(':hover') && /exp-card|major-project-card/.test(cardElement.className) && !cardElement.classList.contains('about-me-card');
     setModalState({
       isOpen: true,
       itemData,
@@ -140,8 +233,22 @@ function App() {
       cardHTML: frozenHTML(cardElement),
       cardClass: cardElement.className.replace('animating-out', ''),
       media,
+      // the surface starts as the card looks — its pose, corners, border and
+      // shadow (a small card's are its picture's) — and eases into the
+      // modal's; on a media-first card it has no fill or border of its own
+      look: {
+        pose,
+        radius: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].map(v => `${parseFloat(v) || 0}px`).join(' '),
+        border: paint.border,
+        shadow: shadowOf(small && media && media.el ? getComputedStyle(media.el).boxShadow : paint.shadow),
+        hair: css(varColor('--hair')),
+        surface: css(varColor('--surface-color')),
+        bare: small,
+        light: lit ? { x: cardElement.style.getPropertyValue('--mouse-x'), y: cardElement.style.getPropertyValue('--mouse-y') } : null,
+      },
     });
   }, []);
+  const hideCard = useCallback(() => { lastClickedCardRef.current?.classList.add('animating-out'); }, []);
 
   // The close lands a copy of the card exactly over the real one; the real
   // card is revealed INSTANTLY underneath (its own un-hide transition — fade
@@ -150,21 +257,30 @@ function App() {
   const revealCard = useCallback(() => {
     const card = lastClickedCardRef.current;
     if (!card) return;
-    // the card's video picks up EXACTLY where the modal's was when it closed
-    // (the landing flyer is a still of that frame): it kept playing hidden
-    // while the modal was open, and reappeared at a different moment
-    const m = lastMediaRef.current, v = card.querySelector('video');
-    if (m && m.isVideo && v && isFinite(m.time)) { try { v.currentTime = m.time % (v.duration || Infinity); } catch { /* not seekable */ } }
-    card.style.transition = 'none';
+    // transform, opacity and visibility snap back (the copy is exactly over
+    // the card); the hover's shadow and border keep their transitions, so a
+    // card revealed under the pointer eases into its hover state
+    card.style.transition = 'box-shadow 0.4s ease, background-color 0.4s ease, border-color 0.4s ease';
     card.classList.remove('animating-out');
     void card.offsetWidth;
     requestAnimationFrame(() => { card.style.transition = ''; });
+  }, []);
+  // the close starts: the card's clip goes to the modal's moment now, so the
+  // seek has landed long before the card is revealed (seeking at the landing
+  // showed a stale frame, then jumped)
+  const syncCardClip = useCallback(t => {
+    const m = lastMediaRef.current, v = m && m.el;
+    if (!v || v.tagName !== 'VIDEO' || !isFinite(t)) return;
+    try { v.pause(); const to = t % (v.duration || Infinity); if (Math.abs(v.currentTime - to) > 0.03) v.currentTime = to; } catch { /* not seekable */ }
   }, []);
 
   const handleModalClose = useCallback(() => {
     if (lastClickedCardRef.current) {
       const card = lastClickedCardRef.current;
       card.classList.remove('animating-out');
+      // the card's clip resumes only now: through the settle it held the frame the landing still shows
+      const v = lastMediaRef.current && lastMediaRef.current.el;
+      if (v && v.tagName === 'VIDEO' && v.__wasPlaying) { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
       // Return focus to the card that opened the modal. The card is hidden
       // (visibility) while the modal is up, so the browser had dropped focus to
       // <body> — without this a keyboard user is dumped back at the top of the
@@ -233,6 +349,9 @@ function App() {
         cardHTML={modalState.cardHTML}
         cardClass={modalState.cardClass}
         media={modalState.media}
+        look={modalState.look}
+        onLifted={hideCard}
+        onCloseStart={syncCardClip}
         onLanding={revealCard}
         onClose={handleModalClose}
       />

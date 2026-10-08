@@ -20,12 +20,21 @@ const CLOSE_S = 0.8;
 const LIFT_S = 0.42, LIFT_Y = 22, LIFT_K = 1.06, LIFT_EASE = [0.2, 0.8, 0.2, 1];
 const OPEN_HOLD = 0.1, OPEN_S = 0.7, OPEN_EASE = [0.5, 0, 0.18, 1];
 const CLOSE_EASE = [0.65, 0, 0.35, 1];
+// the landing: the surface fades off the revealed card, THEN the flying
+// picture cross-fades into the card's own (the same frame, paused). A new
+// element cannot match a card's picture to the device pixel — on a 3x phone
+// the card's layer draws it 2 px lower than its box says — so it hands over
+// by a fade, not a cut. Over the surface, the fade would wash white.
+const SETTLE_S = 0.25, FLY_OUT = { duration: 0.2, delay: 0.22, ease: 'easeInOut' };
 
 // Content population: children stagger in once the modal is fully expanded,
 // and stagger back out (quickly, in reverse) before it collapses.
 const contentContainer = {
   hidden: { transition: { staggerChildren: 0.01, staggerDirection: -1 } },
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.1 + 0.35 } },   // in once the expand is under way   // starts while the surface is still growing, as the card copy fades
+  // in while the card copy is still fading (Oct 8: at 0.45 the copy was gone
+  // 0.3 s into the expand and the content not yet there — 160-180 ms of
+  // empty surface)
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.25 } },
 };
 const contentItem = {
   hidden: { opacity: 0, y: 8, transition: { duration: 0.26, ease: 'easeOut' } },
@@ -47,7 +56,13 @@ function finalRect() {
 // -> open (content staggers in). Close runs the same steps in reverse:
 // departing (content staggers out) -> collapse (shrinks back to the card)
 // -> settle (drops back onto the page and hands off to the real card).
-export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, onLanding, onClose }) {
+// every shadow here is ONE shadow written `rgba() x y blur spread` (App.jsx
+// `shadowOf` reads the card's into the same form), or motion cannot
+// interpolate between them and jumps
+const NO_SHADOW = 'rgba(0, 0, 0, 0) 0px 0px 0px 0px';
+const clear = c => c && c.replace(/,\s*[\d.]+\)$/, ', 0)');
+
+export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, look, onLifted, onCloseStart, onLanding, onClose }) {
   const [phase, setPhase] = useState('closed');
   const [pick, setPick] = useState(0);            // which gallery item is in the media slot
   const dialogRef = useRef(null);
@@ -90,6 +105,12 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     const sc = wrapRef.current ? wrapRef.current.scrollTop : 0;
     return { top: fr.top + y - sc, left: fr.left + x, width: el.offsetWidth, height: el.offsetHeight };
   };
+  // its corners, which the flyer takes on as it arrives (and leaves from)
+  const mediaRadius = () => {
+    const el = contentRef.current && contentRef.current.querySelector('.modal-image');
+    const cs = el ? getComputedStyle(el) : null;
+    return cs ? [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].map(v => `${parseFloat(v) || 0}px`).join(' ') : '8px 8px 8px 8px';
+  };
 
   useEffect(() => {
     if (isOpen && cardRect && phase === 'closed') {
@@ -109,21 +130,54 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // to a canvas, cropped exactly as object-fit: cover crops it, and that
   // canvas is what flies back to the card.
   const closeShot = useRef(null);
+  // what the flight LANDS on: the card's own picture — an <img> of the same
+  // source, or a still of the card's clip once it has been seeked to the
+  // modal's moment — under the modal's frame, which fades out on the way. The
+  // card shows exactly these pixels when it is revealed; the modal's frame
+  // (another encode, resampled) differed in texture, and a gallery item
+  // landed as itself and swapped (Oct 8).
+  const [closeBase, setCloseBase] = useState(null);
+  const closeRadius = useRef(null);
   // the flight's target needs the content mounted: re-render once after the
   // first (lift) paint so the flyer starts with the lift, not after it
   const [, force] = useState(0);
-  useLayoutEffect(() => { if (phase === 'lift') force(x => x + 1); if (phase === 'open' || phase === 'closed') flyVid.current = null; }, [phase]);
+  // the spotlight the card had under the pointer: on the copy for its first
+  // paints, then faded (its CSS transition) as it lifts
+  const [unlit, setUnlit] = useState(false);
+  useLayoutEffect(() => {
+    if (phase === 'lift') {
+      force(x => x + 1);
+      // the real card goes in the frame the modal first paints (App.jsx)
+      if (onLifted) onLifted();
+      setUnlit(false);
+      let id = requestAnimationFrame(() => { id = requestAnimationFrame(() => setUnlit(true)); });
+      return () => cancelAnimationFrame(id);
+    }
+    if (phase === 'open' || phase === 'closed') flyVid.current = null;
+    return undefined;
+  }, [phase]);   // eslint-disable-line react-hooks/exhaustive-deps
   const handleClose = useCallback(() => {
     // where the modal's media is right now (it may have been scrolled)
     const el = contentRef.current && contentRef.current.querySelector('.modal-image');
-    if (el) { const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height }; if (media && el.tagName === 'VIDEO' && pick === 0) media.time = el.currentTime; }
+    if (el) {
+      const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height };
+      // the card's clip goes to this moment now, so it has landed long before the card shows
+      if (media && el.tagName === 'VIDEO' && pick === 0) { media.time = el.currentTime; if (onCloseStart) onCloseStart(media.time); }
+    }
     closeShot.current = el ? snapshot(el) : null;
+    setCloseBase(null);
+    const cm = media && media.el;
+    if (cm && cm.tagName === 'VIDEO') {
+      const grab = () => setCloseBase({ shot: snapshot(cm) });
+      if (cm.seeking) cm.addEventListener('seeked', grab, { once: true }); else grab();
+    } else if (cm) setCloseBase({ src: cm.currentSrc || cm.src });
+    closeRadius.current = el ? mediaRadius() : null;
     flyVid.current = null;
     // straight to collapse: the content fades out WHILE the surface shrinks and
     // the card copy fades back in, instead of an empty modal waiting 260ms for
     // its content to leave first (the close "isn't fully smooth")
     setPhase((p) => (p === 'open' ? 'collapse' : p));
-  }, [media, pick]);
+  }, [media, pick, onCloseStart]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // Give the content stagger-out a moment before collapsing the surface.
   useEffect(() => {
@@ -150,23 +204,47 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   if (phase === 'closed') return null;
 
   const r = savedRect.current;
+  // THE CARD'S LOOK at the click (App.jsx): the pose its tilt had it in, its
+  // corners, border and shadow. The surface starts as exactly that and eases
+  // into the modal's — it used to snap flat, to 16px corners, a paler border
+  // and an all-round halo on its first frame (Oct 8). A media-first card (the
+  // small projects: the picture is the card) has no fill or border, so the
+  // surface starts clear and takes its fill early in the expand; it used to
+  // pop in, opaque, behind a tile that had none — and goes clear again as it
+  // lands.
+  const L = look || {};
+  const P = L.pose || { rx: 0, ry: 0, s: 1 };
+  const SURF = L.surface, HAIR = L.hair, bare = !!L.bare;
+  const paintOf = (bg, bc) => (SURF ? { backgroundColor: bg, borderColor: bc } : {});
+  const cardPaint = paintOf(bare ? clear(SURF) : SURF, bare ? clear(HAIR) : L.border || HAIR);
+  const restPaint = paintOf(bare ? clear(SURF) : SURF, bare ? clear(HAIR) : HAIR);
+  const cardRadius = L.radius || '10px 10px 10px 10px';
+  const level = { rotateX: 0, rotateY: 0 };
+  const early = (d, at) => ({ duration: d, delay: at, ease: 'easeOut' });
   const expanded = {
     ...finalRect(),
-    scale: 1,
+    scale: 1, ...level,
     opacity: 1,
-    boxShadow: '0 30px 80px rgba(0, 0, 0, 0.45)',
-    transition: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD },
+    boxShadow: 'rgba(0, 0, 0, 0.45) 0px 30px 80px 0px',
+    borderRadius: '16px 16px 16px 16px',
+    ...paintOf(SURF, HAIR),
+    transition: bare
+      ? { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD, backgroundColor: early(OPEN_S * 0.4, OPEN_HOLD), borderColor: early(OPEN_S * 0.4, OPEN_HOLD) }
+      : { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD },
   };
   const lifted = {
     top: r.top - LIFT_Y,
     left: r.left,
     width: r.width,
     height: r.height,
-    scale: LIFT_K,
+    scale: LIFT_K, ...level,
     opacity: 1,
-    boxShadow: '0 34px 60px rgba(0, 0, 0, 0.32)',
+    boxShadow: 'rgba(0, 0, 0, 0.32) 0px 34px 60px 0px',
+    borderRadius: cardRadius,
+    ...cardPaint,
     transition: { duration: LIFT_S, ease: LIFT_EASE },
   };
+  const landed = { top: r.top, left: r.left, width: r.width, height: r.height, scale: 1, ...level, boxShadow: NO_SHADOW, borderRadius: cardRadius, ...restPaint };
   const animatorTargets = {
     lift: lifted,
     expand: expanded,
@@ -174,15 +252,18 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     departing: expanded,
     // CLOSE: shrink straight onto the card's own rectangle (no lifted stop on
     // the way), the card copy inside at its true size, so the surface and the
-    // copy arrive together and match the real card pixel for pixel
-    collapse: { top: r.top, left: r.left, width: r.width, height: r.height, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0)', transition: { duration: CLOSE_S, ease: CLOSE_EASE } },   // the shadow fades as it lands: the resting card has none, and it used to vanish at the end
-    settle: {
-      top: r.top,
-      scale: 1,
-      opacity: 0,                   // already ON the card, which is revealed underneath (onLanding): a quick fade, no movement
-      boxShadow: '0 5px 15px rgba(0, 0, 0, 0)',
-      transition: { duration: 0.35, ease: 'easeOut' },
-    },
+    // copy arrive together and match the real card pixel for pixel; the
+    // shadow fades as it lands (the resting card has none)
+    collapse: { ...landed, opacity: 1,
+      transition: bare
+        ? { duration: CLOSE_S, ease: CLOSE_EASE, backgroundColor: early(CLOSE_S * 0.4, CLOSE_S * 0.6), borderColor: early(CLOSE_S * 0.4, CLOSE_S * 0.6) }
+        : { duration: CLOSE_S, ease: CLOSE_EASE } },
+    // already ON the card, which is revealed underneath (onLanding): a quick
+    // fade, no movement. It names every property the collapse animated
+    // (Oct 8): without left/width/height motion treated them as removed,
+    // finished a fallback at once, and the modal unmounted 8-73 ms after the
+    // reveal instead of fading over 0.35 s — the close ended on a cut.
+    settle: { ...landed, opacity: 0, transition: { duration: SETTLE_S, ease: 'easeOut' } },
   };
 
   const advance = () => {
@@ -372,21 +453,35 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // while both the card copy's media and the modal's own are hidden. (The
   // owner: "The video section from the card should just transition into the
   // video section of the modal, not just disappear and reappear.")
-  const flying = !!media && (phase === 'lift' || phase === 'expand' || phase === 'collapse');
+  // It stays through the SETTLE (Oct 8): it used to go as the collapse ended,
+  // while the opaque surface and the copy (whose media is hidden) still
+  // covered the card — a blank slot for a frame or two, a wash once the
+  // settle really ran. Now it holds the landed frame, opaque, over the card's
+  // own (paused on that same frame, App.jsx) and goes with the surface.
+  const closing = phase === 'collapse' || phase === 'settle';
+  const flying = !!media && (phase === 'lift' || phase === 'expand' || closing);
   const tgt = flying ? mediaTarget() : null;
   // the flight runs on the SURFACE's clock, not its own: during the lift it
-  // rises and scales with the card (about the card's centre, like the
-  // surface), during the expand it grows on the same 0.6s ease (the owner: "the
-  // gif/video and the modal itself are expanding at different times" — it
-  // used to fly straight to the final slot over 0.85s from the first frame)
-  const liftedMedia = (() => {
-    if (!media || !media.rect) return null;
-    const m = media.rect, cx = r.left + r.width / 2, cy = r.top + r.height / 2, k = LIFT_K;
-    return { top: cy - LIFT_Y + (m.top - cy) * k, left: cx + (m.left - cx) * k, width: m.width * k, height: m.height * k };
-  })();
-  const flyTo = phase === 'collapse' ? media && media.rect : phase === 'lift' ? liftedMedia : tgt;
-  const flyFrom = phase === 'collapse' ? (closeFrom.current || tgt) : media && media.rect;
-  const flyTransition = phase === 'collapse' ? { duration: CLOSE_S, ease: CLOSE_EASE } : phase === 'lift' ? { duration: LIFT_S, ease: LIFT_EASE } : { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD };
+  // rises and scales with the card, during the expand it grows on the same
+  // ease (the owner: "the gif/video and the modal itself are expanding at
+  // different times"). The lift is a TRANSFORM about the card's centre, as
+  // the surface's is, starting from the pose the card was tilted in: done
+  // with width/height, a small card's text riding in the flyer stayed its
+  // size while the picture grew 6% under it.
+  const m0 = media && media.rect;
+  const box = b => b && { top: b.top, left: b.left, width: b.width, height: b.height };
+  const origin = m0 ? { originX: (r.left + r.width / 2 - m0.left) / m0.width, originY: (r.top + r.height / 2 - m0.top) / m0.height } : {};
+  const cardSide = media ? { borderRadius: media.radius, ...(SURF ? { backgroundColor: media.backdrop } : {}) } : {};
+  const modalSide = r0 => ({ borderRadius: r0 || '8px 8px 8px 8px', ...(SURF ? { backgroundColor: SURF } : {}) });
+  const flat = { y: 0, scale: 1, ...level };
+  const flyFrom = closing
+    ? { ...box(closeFrom.current || tgt), ...flat, opacity: 1, ...modalSide(closeRadius.current) }
+    : { ...box(m0), y: 0, scale: P.s, rotateX: P.rx, rotateY: P.ry, ...cardSide };
+  const flyTo = closing ? { ...box(m0), ...flat, opacity: phase === 'settle' ? 0 : 1, ...cardSide }
+    : phase === 'lift' ? { ...box(m0), y: -LIFT_Y, scale: LIFT_K, ...level, ...cardSide }
+    : tgt && { ...box(tgt), ...flat, ...modalSide(mediaRadius()) };
+  const flyTransition = phase === 'settle' ? { default: { duration: 0 }, opacity: FLY_OUT } : phase === 'collapse' ? { duration: CLOSE_S, ease: CLOSE_EASE } : phase === 'lift' ? { duration: LIFT_S, ease: LIFT_EASE } : { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD };
+  const flyerOn = !!(flying && flyFrom && flyTo);
 
   return (
     <>
@@ -408,15 +503,22 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
         aria-labelledby="modal-title"
         onKeyDown={trapTab}
         className={`modal-animator ${modalTypeClass}`}
-        initial={{ ...r, scale: 1, opacity: 1, boxShadow: '0 5px 15px rgba(0, 0, 0, 0.15)' }}
-        animate={animatorTargets[phase]}
-        onAnimationComplete={advance}
+        style={{ transformPerspective: 900 }}
+        initial={{ ...r, scale: P.s, rotateX: P.rx, rotateY: P.ry, opacity: 1, boxShadow: L.shadow || NO_SHADOW, borderRadius: cardRadius, ...cardPaint }}
+        variants={animatorTargets}
+        animate={phase}
+        // the settle ends when the flying picture has handed over (below), if there is one
+        onAnimationComplete={def => { if (def === phase && !(phase === 'settle' && flyerOn)) advance(); }}
       >
         {cardHTML && (
           <motion.div
-            className={`modal-ghost ${cardClass || ''}`}
+            className={`modal-ghost ${cardClass || ''}${L.light && !unlit && phase === 'lift' ? ' lit' : ''}`}
             aria-hidden="true"
-            style={{ width: r.width, height: r.height, transformOrigin: '0 0' }}
+            // its size goes in as variables the CSS applies with !important:
+            // a phone's `.exp-card { height: auto !important }` beat the inline
+            // height, and a box whose children are all pinned is 0 tall when
+            // auto — its overflow clip hid the whole copy's text
+            style={{ '--gw': `${r.width}px`, '--gh': `${r.height}px`, transformOrigin: '0 0', ...(L.light ? { '--mouse-x': L.light.x || '50%', '--mouse-y': L.light.y || '50%' } : null) }}
             initial={{ opacity: 1, scale: 1 }}
             animate={{ opacity: ghostOn ? 1 : 0, scale: ghostScale }}
             // the scale runs on the SAME clock as the surface (0.6 open, 0.55
@@ -426,7 +528,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
               ? { opacity: { duration: CLOSE_S * 0.5, delay: CLOSE_S * 0.4, ease: 'easeInOut' }, scale: { duration: 0 } }
               // leaving on the expand: out quickly as the surface starts to grow, so
               // the growing media does not slide over text still fading
-              : { opacity: { duration: 0.2, delay: ghostOn ? 0.15 : OPEN_HOLD }, scale: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD } }}
+              : { opacity: { duration: 0.28, delay: ghostOn ? 0.15 : OPEN_HOLD + 0.04 }, scale: { duration: OPEN_S, ease: OPEN_EASE, delay: OPEN_HOLD } }}
             dangerouslySetInnerHTML={{ __html: cardHTML }}
           />
         )}
@@ -453,17 +555,26 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
           </motion.div>
         </div>
       </motion.div>
-      {flying && flyFrom && flyTo && (
+      {flyerOn && (
         <motion.div
-          key={phase === 'collapse' ? 'fly-close' : 'fly-open'}
+          key={closing ? 'fly-close' : 'fly-open'}
           className="modal-flyer"
-          style={{ borderRadius: media.radius }}
+          style={{ transformPerspective: 900, ...origin }}
           initial={flyFrom}
           animate={flyTo}
           transition={flyTransition}
+          onAnimationComplete={() => { if (phase === 'settle') advance(); }}
         >
-          {phase === 'collapse' && closeShot.current
-            ? <div className="modal-flyer-shot" ref={d => { if (d && !d.firstChild) d.appendChild(closeShot.current); }} />
+          {closing && (closeShot.current || closeBase)
+            ? <>
+                {closeBase && closeBase.shot && <div className="modal-flyer-shot" ref={d => { if (d && !d.firstChild) d.appendChild(closeBase.shot); }} />}
+                {closeBase && closeBase.src && <img className="modal-flyer-shot" src={closeBase.src} alt="" />}
+                {closeShot.current && (
+                  <motion.div className="modal-flyer-shot" ref={d => { if (d && !d.firstChild) d.appendChild(closeShot.current); }}
+                    initial={{ opacity: 1 }} animate={{ opacity: closeBase && (closeBase.src || closeBase.shot) ? 0 : 1 }}
+                    transition={{ duration: CLOSE_S * 0.35, delay: CLOSE_S * 0.4, ease: 'easeInOut' }} />
+                )}
+              </>
             : <>
                 {/* the card's frame as a still, on screen from the first
                     paint (Oct 6: a fresh <video> flashed black/poster before
@@ -484,9 +595,16 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             <motion.div
               className="flyer-overlay"
               aria-hidden="true"
-              initial={{ opacity: phase === 'collapse' ? 0 : 1 }}
-              animate={{ opacity: phase === 'lift' || phase === 'collapse' ? 1 : 0 }}
-              transition={phase === 'collapse' ? { duration: CLOSE_S * 0.4, delay: CLOSE_S * 0.55, ease: 'easeOut' } : { duration: 0.22, delay: OPEN_HOLD, ease: 'easeIn' }}
+              // the hovered card drew this text a little larger (it floats
+              // toward the viewer under the tilt's perspective, `zk`): it
+              // starts at that size and settles to its own over the lift
+              style={origin}
+              initial={closing ? { opacity: 0, scale: 1 } : { opacity: 1, scale: media.zk || 1 }}
+              animate={{ opacity: phase === 'lift' || closing ? 1 : 0, scale: 1 }}
+              transition={phase === 'collapse' ? { duration: CLOSE_S * 0.4, delay: CLOSE_S * 0.55, ease: 'easeOut' }
+                : phase === 'settle' ? { duration: 0 }
+                : phase === 'lift' ? { opacity: { duration: 0 }, scale: { duration: LIFT_S, ease: LIFT_EASE } }
+                : { duration: 0.22, delay: OPEN_HOLD, ease: 'easeIn' }}
               dangerouslySetInnerHTML={{ __html: media.overlay }}
             />
           )}

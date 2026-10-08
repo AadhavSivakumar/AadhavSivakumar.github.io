@@ -61,10 +61,17 @@ export default function LiftCard({ className = '', delay = 0, onClick, children,
   const rest0 = () => { capOpacity.set(0); scale.set(1); rotateX.set(0); rotateY.set(0); capRotate.set(0); };
   const activate = e => {
     // put the card back at rest NOW, so the modal measures (and grows out of)
-    // the card as it sits on the page, not tilted and scaled
+    // the card as it sits on the page, not tilted and scaled — WITHOUT the
+    // card's 0.3s transform transition, which turned the reset into an
+    // animation and left the measured box the hovered one (Oct 8). The pose
+    // it was drawn in goes with it: the modal starts from exactly that and
+    // levels out as it lifts (App.jsx, Modal.jsx).
+    const el = e.currentTarget;
+    el.__tiltPose = on ? { rx: rotateX.get(), ry: rotateY.get(), s: scale.get() } : null;
     if (on) {
+      el.style.transition = 'none';
       rotateX.jump(0); rotateY.jump(0); scale.jump(1); capOpacity.jump(0);
-      e.currentTarget.style.transform = 'none';
+      el.style.transform = 'none';
     }
     onClick?.(e);
   };

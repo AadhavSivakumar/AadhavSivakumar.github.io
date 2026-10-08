@@ -2344,6 +2344,55 @@ reveals the real card INSTANTLY, transition suppressed — its own un-hide
 transition, a fade and grow from 95%, ran after the copy vanished and was the
 jump) → `settle` fades the copy off the card.
 
+**Oct 8: the first and last frames, made exact** (the owner: "a small
+weirdness with graphics right at the start of the opening animation and right
+at the end of the modal closing animation"; two review forks recorded every
+card type frame by frame). What was wrong, and the rule now:
+- **Measure the card AT REST, in the same task as the click.** LiftCard's
+  tilt reset ran through the card's 0.3 s transform transition and
+  `animating-out` (scale 0.95) was added before anything was measured, so
+  the open started from — and the close landed on — the hovered, tilted
+  outline (2.5-5% too big: text re-wrapped on the first frame, the real card
+  appeared 6-15px smaller at the end of every desktop close). Now
+  `activate` records the pose (`el.__tiltPose`), resets with
+  `transition: none`, App measures, and the card is hidden by the modal's
+  own lift (`onLifted`, a layout effect) so it goes in the frame the modal
+  first paints.
+- **The modal STARTS as the card looked**: the surface and the flyer begin
+  in the card's pose (perspective 900, rotateX/Y, scale) and level out over
+  the lift; the surface starts from the card's corners, border and shadow
+  (`look`, read in App; one-shadow `rgba() x y blur spread` strings, or
+  motion cannot interpolate); a media-first small card's surface starts CLEAR
+  and fills early in the expand; the spotlight under the pointer rides the
+  copy (`.lit`) and fades. The lift of the flyer is a transform about the
+  card's centre, so the small card's overlay text grows with its picture,
+  starting at the size the hover's translateZ drew it (`zk`).
+- **The settle must name every property the collapse animated.** It left out
+  left/width/height; motion finished a fallback at once and the modal
+  unmounted 8-73 ms after the reveal — a cut. Phases are `variants` +
+  `animate={phase}`, advancing only when the completed label is the phase.
+- **The flyer stays through the settle and HANDS OVER BY A FADE** (after
+  the surface has gone, so it does not wash white), landing on the card's own
+  pixels: an `<img>` of the card's source, or a still of the card's clip once
+  it has been seeked to the modal's moment (`onCloseStart`), with the modal's
+  frame cross-fading out on the way. No new element can match a card's
+  picture to the device pixel — on a 3x phone the card's layer draws it 2px
+  below its box — so a cut there is always visible; a fade is not.
+- **Card clips hold still while the modal is up** (paused in `mediaOf`,
+  seeked at the START of the close, played after the settle): playing hidden
+  they were 1-3 s elsewhere by the close.
+- **Snapshots are the WHOLE frame** drawn with `object-fit: cover`: a still
+  cropped to one box was stretched into the other and popped at the swap.
+- **The copy is pinned through `display: contents`** with `!important`
+  (phones: the experience card's text column is `contents`, its video
+  `position: relative !important`), the ghost is a plain block 1px up-left
+  (inside the surface's border), and the small card's text floats translateZ
+  only while it tilts (at rest it was drawn 3.4% large, a second title 5px
+  off at the landing). No tap highlight on cards.
+Checked by `modfix/seam.mjs` (scratch): the first frame with motion's clock
+frozen at the click against the frame before it, the settle's frames against
+the frame after, per-frame logs of both.
+
 ### Oct 6: the right stage RASTERISES in WebGL (`robotGL.js`)
 
 The owner, repeatedly: "textures still glitching on the so-arm101", "I can

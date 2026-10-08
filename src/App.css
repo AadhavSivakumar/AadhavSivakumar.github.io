@@ -2181,7 +2181,7 @@ html[data-theme="dark"] .resume-skill__icon:not(.skill-icon-mono) { background: 
 .modal-tags .project-tag { padding: 4px 12px !important; }
 .modal-flyer .modal-flyer-shot { position: absolute; inset: 0; }
 .modal-flyer .flyer-live { position: absolute; inset: 0; transition: opacity 0.12s linear; }
-.modal-flyer { background: transparent !important; }
+.modal-flyer { background: transparent; }   /* not !important: the flight sets the colour behind the picture inline (Modal.jsx) */
 
 /* ── the header as floating LIQUID GLASS (Oct 6; the owner: use React Bits'
    GlassSurface / FluidGlass "to make the navbar look more modern"). Three
@@ -2655,4 +2655,42 @@ html[data-theme="dark"] .hero-bubble__shine::before {
   /* the WebGL canvases set their own visibility inline, so the collapsed
      band showed a red cube in its 24px strip */
   html.dock-collapsed .f3d-dock .f3d * { visibility: hidden !important; }
+}
+
+/* ── THE MODAL'S FIRST AND LAST FRAMES (Oct 8; the owner: "a small weirdness
+   with graphics right at the start of the opening animation and right at the
+   end of the modal closing animation"). Modal.jsx / App.jsx carry the card's
+   pose and look into the first frame and land on the card at rest; these
+   are the rules that let the copies match the card exactly. ──────────── */
+/* motion animates the surface's fill and border now; a CSS transition on
+   them would fight it (the phase contract: no CSS transitions on what
+   motion animates) */
+.modal-animator { transition: none; }
+/* the copy's boxes were measured from the card's border edge; inside the
+   surface's 1px border they sat 1px in. All its boxes are pinned (App.jsx
+   frozenHTML), so it is a plain block whatever grid the card's classes ask
+   for — a grid placement would make a pinned box's grid AREA its frame */
+.modal-animator .modal-ghost, .modal-animator .modal-ghost.small-project-card { top: -1px !important; left: -1px !important; display: block !important;
+  width: var(--gw) !important; height: var(--gh) !important; min-height: 0 !important; max-height: none !important; aspect-ratio: auto !important; }
+/* the spotlight the card had under the pointer, on the copy's first paint */
+.modal-animator .modal-ghost.lit::after { opacity: 1; }
+/* the flying still is the whole frame, cropped the way the media it stands
+   in for crops it (src/snapshot.js) */
+.modal-flyer-shot canvas { object-fit: cover; }
+/* a small card's text floats 30px toward the viewer only while the card
+   TILTS: at rest the tilt's perspective drew it 3.4% larger than its box,
+   which no copy of it (the modal's ghost, the flyer's overlay) reproduced —
+   two titles ~5px apart as the close landed */
+.small-projects-grid .small-project-content { transform: none; transition: transform 0.3s ease-out; }
+.small-projects-grid .tilt-card:hover .small-project-content { transform: translateZ(30px); }
+/* phones: no tap flash on a card or the modal's controls (Chromium's blue
+   highlight sat over the lifting card for ~100 ms) */
+.lift-card, .modal-close, .modal-gallery-thumb, .modal-gallery-arrow { -webkit-tap-highlight-color: transparent; }
+/* the focus ring a keyboard close returns to the card fades in rather than
+   snapping on as the copy leaves (the global ring is :where()-scoped) */
+.lift-card { outline: 2px solid transparent; outline-offset: 3px; }
+.lift-card:focus-visible { outline-color: var(--accent-ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .major-project-card, .small-project-card, .about-me-card { transition: transform 0.3s ease-out, box-shadow 0.4s ease, background-color 0.4s ease, border-color 0.4s ease, outline-color 0.35s ease; }
+  .exp-card { transition: transform 0.3s ease-out, box-shadow 0.4s ease, border-color 0.4s ease, outline-color 0.35s ease; }
 }
