@@ -53,7 +53,17 @@ const prefersReduced = () =>
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
 
+// a finger on the screen: a phone's pages fit one screen too (Oct 8), so the
+// snap runs there, and must not pull the page while the reader holds it
+let touching = 0;
+if (typeof window !== 'undefined') {
+  window.addEventListener('touchstart', e => { touching = e.touches.length; }, { passive: true });
+  window.addEventListener('touchend', e => { touching = e.touches.length; }, { passive: true });
+  window.addEventListener('touchcancel', () => { touching = 0; }, { passive: true });
+}
+
 function blocked() {
+  if (touching > 0) return true;                                   // a finger is down
   if (document.body.style.overflow === 'hidden') return true;      // modal open
   if (document.body.style.cursor === 'grabbing') return true;      // dragging a badge
   const ae = document.activeElement;

@@ -1277,7 +1277,7 @@ own fixed layer on every screen: on a desktop it is `inset: 0; z-index: -1`,
 identical to the field's layer, so nothing there changed. It is SEPARATE
 from the field's layer because on a phone it has to sit above the content
 while the field stays behind it. Its height is
-`min(32vh, 70vw, 300px)` — the second term is what two 340:660 stages fit
+`min(19vh, 40vw, 160px)` since Oct 8 (was `min(32vh, 70vw, 300px)`; the owner: "in mobile, make the animations smaller") — the second term is what two 340:660 stages fit
 across at that height — and each stage is sized from it (`--fh: dock / 0.74`,
 the drawing's ink runs y 120-615 of 660, so the top 20% is cropped by the
 dock's edge and 6% hangs below the screen). The hero is shortened by the
@@ -1625,7 +1625,7 @@ at the owner's request ("consolidate the information").
 wordmark left, the page links CENTRED, and on the right the owner's
 profiles (`SOCIALS` in Header.jsx: LinkedIn, GitHub, email, X, Instagram — the resume PDF until Oct 6)
 as 17px line icons beside the theme toggle; on a phone the profiles sit at
-the bottom of the menu panel (`.socials--menu`) and the toggle and burger
+the header bar beside the burger since Oct 8 (`.socials--bar`; they were at the bottom of the menu panel, `.socials--menu`, now hidden) and the toggle and burger
 sit right. The link preview is `Media/web/og.jpg` (1200x630 JPG — WebP does
 not unfurl on LinkedIn or Slack): the big AS mark, name, role, the gold
 waves, rendered from an HTML page with Playwright; og/twitter image, type,
@@ -2514,6 +2514,30 @@ moved left of it); the instruction read "pick red cube place" (now "put red
 cube on mark"); and backprop now starts with an ink arrow UP from the
 chunk-vs-demo frame, then climbs the layers.
 
+**Oct 8, phones** (the owner: "in mobile, make the animations smaller, and
+make sure the relevant stuff fits on each page. Also, the socials links
+should be at the top at all times"). One block at the end of App.css
+(`PHONES, Oct 8`), ≤768px: the band is `min(19vh, 40vw, 160px)`; the
+profiles sit in the header bar beside the burger; every `.page` (and the
+hero) is exactly `100svh`, its content between `--head-h` (62px) and
+`--dock-room` (the band, or 24px collapsed), and the grids share out that
+height with `minmax(0, 1fr)` rows so it holds on any phone: Experience /
+Research cards are the clip beside the role with a 3-line summary (no tags);
+Major Projects a 2x2 of covers + titles; Additional Projects a 3x4 of tiles;
+Resume the two documents, the transcripts, the viewer filling what is left,
+the actions and the skills on one swipeable row (the aside is `display:
+contents` and its children placed on the layout's grid); Get In Touch the
+about card as a row. Descriptions and tags are in the modals. The down
+buttons are hidden on phones. A `max-height: 600px` block covers the 568px
+iPhone SE. Checked on six phones (320x568 to 430x740, 412x839) by measuring
+every element of every page against the header and the band — no overlap,
+no sideways scroll — and 0 mutations on still pages. **Phones snap now**:
+the pages fit, so `scrollSnap.js`'s FIT test passes there; it waits while a
+finger is down (`touching`), so it never pulls a page the reader is holding.
+Measuring gotchas: wait ~1.5s after scrolling (the cards' entrance slides
+them up and reads as overflow), scroll with `scroll-behavior: auto`, and
+skip what is inside a scrolling frame (`.resume-pages`, `.skill-chips`).
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner
@@ -2896,7 +2920,7 @@ took, in case something is added and a page grows past the screen:
   ~25px at 1536x864 before that.
 
 Tablets in landscape (1024x768, 1100x820) still run a page or two 20-80px
-over and scroll within it; below 992px the pages stack naturally and the
+over and scroll within it; 769-991px the pages stack naturally (PHONES, ≤768px, are one screen per page since Oct 8 — see "Oct 8, phones") and the
 lanyards are not loaded. **On phones the nav is a MENU behind a hamburger
 button** (`.nav-burger` in `Header.jsx`, ≤768px): a panel that drops from
 the header with the seven links stacked and the theme toggle last; it
