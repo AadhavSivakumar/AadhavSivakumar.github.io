@@ -2457,8 +2457,11 @@ export default function Flourish3D({ side = 'right' }) {
     // table), each arm's second flap grabbed on its own side
     // (Oct 7: re-solved for the arms as photographed — shoulders 480 mm
     // apart, the ELBOW DOWN: upper arm hanging, forearm reaching forward)
+    // (Oct 8: the item waits beyond the right flap's swing and is let go
+    // above the rim — ik-poses.mjs's box check: gripper and item 0 mm into
+    // any wall, the gripper never in the resting item)
     const OP_REST = { pitch: -0.218, roll: -0.036, elbow: -1.721, wrist: 1.415 };
-    const OP_R = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: -0.92, roll: 0.274, elbow: -0.096, wrist: 1.016 }, FLAP2_UP: { pitch: -0.433, roll: 0.375, elbow: -1.417, wrist: 1.85 }, ITEM: { pitch: 0.085, roll: -0.054, elbow: -1.718, wrist: 1.633 }, ITEM_UP: { pitch: -0.425, roll: -0.118, elbow: -2.218, wrist: 2.644 }, OVER: { pitch: -0.197, roll: 0.536, elbow: -1.946, wrist: 2.142 }, IN: { pitch: -0.047, roll: 0.374, elbow: -1.613, wrist: 1.66 } };
+    const OP_R = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: -0.92, roll: 0.274, elbow: -0.096, wrist: 1.016 }, FLAP2_UP: { pitch: -0.433, roll: 0.375, elbow: -1.417, wrist: 1.85 }, ITEM: { pitch: 0.308, roll: -0.206, elbow: -1.834, wrist: 1.526 }, ITEM_UP: { pitch: -0.195, roll: -0.434, elbow: -2.447, wrist: 2.642 }, OVER: { pitch: -0.225, roll: 0.55, elbow: -1.969, wrist: 2.194 }, IN: { pitch: -0.152, roll: 0.545, elbow: -1.899, wrist: 2.051 } };
     const OP_L = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: 0.557, roll: 0.274, elbow: -1.852, wrist: 1.294 }, FLAP2_UP: { pitch: 0.24, roll: 0.375, elbow: -2.161, wrist: 1.92 } };
     const OPW_R = [op(OP_REST, 60), op(OP_R.FLAP, 60), op(OP_R.FLAP_UP, 60), op(OP_R.FLAP2, 60), op(OP_R.FLAP2_UP, 60),
                    op(OP_R.ITEM_UP, 100), op(OP_R.ITEM, 100), op(OP_R.ITEM, 76), op(OP_R.ITEM_UP, 76), op(OP_R.OVER, 76), op(OP_R.IN, 76), op(OP_R.IN, 100), op(OP_R.OVER, 100), op(OP_REST, 60)];
@@ -2795,7 +2798,11 @@ export default function Flourish3D({ side = 'right' }) {
       drawOpenBox([d[0], d[1] + 80 * k, d[2]], 240, 240, 160, R_UP, k, MAT.iron, alpha);
     }
     // the OP1's job, in the unit's frame: the box's flaps and the item
-    const OPB = { BZ: -200, BX: 230, BW: 300, BD: 180, BH: 120, TW: 260, TL: 600 };   // TW x TL: the packing table under the box
+    // TW x TL: the packing table under the box. TL 740 (was 600): the item
+    // waits on it beyond the right flap's swing (it used to sit on the flat
+    // flap, and the flap folded up through it)
+    const OPB = { BZ: -200, BX: 230, BW: 300, BD: 180, BH: 120, TW: 260, TL: 740 };
+    const UNIT_ID = place(IDENT, [0, 0, 0]);   // the unit's own frame: smallArmFrames in it gives unit-frame mm
     const lerpArm = (A, B, k) => ({ pitch: A.pitch + (B.pitch - A.pitch) * k, roll: A.roll + (B.roll - A.roll) * k, elbow: A.elbow + (B.elbow - A.elbow) * k, wrist: A.wrist + (B.wrist - A.wrist) * k, open: A.open + (B.open - A.open) * k });
     const ARM_KEYS = ['pitch', 'roll', 'elbow', 'wrist', 'open'];
     const armArr = P => ARM_KEYS.map(k => P[k]);
@@ -2816,7 +2823,12 @@ export default function Flourish3D({ side = 'right' }) {
         const PR = at(task.R, ph0), PL = at(task.L, ph0);
         const tcpR = P => smallArmFrames(TU, P, 1).tcp;
         let itemPos = tcpR(task.R[task.item.at]), held = false;
-        if (ph >= task.item.drop) itemPos = tcpR(task.R[task.item.drop]);
+        // let go ABOVE the rim (lowered into the box, the tilted gripper
+        // went through its wall), the item FALLS to the box floor
+        if (ph >= task.item.drop) {
+          const r = smallArmFrames(UNIT_ID, task.R[task.item.drop], 1).tcp, f = clamp((ph - task.item.drop) / 0.22, 0, 1);
+          itemPos = tpOf(TU, [r[0], r[1], r[2] + (OPB.BZ + 40 - r[2]) * f * f]);
+        }
         if (ph >= task.item.at && ph < task.item.drop) { held = true; itemPos = tcpR(PR); }
         const fold = ([i0, i1]) => smooth(clamp((ph - i0) / (i1 - i0), 0, 1));
         return { PR, PL, a, itemPos, held, q: fairinoSway(ph0), flaps: { R: fold(task.flaps.R), F: fold(task.flaps.F), L: fold(task.flaps.L), B: fold(task.flaps.B) } };
@@ -2864,7 +2876,7 @@ export default function Flourish3D({ side = 'right' }) {
       flap([BX, -BW / 2, BZ], rotX(-st.flaps.L * H), BD, BH, 0, -BH / 2);
       flap([BX + BD / 2, 0, BZ], rotY(-st.flaps.F * H), BH, BW, BH / 2, 0);
       flap([BX - BD / 2, 0, BZ], rotY(st.flaps.B * H), BH, BW, -BH / 2, 0);
-      drawCube(st.itemPos, 80 * k, R_UP, MAT.alu, a);
+      drawCube(st.itemPos, 80 * k, unitRot(TU.m), MAT.alu, a);   // square to the BOX (the unit's frame), not to the stage
     }
 
     // ── act 1 (right): the motor becomes the SO-ARM101 ──────────────────

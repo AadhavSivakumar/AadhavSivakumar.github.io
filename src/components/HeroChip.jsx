@@ -8,12 +8,13 @@ import {
 } from 'motion/react';
 import GlassSurface from './reactbits/GlassSurface';
 
-// A single liquid-glass keyword pill. The pill itself is glass (translucent fill
-// + backdrop-filter blur/saturate + an SVG displacement filter that warps the
-// moving sine-wave field behind it). This component adds the per-chip pointer
-// response: a spring-smoothed 3D tilt toward the cursor and a specular highlight
-// that tracks the cursor, so each pill "turns to catch the light".
-export default function HeroChip({ label, index, onClick }) {
+// A single liquid-glass keyword pill: React Bits' GlassSurface bending the
+// sine field behind it, plus a spring-smoothed 3D tilt toward the cursor and a
+// specular highlight that tracks it, so each pill "turns to catch the light".
+// It is a LABEL, not a control (the owner, Oct 8: "the tags in the hero section
+// don't need to be clickable just make them bigger so the liquid glass effect
+// is more pronounced"): no click, no focus stop, no hover lift or press.
+export default function HeroChip({ label, index }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
 
@@ -39,19 +40,16 @@ export default function HeroChip({ label, index, onClick }) {
   function handleLeave() { sheen.set(0); rotX.set(0); rotY.set(0); }
 
   return (
-    <motion.button
+    <motion.span
       ref={ref}
-      type="button"
+      role="listitem"
       className="hero-chip"
-      onClick={onClick}
       onPointerMove={handleMove}
       onPointerEnter={handleEnter}
       onPointerLeave={handleLeave}
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1 + index * 0.09, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={reduce ? undefined : { y: -3, scale: 1.06 }}
-      whileTap={{ scale: 0.96 }}
       style={{ rotateX: rotX, rotateY: rotY, transformPerspective: 620 }}
     >
       {/* the navbar's liquid glass (Oct 7; the owner: "have the tags be
@@ -65,6 +63,6 @@ export default function HeroChip({ label, index, onClick }) {
         style={{ backgroundImage: glow, opacity: sheen }}
       />
       <span className="hero-chip__label">{label}</span>
-    </motion.button>
+    </motion.span>
   );
 }

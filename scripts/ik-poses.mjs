@@ -278,8 +278,17 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
     // each arm's second flap is grabbed on ITS OWN side of the box (y ±130 of
     // a 300-wide box), so an arm never reaches across the middle
     RIGHT: { FLAP: [BX, BW / 2 + 60, BZ + 15], FLAP_UP: [BX, BW / 2 - 12, BZ + BH + 8], FLAP2: [BX + BD / 2 + 50, 130, BZ + 15], FLAP2_UP: [BX + BD / 2 - 12, 130, BZ + BH + 8],
-             // the item and the box work on the RIGHT half (y > 0)
-             ITEM: [BX - 30, BW / 2 + 110, BZ + 40], ITEM_UP: [BX - 30, BW / 2 + 110, BZ + 240], OVER: [BX, 108, BZ + 185], IN: [BX, 108, BZ + 70],
+             // the item and the box work on the RIGHT half (y > 0). The item
+             // rests ON the table top (BZ - 6) beyond the right flap's swing
+             // (hinge y 150, 120 long: it reaches y 270 flat and as it folds)
+             // and behind the gripper's x while that arm folds it (the owner:
+             // "the box and the cube are slightly clipping through each
+             // other"). The drop is ABOVE the rim: rolled inward this far,
+             // the gripper tilts and its outer finger dips ~35 mm, so lowered
+             // into the box it went through the wall; it lets go with every
+             // part clear of the rim — the item 10 mm above it, so it does not
+             // read as sitting on the wall — and the item falls to the floor.
+             ITEM: [BX - 80, BW / 2 + 168, BZ + 34], ITEM_UP: [BX - 80, BW / 2 + 168, BZ + 240], OVER: [BX, 96, BZ + 205], IN: [BX, 96, BZ + 170],
              // REST, as photographed: upper arm hanging, forearm reaching
              // forward, the gripper pointing forward and down — clear above
              // the table
@@ -319,6 +328,41 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
       for (const a of pr) for (const b of pl) near = Math.min(near, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]));
     }
     console.log(`// op check: lowest arm point ${r3(lo - (BZ - 6))} mm above the table top; arms no closer than ${r3(near)} mm`);
+  }
+  // CHECK the right arm's gripper and the item against the box: the gripper
+  // boxes as drawSmallArm draws them (in the wrist frame), sampled on a grid,
+  // against the FOLDED walls (6 mm thick, BH tall, from phase 4.5 when all
+  // four are up) and the item while it rests on the table; the held item's
+  // corners against the walls. All three should print 0.
+  {
+    const R = out.RIGHT;
+    const seq = [['REST', 60], ['FLAP', 60], ['FLAP_UP', 60], ['FLAP2', 60], ['FLAP2_UP', 60], ['ITEM_UP', 100], ['ITEM', 100], ['ITEM', 76], ['ITEM_UP', 76], ['OVER', 76], ['IN', 76], ['IN', 100], ['OVER', 100], ['REST', 60]];
+    const wrist = P => {
+      const S = mul(rotX(-P.roll), rotY(P.pitch)), o = [0, S_Y, S_Z];
+      const e = ap(S, [0, 0, -L1]).map((x, i) => x + o[i]);
+      const E = mul(S, rotY(P.elbow)); const w = ap(E, [0, 0, -L2]).map((x, i) => x + e[i]);
+      return { W: mul(E, rotY(P.wrist)), w };
+    };
+    const at = (F, p) => ap(F.W, p).map((x, i) => x + F.w[i]);
+    const gripBoxes = g => [[50, 156, 50, 0, 0, -74], ...[-1, 1].flatMap(s => [[32, 20, 34, 0, s * (g / 2 + 9), -116], [30, 20, 17, 2, s * (g / 2 + 9), -141.5]])];
+    const grid = ([w, d, h, cx, cy, cz]) => { const o = []; for (let a = 0; a <= 4; a++) for (let b = 0; b <= 6; b++) for (let c = 0; c <= 4; c++) o.push([cx + (a / 4 - 0.5) * w, cy + (b / 6 - 0.5) * d, cz + (c / 4 - 0.5) * h]); return o; };
+    const wallPen = p => {
+      const x0 = BX - BD / 2, x1 = BX + BD / 2, y0 = -BW / 2, y1 = BW / 2;
+      if (p[2] > BZ + BH || p[2] < BZ - 6 || p[0] < x0 || p[0] > x1 || p[1] < y0 || p[1] > y1) return 0;
+      return Math.max(0, -Math.min(p[0] - (x0 + 6), (x1 - 6) - p[0], p[1] - (y0 + 6), (y1 - 6) - p[1]));
+    };
+    const lp = (A, B, u) => Object.fromEntries(['pitch', 'roll', 'elbow', 'wrist'].map(k => [k, A[k] + (B[k] - A[k]) * u]));
+    const item = at(wrist(R.ITEM), [0, 0, -L3]);
+    let gw = 0, gc = 0, cw = 0;
+    for (let i = 0; i < seq.length - 1; i++) for (let j = 0; j < 20; j++) {
+      const u = j / 20, ph = i + u, P = lp(R[seq[i][0]], R[seq[i + 1][0]], u), g = seq[i][1] + (seq[i + 1][1] - seq[i][1]) * u, F = wrist(P);
+      const pts = gripBoxes(g).flatMap(b => grid(b).map(p => at(F, p)));
+      if (ph >= 4.5) for (const p of pts) gw = Math.max(gw, wallPen(p));
+      if (ph < 6) for (const p of pts) if (Math.max(Math.abs(p[0] - item[0]), Math.abs(p[1] - item[1]), Math.abs(p[2] - item[2])) < 40) gc++;
+      if (ph >= 7 && ph < 11) { const c = at(F, [0, 0, -L3]); for (const s of [-1, 1]) for (const t of [-1, 1]) for (const v of [-1, 0, 1]) cw = Math.max(cw, wallPen([c[0] + s * 40, c[1] + t * 40, c[2] + v * 40])); }
+    }
+    const rel = at(wrist(R.IN), [0, 0, -L3]);
+    console.log(`// op box check: gripper into a wall ${r3(gw)} mm, gripper points inside the resting item ${gc}, held item into a wall ${r3(cw)} mm; released ${r3(rel[2] - (BZ + 40))} mm above where it lands`);
   }
   console.log('OP_BOX =', JSON.stringify({ BZ, BX, BW, BD, BH }));
   console.log('OP_P =', JSON.stringify(out));

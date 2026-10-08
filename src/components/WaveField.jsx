@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
 import {
-  ROWS, VW, VH, FIELD_A, FREQ_LAND, FREQ_PORT, DRIFT,
-  rowY, rowA, waveY, S_ART, live, heroPhase, heroHeight,
+  VW, VH, FIELD_A, FREQ_LAND, FREQ_PORT, DRIFT, ROW_FIRST, ROW_LAST,
+  rowY, rowA, rowT, waveY, S_ART, live, heroPhase, heroHeight,
 } from '../waveField';
 
 // The hero's sine field: ONE fixed full-viewport canvas behind the page that
@@ -18,7 +18,7 @@ import {
 //
 // The stroke TAPERS down the field (the owner: "a little thicker at the top
 // and thinner at the bottom"), from STROKE_TOP to STROKE_BOTTOM css px.
-const STROKE_TOP = 3.8, STROKE_BOTTOM = 0.6;
+const STROKE_TOP = 3.8, STROKE_BOTTOM = 0.9;   // 0.6 until the bottom rows were asked to fade less (Oct 8)
 // the pointer lens: its radius (virtual units) and how far it parts the rows
 const LENS_R = 46, LENS_H = { land: 40, port: 16 };
 
@@ -120,12 +120,12 @@ export default function WaveField() {
       ctx.lineCap = 'round';
       ctx.strokeStyle = ink;
       let entering = false;
-      for (let i = 0; i < ROWS; i++) {
+      for (let i = ROW_FIRST; i <= ROW_LAST; i++) {
         // entrance: each row drops in from above — /portfolio's 50ms stagger
         // and 1200ms cubic-out
         let e = 1;
         if (!reduce) {
-          const t = (elapsed - i * 50) / 1200;
+          const t = (elapsed - (i - ROW_FIRST) * 50) / 1200;
           if (t < 1) { e = t <= 0 ? 0 : 1 - Math.pow(1 - t, 3); entering = true; }
         }
         if (e <= 0) continue;
@@ -134,7 +134,7 @@ export default function WaveField() {
         if (a <= 0.004) continue;
         ctx.globalAlpha = a;
         // eased, so the upper rows stay heavy and the thinning happens lower down
-        ctx.lineWidth = STROKE_TOP + (STROKE_BOTTOM - STROKE_TOP) * Math.pow(i / (ROWS - 1), 0.75);
+        ctx.lineWidth = STROKE_TOP + (STROKE_BOTTOM - STROKE_TOP) * Math.pow(rowT(i), 0.75);
         // SMOOTH: a point every ~6 px, joined by quadratic curves through the
         // midpoints (straight segments showed their corners on the thick top
         // rows — "I can still see individual segments")

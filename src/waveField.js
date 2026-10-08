@@ -24,7 +24,7 @@ export const FREQ_LAND = 0.04;
 export const FREQ_PORT = 0.02;
 export const PHASE_STEP = -25 * (25 / ROWS) * Math.PI / 180;   // the same total twist down the field, spread over more rows
 export const A_TOP = 0.8;
-export const A_BOTTOM = 0.1;
+export const A_BOTTOM = 0.5;     // was /portfolio's 0.1 (the owner, Oct 8: "don't have the sine wave rows fade so much going down")
 export const DRIFT = 7.2;        // virtual units per second
 export const STROKE = 2;         // css px
 // Field opacity over the whole layer, light and dark. /portfolio uses 0.8/0.6.
@@ -32,8 +32,17 @@ export const FIELD_A = { light: 0.72, dark: 0.55 };
 // The mouse bulge from /portfolio: a gaussian lifted under the cursor.
 export const BULGE = { land: 120, port: 40, radius: 40, cutoff2: 25000 };
 
+// Rows beyond the original 34, at the same spacing and twist (the owner,
+// Oct 8: "add a few more rows below the hero section, and one or two more
+// rows above so you can see it refract more through the glass navbars"):
+// two above row 0 run behind the floating navbar, four below run the field
+// off the hero's bottom edge instead of ending short of it.
+export const ROW_FIRST = -2;
+export const ROW_LAST = ROWS - 1 + 4;
 export const rowY = i => PAD + (i / (ROWS - 1)) * (VH - 2 * PAD);
-export const rowA = i => A_TOP - (i / (ROWS - 1)) * (A_TOP - A_BOTTOM);
+// opacity and stroke run over the whole field, top row to last
+export const rowT = i => Math.max(0, i - ROW_FIRST) / (ROW_LAST - ROW_FIRST);
+export const rowA = i => A_TOP - rowT(i) * (A_TOP - A_BOTTOM);
 // `d` is the distance from the centre line, in virtual units. The wave is
 // mirrored about the centre, and a plain |x| made a sharp V there (the owner:
 // "the middle should be less pointy"); a SOFT absolute value, sqrt(d² + s²) - s,

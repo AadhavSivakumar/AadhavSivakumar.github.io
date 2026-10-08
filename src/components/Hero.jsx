@@ -2,21 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
 import HeroChip from './HeroChip';
+import GlassSurface from './reactbits/GlassSurface';
 import DecryptedText from './reactbits/DecryptedText';
 import portrait from '../../Media/hero/frontpagepfp.webp';
 
-// Keyword chips under the tagline, like the live /portfolio hero — clicking
-// one jumps to the section where that topic lives. These are the fields the
-// owner is looking for work in, in their words ("reinforcement learning,
-// world models, simulation, VLAs, embodied AI"), plus robotics itself; the
-// tagline says the same thing in a sentence.
+// Keyword chips under the name: the fields the owner is looking for work in,
+// in their words ("reinforcement learning, world models, simulation, VLAs,
+// embodied AI"), plus robotics itself. Labels only since Oct 8 (they used to
+// jump to a section; the owner: "don't need to be clickable").
 const KEYWORDS = [
-  { label: 'Robotics', target: 'projects' },
-  { label: 'VLAs', target: 'research' },               // the π0 work (NYU)
-  { label: 'World Models', target: 'experience' },      // the Cosmos work (Roboflow)
-  { label: 'Reinforcement Learning', target: 'projects' },   // the Go2 PPO policy
-  { label: 'Simulation', target: 'research' },          // the Real2Sim twins (NYU)
-  { label: 'Embodied AI', target: 'experience' },
+  'Robotics',
+  'VLAs',                    // the π0 work (NYU)
+  'World Models',            // the Cosmos work (Roboflow)
+  'Reinforcement Learning',  // the Go2 PPO policy
+  'Simulation',              // the Real2Sim twins (NYU)
+  'Embodied AI',
 ];
 
 const NAME = 'Aadhav Sivakumar';
@@ -134,14 +134,23 @@ export default function Hero() {
         </defs>
       </svg>
 
-      {/* The portrait, as on /portfolio: a 224px disc above the name. */}
+      {/* The portrait, as on /portfolio: a disc above the name — 20% bigger
+          since Oct 8, in a GLASS BUBBLE (the owner: "add a glass bubble around
+          it"): the navbar's and chips' GlassSurface as a ring round the photo,
+          the waves bending through it, a lens rim and a glint on top. */}
       <motion.div
-        className="hero-photo"
+        className="hero-bubble"
         initial={{ opacity: 0, y: 16, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ delay: 0.35, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
       >
-        <img src={portrait} alt="" width="480" height="480" decoding="async" fetchpriority="high" />
+        <GlassSurface width="100%" height="100%" borderRadius={999} borderWidth={0.3} brightness={50} opacity={0.93} blur={18}
+          backgroundOpacity={0} saturation={1.5} distortionScale={-100} redOffset={0} greenOffset={0} blueOffset={0}
+          displace={0.3} className="hero-bubble__glass" />
+        <div className="hero-photo">
+          <img src={portrait} alt="" width="480" height="480" decoding="async" fetchpriority="high" />
+        </div>
+        <span className="hero-bubble__shine" aria-hidden="true" />
       </motion.div>
 
       {/* ONE line of who and where over the name (the owner: "consolidate the
@@ -172,15 +181,8 @@ export default function Hero() {
         ))}
       </h1>
 
-      <div className="hero-chips">
-        {KEYWORDS.map((k, i) => (
-          <HeroChip
-            key={k.label}
-            label={k.label}
-            index={i}
-            onClick={() => scrollTo(k.target)}
-          />
-        ))}
+      <div className="hero-chips" role="list" aria-label="Fields">
+        {KEYWORDS.map((k, i) => <HeroChip key={k} label={k} index={i} />)}
       </div>
 
       <motion.button

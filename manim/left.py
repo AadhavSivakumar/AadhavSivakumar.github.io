@@ -935,7 +935,9 @@ CURVE_C, CURVE_W, CURVE_H = (0.95, 2.52), 1.4, 0.62
 TOK_Y, LANG_Y = 1.18, 0.78
 LAYER_Y = [0.22, -0.08, -0.38, -0.68]
 OUT_C, OUT_K = (0.0, -2.25), 0.5
-WORDS = ["pick", "red", "cube", "place"]
+# the instruction, as the words a person would type (Oct 8: it read "pick red
+# cube place"); "red" and "cube" (1, 2) are what attend to the cube's patch
+WORDS = ["put", "red", "cube", "on mark"]
 PASS_Y1 = OUT_C[1] + 0.5 * 1.7 + 0.02
 
 
@@ -1062,12 +1064,16 @@ LAYER_CELLS = 16                       # the 12 patch tokens and the 4 words, th
 FWD_X, BWD_X = -1.82, 1.82             # the forward / backward pass arrows down each side
 
 
-def layers(a=1.0, lit=None, back=None, out_lit=0.0):
+def layers(a=1.0, lit=None, back=None, out_lit=0.0, out_back=0.0):
     """The VLA as a transformer: four layers, each the SAME row of 16 token
     slots (12 image patches, 4 words) the tokens above feed into; an arrow in
     from the tokens and out to the action chunk. `lit` lights the layer the
     forward pass is in (copper cells), `back` the one the backward pass is in
-    (an ink outline); `out_lit` the arrow into the predicted chunk."""
+    (an ink outline); `out_lit` the arrow into the predicted chunk, `out_back`
+    the ink arrow beside it that carries the loss back UP from the chunk vs.
+    the demo, where backprop starts. Both run down the middle into the
+    chunk's frame (the arrow out used to leave the network's left end and
+    point past the frame)."""
     g = VGroup()
     cw = 3.0 / LAYER_CELLS
     for i, y in enumerate(LAYER_Y):
@@ -1087,12 +1093,15 @@ def layers(a=1.0, lit=None, back=None, out_lit=0.0):
     top, bot = LAYER_Y[0] + 0.1, LAYER_Y[-1] - 0.1
     g.add(flow_arrow(np.array([0, LANG_Y - 0.15, 0]), np.array([0, top + 0.02, 0]), PAL["soft"], a))
     oc = ManimColor(PAL["soft"]).interpolate(ManimColor(PAL["copper"]), out_lit)
-    g.add(flow_arrow(np.array([-1.25, bot, 0]), np.array([-1.25, PASS_Y1 + 0.02, 0]), oc, a, 1.4 + 1.2 * out_lit))
+    g.add(flow_arrow(np.array([-0.08, bot, 0]), np.array([-0.08, PASS_Y1 + 0.02, 0]), oc, a, 1.4 + 1.2 * out_lit))
+    if out_back > 0.01:
+        g.add(flow_arrow(np.array([0.08, PASS_Y1 + 0.02, 0]), np.array([0.08, bot, 0]), PAL["ink"], a * out_back, 1.4 + 1.0 * out_back))
     return g
 
 
 def vla_cap():
-    return caption("VLA policy", LAYER_Y[-1] - 0.32)
+    # left of the arrows down the middle; the pass's name sits right of them
+    return caption("VLA policy", LAYER_Y[-1] - 0.32, -0.95)
 
 
 def chunk_pts(u0=OUT_U, n=8, step=0.035):
@@ -1558,7 +1567,9 @@ def pass_state(f):
     if f < 0.56:
         return dict(out_lit=1.0 - smooth01((f - 0.5) / 0.06)), None, 0.0
     x = (f - 0.56) / 0.44
-    return dict(back=3.6 - x * 4.2), "backprop", math.sin(math.pi * x)
+    # the loss leaves the chunk-vs-demo frame first (the ink arrow up), then
+    # climbs the layers bottom to top
+    return dict(back=3.6 - x * 4.2, out_back=smooth01(x / 0.08) * (1 - smooth01((x - 0.3) / 0.15))), "backprop", math.sin(math.pi * x)
 
 
 def pass_label(name, a):

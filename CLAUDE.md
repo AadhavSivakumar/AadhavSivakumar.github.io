@@ -570,7 +570,7 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
   dropping into each step → decoded imagined frames, fainter) · IdleData
   (six demos out of phase) · Act3 TRAIN (the wall lands on a stack of
   demos, a frame is cut into a 4×3 patch grid whose patches fly to token
-  slots, the instruction's words "pick red cube place" join them,
+  slots, the instruction's words "put red cube on mark" join them,
   cross-attention arcs word ↔ red-cube patch, four slabs; then forward
   passes (copper, down) and backward passes (ink, up) while the predicted
   action chunk (copper dots) converges on the demonstration's (ink rings)
@@ -639,7 +639,7 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
 ## The hero, and the sine field that becomes the camera and the motor
 
 The front page follows the old `/portfolio` hero, at the owner's request: a
-full-viewport band, a 224px portrait disc (`Media/hero/frontpagepfp.webp`,
+full-viewport band, a portrait disc (269px since Oct 8, in a glass bubble; `Media/hero/frontpagepfp.webp`,
 imported so Vite bundles it) above the name, the keyword chips, and the gold
 sine field behind all of it. **The tagline and chips name the work the owner
 is looking for** — "Robotics engineer working on embodied AI — VLAs, world
@@ -2477,6 +2477,42 @@ outlines them in ink bottom to top (backprop), named beside the caption
 (`layers`, `pass_state`). (4) The arm has a turntable, actuator housings with
 hubs and index marks, module seams, a cable along the upper arm and a wrist
 camera, element for element in both looks.
+
+**Oct 8 (the owner).** (1) The OP1's item and box clipped ("the box and the
+cube are slightly clipping through each other"): the item waited ON the
+right flap, which folded up through it; the drop point put the item 4 mm
+into the right wall; and lowered into the box, the gripper (rolled inward
+~0.5 rad, so its outer finger dips ~35 mm) went 6 mm into the wall. Now the
+item waits on the table beyond the flap's swing (`ITEM` in
+`ik-poses.mjs`; the table is 740 long, `OPB.TL`), the arm lets go with every
+part above the rim and the item FALLS to the floor (`unitTaskState`), and
+it is drawn square to the box (`unitRot(TU.m)`), not the stage.
+`ik-poses.mjs` prints an `op box check` — gripper and held item into a
+wall, gripper inside the resting item — that must read 0 / 0 / 0. (2) The
+hero chips are LABELS, not buttons ("don't need to be clickable just make
+them bigger so the liquid glass effect is more pronounced"): 1rem, 15px 30px
+padding, 51px tall; the tilt and sheen stay. (3) The portrait is 20% bigger
+(`--photo` 180-269px) inside a GLASS BUBBLE (`.hero-bubble`): GlassSurface
+as a 14-19px ring (borderWidth 0.3, blur 18, distortion −100 — at −130 with
+a narrow edge band the waves tore into dashes), a gradient rim and a glint
+on top; no outer shadow and no filter or blend mode on it (the chips'
+backdrop-root lesson). In FIREFOX the hero's GlassSurface layers are not
+drawn at all (`@supports (-moz-appearance: none)`, end of App.css): its
+frosted fallback on the bigger chips plus the bubble took the hero scroll
+to p90 34 ms (the wave canvas was not the cost — hidden, nothing changed;
+any translucent fill in their place cost too), and Firefox gets no
+refraction anyway. Rim and glint remain; Safari keeps the frosted fallback.
+(4) The waves: `A_BOTTOM` 0.1 → 0.5 and
+`STROKE_BOTTOM` 0.6 → 0.9 ("don't have the sine wave rows fade so much going
+down"), two rows above row 0 that run behind the floating navbar so it has
+waves to bend, four below that run the field off the hero's bottom
+(`ROW_FIRST` / `ROW_LAST`, same spacing and twist). Hero still one screen at
+the five sizes, chips on one row. (5) The left film on the Resume page,
+checked for sense: the arrow out of the VLA left the network's left end and
+pointed past the chunk's frame (it runs down the middle now, "VLA policy"
+moved left of it); the instruction read "pick red cube place" (now "put red
+cube on mark"); and backprop now starts with an ink arrow UP from the
+chunk-vs-demo frame, then climbs the layers.
 
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 

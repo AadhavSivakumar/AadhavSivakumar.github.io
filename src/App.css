@@ -2401,3 +2401,93 @@ html[data-theme="dark"] .project-tag.glass-tag.glass-surface--fallback {
     inset 0 0 1px 0.5px rgba(255,255,255,0.32), inset 0 1.5px 1px -0.5px rgba(255,255,255,0.35),
     inset 0 -1.5px 1.5px -0.5px rgba(255,255,255,0.1), 0 2px 6px -3px rgba(0,0,0,0.8) !important;
 }
+
+/* ── Oct 8: the hero's chips are LABELS, bigger; the portrait in a GLASS
+   BUBBLE, 20% bigger (the owner: "the tags in the hero section don't need to
+   be clickable just make them bigger so the liquid glass effect is more
+   pronounced"; "make my head picture 20% bigger, and add a glass bubble
+   around it"). ───────────────────────────────────────────────────────── */
+#hero .hero-chips { gap: 14px; margin-top: 30px; }
+#hero .hero-chip { font: 500 1rem var(--font-sans) !important; padding: 15px 30px; cursor: default; }
+
+/* the bubble: the photo inset by a glass RING the waves bend through. No
+   outer shadow on it — the glass inside would refract it into grey arcs
+   (the chips' lesson) — and no blend modes or filters on it or above it, or
+   it becomes the glass's backdrop root and the ring sees nothing. */
+.hero-bubble {
+  --photo: clamp(180px, 19.2vw, 269px);     /* was clamp(150px, 16vw, 224px) */
+  --ring: clamp(14px, 1.35vw, 19px);
+  position: relative; flex: none;
+  width: calc(var(--photo) + 2 * var(--ring)); height: calc(var(--photo) + 2 * var(--ring));
+  border-radius: 50%;
+  margin-bottom: 26px;
+}
+.hero-bubble .hero-photo {
+  position: absolute; inset: var(--ring); z-index: 1;
+  width: auto; height: auto; margin: 0;
+  /* the photo sits IN the glass: a hairline where it meets the ring and a
+     soft shade below it (drawn above the glass, so not refracted) */
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.55), 0 6px 14px -6px rgba(40,30,10,0.45) !important;
+}
+html[data-theme="dark"] .hero-bubble .hero-photo { box-shadow: 0 0 0 1px rgba(255,255,255,0.18), 0 6px 14px -6px rgba(0,0,0,0.7) !important; }
+.hero-bubble__glass { position: absolute !important; inset: 0; z-index: 0; pointer-events: none; }
+.hero-bubble__glass .glass-surface__content { display: none; }
+.hero-bubble__glass.glass-surface--svg {
+  /* a lens: lit toward the top-left, clear through the body, a little light
+     caught again low on the right */
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,0.32), rgba(255,255,255,0) 52%),
+    radial-gradient(circle at 74% 84%, rgba(255,255,255,0.22), rgba(255,255,255,0) 40%) !important;
+  box-shadow:
+    inset 0 0 1px 0.5px rgba(60,45,10,0.24), inset 0 3px 2px -1px rgba(255,255,255,0.95),
+    inset 0 -3px 3px -1px rgba(255,255,255,0.6) !important;
+}
+html[data-theme="dark"] .hero-bubble__glass.glass-surface--svg {
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255,255,255,0.12), rgba(255,255,255,0) 52%),
+    radial-gradient(circle at 74% 84%, rgba(255,255,255,0.06), rgba(255,255,255,0) 40%) !important;
+  box-shadow:
+    inset 0 0 1px 0.5px rgba(255,255,255,0.3), inset 0 2px 1.5px -0.5px rgba(255,255,255,0.32),
+    inset 0 -2px 2px -0.5px rgba(255,255,255,0.12) !important;
+}
+.hero-bubble__glass.glass-surface--fallback {
+  border: 0 !important;
+  background: color-mix(in srgb, var(--background-color) 30%, transparent) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(1.6) !important; backdrop-filter: blur(4px) saturate(1.6) !important;
+  box-shadow: inset 0 0 1px 0.5px rgba(0,0,0,0.16), inset 0 2px 1.5px -0.5px rgba(255,255,255,0.95) !important;
+}
+html[data-theme="dark"] .hero-bubble__glass.glass-surface--fallback {
+  box-shadow: inset 0 0 1px 0.5px rgba(255,255,255,0.3), inset 0 1.5px 1px -0.5px rgba(255,255,255,0.3) !important;
+}
+/* over everything: a gradient RIM (bright top-left, a touch of gold low
+   right) and a soft GLINT on the dome, top-left, clear of the face */
+.hero-bubble__shine {
+  position: absolute; inset: 0; z-index: 2; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse 30% 15% at 31% 15%, rgba(255,255,255,0.6), rgba(255,255,255,0) 72%);
+}
+.hero-bubble__shine::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; padding: 1.5px;
+  background: linear-gradient(140deg,
+    rgba(255,255,255,1) 0%, rgba(255,255,255,0.3) 30%,
+    color-mix(in srgb, var(--accent-color) 45%, transparent) 58%,
+    rgba(255,255,255,0.12) 76%, rgba(255,255,255,0.75) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+html[data-theme="dark"] .hero-bubble__shine { background: radial-gradient(ellipse 30% 15% at 31% 15%, rgba(255,255,255,0.22), rgba(255,255,255,0) 72%); }
+html[data-theme="dark"] .hero-bubble__shine::before {
+  background: linear-gradient(140deg,
+    rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 30%,
+    color-mix(in srgb, var(--accent-color) 40%, transparent) 58%,
+    rgba(255,255,255,0.05) 76%, rgba(255,255,255,0.4) 100%);
+}
+/* FIREFOX gets GlassSurface's frosted fallback (no refraction there), and in
+   the hero the bigger chips plus the bubble put the scroll over the frame
+   budget (headless Firefox, hero band: p90 17.1 → 34 ms; hiding the wave
+   canvas changed nothing, removing these layers brought it back to 17.2). So
+   in Firefox only, the hero's glass is its rim and glint; Safari keeps the
+   frosted fallback, Chromium the real glass. */
+@supports (-moz-appearance: none) {
+  #hero .glass-surface--fallback { display: none !important; }
+}
