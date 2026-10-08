@@ -2545,6 +2545,49 @@ Measuring gotchas: wait ~1.5s after scrolling (the cards' entrance slides
 them up and reads as overflow), scroll with `scroll-behavior: auto`, and
 skip what is inside a scrolling frame (`.resume-pages`, `.skill-chips`).
 
+**Oct 8, later (the owner: "ultra robot doesn't look detailed enough. Also,
+the atlas robot's arm gets clipped off while waving. Which animation is
+decreasing performance the most?").**
+- **The Ultra's arms** (`ARM_GEO` / `drawSmallArm`), matched to Ultra's
+  front and three-quarter photos: a finned actuator bridging from the cowl
+  (three dark-grey fins), a round shoulder actuator whose face and horn
+  point FORWARD, a module under it with a green status light, thin flat
+  links, round elbow and wrist actuators with dark-grey horns, dark-grey
+  brackets from the elbow to the forearm module, a wrist drive module, the
+  gripper's two steel rails and a wrist camera, dark-grey finger housings
+  with a slot, orange WEDGE tips. New material slot `MAT.graphite`; new
+  builders `cylZ` / `cylY` / `cylX` (closed cylinders whose bottom cap faces
+  out — `drum`'s does not) and `wedge`. Built once per side as
+  [material, faces, centre] lists. The gripper keeps the envelopes
+  `ik-poses.mjs` checks (0 / 0 / 0 with the rails and camera added). Draw
+  cost unchanged: 2.0 ms a frame settled (1.9-2.1 before), 25% more
+  segments. In act 4 the arms no longer appear at a cut: once the UR links
+  have landed (0.87) every part GROWS from 40% about its own centre (`pg`)
+  while the links slim inside them (`perp` 0.72 → 0.25), and the links go
+  at `SWAP` 0.96.
+- **The Atlas's wave** was sliced by the stage's inner edge: from hanging to
+  UP the shoulder passed horizontal with the elbow half open, the arm swept
+  out sideways to full length and the hand reached the edge (0 px of
+  margin). The raise now goes through the front: `HUM_TURN` (the bending
+  plane turned forward, ely −1.2), `HUM_TUCK` (elbow folded, hand up in
+  front of the shoulder), then UP; the lower reverses it; 9 s. Measured as
+  the robot's leftmost ink per moment of the loop: ≥ 47 px inside the edge.
+- **What costs, measured** (per-process CPU over 4 s still on each page and
+  a scroll pass, with each piece switched off in turn; `?off=` was a local
+  switch, not committed). Firefox (CPU ms per second; 1000 = one core):
+  the auto-playing CARD VIDEOS are the biggest — Additional Projects 1535
+  with all the art off, 143 with the covers paused (twelve covers decoding
+  at once); then the hero's WAVES (~700, hero only); then the RIGHT robots'
+  settled loop (~350-460 a page); the left film ~0-50. The JavaScript is
+  small everywhere (profiled: 3-10% of a core; the Atlas is the heaviest
+  draw, 7.9 ms a frame against 1-2 ms for the others). Chromium here (no
+  H.264, SwiftShader for a GPU) cannot show the videos' cost and its GPU
+  process saturates as soon as ANYTHING redraws, because every redraw
+  re-runs the GlassSurface refraction (navbar capsules, tags, hero) — with
+  only the left film playing, 2-7k ms/s without the glass and the ceiling
+  (~14k) with it. So: continuous motion (videos, waves, robots) is what
+  costs; the glass multiplies whatever moves under or near it.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner

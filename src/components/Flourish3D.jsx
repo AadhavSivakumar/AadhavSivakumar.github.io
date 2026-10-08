@@ -338,15 +338,16 @@ const MAT = {
   orange: 10,         // Ultra's gripper tips and logo
   red: 11, green: 12, blue: 13,   // the cubes the robots handle
   teal: 14,           // the anodised blue rails under Generalist's table
+  graphite: 15,       // Ultra's dark-grey printed parts: brackets, horns, finger housings, cooling fins
 };
 // hex per slot; `copper` and `paint` are filled in from theme tokens
-const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A', '#C9473F', '#4E9A5C', '#3F6FB8', '#2C5F78'];
+const MAT_HEX = ['', '', '#8FA6B8', '#7A6A55', '#C9CED4', '#3C4046', '#8A7F6B', '#EEEAE2', '#7DADCC', '#D9B23F', '#E8792A', '#C9473F', '#4E9A5C', '#3F6FB8', '#2C5F78', '#6A7079'];
 // Weight is inversely related to how much of the frame the part covers. A tint
 // worth 0.3 on the shaft is invisible; the same 0.3 on the housing turns the
 // assembled machine into a coloured blob and throws away the line art. So the
 // big masses stay near the page colour and the small parts carry the colour —
 // and most of the separation is done by the LINEWORK, which costs no area.
-const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62, 0.72, 0.72, 0.72, 0.72];
+const MAT_W   = [0, 0.46, 0.26, 0.30, 0.22, 0.42, 0.13, 0.78, 0.55, 0.62, 0.62, 0.72, 0.72, 0.72, 0.72, 0.42];
 const MAT_LINE_W = 0.6;          // how much of the tint the wireframe takes
 
 const MOTOR_SPEC = [
@@ -616,6 +617,34 @@ const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
 const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
 const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
 const finger = (y) => ({ solid: boxFaces(26, 6, 12, 13, y, 4), wire: boxWire(26, 6, 12, 13, y, 4) });
+// a closed cylinder along z (caps optional; the z0 cap wound to face -z —
+// `drum`'s two caps share one winding, so its bottom faces inward)
+const cylZ = (r, z0, z1, n = 12, cap0 = true, cap1 = true) => [
+  ...surface([[z0, r], [z1, r]], n),
+  ...(cap1 ? disc(0, r, z1, n) : []),
+  ...(cap0 ? disc(0, r, z0, n).map(f => face(f.v.slice().reverse())) : []),
+];
+// the same along y, from y0 to y1, its axis through (x, ·, z): cylZ turned
+// by rotX(90°), a proper rotation, so the winding still faces out
+const cylY = (r, y0, y1, x = 0, z = 0, n = 12, cap0 = true, cap1 = true) =>
+  cylZ(r, -y1, -y0, n, cap1, cap0).map(f => face(f.v.map(([a, b, c]) => [a + x, -c, b + z])));
+// and along x, from x0 to x1 (cylZ turned by rotY(90°))
+const cylX = (r, x0, x1, y = 0, z = 0, n = 12, cap0 = true, cap1 = true) =>
+  cylZ(r, x0, x1, n, cap0, cap1).map(f => face(f.v.map(([a, b, c]) => [c, b + y, -a + z])));
+// a box whose bottom (-z) face is w1 wide in x instead of w0, pushed to the
+// front (+x): the gripper's orange tip wedges. boxFaces' faces and winding.
+function wedge(w0, w1, h, d, cx, cy, cz) {
+  const Y = h / 2, Z = d / 2, dx = (w0 - w1) / 2;
+  const P = (sx, sy, sz) => [cx + sx * (sz > 0 ? w0 : w1) / 2 + (sz > 0 ? 0 : dx), cy + sy * Y, cz + sz * Z];
+  return [
+    face([P(-1, -1, 1), P(1, -1, 1), P(1, 1, 1), P(-1, 1, 1)]),
+    face([P(1, -1, -1), P(-1, -1, -1), P(-1, 1, -1), P(1, 1, -1)]),
+    face([P(1, -1, 1), P(1, -1, -1), P(1, 1, -1), P(1, 1, 1)]),
+    face([P(-1, -1, -1), P(-1, -1, 1), P(-1, 1, 1), P(-1, 1, -1)]),
+    face([P(-1, -1, -1), P(1, -1, -1), P(1, -1, 1), P(-1, -1, 1)]),
+    face([P(-1, 1, 1), P(1, 1, 1), P(1, 1, -1), P(-1, 1, -1)]),
+  ];
+}
 
 
 export default function Flourish3D({ side = 'right' }) {
@@ -2253,46 +2282,90 @@ export default function Flourish3D({ side = 'right' }) {
       const tcp = [Wr.m[2] * -UNIT.L3 + Wr.t[0], Wr.m[5] * -UNIT.L3 + Wr.t[1], Wr.m[8] * -UNIT.L3 + Wr.t[2]];
       return { S, E, Wr, tcp };
     }
-    // horn discs on both joint faces of a module (one polygon a face)
-    const hornsOn = (hy, r) => [face(hornPts(hy, r)), face(hornPts(-hy, r).reverse())];
-    const HORN_S = hornsOn(31.6, 12);   // the shoulder output only: steel discs on every module read as a ladder of dots
-    function drawSmallArm(TU, P, side, a) {
-      if (a <= 0.01) return;
+    // The arms, rebuilt from Ultra's front and three-quarter photos (Oct 8;
+    // the owner: "ultra robot doesn't look detailed enough" — they were
+    // black boxes). Each joint is a round ACTUATOR, its axis across the arm,
+    // with a dark-grey horn on its outer face (the shoulder's faces forward);
+    // under the shoulder a module
+    // with a green status light; thin flat LINKS between, not slabs; dark-
+    // grey BRACKETS from the elbow down to the forearm module; a FINNED
+    // actuator bridging from the cowl to the shoulder; the gripper's body
+    // with two steel rails and a wrist camera, dark-grey finger housings
+    // with a slot, and orange WEDGE tips. The gripper keeps the envelopes
+    // ik-poses.mjs checks against the box (body 50 x 156 x 50, finger
+    // 32 x 20 x 34, tip 30 x 20 x 17). Built ONCE per side, as [material,
+    // faces] lists per frame; solids touch but do not share a volume.
+    const ARM_GEO = [-1, 1].map(side => {
+      const G = { TU: [], S: [], E: [], Wr: [], F: [] };
+      const add = (g, mat, faces) => {                   // [material, faces, centre] — the centre is what a part grows about
+        const c = [0, 0, 0]; let n = 0;
+        for (const f of faces) for (const v of f.v) { c[0] += v[0]; c[1] += v[1]; c[2] += v[2]; n++; }
+        g.push([mat, faces, c.map(x => x / n)]);
+      };
+      const lo = (p, q) => Math.min(p, q), hi = (p, q) => Math.max(p, q);
+      const outer = (r0, r1) => [lo(side * r0, side * r1), hi(side * r0, side * r1)];   // a y span on the arm's OUTER side
+      // the bridge, in the unit's frame: a black actuator from the cowl's end
+      // toward the shoulder, three dark-grey cooling fins round it
+      const [b0, b1] = outer(UNIT.CW, UNIT.SY - 36);
+      add(G.TU, MAT.poly, cylY(27, b0, b1, 0, UNIT.SZ, 12, false, false));
+      for (let i = 0; i < 3; i++) { const [f0, f1] = outer(UNIT.CW + 9 + i * 14, UNIT.CW + 15 + i * 14); add(G.TU, MAT.graphite, cylY(33, f0, f1, 0, UNIT.SZ, 12, false, false)); }
+      // the shoulder: the roll actuator, its round face (and horn) to the
+      // front, as the front photo shows it
+      add(G.S, MAT.poly, cylX(36, -32, 32, 0, 0, 16));
+      add(G.S, MAT.graphite, cylX(25, 32, 36, 0, 0, 14, false, true));
+      // the module under it, with the green light on its front
+      add(G.S, MAT.poly, boxFaces(50, 46, 80, 0, 0, -78));
+      add(G.S, MAT.green, boxFaces(2, 7, 7, 26, -side * 12, -56));
+      // the upper arm: a flat bar (the modules are most of an arm's length, as photographed)
+      add(G.S, MAT.poly, boxFaces(34, 16, 78, 0, 0, -157));
+      // the elbow actuator and horn; brackets either side down to the forearm module
+      add(G.E, MAT.poly, cylY(32, -27, 27, 0, 0, 14));
+      add(G.E, MAT.graphite, cylY(19, ...outer(33, 37), 0, 0, 12, side < 0, side > 0));
+      for (const sy of [-1, 1]) add(G.E, MAT.graphite, boxFaces(30, 4, 76, 0, sy * 30, -26));
+      add(G.E, MAT.poly, boxFaces(46, 56, 66, 0, 0, -67));                 // the forearm module, between the brackets
+      add(G.E, MAT.poly, boxFaces(30, 14, 57, 0, 0, -128.5));               // the forearm bar
+      add(G.E, MAT.poly, boxFaces(44, 44, 35, 0, 0, -174.5));               // the wrist's drive module
+      // the wrist: pitch actuator and horn, then the roll actuator down the tool axis
+      add(G.Wr, MAT.poly, cylY(26, -24, 24, 0, 0, 12));
+      add(G.Wr, MAT.graphite, cylY(17, ...outer(24, 28), 0, 0, 12, side < 0, side > 0));
+      add(G.Wr, MAT.poly, cylZ(21, -49, -27, 12));
+      add(G.Wr, MAT.graphite, cylZ(23, -36, -32, 12, false, false));       // the roll's index band
+      // the gripper: the wide body, two steel rails on its face, the wrist
+      // camera on its top, inboard of the roll actuator
+      add(G.Wr, MAT.poly, boxFaces(50, 156, 50, 0, 0, -74));
+      for (const z of [-64, -84]) add(G.Wr, MAT.steel, boxFaces(2, 128, 5, 26, 0, z));
+      add(G.Wr, MAT.graphite, boxFaces(16, 36, 16, 16, -side * 45, -41));
+      add(G.Wr, MAT.poly, boxFaces(1.5, 9, 9, 24.75, -side * 45, -41));      // its lens
+      // a finger (placed per frame at ±(open/2 + 9) along the body)
+      add(G.F, MAT.graphite, boxFaces(32, 20, 34, 0, 0, -116));
+      add(G.F, MAT.poly, boxFaces(1.5, 8, 20, 16.75, 0, -114));               // the housing's slot
+      add(G.F, MAT.orange, wedge(30, 16, 20, 17, 0, 0, -141.5));
+      return G;
+    });
+    const ZED_BAND = cylZ(33.5, UNIT.H + 34, UNIT.H + 44, 14, false, false);
+    const GRIP_WIRE = boxWire(50, 156, 50, 0, 0, -74), FINGER_WIRE = boxWire(32, 20, 34, 0, 0, -116);
+    // `pg` < 1 draws every part scaled by it about its own centre (the act-4
+    // hand-over from the UR links)
+    const about = (F, g, c) => (g >= 1 ? F : place(F.m.map(x => x * g), tpOf(F, [c[0] * (1 - g), c[1] * (1 - g), c[2] * (1 - g)])));
+    function drawSmallArm(TU, P, side, a, pg = 1) {
+      if (a <= 0.01 || pg <= 0.01) return;
       const { S, E, Wr } = smallArmFrames(TU, P, side);
-      const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
-      const box = (F, w, d, h, x, y, z, mat) => { submit(boxFaces(w, d, h, x, y, z), F, mat, a); line(boxWire(w, d, h, x, y, z), F, mat); };
-      // modules are FILLS ONLY: at ~0.27 px/mm a module is a dozen pixels,
-      // and its edges (lifted toward the viewer by LINE_BIAS) showed through
-      // its own faces — the arm read as a see-through lattice
-      const fill = (F, w, d, h, x, y, z) => submit(boxFaces(w, d, h, x, y, z), F, MAT.poly, a);
-      const horns = (F, H, z) => submit(H, chain(F, place(rotX(90 * DEG), [0, 0, z])), MAT.steel, a);
-      // The shoulder, as in the front photo: an actuator bridging out from
-      // the cowl's end to the shoulder module, whose output faces outward;
-      // the arm hangs from it
-      fill(TU, 58, UNIT.SY - UNIT.CW - 30, 58, 0, side * (UNIT.CW + UNIT.SY - 30) / 2, UNIT.SZ);
-      fill(S, 66, 62, 76, 0, 0, -4);  horns(S, HORN_S, -4);                  // shoulder module
-      fill(S, 52, 44, UNIT.L1 - 82, 0, 0, -UNIT.L1 / 2 - 4);                 // upper arm: a black link nearly a module wide
-      fill(E, 62, 58, 66, 0, 0, 0);                                          // elbow module
-      fill(E, 46, 40, UNIT.L2 - 74, 0, 0, -UNIT.L2 / 2);                     // forearm
-      fill(Wr, 54, 52, 56, 0, 0, 4);                                         // wrist pitch module
-      submit(drum(21, -50, -23), Wr, MAT.poly, a);                           // wrist roll, down the tool axis
+      const G = ARM_GEO[side > 0 ? 1 : 0];
+      const put = (list, F) => { for (let i = 0; i < list.length; i++) submit(list[i][1], about(F, pg, list[i][2]), list[i][0], a); };
+      put(G.TU, TU); put(G.S, S); put(G.E, E); put(G.Wr, Wr);
       // the cable: along the outside of the chain, sagging between clips
       const cab = [];
       const pts = [tpOf(S, [34, 0, -20]), tpOf(S, [22, 0, -UNIT.L1 * 0.6]), tpOf(E, [32, 0, 0]), tpOf(E, [20, 0, -UNIT.L2 * 0.55]), tpOf(Wr, [28, 0, 0])];
       for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k <= 6; k++) { const u = k / 6; const p0 = pts[i], p1 = pts[i + 1]; cab.push([p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u + Math.sin(Math.PI * u) * 4 * detScale(TU.m), p0[2] + (p1[2] - p0[2]) * u]); }
-      submitLines([cab], place(IDENT, [0, 0, 0]), matLine[MAT.poly], LOOK.line * a * 0.9, 1.2);
-      // the gripper, as photographed: a WIDE black body across the wrist (the
-      // fingers slide along it, on two steel rails on its face), a finger at
-      // each end pointing down the tool axis, orange tips
-      box(Wr, 50, 156, 50, 0, 0, -74, MAT.poly);
-      line([[[25.6, -64, -64], [25.6, 64, -64]], [[25.6, -64, -84], [25.6, 64, -84]]], Wr, MAT.steel);
+      if (pg >= 1) submitLines([cab], place(IDENT, [0, 0, 0]), matLine[MAT.poly], LOOK.line * a * 0.9, 1.2);
+      submitLines(GRIP_WIRE, about(Wr, pg, [0, 0, -74]), matLine[MAT.poly], LOOK.line * a, LOOK.width);
       for (const sg of [-1, 1]) {
-        const y = sg * (P.open / 2 + 9);
-        box(Wr, 32, 20, 34, 0, y, -116, MAT.poly);
-        box(Wr, 30, 20, 17, 2, y, -141.5, MAT.orange);
+        const F = chain(Wr, place(IDENT, [0, sg * (P.open / 2 + 9), 0]));
+        put(G.F, F);
+        submitLines(FINGER_WIRE, about(F, pg, [0, 0, -116]), matLine[MAT.graphite], LOOK.line * a, LOOK.width);
       }
     }
-    function drawUnit(TU, PR, PL, a, ga = 1) {
+    function drawUnit(TU, PR, PL, a, ga = 1, pg = 1) {
       if (a <= 0.01) return;
       const line = (polys, F, mat, w = LOOK.width) => submitLines(polys, F, matLine[mat], LOOK.line * a, w);
       // the torso: the black case, and the shoulder cowl across its top
@@ -2306,6 +2379,7 @@ export default function Flourish3D({ side = 'right' }) {
       // the ZED's mount: a black column on the cowl, a small bracket, and
       // the ZED 2i on it (a real mesh), looking forward
       drawDrum(chain(TU, place(IDENT, [0, 0, UNIT.H])), 32, 0, 50, MAT.poly, a);
+      submit(ZED_BAND, TU, MAT.graphite, a);                                   // the column's vented band
       submit(boxFaces(30, 44, 44, 0, 0, UNIT.H + 72), TU, MAT.poly, a);
       const zed = ROBOTS.ultra.parts.find(p => p.body === 'zed');
       if (zed) submitMesh(zed, chain(TU, place(IDENT, [10, 0, UNIT.H + 112])), MAT.poly, a, matLine[MAT.poly]);
@@ -2321,7 +2395,7 @@ export default function Flourish3D({ side = 'right' }) {
       // arms arriving grow out of their shoulders rather than fading in
       if (ga > 0.03) for (const [P, sd] of [[PR, 1], [PL, -1]]) {
         const sh = [TU.m[1] * sd * UNIT.SY + TU.m[2] * UNIT.SZ + TU.t[0], TU.m[4] * sd * UNIT.SY + TU.m[5] * UNIT.SZ + TU.t[1], TU.m[7] * sd * UNIT.SY + TU.m[8] * UNIT.SZ + TU.t[2]];
-        drawSmallArm(ga < 1 ? scaleAbout(TU, ga, sh) : TU, P, sd, a);
+        drawSmallArm(ga < 1 ? scaleAbout(TU, ga, sh) : TU, P, sd, a, pg);
       }
     }
     // the whole machine: the Fairino (mesh) with the unit hanging from its
@@ -2549,12 +2623,22 @@ export default function Flourish3D({ side = 'right' }) {
     const HUM_REST = humMap(HUM_LEG, {}, armL(HUM_ARM), armR(HUM_ARM));
     const humWave = (elx, lwy, bkz) => humMap(HUM_LEG, { ltorso: bkz }, armL([HUM_WAVE_SHZ, HUM_WAVE_SHX, HUM_WAVE_ELY, elx, 0, 0, lwy]), armR(HUM_ARM));
     const HUM_UP = humWave(HUM_WAVE_ELX, 0, -0.1), HUM_A = humWave(HUM_WAVE_ELX - 0.35, 0.3, -0.12), HUM_B = humWave(HUM_WAVE_ELX + 0.2, -0.3, -0.12);
+    // The raise and the lower go THROUGH the front (the owner: "the atlas
+    // robot's arm gets clipped off while waving"). Straight from hanging to
+    // UP, shx passed horizontal with the elbow still half open: the arm
+    // swept out sideways to its full length and was sliced by the stage's
+    // inner edge (0 px of margin, from 83 at rest). Now the bending plane
+    // turns forward first (TURN: ely -1.2, the forearm toward the reader),
+    // the elbow folds the hand up in front of the shoulder (TUCK), and only
+    // then does the upper arm rise: 47 px of margin at the widest.
+    const HUM_TURN = humMap(HUM_LEG, {}, armL([0, HUM_SHX_DOWN, -1.2, HUM_ELX_REST, 0, 0, 0]), armR(HUM_ARM));
+    const HUM_TUCK = humMap(HUM_LEG, { ltorso: -0.05 }, armL([0, -1.0, -1.2, 1.9, 0, 0, 0]), armR(HUM_ARM));
     // packed, as it comes out of the unit: crouched, arms folded in
     const HUM_FOLDED = humMap(legs(-1.2, 2.1, -0.9), { mtorso: 0.35 }, armL([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]), armR([0.3, HUM_SHX_DOWN, 0, HUM_ELX_FOLD, 0, 0, 0]));
     RB.hum = { k: 0.25, root: [10, 236], yaw: 255,   // 255 faces the reader (the head's sensor face shows); 75 showed the back of the cage
                restMap: HUM_REST, foldedMap: HUM_FOLDED,
-               // stand, raise the hand, three waves, lower it, stand: 8 s
-               waveMaps: [HUM_REST, HUM_REST, HUM_UP, HUM_A, HUM_B, HUM_A, HUM_B, HUM_A, HUM_B, HUM_UP, HUM_REST, HUM_REST], period: 8 };
+               // stand, raise the hand (turn, tuck, up), three waves, lower it the same way, stand: 9 s
+               waveMaps: [HUM_REST, HUM_TURN, HUM_TUCK, HUM_UP, HUM_A, HUM_B, HUM_A, HUM_B, HUM_A, HUM_B, HUM_UP, HUM_TUCK, HUM_TURN, HUM_REST], period: 9 };
     // the maps become q vectors once the robot is loaded (they need its body order)
     const humPoses = () => {
       if (RB.hum.rest) return RB.hum;
@@ -3091,9 +3175,14 @@ export default function Flourish3D({ side = 'right' }) {
       // there link by link, base first. On the way it darkens in steps from
       // the UR's white to the Ultra's black. When every link has landed the
       // chain IS the Ultra arm's skeleton, and the Ultra arm's own drawing
-      // takes over in exactly that place and colour.
-      const SWAP = 0.9;
-      const armIn = t >= SWAP ? 1 : 0;
+      // takes over in exactly that place and colour. Since the arms got
+      // their actuators (Oct 8) they are no longer a match for the chain at a
+      // cut: once every link has landed (0.87) their PARTS grow round it
+      // from 40% (inside the links: from nothing they read as specks), each
+      // about its own centre, while the links slim inside them; the links
+      // go at SWAP, when the parts are whole.
+      const SWAP = 0.96;
+      const armGrow = smooth(win(t, 0.86, 0.1));
       // aim at the unit WHERE IT IS NOW (it is still unfolding with the
       // Fairino); aiming at its rest pose landed the arms beside it
       // ── THE WORKCELL BECOMES THE OP1, part for part (the owner: "it's
@@ -3138,7 +3227,7 @@ export default function Flourish3D({ side = 'right' }) {
         // the torso: strip 2 of the table becomes the unit's box, then the unit
         const wU = mw(4, 0.55);
         if (wU < 1) obDraw(obLerp(strip(2), obIn(TUn, UNIT.D, UNIT.W, UNIT.H, 0, 0, UNIT.H / 2, MAT.poly), wU));
-        else drawUnit(TUn, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, t >= 0.9 ? 1 : 0);
+        else drawUnit(TUn, RB.ul.unit.R[0], RB.ul.unit.L[0], 1, armGrow > 0.01 ? 1 : 0, 0.4 + 0.6 * armGrow);
         // the Fairino: its links laid along the right post (up) and the
         // crossbar (across), unfolding into the arm
         const UL = ROBOTS.ultra, fn = ['base_link', 'shoulder_link', 'upperarm_link', 'forearm_link', 'wrist1_link', 'wrist2_link', 'wrist3_link'];
@@ -3199,7 +3288,7 @@ export default function Flourish3D({ side = 'right' }) {
             // width (lengthwise it already fits): the fat UR links landing at
             // full girth made the handover to the thin Ultra arm a jump
             const RA = mul(R, A.m).map(v => v * sc);
-            const d = Lt > 1 ? nrm(dt) : [0, 0, 1], perp = 0.72;
+            const d = Lt > 1 ? nrm(dt) : [0, 0, 1], perp = 0.72 - 0.47 * armGrow;
             const Sq = [0, 1, 2].flatMap(r => [0, 1, 2].map(c => (r === c ? perp : 0) + (1 - perp) * d[r] * d[c]));
             const Tt = place(mul(Sq, RA), Pt[i]);
             const w = smooth(win(t, 0.1 + i * 0.045, 0.5));
