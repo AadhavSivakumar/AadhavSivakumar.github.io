@@ -2588,6 +2588,51 @@ decreasing performance the most?").**
   (~14k) with it. So: continuous motion (videos, waves, robots) is what
   costs; the glass multiplies whatever moves under or near it.
 
+**Oct 8, last: the Ultra grounded in Ultra's own FILMS** (the owner: "ground
+the ultra stuff based on videos of the actual robot"). The eight product
+films on ultra.tech (`ultratech.b-cdn.net/…`: HERO V11, SUPERCUT HERO, ORDER
+PACKAGING V2, INSTALLS IN HOURS, OPTIMIZED FOR PERFORMANCE AND SAFETY,
+KITTING, SORTING, AI POWERED; ~4 min, fetched to the session scratch and
+contact-sheeted, NOT committed) replaced the photos as the reference:
+- **The job is theirs**: an OPEN carton on a ROLLER CONVEYOR (steel rollers
+  and guide rails on the bed the morphs aim at, `BED_H` / `BED_Z`), a blue
+  BIN with a yellow product on a stand to the right, a LABEL PRINTER with
+  the packing slip standing out of its slot on a stand past the conveyor's
+  left end. The right arm puts the product in over the side wall, the left
+  the slip (it falls and turns flat), the right folds the FRONT flap shut
+  by its edge, the left the BACK flap, the right presses the seam, and the
+  packed box rolls away toward the bin's end while the next rolls in (out
+  over the first half of the last step, in over the second: crossfaded
+  together they were a jumble); a new pack fades into the bin, a new slip
+  feeds up out of the printer. 24 waypoints, 26 s. The old job (folding a
+  flat box's four flaps UP, a cube dropped in) was nothing the robot does.
+- **Solved and checked in `scripts/ik-poses.mjs`** (targets, `SEQ_R` /
+  `SEQ_L`, the flap schedule `FLAPS` and the held windows `HELD`, pasted
+  into `OP_P` / `OP_SEQ` / `RB.ul.unit` here): every target within 1.8 mm
+  bar two via points; along the whole loop the grippers 0 mm into the
+  walls, torso, bin and printer, ≥77 mm from each other, the product 0 mm
+  into a wall or flap; ≤3 mm on a flap only where the fingers hold its
+  edge (printed as contact). What the checks killed, each a stated reason in
+  the script: side flaps PUSHED shut (carrying the product over a standing
+  flap needs the wrist above the shoulder), four flaps (the back one leans
+  at the unit: 41 mm into the torso), lifts straight up beside the shoulder
+  (unreachable pointing down: a joint wound a full turn), both arms
+  pressing at once (grippers overlapping). Roll may now reach 0.9 inward
+  (was 0.55): each arm works its own half, and the checks hold.
+- **Seen as they film it**: `RB.ul.yaw` 90 → 60, three-quarter, the Fairino
+  an upside-down L behind (110-130 put the unit off the stage's edge). The
+  forearm's OUTER caps carry orange rings at both ends and the orange mark
+  + "ULTRA" between them, on whichever side faces the viewer (the old elbow
+  ring sat where the forearm meets the upper arm, a face no camera sees).
+  `ULTRA_WORD` / `LOGO_FLIP` are built MIRRORED with reversed winding: the
+  stage is y-down, and the rotated letters read mirrored or upside down
+  (both seen). The ZED is tipped 18° down on a dark-grey pan-tilt bracket.
+- **Morphs kept whole**: the URs take one shoulder each by the shorter total
+  travel (each taking its nearest sent both to one shoulder at yaw 60);
+  the cell grows in as the bed lands (act 4) and shrinks away as it
+  flattens (act 5, `noBed`). Draw cost 2.0-2.2 ms a frame settled (12,971
+  segments); Firefox scroll p50/p90 17.1/17.2; 0 mutations on still pages.
+
 ### ONE renderer: Canvas2D. Do not add a second one you cannot see.
 
 A WebGL2 backend was built, shipped and then REMOVED. It worked — the owner

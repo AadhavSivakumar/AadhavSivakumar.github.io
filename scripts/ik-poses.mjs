@@ -266,104 +266,135 @@ const fmt = q => '[' + q.map(x => r3(x)).join(', ') + ']';
   };
   const seed = { pitch: -0.3, roll: 0, elbow: -1.2, wrist: -0.3 };
   const down = [0, 0, -1];
-  // The box, on a table in front: base BD (x) by BW (y) at z = BZ, walls BH
-  // tall when folded; its centre BX forward of the torso. Flaps lie flat
-  // outward from each base edge until an arm folds them up.
-  const BZ = -200, BX = 230, BW = 300, BD = 180, BH = 120;   // OPB in Flourish3D.jsx
-  // The shoulders are 480 mm apart (Ultra's front photo), so an arm may
-  // swing inward to its box-side reaches without coming near the other;
-  // roll is still capped so neither crosses the torso's front.
-  const ROLL_MAX = 0.55;
-  const T = {
-    // each arm's second flap is grabbed on ITS OWN side of the box (y ±130 of
-    // a 300-wide box), so an arm never reaches across the middle
-    RIGHT: { FLAP: [BX, BW / 2 + 60, BZ + 15], FLAP_UP: [BX, BW / 2 - 12, BZ + BH + 8], FLAP2: [BX + BD / 2 + 50, 130, BZ + 15], FLAP2_UP: [BX + BD / 2 - 12, 130, BZ + BH + 8],
-             // the item and the box work on the RIGHT half (y > 0). The item
-             // rests ON the table top (BZ - 6) beyond the right flap's swing
-             // (hinge y 150, 120 long: it reaches y 270 flat and as it folds)
-             // and behind the gripper's x while that arm folds it (the owner:
-             // "the box and the cube are slightly clipping through each
-             // other"). The drop is ABOVE the rim: rolled inward this far,
-             // the gripper tilts and its outer finger dips ~35 mm, so lowered
-             // into the box it went through the wall; it lets go with every
-             // part clear of the rim — the item 10 mm above it, so it does not
-             // read as sitting on the wall — and the item falls to the floor.
-             ITEM: [BX - 80, BW / 2 + 168, BZ + 34], ITEM_UP: [BX - 80, BW / 2 + 168, BZ + 240], OVER: [BX, 96, BZ + 205], IN: [BX, 96, BZ + 170],
-             // REST, as photographed: upper arm hanging, forearm reaching
-             // forward, the gripper pointing forward and down — clear above
-             // the table
-             REST: [330, 250, -70] },
-    LEFT:  { FLAP: [BX, -(BW / 2 + 60), BZ + 15], FLAP_UP: [BX, -(BW / 2 - 12), BZ + BH + 8], FLAP2: [BX - BD / 2 - 50, -130, BZ + 15], FLAP2_UP: [BX - BD / 2 + 12, -130, BZ + BH + 8], REST: [330, -250, -70] },
+  const D2R = Math.PI / 180;
+  // ── THE JOB, from Ultra's own films (ultra.tech: ORDER PACKAGING, HERO,
+  // INSTALLS IN HOURS; Oct 8, the owner: "ground the ultra stuff based on
+  // videos of the actual robot"). An OPEN carton sits on a ROLLER CONVEYOR in
+  // front of the unit: BD deep (x) by BW across (y), walls BH tall from
+  // z = BZ, centred BX forward; its two long top flaps (front and back,
+  // FL = BD/2 each) are hinged on the front and back walls' top edges and
+  // stand open. The right arm picks a product out of a blue bin beside the
+  // conveyor and puts it in over the right wall; the left pulls the packing
+  // slip out of a label printer on the other side and drops it in over the
+  // left wall; the right arm takes the front flap by its edge and folds it
+  // shut, the left the back flap; the right presses the lid; the box rolls
+  // away and the next one rolls in (Flourish3D draws the rolling).
+  // What was tried and dropped, each by these checks: side flaps the arms
+  // PUSHED shut (carrying the product over a standing flap needs the wrist
+  // above the shoulder, which this elbow-down arm cannot do pointing down),
+  // and four flaps (the back one leans toward the unit: 41 mm into the torso).
+  const BZ = -200, BX = 250, BW = 200, BD = 220, BH = 120, FL = BD / 2;   // OPB in Flourish3D.jsx
+  const TOP = BZ + BH;
+  const CONV = { TW: 280, TL: 500 };                                 // the conveyor bed, centred on the box
+  const BIN = { x: 40, y: 355, w: 190, h: 60 };                      // the blue bin (outer), its floor on its stand at BZ - 6
+  const PRN = { x: 160, y: -375, dx: 140, dy: 120, h: 120 };         // the label printer on its stand, past the conveyor's end (nearer the unit it stood on the Fairino's cart)
+  const SLIP_OUT = 75;                                               // of the 90 mm slip, standing up out of the printer's top slot
+  const ITEM_C = [BIN.x, BIN.y, BZ - 6 + 5 + 40];                    // the product (80 cube) on the bin's floor
+  const SLIP_Z = BZ - 6 + PRN.h + SLIP_OUT - 25;                     // where the fingers pinch it
+  const OPEN = { F: 100, B: 100 };                                   // degrees from shut (90 upright; more leans out)
+  const ROLL_MAX = 0.9;                                              // each arm works its own half; their approach is checked below
+  // a flap at angle th (deg): its hinge point (at `along` on the hinge line),
+  // its direction hinge → tip, its outward normal, its hinge axis
+  const flapAt = (f, th, along = 0) => {
+    const c = Math.cos(th * D2R), s = Math.sin(th * D2R), sg = f === 'F' ? 1 : -1;
+    return { h: [BX + sg * BD / 2, along, TOP], d: [-sg * c, 0, s], n: [sg * s, 0, c], e: [0, 1, 0], half: BW / 2 };
   };
+  // where the fingers hold a flap: on its free edge, `along` the hinge
+  const edge = (f, th, along, lift = 0) => { const { h, d, n } = flapAt(f, th, along); return [0, 1, 2].map(i => h[i] + FL * d[i] + 3 * n[i] + (i === 2 ? lift : 0)); };
+  const fold = (f, sg) => ({
+    [f + 'F_PRE']: edge(f, OPEN[f], sg * 60, 70), [f + 'F_A']: edge(f, OPEN[f], sg * 60), [f + 'F_90']: edge(f, 90, sg * 60), [f + 'F_45']: edge(f, 45, sg * 60), [f + 'F_0']: edge(f, 0, sg * 60, 6),
+    [f + 'F_UP']: edge(f, 0, sg * 60, 110),
+  });
+  const T = {
+    RIGHT: { REST: [330, 250, -70], ITEM: ITEM_C, ITEM_UP: [ITEM_C[0] + 30, ITEM_C[1], ITEM_C[2] + 120], OVER: [BX, 50, TOP + 100], IN: [BX, 50, TOP + 55],
+             ...fold('F', 1), PRESS: [BX, 0, TOP + 6 + 8], PRESS_UP: [BX, 60, TOP + 110] },
+    LEFT: { REST: [330, -250, -70], SLIP: [PRN.x, PRN.y, SLIP_Z], SLIP_UP: [PRN.x, PRN.y, SLIP_Z + 70], WAIT: [BX - 40, -220, TOP + 110], OVER: [BX, -50, TOP + 100], IN: [BX, -50, TOP + 55],
+            ...fold('B', -1) },
+  };
+  // the loop, waypoint by waypoint ([target, gripper opening]); both arms
+  // run the same number of steps. Flourish3D's unitTaskState indexes into
+  // these for the flaps, the product and the slip.
+  const SEQ_R = [['REST', 60], ['ITEM_UP', 100], ['ITEM', 100], ['ITEM', 76], ['ITEM_UP', 76], ['OVER', 76], ['IN', 76], ['IN', 88], ['OVER', 88],
+                 ['FF_PRE', 30], ['FF_A', 30], ['FF_A', 8], ['FF_90', 8], ['FF_45', 8], ['FF_0', 8], ['FF_0', 30], ['FF_UP', 30],
+                 ['REST', 60], ['REST', 60], ['REST', 60], ['PRESS_UP', 20], ['PRESS', 20], ['PRESS_UP', 20], ['REST', 60]];
+  const SEQ_L = [['REST', 60], ['SLIP_UP', 40], ['SLIP', 40], ['SLIP', 4], ['SLIP_UP', 4], ['WAIT', 4], ['WAIT', 4], ['WAIT', 4], ['WAIT', 4], ['OVER', 4], ['IN', 4], ['IN', 40], ['OVER', 40],
+                 ['BF_PRE', 30], ['BF_A', 30], ['BF_A', 8], ['BF_90', 8], ['BF_45', 8], ['BF_0', 8], ['BF_0', 30], ['BF_UP', 30], ['REST', 60], ['REST', 60], ['REST', 60]];
+  // the flaps: angle at each waypoint index (open before, shut after), and
+  // when each is held by its edge (the fingers ON the cardboard, not a clip)
+  const FLAPS = { F: [11, OPEN.F, 12, 90, 13, 45, 14, 0], B: [15, OPEN.B, 16, 90, 17, 45, 18, 0] };
+  const HELD = { F: [10, 15], B: [14, 19] };
+  const flapAngle = (f, ph) => { const k = FLAPS[f]; if (ph <= k[0]) return k[1]; for (let i = 0; i < k.length - 2; i += 2) if (ph <= k[i + 2]) { const u = (ph - k[i]) / (k[i + 2] - k[i]); return k[i + 1] + (k[i + 3] - k[i + 1]) * u; } return 0; };
   const REST_DIR = [0.5, 0, -Math.sqrt(0.75)];
   const out = {};
   for (const [side, name, s] of [[1, 'RIGHT', T.RIGHT], [-1, 'LEFT', T.LEFT]]) {
     out[name] = {};
     for (const [k, p] of Object.entries(s)) {
-      const r = solveArm({ p, z: k === "REST" ? REST_DIR : down, w: 25 }, side, seed, ROLL_MAX);   // a light hand on the tool axis: with the arm rolled inward it cannot point straight down, and the POSITION is what puts the gripper on the flap
+      // a light hand on the tool axis (the POSITION is what puts the gripper
+      // on the flap), lighter still on the points it only passes through —
+      // with none, the wrist flipped the gripper over carrying the product
+      const free = /_UP$|_PRE$|^WAIT$|^OVER$/.test(k);
+      const r = solveArm({ p, z: k === 'REST' ? REST_DIR : down, w: free ? 6 : 25 }, side, seed, ROLL_MAX);
       out[name][k] = { pitch: r3(r.P.pitch), roll: r3(r.P.roll), elbow: r3(r.P.elbow), wrist: r3(r.P.wrist) };
       console.log(`// op ${name} ${k.padEnd(8)} err ${r3(r.err)}mm  ${JSON.stringify(out[name][k])}`);
     }
   }
-  // CHECK, along the loop (joint-space lerp between the waypoints, in the
-  // order Flourish3D's OPW_R / OPW_L run them): the lowest point of each arm
-  // (elbow, wrist, fingertips) against the table top, and the closest the
-  // two arms' elbows, wrists and tips come to each other
+  // ── CHECKS, along the loop (joint-space lerp between waypoints, sampled):
+  // the gripper (drawSmallArm's boxes, in the wrist frame, on a grid)
+  // against the box's walls, every flap at its scheduled angle, the torso,
+  // the bin and the printer; the arms against the conveyor top and each
+  // other. Every number should print 0 except the clearances.
   {
-    const R = out.RIGHT, L = out.LEFT;
-    const seqR = ['REST', 'FLAP', 'FLAP_UP', 'FLAP2', 'FLAP2_UP', 'ITEM_UP', 'ITEM', 'ITEM', 'ITEM_UP', 'OVER', 'IN', 'IN', 'OVER', 'REST'].map(k => R[k]);
-    const seqL = ['REST', 'FLAP', 'FLAP_UP', 'FLAP2', 'FLAP2_UP', ...Array(9).fill('REST')].map(k => L[k]);
-    const pts = (P, side) => {
+    const wristF = (P, side) => {
       const S = mul(rotX(-side * P.roll), rotY(P.pitch)), o = [0, side * S_Y, S_Z];
       const e = ap(S, [0, 0, -L1]).map((x, i) => x + o[i]);
       const E = mul(S, rotY(P.elbow)); const w = ap(E, [0, 0, -L2]).map((x, i) => x + e[i]);
-      const W = mul(E, rotY(P.wrist)); const t = ap(W, [0, 0, -L3]).map((x, i) => x + w[i]);
-      return [e, w, t];
-    };
-    const lp = (A, B, u) => Object.fromEntries(['pitch', 'roll', 'elbow', 'wrist'].map(k => [k, A[k] + (B[k] - A[k]) * u]));
-    let lo = Infinity, near = Infinity;
-    for (let i = 0; i < seqR.length - 1; i++) for (let j = 0; j <= 20; j++) {
-      const pr = pts(lp(seqR[i], seqR[i + 1], j / 20), 1), pl = pts(lp(seqL[i], seqL[i + 1], j / 20), -1);
-      for (const p of [...pr, ...pl]) lo = Math.min(lo, p[2]);
-      for (const a of pr) for (const b of pl) near = Math.min(near, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]));
-    }
-    console.log(`// op check: lowest arm point ${r3(lo - (BZ - 6))} mm above the table top; arms no closer than ${r3(near)} mm`);
-  }
-  // CHECK the right arm's gripper and the item against the box: the gripper
-  // boxes as drawSmallArm draws them (in the wrist frame), sampled on a grid,
-  // against the FOLDED walls (6 mm thick, BH tall, from phase 4.5 when all
-  // four are up) and the item while it rests on the table; the held item's
-  // corners against the walls. All three should print 0.
-  {
-    const R = out.RIGHT;
-    const seq = [['REST', 60], ['FLAP', 60], ['FLAP_UP', 60], ['FLAP2', 60], ['FLAP2_UP', 60], ['ITEM_UP', 100], ['ITEM', 100], ['ITEM', 76], ['ITEM_UP', 76], ['OVER', 76], ['IN', 76], ['IN', 100], ['OVER', 100], ['REST', 60]];
-    const wrist = P => {
-      const S = mul(rotX(-P.roll), rotY(P.pitch)), o = [0, S_Y, S_Z];
-      const e = ap(S, [0, 0, -L1]).map((x, i) => x + o[i]);
-      const E = mul(S, rotY(P.elbow)); const w = ap(E, [0, 0, -L2]).map((x, i) => x + e[i]);
-      return { W: mul(E, rotY(P.wrist)), w };
+      return { W: mul(E, rotY(P.wrist)), w, e };
     };
     const at = (F, p) => ap(F.W, p).map((x, i) => x + F.w[i]);
-    const gripBoxes = g => [[50, 156, 50, 0, 0, -74], ...[-1, 1].flatMap(s => [[32, 20, 34, 0, s * (g / 2 + 9), -116], [30, 20, 17, 2, s * (g / 2 + 9), -141.5]])];
+    const gripBoxes = g => [[50, 156, 50, 0, 0, -74], [4, 128, 30, 25, 0, -74], [16, 36, 16, 16, 45, -41], [16, 36, 16, 16, -45, -41],
+      ...[-1, 1].flatMap(s2 => [[32, 20, 34, 0, s2 * (g / 2 + 9), -116], [30, 20, 17, 2, s2 * (g / 2 + 9), -141.5]])];
     const grid = ([w, d, h, cx, cy, cz]) => { const o = []; for (let a = 0; a <= 4; a++) for (let b = 0; b <= 6; b++) for (let c = 0; c <= 4; c++) o.push([cx + (a / 4 - 0.5) * w, cy + (b / 6 - 0.5) * d, cz + (c / 4 - 0.5) * h]); return o; };
-    const wallPen = p => {
-      const x0 = BX - BD / 2, x1 = BX + BD / 2, y0 = -BW / 2, y1 = BW / 2;
-      if (p[2] > BZ + BH || p[2] < BZ - 6 || p[0] < x0 || p[0] > x1 || p[1] < y0 || p[1] > y1) return 0;
-      return Math.max(0, -Math.min(p[0] - (x0 + 6), (x1 - 6) - p[0], p[1] - (y0 + 6), (y1 - 6) - p[1]));
-    };
+    const inBox = (p, x0, x1, y0, y1, z0, z1) => (p[0] > x0 && p[0] < x1 && p[1] > y0 && p[1] < y1 && p[2] > z0 && p[2] < z1) ? Math.min(p[0] - x0, x1 - p[0], p[1] - y0, y1 - p[1], p[2] - z0, z1 - p[2]) : 0;
+    const walls = p => Math.max(inBox(p, BX - BD / 2, BX - BD / 2 + 6, -BW / 2, BW / 2, BZ, TOP), inBox(p, BX + BD / 2 - 6, BX + BD / 2, -BW / 2, BW / 2, BZ, TOP),
+                                inBox(p, BX - BD / 2, BX + BD / 2, -BW / 2, -BW / 2 + 6, BZ, TOP), inBox(p, BX - BD / 2, BX + BD / 2, BW / 2 - 6, BW / 2, BZ, TOP));
+    const flapPen = (p, ph) => { let m = 0; for (const f of ['F', 'B']) {
+      const { h, d, n, e, half } = flapAt(f, flapAngle(f, ph)); const v = [p[0] - h[0], p[1] - h[1], p[2] - h[2]];
+      const a = v[0] * d[0] + v[1] * d[1] + v[2] * d[2], b = v[0] * n[0] + v[1] * n[1] + v[2] * n[2], c = Math.abs(v[0] * e[0] + v[1] * e[1] + v[2] * e[2]);
+      const lim = ph >= HELD[f][0] && ph <= HELD[f][1] ? FL - 30 : FL;   // the held edge's last 30 mm are between the fingers
+      if (a > 0 && a < lim && b > 0 && b < 6 && c < half) m = Math.max(m, Math.min(a, lim - a, b, 6 - b, half - c)); } return m; };
+    const torso = p => Math.max(inBox(p, -70, 70, -90, 90, 0, 155), inBox(p, -70, 70, -150, 150, 155, 250));
+    const bin = p => { const x0 = BIN.x - BIN.w / 2, y0 = BIN.y - BIN.w / 2, z0 = BZ - 6, z1 = BZ - 6 + BIN.h;
+      return Math.max(inBox(p, x0, x0 + 5, y0, y0 + BIN.w, z0, z1), inBox(p, x0 + BIN.w - 5, x0 + BIN.w, y0, y0 + BIN.w, z0, z1), inBox(p, x0, x0 + BIN.w, y0, y0 + 5, z0, z1), inBox(p, x0, x0 + BIN.w, y0 + BIN.w - 5, y0 + BIN.w, z0, z1)); };
+    const printer = p => inBox(p, PRN.x - PRN.dx / 2, PRN.x + PRN.dx / 2, PRN.y - PRN.dy / 2, PRN.y + PRN.dy / 2, BZ - 6, BZ - 6 + PRN.h);
     const lp = (A, B, u) => Object.fromEntries(['pitch', 'roll', 'elbow', 'wrist'].map(k => [k, A[k] + (B[k] - A[k]) * u]));
-    const item = at(wrist(R.ITEM), [0, 0, -L3]);
-    let gw = 0, gc = 0, cw = 0;
-    for (let i = 0; i < seq.length - 1; i++) for (let j = 0; j < 20; j++) {
-      const u = j / 20, ph = i + u, P = lp(R[seq[i][0]], R[seq[i + 1][0]], u), g = seq[i][1] + (seq[i + 1][1] - seq[i][1]) * u, F = wrist(P);
-      const pts = gripBoxes(g).flatMap(b => grid(b).map(p => at(F, p)));
-      if (ph >= 4.5) for (const p of pts) gw = Math.max(gw, wallPen(p));
-      if (ph < 6) for (const p of pts) if (Math.max(Math.abs(p[0] - item[0]), Math.abs(p[1] - item[1]), Math.abs(p[2] - item[2])) < 40) gc++;
-      if (ph >= 7 && ph < 11) { const c = at(F, [0, 0, -L3]); for (const s of [-1, 1]) for (const t of [-1, 1]) for (const v of [-1, 0, 1]) cw = Math.max(cw, wallPen([c[0] + s * 40, c[1] + t * 40, c[2] + v * 40])); }
+    const worst = { walls: [0], flaps: [0], torso: [0], bin: [0], printer: [0], itemWalls: [0], itemFlaps: [0] };
+    let gg = Infinity, ggAt = '';
+    const note = (k, v, what) => { if (v > worst[k][0]) worst[k] = [v, what]; };
+    let lo = Infinity, near = Infinity;
+    const n = SEQ_R.length;
+    for (let i = 0; i < n - 1; i++) for (let j = 0; j < 16; j++) {
+      const u = j / 16, ph = i + u;
+      const arms = [[1, SEQ_R, out.RIGHT], [-1, SEQ_L, out.LEFT]].map(([side, seq, O]) => {
+        const P = lp(O[seq[i][0]], O[seq[i + 1][0]], u), g = seq[i][1] + (seq[i + 1][1] - seq[i][1]) * u, F = wristF(P, side);
+        return { side, F, g, pts: gripBoxes(g).flatMap(b2 => grid(b2).map(p => at(F, p))), tip: at(F, [0, 0, -L3]) };
+      });
+      for (const A of arms) {
+        const tag = `${A.side > 0 ? 'R' : 'L'} ph ${r3(ph)}`;
+        for (const p of A.pts) { note('walls', walls(p), tag); note('flaps', flapPen(p, ph), tag); note('torso', torso(p), tag); note('bin', bin(p), tag); note('printer', printer(p), tag); }
+        for (const p of [A.F.e, A.F.w, A.tip]) lo = Math.min(lo, p[2]);
+      }
+      // the held product's corners against the walls (carried 3 → 7)
+      if (ph >= 3 && ph < 7) { const c = arms[0].tip; for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 0, 1]) { const q2 = [c[0] + sx * 40, c[1] + sy * 40, c[2] + sz * 40]; note('itemWalls', walls(q2), `ph ${r3(ph)}`); note('itemFlaps', flapPen(q2, ph), `ph ${r3(ph)}`); } }
+      // the two grippers against each other (every 4th grid point)
+      for (let a3 = 0; a3 < arms[0].pts.length; a3 += 4) for (let b3 = 0; b3 < arms[1].pts.length; b3 += 4) { const p3 = arms[0].pts[a3], q3 = arms[1].pts[b3], d3 = Math.hypot(p3[0] - q3[0], p3[1] - q3[1], p3[2] - q3[2]); if (d3 < gg) { gg = d3; ggAt = `ph ${r3(ph)}`; } }
+      for (const a2 of [arms[0].F.e, arms[0].F.w, arms[0].tip]) for (const b2 of [arms[1].F.e, arms[1].F.w, arms[1].tip]) near = Math.min(near, Math.hypot(a2[0] - b2[0], a2[1] - b2[1], a2[2] - b2[2]));
     }
-    const rel = at(wrist(R.IN), [0, 0, -L3]);
-    console.log(`// op box check: gripper into a wall ${r3(gw)} mm, gripper points inside the resting item ${gc}, held item into a wall ${r3(cw)} mm; released ${r3(rel[2] - (BZ + 40))} mm above where it lands`);
+    console.log(`// op check: lowest arm point ${r3(lo - (BZ - 6))} mm above the conveyor; elbows, wrists and tips no closer than ${r3(near)} mm; grippers no closer than ${r3(gg)} mm (${ggAt})`);
+    // up to 3 mm reads as CONTACT (a finger on the cardboard it pushes; 3 mm
+    // is under a pixel at the unit's 0.24 px/mm) — more is a clip to fix
+    console.log(`// op box check (mm into; <= 3 is contact): ${Object.entries(worst).map(([k, [v, w]]) => `${k} ${r3(v)}${v > 0 ? ` (${w})` : ''}`).join(', ')}`);
   }
-  console.log('OP_BOX =', JSON.stringify({ BZ, BX, BW, BD, BH }));
+  console.log('OP_BOX =', JSON.stringify({ BZ, BX, BW, BD, BH, FL, OPEN, CONV, BIN, PRN, SLIP_OUT }));
+  console.log('OP_SEQ =', JSON.stringify({ R: SEQ_R, L: SEQ_L, FLAPS, HELD }));
   console.log('OP_P =', JSON.stringify(out));
 }

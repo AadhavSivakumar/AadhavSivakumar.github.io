@@ -613,6 +613,28 @@ const COWL_R = [0, 0, 1, 1, 0, 0, 0, 1, 0];
 // bar) holding a ball, on a narrower step — in a plane, local x DOWN, y across
 const LOGO = [...plate(12, 62, 18, 0, 0), ...plate(38, 12, -7, -25, 0), ...plate(38, 12, -7, 25, 0), ...plate(9, 28, 28.5, 0, 0),
   face(Array.from({ length: 14 }, (_, i) => [-9 + 12 * Math.cos((i / 14) * TAU), 12 * Math.sin((i / 14) * TAU), 0]))];
+// Ultra's wordmark as Ultra prints it along the Fairino's forearm in every
+// film ("ULTRA", squared capitals): letters from rectangles in a plane, u to
+// the right, v up, 36 tall, 8 strokes; plate() faces +z. `ULTRA_W` is its width.
+const ULTRA_WORD = (() => {
+  const H = 36, S = 8, W = 28, G = 9, f = [];
+  const r = (x0, y0, x1, y1) => f.push(...plate(x1 - x0, y1 - y0, (x0 + x1) / 2, (y0 + y1) / 2, 0));
+  let x = 0;
+  r(x, 0, x + S, H); r(x + W - S, 0, x + W, H); r(x, 0, x + W, S); x += W + G;                         // U
+  r(x, 0, x + S, H); r(x, 0, x + W - 4, S); x += W - 4 + G;                                              // L
+  r(x, H - S, x + W, H); r(x + (W - S) / 2, 0, x + (W + S) / 2, H - S); x += W + G;                      // T
+  r(x, 0, x + S, H); r(x, H - S, x + W, H); r(x + W - S, H / 2, x + W, H); r(x, H / 2 - 3, x + W, H / 2 + 5);   // R: stem, bowl
+  f.push(face([[x + 10, H / 2 - 3, 0], [x + 18, H / 2 - 3, 0], [x + W, 0, 0], [x + W - S, 0, 0]].reverse()));  // its leg
+  x += W + G;
+  r(x, 0, x + S, H); r(x + W - S, 0, x + W, H); r(x, H - S, x + W, H); r(x, H / 2 - 4, x + W, H / 2 + 4); x += W;   // A
+  // mirrored top to bottom, its winding reversed so it still faces +z: the
+  // stage is y-DOWN, so a rotation alone cannot make the letters read — the
+  // rotated set came out mirrored on the Fairino (seen, both ways round)
+  const flip = f.map(q => face(q.v.map(([px, py, pz]) => [px, H - py, pz]).reverse()));
+  return { faces: flip, W: x, H };
+})();
+// Ultra's mark mirrored the same way (along its own x, which runs down it)
+const LOGO_FLIP = LOGO.map(q => face(q.v.map(([px, py, pz]) => [-px, py, pz]).reverse()));
 const ELBOW = { solid: drum(24, -16, 30), wire: drumWire(24, -16, 30) };
 const WRIST = { solid: drum(15, -10, 18), wire: drumWire(15, -10, 18) };
 const BASE_PLINTH = { solid: boxFaces(96, 20, 90, 0, 0, 0), wire: boxWire(96, 20, 90, 0, 0, 0) };
@@ -2380,9 +2402,12 @@ export default function Flourish3D({ side = 'right' }) {
       // the ZED 2i on it (a real mesh), looking forward
       drawDrum(chain(TU, place(IDENT, [0, 0, UNIT.H])), 32, 0, 50, MAT.poly, a);
       submit(ZED_BAND, TU, MAT.graphite, a);                                   // the column's vented band
+      // the pan-tilt head (a servo in a dark-grey U bracket) and the ZED 2i on
+      // it, tipped 18° down at the work, as in every film
       submit(boxFaces(30, 44, 44, 0, 0, UNIT.H + 72), TU, MAT.poly, a);
+      for (const sy of [-1, 1]) submit(boxFaces(26, 4, 46, 4, sy * 24, UNIT.H + 92), TU, MAT.graphite, a);
       const zed = ROBOTS.ultra.parts.find(p => p.body === 'zed');
-      if (zed) submitMesh(zed, chain(TU, place(IDENT, [10, 0, UNIT.H + 112])), MAT.poly, a, matLine[MAT.poly]);
+      if (zed) submitMesh(zed, chain(TU, place(rotY(18 * DEG), [10, 0, UNIT.H + 112])), MAT.poly, a, matLine[MAT.poly]);
       // the cable from the case's back up to each shoulder, sagging
       for (const sd of [-1, 1]) {
         const cable = [];
@@ -2405,12 +2430,31 @@ export default function Flourish3D({ side = 'right' }) {
       const grow = { ...(bodyAlpha || {}), zed: 0 };
       drawRobot(robot, base, q, alpha, grow);
       const B = alpha < 1 ? scaleT(base, alpha) : base;
-      // Ultra's orange ring on the Fairino's elbow housing (their photos):
-      // an orange annulus on the housing's outer face, white inside it
-      { const Te = growPlacements(robot, B, q, grow)[robot.index.get('forearm_link')];
+      // Ultra's orange rings, an orange annulus with white inside it: the
+      // films show the forearm's OUTER caps ringed at both ends
+      // with the orange mark and "ULTRA" along it between them. Its outer
+      // side is the one the camera sees, so they go on whichever side faces
+      // the viewer: from the front-left (yaw 60) that is the forearm's -z side
+      // (its caps at z -45 at the elbow, -36 at the wrist; the tube's face at
+      // about -30), from the other side +z (the wrist1 link's cap at 224, the
+      // tube at 64). Letters upright (local ±y, whichever is screen-up),
+      // reading left to right for that viewer.
+      { const GP = growPlacements(robot, B, q, grow), Te = GP[robot.index.get('forearm_link')], Tw = GP[robot.index.get('wrist1_link')];
         if (detScale(Te.m) > 0.02 * detScale(B.m)) {
-          drawDrum(Te, 80, 132.4, 134.4, MAT.orange, alpha);
-          drawDrum(Te, 63, 132.4, 135.2, MAT.pla, alpha);
+          const s = Te.m[8] > 0 ? 1 : -1, up = Te.m[4] > 0 ? 1 : -1, r = s * up;     // up: local +y is screen-up (m[4] > 0: these placements are y-up — seen); r: which way along x the text reads
+          if (s > 0) {
+            drawDrum(Tw, 66, 224.4, 226.4, MAT.orange, alpha); drawDrum(Tw, 52, 224.4, 227.2, MAT.pla, alpha);
+          } else {
+            for (const [x, zc, R] of [[0, -45, 70], [-716, -36, 56]]) {
+              const C = chain(Te, place(IDENT, [x, 0, 0]));
+              drawDrum(C, R, zc - 2.4, zc - 0.4, MAT.orange, alpha); drawDrum(C, R - 14, zc - 3.2, zc - 0.4, MAT.pla, alpha);
+            }
+          }
+          const k = 0.85, L = ULTRA_WORD.W * k + 44, zf = s > 0 ? 66 : -32;
+          const Mb = [r, 0, 0, 0, up, 0, 0, 0, s];                                // letter (u, v, n) → forearm: a proper rotation
+          const x0 = -358 - r * L / 2;
+          submit(ULTRA_WORD.faces, chain(Te, place(Mb.map(v => v * k), [x0 + r * 44, -up * ULTRA_WORD.H * k / 2, zf])), MAT.poly, alpha);
+          submit(LOGO_FLIP, chain(Te, place(mul(Mb, mul(rotZ(-90 * DEG), scaleM(0.62))), [x0 + r * 16, 0, zf + s * 0.2])), MAT.orange, alpha);
         } }
       const Tf = bodyPlacements(robot, B, q)[robot.index.get('wrist3_link')];
       const TU = unitFrame(chain(Tf, place(IDENT, [0, 0, 120])), detScale(B.m));
@@ -2525,22 +2569,21 @@ export default function Flourish3D({ side = 'right' }) {
     const UR_W_L = urW([3.501, -2.504, -1.893, 0.423, 2.29, 0, 90], [3.22, -2.132, -2.107, 0.026, 2.455, 0, 90], [3.075, -2.704, -1.996, 0.314, 2.514, 0, 90], [2.877, -2.461, -2.077, -0.128, 2.551, 0, 90]);
     // the OP1's small arms (right; the left is the mirror by construction)
     const op = (P, open) => ({ ...P, open });
-    // ...solved in scripts/ik-poses.mjs (roll, which swings an arm inward in
-    // this chain, capped at 0.55 — the arms are 480 mm apart and come no
-    // closer than 270 mm; the lowest point of either stays 20 mm above the
-    // table), each arm's second flap grabbed on its own side
-    // (Oct 7: re-solved for the arms as photographed — shoulders 480 mm
-    // apart, the ELBOW DOWN: upper arm hanging, forearm reaching forward)
-    // (Oct 8: the item waits beyond the right flap's swing and is let go
-    // above the rim — ik-poses.mjs's box check: gripper and item 0 mm into
-    // any wall, the gripper never in the resting item)
-    const OP_REST = { pitch: -0.218, roll: -0.036, elbow: -1.721, wrist: 1.415 };
-    const OP_R = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: -0.92, roll: 0.274, elbow: -0.096, wrist: 1.016 }, FLAP2_UP: { pitch: -0.433, roll: 0.375, elbow: -1.417, wrist: 1.85 }, ITEM: { pitch: 0.308, roll: -0.206, elbow: -1.834, wrist: 1.526 }, ITEM_UP: { pitch: -0.195, roll: -0.434, elbow: -2.447, wrist: 2.642 }, OVER: { pitch: -0.225, roll: 0.55, elbow: -1.969, wrist: 2.194 }, IN: { pitch: -0.152, roll: 0.545, elbow: -1.899, wrist: 2.051 } };
-    const OP_L = { FLAP: { pitch: -0.045, roll: 0.076, elbow: -1.474, wrist: 1.519 }, FLAP_UP: { pitch: -0.115, roll: 0.35, elbow: -1.844, wrist: 1.959 }, FLAP2: { pitch: 0.557, roll: 0.274, elbow: -1.852, wrist: 1.294 }, FLAP2_UP: { pitch: 0.24, roll: 0.375, elbow: -2.161, wrist: 1.92 } };
-    const OPW_R = [op(OP_REST, 60), op(OP_R.FLAP, 60), op(OP_R.FLAP_UP, 60), op(OP_R.FLAP2, 60), op(OP_R.FLAP2_UP, 60),
-                   op(OP_R.ITEM_UP, 100), op(OP_R.ITEM, 100), op(OP_R.ITEM, 76), op(OP_R.ITEM_UP, 76), op(OP_R.OVER, 76), op(OP_R.IN, 76), op(OP_R.IN, 100), op(OP_R.OVER, 100), op(OP_REST, 60)];
-    const OPW_L = [op(OP_REST, 60), op(OP_L.FLAP, 60), op(OP_L.FLAP_UP, 60), op(OP_L.FLAP2, 60), op(OP_L.FLAP2_UP, 60),
-                   op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60), op(OP_REST, 60)];
+    // ...solved in scripts/ik-poses.mjs for the job in Ultra's own films
+    // (Oct 8, "ground the ultra stuff based on videos of the actual robot":
+    // ultra.tech's ORDER PACKAGING, HERO, INSTALLS IN HOURS). An open carton
+    // on a roller conveyor; the right arm takes a product out of a blue bin
+    // and puts it in, the left a packing slip out of a label printer; the
+    // right folds the front flap shut by its edge, the left the back flap;
+    // the right presses the seam; the box rolls away and the next rolls in.
+    // Its checks along the whole loop: the grippers 0 mm into the walls,
+    // torso, bin and printer, never closer than 77 mm to each other, and on a
+    // flap only where they hold its edge (contact, under 3 mm).
+    const OP_P = { R: { REST: { pitch: -0.218, roll: -0.036, elbow: -1.721, wrist: 1.415 }, ITEM: { pitch: 0.811, roll: -0.303, elbow: -2.033, wrist: 1.222 }, ITEM_UP: { pitch: 0.664, roll: -0.437, elbow: -2.509, wrist: 1.845 }, OVER: { pitch: -0.255, roll: 0.798, elbow: -1.826, wrist: 2.081 }, IN: { pitch: -0.193, roll: 0.686, elbow: -1.738, wrist: 1.93 }, FF_PRE: { pitch: -0.896, roll: 0.9, elbow: -1.077, wrist: 1.973 }, FF_A: { pitch: -0.824, roll: 0.786, elbow: -0.994, wrist: 1.818 }, FF_90: { pitch: -0.735, roll: 0.792, elbow: -1.157, wrist: 1.892 }, FF_45: { pitch: -0.374, roll: 0.715, elbow: -1.624, wrist: 1.998 }, FF_0: { pitch: -0.154, roll: 0.575, elbow: -1.636, wrist: 1.79 }, FF_UP: { pitch: -0.293, roll: 0.808, elbow: -1.861, wrist: 2.154 }, PRESS: { pitch: -0.133, roll: 0.722, elbow: -1.51, wrist: 1.643 }, PRESS_UP: { pitch: -0.288, roll: 0.799, elbow: -1.857, wrist: 2.145 } },
+                   L: { REST: { pitch: -0.218, roll: -0.036, elbow: -1.721, wrist: 1.415 }, SLIP: { pitch: 0.155, roll: -0.507, elbow: -2.203, wrist: 2.048 }, SLIP_UP: { pitch: -0.048, roll: -0.668, elbow: -2.35, wrist: 2.398 }, WAIT: { pitch: -0.407, roll: 0.114, elbow: -2.163, wrist: 2.57 }, OVER: { pitch: -0.255, roll: 0.798, elbow: -1.826, wrist: 2.081 }, IN: { pitch: -0.193, roll: 0.686, elbow: -1.738, wrist: 1.93 }, BF_PRE: { pitch: 0.086, roll: 0.9, elbow: -2.551, wrist: 2.465 }, BF_A: { pitch: 0.302, roll: 0.786, elbow: -2.433, wrist: 2.132 }, BF_90: { pitch: 0.194, roll: 0.792, elbow: -2.367, wrist: 2.173 }, BF_45: { pitch: -0.1, roll: 0.715, elbow: -1.974, wrist: 2.073 }, BF_0: { pitch: -0.154, roll: 0.575, elbow: -1.636, wrist: 1.79 }, BF_UP: { pitch: -0.293, roll: 0.808, elbow: -1.861, wrist: 2.154 } } };
+    const OP_SEQ = { R: [['REST', 60], ['ITEM_UP', 100], ['ITEM', 100], ['ITEM', 76], ['ITEM_UP', 76], ['OVER', 76], ['IN', 76], ['IN', 88], ['OVER', 88], ['FF_PRE', 30], ['FF_A', 30], ['FF_A', 8], ['FF_90', 8], ['FF_45', 8], ['FF_0', 8], ['FF_0', 30], ['FF_UP', 30], ['REST', 60], ['REST', 60], ['REST', 60], ['PRESS_UP', 20], ['PRESS', 20], ['PRESS_UP', 20], ['REST', 60]],
+                     L: [['REST', 60], ['SLIP_UP', 40], ['SLIP', 40], ['SLIP', 4], ['SLIP_UP', 4], ['WAIT', 4], ['WAIT', 4], ['WAIT', 4], ['WAIT', 4], ['OVER', 4], ['IN', 4], ['IN', 40], ['OVER', 40], ['BF_PRE', 30], ['BF_A', 30], ['BF_A', 8], ['BF_90', 8], ['BF_45', 8], ['BF_0', 8], ['BF_0', 30], ['BF_UP', 30], ['REST', 60], ['REST', 60], ['REST', 60]] };
+    const OPW_R = OP_SEQ.R.map(([k, g]) => op(OP_P.R[k], g)), OPW_L = OP_SEQ.L.map(([k, g]) => op(OP_P.L[k], g));
 
     const RB = {
       // SO-ARM101 joints: shoulder_pan, shoulder_lift, elbow_flex, wrist_flex,
@@ -2578,14 +2621,19 @@ export default function Flourish3D({ side = 'right' }) {
             taskL: { period: 18, W: [...Array(4).fill(UR_W_L[0]), ...UR_W_L], grip: [6], tcp: { body: 'wrist3', off: [0, UR_TCP, 0] }, reset: true,
                      cubes: [{ size: 60, mat: MAT.blue }], events: [{ cube: 0, at: 6, drop: 10 }] } },
       // The Ultra OP1: the Fairino FR20 on the cart's pedestal, holding its
-      // flange out level at chest height (j4 -0.9, j5 1.57: solved for a
-      // horizontal flange normal) with the unit on it. The Fairino holds
-      // still while settled — the unit's arms do the work: fold the box's
-      // four flaps up, then put the item in it; the loop resets.
-      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 90,
-            rest: [0.3, -1.7, 1.7, 0, 1.57, 0],     // the unit held chest-high in front of the Fairino, its base below (Ultra's front photo)
+      // flange out level at chest height with the unit on it, as an upside-
+      // down L (upper arm up, forearm out level, the unit hanging off the
+      // wrist — every shot of Ultra's films); seen three-quarter (yaw 60) as
+      // they film it, not square on (90 until Oct 8). The Fairino holds still
+      // while settled; the unit's arms do the job (OPW_R / OPW_L, above).
+      ul: { k: 0.17, root: ULTRA_ROOT, yaw: 60,
+            rest: [0.3, -1.7, 1.7, 0, 1.57, 0],
             folded: [0.3, -1.6, 2.7, -0.9, 1.57, 0],
-            unit: { period: 18, R: OPW_R, L: OPW_L, item: { at: 7, drop: 11 }, flaps: { R: [1, 2], F: [3, 4], L: [1, 2], B: [3, 4] } } },
+            // events index the waypoints: the product taken at 3 and let go
+            // at 7, the slip at 3 and 11; each flap's angle (degrees) at four
+            // waypoints; the box rolls away over the last step
+            unit: { period: 26, R: OPW_R, L: OPW_L, item: { at: 3, drop: 7 }, slip: { at: 3, drop: 11 },
+                    flaps: { F: [11, 100, 12, 90, 13, 45, 14, 0], B: [15, 100, 16, 90, 17, 45, 18, 0] } } },
     };
     { const qs = typeof location !== 'undefined' ? new URLSearchParams(location.search) : null;   // dev: ?ulyaw=<deg>
       if (qs && qs.has('ulyaw')) RB.ul.yaw = +qs.get('ulyaw');
@@ -2881,86 +2929,131 @@ export default function Flourish3D({ side = 'right' }) {
       const k = detScale(base.m);
       drawOpenBox([d[0], d[1] + 80 * k, d[2]], 240, 240, 160, R_UP, k, MAT.iron, alpha);
     }
-    // the OP1's job, in the unit's frame: the box's flaps and the item
-    // TW x TL: the packing table under the box. TL 740 (was 600): the item
-    // waits on it beyond the right flap's swing (it used to sit on the flat
-    // flap, and the flap folded up through it)
-    const OPB = { BZ: -200, BX: 230, BW: 300, BD: 180, BH: 120, TW: 260, TL: 740 };
+    // the OP1's job, in the unit's frame (mm; ik-poses.mjs has the same
+    // numbers): an open carton BD deep (x) by BW across (y), walls BH tall
+    // from BZ, centred BX forward, its front and back flaps FL long; under it
+    // a roller conveyor TW by TL (its bed is what the act-4 and act-5 morphs
+    // aim at); a blue bin with the product on a stand to the right, a label
+    // printer with the slip standing out of its top slot on a stand past the
+    // conveyor's left end (nearer the unit it stood on the Fairino's cart).
+    // ROLL: how far the packed box rolls away along the conveyor, toward the
+    // bin's end; ROLL_IN: how far up the line the next one comes from.
+    const OPB = { BZ: -200, BX: 250, BW: 200, BD: 220, BH: 120, FL: 110, OPEN: 100, TW: 280, TL: 500, ROLL: 300,
+                  BIN: { x: 40, y: 355, w: 190, h: 60 }, PRN: { x: 160, y: -375, dx: 140, dy: 120, h: 120 }, SLIP_OUT: 75, ROLL_IN: 150 };
+    const BED_H = 36, BED_Z = OPB.BZ - 36;           // the bed under the rollers (its top 12 mm below the box's floor)
+    const OP_ITEM = [OPB.BIN.x, OPB.BIN.y, OPB.BZ - 6 + 5 + 40];                           // the product on the bin's floor
+    const OP_SLIP = [OPB.PRN.x, OPB.PRN.y, OPB.BZ - 6 + OPB.PRN.h + OPB.SLIP_OUT - 45];   // the slip's centre, standing in the slot
     const UNIT_ID = place(IDENT, [0, 0, 0]);   // the unit's own frame: smallArmFrames in it gives unit-frame mm
     const lerpArm = (A, B, k) => ({ pitch: A.pitch + (B.pitch - A.pitch) * k, roll: A.roll + (B.roll - A.roll) * k, elbow: A.elbow + (B.elbow - A.elbow) * k, wrist: A.wrist + (B.wrist - A.wrist) * k, open: A.open + (B.open - A.open) * k });
     const ARM_KEYS = ['pitch', 'roll', 'elbow', 'wrist', 'open'];
     const armArr = P => ARM_KEYS.map(k => P[k]);
     const armObj = q => Object.fromEntries(ARM_KEYS.map((k, i) => [k, q[i]]));
     // The Fairino SWAYS between jobs — lifts the unit a little and turns —
-    // only while the small arms are off the props (the last two waypoints
-    // and the reset), so nothing it carries misses what it is reaching for.
+    // only over the last step, while the box rolls away and both arms are
+    // home, so nothing it carries misses what it is reaching for.
     const fairinoSway = ph => {
       const n = RB.ul.unit.R.length;
-      const w = ph > n - 2.6 ? Math.sin(Math.PI * clamp((ph - (n - 2.6)) / 2.6, 0, 1)) : 0;
+      const w = ph > n - 1.4 ? Math.sin(Math.PI * clamp((ph - (n - 1.4)) / 1.4, 0, 1)) : 0;
       return RB.ul.rest.map((x, i) => x + w * [0.12, 0.05, -0.08, 0.04, 0, 0][i]);
     };
+    // a flap's angle (degrees) at phase ph, from its [index, angle, ...] schedule
+    const flapDeg = (k, ph) => { if (ph <= k[0]) return k[1]; for (let i = 0; i < k.length - 2; i += 2) if (ph <= k[i + 2]) return k[i + 1] + (k[i + 3] - k[i + 1]) * smooth((ph - k[i]) / (k[i + 2] - k[i])); return 0; };
+    // The job at time t: both arms, where the product and the slip are (unit
+    // mm), the flaps, the roll, and the Fairino's joints.
     function unitTaskState(TU, t, u = 1) {
       const task = RB.ul.unit, n = task.R.length;
-      const st = ph0 => {
-        const { a, ph } = taskReset({ reset: true }, ph0, n);
+      const st = ph => {
         const at = (Wa, i) => { const j = Math.floor(i) % n, f = i - Math.floor(i); return armObj(splineAt(armArr(Wa[(j - 1 + n) % n]), armArr(Wa[j]), armArr(Wa[(j + 1) % n]), armArr(Wa[(j + 2) % n]), f, [4])); };   // [4]: the arm's `open`
-        const PR = at(task.R, ph0), PL = at(task.L, ph0);
-        const tcpR = P => smallArmFrames(TU, P, 1).tcp;
-        let itemPos = tcpR(task.R[task.item.at]), held = false;
-        // let go ABOVE the rim (lowered into the box, the tilted gripper
-        // went through its wall), the item FALLS to the box floor
-        if (ph >= task.item.drop) {
-          const r = smallArmFrames(UNIT_ID, task.R[task.item.drop], 1).tcp, f = clamp((ph - task.item.drop) / 0.22, 0, 1);
-          itemPos = tpOf(TU, [r[0], r[1], r[2] + (OPB.BZ + 40 - r[2]) * f * f]);
-        }
-        if (ph >= task.item.at && ph < task.item.drop) { held = true; itemPos = tcpR(PR); }
-        const fold = ([i0, i1]) => smooth(clamp((ph - i0) / (i1 - i0), 0, 1));
-        return { PR, PL, a, itemPos, held, q: fairinoSway(ph0), flaps: { R: fold(task.flaps.R), F: fold(task.flaps.F), L: fold(task.flaps.L), B: fold(task.flaps.B) } };
+        const PR = at(task.R, ph), PL = at(task.L, ph);
+        const tcp = (P, side) => smallArmFrames(UNIT_ID, P, side).tcp;
+        // the product: in the bin, in the right hand, falling to the box's floor
+        const { at: ia, drop: id } = task.item;
+        let item = OP_ITEM, itemIn = false;
+        if (ph >= ia && ph < id) item = tcp(PR, 1);
+        else if (ph >= id) { const r = tcp(task.R[id], 1), f = clamp((ph - id) / 0.22, 0, 1); item = [r[0], r[1], r[2] + (OPB.BZ + 40 - r[2]) * f * f]; itemIn = true; }
+        // the slip: standing in the slot, hanging from the left hand, falling
+        // and turning flat onto the box's floor
+        const { at: sa, drop: sd } = task.slip;
+        let slip = OP_SLIP, slipTurn = 0, slipIn = false;
+        if (ph >= sa && ph < sd) { const p = tcp(PL, -1); slip = [p[0], p[1], p[2] - 20]; }
+        else if (ph >= sd) { const r = tcp(task.L[sd], -1), f = clamp((ph - sd) / 0.3, 0, 1), z0 = r[2] - 20, z1 = OPB.BZ + 1; slip = [r[0], r[1], z0 + (z1 - z0) * f * f]; slipTurn = smooth(f); slipIn = true; }
+        return { PR, PL, item, itemIn, taken: ph >= ia, slip, slipTurn, slipIn, pulled: ph >= sa,
+                 roll: smooth(clamp(ph - (n - 1), 0, 1)), q: fairinoSway(ph), flaps: { F: flapDeg(task.flaps.F, ph), B: flapDeg(task.flaps.B, ph) } };
       };
       if (u <= 0.001) return st(0);
       const live = st(taskPhase(task, t, n));
       if (u >= 0.999) return live;
       const rest = st(0);
-      const mix = (A, B) => A + (B - A) * u;
-      return { PR: lerpArm(rest.PR, live.PR, u), PL: lerpArm(rest.PL, live.PL, u), a: mix(rest.a, live.a), held: live.held,
-               itemPos: rest.itemPos.map((x, j) => mix(x, live.itemPos[j])), q: lerpQ(rest.q, live.q, u),
-               flaps: { R: mix(rest.flaps.R, live.flaps.R), F: mix(rest.flaps.F, live.flaps.F), L: mix(rest.flaps.L, live.flaps.L), B: mix(rest.flaps.B, live.flaps.B) } };
+      const mix = (A, B) => A + (B - A) * u, mixV = (A, B) => A.map((x, j) => mix(x, B[j]));
+      return { ...live, PR: lerpArm(rest.PR, live.PR, u), PL: lerpArm(rest.PL, live.PL, u), item: mixV(rest.item, live.item), slip: mixV(rest.slip, live.slip),
+               slipTurn: mix(rest.slipTurn, live.slipTurn), roll: mix(rest.roll, live.roll), q: lerpQ(rest.q, live.q, u),
+               flaps: { F: mix(rest.flaps.F, live.flaps.F), B: mix(rest.flaps.B, live.flaps.B) } };
     }
-    // arriving / leaving, the packing table and its box GROW about the table
-    // top's centre, opaque, instead of fading in as a ghost
-    function growUnitProps(TU, st, g) {
+    // arriving / leaving, the conveyor and everything on it GROW about the
+    // bed's centre, opaque, instead of fading in as a ghost
+    function growUnitProps(TU, st, g, noBed = false) {
       if (g <= 0.03) return;
-      drawUnitProps(g < 1 ? scaleAbout(TU, g, tpOf(TU, [OPB.BX, 0, OPB.BZ - 24])) : TU, st, 1);
+      drawUnitProps(g < 1 ? scaleAbout(TU, g, tpOf(TU, [OPB.BX, 0, BED_Z])) : TU, st, 1, noBed);
     }
-    function drawUnitProps(TU, st, alpha) {
+    // the conveyor's rollers (steel, along x, every 36 mm) and the props'
+    // fixed parts, built once
+    const OP_ROLLERS = (() => { const f = [], L = OPB.TW / 2 - 14; for (let y = -OPB.TL / 2 + 18; y <= OPB.TL / 2 - 18; y += 36) f.push(...cylX(6, OPB.BX - L, OPB.BX + L, y, OPB.BZ - 12, 8, false, false)); return f; })();
+    const OP_BIN = (() => { const { x, y, w, h } = OPB.BIN, z0 = OPB.BZ - 6; return [...boxFaces(w, w, 5, x, y, z0 + 2.5), ...boxFaces(5, w, h, x - w / 2 + 2.5, y, z0 + h / 2), ...boxFaces(5, w, h, x + w / 2 - 2.5, y, z0 + h / 2), ...boxFaces(w - 10, 5, h, x, y - w / 2 + 2.5, z0 + h / 2), ...boxFaces(w - 10, 5, h, x, y + w / 2 - 2.5, z0 + h / 2)]; })();
+    function drawUnitProps(TU, st, alpha, noBed = false) {     // noBed: everything but the bed (act 5 flattens the bed itself)
       if (alpha <= 0.01) return;
-      const { BZ, BX, BW, BD, BH } = OPB;
-      const k = detScale(TU.m);
-      // the packing table under the box, its legs down to the floor
-      submit(boxFaces(OPB.TW, OPB.TL, 36, BX, 0, BZ - 24), TU, MAT.poly, alpha);
-      submitLines(boxWire(OPB.TW, OPB.TL, 36, BX, 0, BZ - 24), TU, matLine[MAT.poly], LOOK.line * alpha, LOOK.width);
-      for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-        const c = tpOf(TU, [BX + sx * (OPB.TW / 2 - 20), sy * (OPB.TL / 2 - 20), BZ - 42]);
-        const h = FLOOR_Y - c[1];
-        if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(5, h, 5, c[0], c[1] + h / 2, c[2]), F, MAT.poly, alpha); submitLines(boxWire(5, h, 5, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.poly], LOOK.line * alpha, LOOK.width); }
-      }
-      const a = alpha * st.a;
-      if (a <= 0.01) return;
-      // the box: a base plate, and a flap hinged on each edge, lying flat
-      // outward until an arm folds it up
-      submit(boxFaces(BD, BW, 6, BX, 0, BZ - 3), TU, MAT.iron, a);
-      submitLines(boxWire(BD, BW, 6, BX, 0, BZ - 3), TU, matLine[MAT.iron], LOOK.line * a, LOOK.width);
-      const flap = (hinge, M, w, d, cx, cy) => {
-        const F = chain(TU, place(M, hinge));
-        submit(boxFaces(w, d, 6, cx, cy, 3), F, MAT.iron, a);
-        submitLines(boxWire(w, d, 6, cx, cy, 3), F, matLine[MAT.iron], LOOK.line * a, LOOK.width);
+      const { BZ, BX, BW, BD, BH, FL } = OPB, TOP = BZ + BH;
+      const k = detScale(TU.m), R = unitRot(TU.m);
+      const put = (faces, mat, a = alpha, F = TU) => submit(faces, F, mat, a);
+      const outline = (w, d, h, x, y, z, mat, a = alpha) => submitLines(boxWire(w, d, h, x, y, z), TU, matLine[mat], LOOK.line * a, LOOK.width);
+      // a leg from a unit-frame point straight down to the floor (stage y)
+      const leg = (x, y, z, w = 5) => { const c = tpOf(TU, [x, y, z]), h = FLOOR_Y - c[1]; if (h > 2) { const F = place(IDENT, [0, 0, 0]); submit(boxFaces(w, h, w, c[0], c[1] + h / 2, c[2]), F, MAT.poly, alpha); submitLines(boxWire(w, h, w, c[0], c[1] + h / 2, c[2]), F, matLine[MAT.poly], LOOK.line * alpha, LOOK.width); } };
+      // the roller conveyor: its bed, steel rollers on it, a guide rail each side, legs
+      if (!noBed) { put(boxFaces(OPB.TW, OPB.TL, BED_H, BX, 0, BED_Z), MAT.poly); outline(OPB.TW, OPB.TL, BED_H, BX, 0, BED_Z, MAT.poly); }
+      put(OP_ROLLERS, MAT.steel);
+      for (const sx of [-1, 1]) put(boxFaces(10, OPB.TL, 24, BX + sx * (OPB.TW / 2 - 5), 0, BZ - 6), MAT.steel);
+      for (const sx of [-1, 1]) for (const sy of [-1, 1]) leg(BX + sx * (OPB.TW / 2 - 20), sy * (OPB.TL / 2 - 20), BED_Z - BED_H / 2);
+      // the bin's and the printer's stands: a top plate on a post
+      for (const S of [OPB.BIN, OPB.PRN]) { put(boxFaces(200, 200, 12, S.x, S.y, BZ - 12), MAT.poly); outline(200, 200, 12, S.x, S.y, BZ - 12, MAT.poly); leg(S.x, S.y, BZ - 18, 10); }
+      // the blue bin, and the label printer (a grey body, a dark top, its slot)
+      put(OP_BIN, MAT.blue);
+      const P = OPB.PRN, ptop = BZ - 6 + P.h;
+      put(boxFaces(P.dx, P.dy, P.h - 14, P.x, P.y, BZ - 6 + (P.h - 14) / 2), MAT.alu); outline(P.dx, P.dy, P.h - 14, P.x, P.y, BZ - 6 + (P.h - 14) / 2, MAT.alu);
+      put(boxFaces(P.dx, P.dy, 14, P.x, P.y, ptop - 7), MAT.graphite);
+      put(boxFaces(84, 10, 1.5, P.x, P.y, ptop + 0.75), MAT.poly);
+      // the product (a yellow pack) and the slip, where the job has them; the
+      // next of each arrives as the packed box rolls away — a pack fades into
+      // the bin, a slip feeds up out of the slot (inside the printer it is hidden)
+      const out = OPB.ROLL * st.roll;
+      const cube = (c, a) => { if (a > 0.01) { const T = place(R, tpOf(TU, c)); submit(boxFaces(80 * k, 80 * k, 80 * k, 0, 0, 0), T, MAT.ochre, a); submitLines(boxWire(80 * k, 80 * k, 80 * k, 0, 0, 0), T, matLine[MAT.ochre], LOOK.line * a, LOOK.width); } };
+      const goneI = 1 - smooth(clamp(st.roll * 2, 0, 1));
+      cube(st.itemIn ? [st.item[0], st.item[1] + out, st.item[2]] : st.item, alpha * (st.itemIn ? goneI : 1));
+      if (st.taken) cube(OP_ITEM, alpha * st.roll);
+      const slipAt = (c, turn, a) => { if (a > 0.01) submit(boxFaces(70, 1.5, 90, 0, 0, 0), chain(TU, place(rotX(turn * 90 * DEG), c)), MAT.pla, a); };
+      slipAt(st.slipIn ? [st.slip[0], st.slip[1] + out, st.slip[2]] : st.slip, st.slipTurn, alpha * (st.slipIn ? goneI : 1));
+      if (st.pulled) slipAt([OP_SLIP[0], OP_SLIP[1], OP_SLIP[2] - OPB.SLIP_OUT * (1 - st.roll)], 0, alpha);
+      // the carton: floor, four walls, the front and back flaps on the walls'
+      // top edges (each a plate turned about its hinge: along the flap, along
+      // the hinge, out of the cardboard — a proper rotation, so it culls).
+      // The packed one rolls away as the next, open and empty, rolls in.
+      const carton = (y, a, F, B) => {
+        if (a <= 0.01) return;
+        const wall = (w, d, h, x, yy, z) => { put(boxFaces(w, d, h, x, yy, z), MAT.iron, a); outline(w, d, h, x, yy, z, MAT.iron, a); };
+        wall(BD, BW, 6, BX, y, BZ - 3);
+        for (const sx of [-1, 1]) wall(6, BW, BH, BX + sx * (BD / 2 - 3), y, BZ + BH / 2);
+        for (const sy of [-1, 1]) wall(BD - 12, 6, BH, BX, y + sy * (BW / 2 - 3), BZ + BH / 2);
+        for (const [sg, th] of [[1, F], [-1, B]]) {
+          const c = Math.cos(th * DEG), s = Math.sin(th * DEG);
+          const M = sg > 0 ? [-c, 0, s, 0, -1, 0, s, 0, c] : [c, 0, -s, 0, 1, 0, s, 0, c];
+          const Fl = chain(TU, place(M, [BX + sg * BD / 2, y, TOP]));
+          submit(boxFaces(FL, BW, 6, FL / 2, 0, 3), Fl, MAT.iron, a);
+          submitLines(boxWire(FL, BW, 6, FL / 2, 0, 3), Fl, matLine[MAT.iron], LOOK.line * a, LOOK.width);
+        }
       };
-      const H = 90 * DEG;
-      flap([BX, BW / 2, BZ], rotX(st.flaps.R * H), BD, BH, 0, BH / 2);
-      flap([BX, -BW / 2, BZ], rotX(-st.flaps.L * H), BD, BH, 0, -BH / 2);
-      flap([BX + BD / 2, 0, BZ], rotY(-st.flaps.F * H), BH, BW, BH / 2, 0);
-      flap([BX - BD / 2, 0, BZ], rotY(st.flaps.B * H), BH, BW, -BH / 2, 0);
-      drawCube(st.itemPos, 80 * k, unitRot(TU.m), MAT.alu, a);   // square to the BOX (the unit's frame), not to the stage
+      // (the packed box is gone by half way, the next arrives over the second
+      // half: crossfaded together, two see-through boxes read as a jumble)
+      const goneA = 1 - smooth(clamp(st.roll * 2, 0, 1)), newA = smooth(clamp(st.roll * 2 - 1, 0, 1));
+      carton(out, alpha * goneA, st.flaps.F, st.flaps.B);
+      carton(-OPB.ROLL_IN * (1 - st.roll), alpha * newA, OPB.OPEN, OPB.OPEN);
     }
 
     // ── act 1 (right): the motor becomes the SO-ARM101 ──────────────────
@@ -3264,10 +3357,15 @@ export default function Flourish3D({ side = 'right' }) {
         };
         const sub = (p, q2) => [p[0] - q2[0], p[1] - q2[1], p[2] - q2[2]];
         const nrm = v => { const L = Math.hypot(...v) || 1; return [v[0] / L, v[1] / L, v[2] / L]; };
-        for (const [root, yaw, rest] of [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL]]) {
-          const Bu = leaning(root, RB.ur.k, yaw);
+        // each UR takes ONE shoulder: the pairing with the shorter total
+        // travel (each taking its own nearest sent both to the same shoulder
+        // once the OP1 was turned three-quarter, yaw 60)
+        const URS = [[RB.ur.rootR, RB.ur.yawR, RB.ur.restR], [RB.ur.rootL, RB.ur.yawL, RB.ur.restL]].map(([root, yaw, rest]) => [leaning(root, RB.ur.k, yaw), rest]);
+        const dsh = (B, sh) => Math.hypot(sh[0] - B.t[0], sh[1] - B.t[1]);
+        const keep = dsh(URS[0][0], shR) + dsh(URS[1][0], shL) <= dsh(URS[0][0], shL) + dsh(URS[1][0], shR);
+        for (const [ui, [Bu, rest]] of URS.entries()) {
           const TA = bodyPlacements(UR, Bu, rest), ix = n => UR.index.get(n);
-          const side = Math.hypot(shR[0] - Bu.t[0], shR[1] - Bu.t[1]) <= Math.hypot(shL[0] - Bu.t[0], shL[1] - Bu.t[1]) ? 1 : -1;
+          const side = (ui === 0) === keep ? 1 : -1;
           const F = smallArmFrames(TU, side > 0 ? RB.ul.unit.R[0] : RB.ul.unit.L[0], side);
           // joint points: the UR's (body origins + the tool tip) and the
           // Ultra arm's (mount, shoulder, elbow, wrist, and three stations
@@ -3308,8 +3406,10 @@ export default function Flourish3D({ side = 'right' }) {
         const src = OB(R_UP, [dP[0], dP[1] + 80 * kP, dP[2]], [240 * kP, 240 * kP, 160 * kP], MAT.iron);
         const TUn2 = unitFrame(chain(bodyPlacements(ROBOTS.ultra, base, q)[ROBOTS.ultra.index.get('wrist3_link')], place(IDENT, [0, 0, 120])), RB.ul.k);
         const wB = smooth(win(t, 0.2, 0.6));
-        if (wB < 1) obDraw(obLerp(src, obIn(TUn2, OPB.TW, OPB.TL, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly), wB));
-        else growUnitProps(TUn2, unitTaskState(TUn2, 0), 1);
+        if (wB < 1) {
+          obDraw(obLerp(src, obIn(TUn2, OPB.TW, OPB.TL, BED_H, OPB.BX, 0, BED_Z, MAT.poly), wB));
+          growUnitProps(TUn2, unitTaskState(TUn2, 0), smooth(win(t, 0.6, 0.2)), true);   // the rest of the cell grows in as the bed lands
+        } else growUnitProps(TUn2, unitTaskState(TUn2, 0), 1);
       }
       flush();
     }
@@ -3592,10 +3692,11 @@ export default function Flourish3D({ side = 'right' }) {
           const plate = OB(IDENT, floorC, [180, 2, 80], MAT.poly);
           const wF = smooth(win(t, 0.04, 0.6));
           if (wF < 1) {
-            const cartOB = [...CART_BOXES.map(b => obAxis(...b)), obIn(TU5, OPB.TW, OPB.TL, 36, OPB.BX, 0, OPB.BZ - 24, MAT.poly)];
+            const cartOB = [...CART_BOXES.map(b => obAxis(...b)), obIn(TU5, OPB.TW, OPB.TL, BED_H, OPB.BX, 0, BED_Z, MAT.poly)];
             if (wF <= 0) { drawCart(1, 1); growUnitProps(TU5, unitTaskState(TU5, 0), 1); }
             else {
               const f1 = smooth(clamp(wF / 0.3, 0, 1)), f2 = smooth(clamp((wF - 0.25) / 0.5, 0, 1));
+              growUnitProps(TU5, unitTaskState(TU5, 0), 1 - f1, true);   // the box, bin, printer and rollers shrink away as the bed flattens
               cartOB.forEach(o => {
                 const flat = OB(o.R, [o.c[0], FLOOR_Y - 1, o.c[2]], [o.d[0], 2, o.d[2]], MAT.poly);
                 const tile = OB(IDENT, floorC, [Math.min(o.d[0], 180), 2, Math.min(o.d[2], 80)], MAT.poly);
