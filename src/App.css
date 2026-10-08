@@ -2605,3 +2605,54 @@ html[data-theme="dark"] .hero-bubble__shine::before {
   .contact-body p { font-size: 0.8rem !important; line-height: 1.45 !important; }
   .contact-body .dock-outer { margin-top: 4px !important; height: 72px !important; }
 }
+
+/* ── PHONES, the band again (Oct 8, later; the owner: "the animations still
+   end up weird on mobile, make them even smaller and a bit more
+   separated"), with a review pass's findings folded in. What was weird:
+   - TOPS CUT: every stage showed one FIXED window of its 340x660 drawing
+     (rows 132-620; the band's top edge cut 20% off), and ink lives above
+     that — the D435i over the table (a sliced bar), the left film's
+     real/sim/real tracker and its wall of demos, the Atlas's head and
+     waving hand. Now each stage shows its OWN window, the rows its ink ever
+     reaches (measured over every act, densely, and every settled loop, both
+     themes: left 25-621, right 73-570), plus a margin, scaled so that window
+     fills the band. Only the camera's exploding parts in act one leave it,
+     as they leave the film's own frame on a desktop.
+   - CROWDED: the stages stood 8px apart in the middle; now a gap of
+     clamp(28px, 11vw, 56px).
+   - The band is smaller (126 -> 106px on a 390x664 phone, 91 on the SE,
+     134 at most), the tab a 30px chevron at the right, above the stages
+     (95px wide, it covered the right stage on the SE), the band's top line
+     drawn ABOVE the stages (the film painted over it), no ground gradient
+     behind the pieces (an oval smudge at this size), and the page a plain
+     colour behind the band (the body's fixed radial made a tone step of up
+     to 11 levels at the band's edge). The band turns solid when the pieces
+     start to fade in (RobotDock.jsx), not at 40px, where it was an empty
+     strip across the waves.
+   Desktop and tablets are untouched (everything here is ≤768px). */
+@media (max-width: 768px) {
+  :root { --dock-h: min(16vh, 36vw, 136px); --stage-gap: clamp(28px, 11vw, 56px); }
+  body { background: var(--background-color); }
+  .f3d {
+    /* the drawing rows [--win-a, --win-b] fill the band, less --win-pad */
+    --win-a: 18; --win-b: 628; --win-pad: 6px;
+    --fh: calc((var(--dock-h) - var(--win-pad)) * 660 / (var(--win-b) - var(--win-a)));
+    --fw: calc(var(--fh) * 340 / 660);
+    bottom: calc(var(--win-pad) / 3 - var(--fh) * (660 - var(--win-b)) / 660);
+  }
+  .f3d--right { --win-a: 64; --win-b: 578; }
+  .f3d--left  { left: calc(50% - var(--fw) - var(--stage-gap) / 2); }
+  .f3d--right { left: calc(50% + var(--stage-gap) / 2); right: auto; }
+  .f3d-dock .f3d::before { display: none; }
+  .f3d-dock::before { border-top: none; }
+  .f3d-dock::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; z-index: 2;
+    border-top: 1px solid var(--border-color);
+    opacity: 0; transition: opacity 0.5s ease;
+  }
+  .f3d-dock.is-solid::after { opacity: 1; }
+  .f3d-dock__toggle { right: 10px; width: 30px; padding: 0; justify-content: center; align-items: center; z-index: 3; font-size: 12px; }
+  /* the WebGL canvases set their own visibility inline, so the collapsed
+     band showed a red cube in its 24px strip */
+  html.dock-collapsed .f3d-dock .f3d * { visibility: hidden !important; }
+}

@@ -2559,6 +2559,28 @@ Measuring gotchas: wait ~1.5s after scrolling (the cards' entrance slides
 them up and reads as overflow), scroll with `scroll-behavior: auto`, and
 skip what is inside a scrolling frame (`.resume-pages`, `.skill-chips`).
 
+**Oct 8, later: the band again** (the owner: "the animations still end up
+weird on mobile, make them even smaller and a bit more separated"; a review
+pass's findings folded in; the block `PHONES, the band again` at the end of
+App.css). The stages showed one FIXED window of the drawing (rows 132-620),
+so the D435i, the left film's tracker and demo wall and the Atlas's head
+were sliced by the band's top edge. Each stage now shows its OWN window —
+the rows its ink ever reaches, measured over every act (25 moments each)
+and every settled loop in both themes (left 25-621, right 73-570), plus a
+margin: `--win-a` / `--win-b` (left 18-628, right 64-578), and `--fh` /
+`bottom` are derived so that window fills the band. Band `min(16vh, 36vw,
+136px)` (106px on a 390x664 phone, 91 on the SE); the stages
+`clamp(28px, 11vw, 56px)` apart about the centre; the tab a 30px chevron at
+the right; the band's top line in `::after`, above the stages (the film
+painted over it); no `.f3d::before` ground; a plain page colour behind the
+band (`body` loses its fixed radial on phones); the band turns solid at a
+third of the hero, where the pieces start to fade in (it was an empty
+strip across the waves from 40px); the collapsed band hides the WebGL
+canvases too (they set `visibility` inline and leaked a red cube). The
+right stage's DPR cap on phones is a 0.14 Mpx budget up to 2.5x (it was
+1.25: soft robots on a 3x screen); settled draw cost unchanged (0.7-2.9 ms).
+Desktop and tablet screenshots are pixel-identical to before.
+
 **Oct 8, later (the owner: "ultra robot doesn't look detailed enough. Also,
 the atlas robot's arm gets clipped off while waving. Which animation is
 decreasing performance the most?").**

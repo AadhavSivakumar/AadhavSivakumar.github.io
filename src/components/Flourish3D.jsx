@@ -695,7 +695,14 @@ export default function Flourish3D({ side = 'right' }) {
       // proportion to the pixels it touches, so a cap of 2 is four times the
       // rasterising of a cap of 1. Phones are both denser and slower, so they
       // get less. (Invisible from here — this box reports a ratio of 1.)
-      const cap = window.innerWidth < 992 ? 1.25 : 1.5;
+      // On a PHONE the stage is a few dozen CSS px a side (the band, ≤768px),
+      // and 1.25 on a 3x screen drew the robots from a third of its pixels —
+      // soft. There the cap is a pixel BUDGET instead: 0.14 Mpx, what the
+      // first phone stage cost, up to 2.5x (~50k backing px for the band's
+      // ~65 x 130 stage; robotGL and atlasGL take the same ratio).
+      const cap = window.innerWidth <= 768
+        ? Math.min(2.5, Math.max(1.25, Math.sqrt(140000 / (cssW * cssW * H / W))))
+        : window.innerWidth < 992 ? 1.25 : 1.5;
       dpr = Math.min(window.devicePixelRatio || 1, cap);
       const bw = Math.max(1, Math.round(W * fit * dpr));
       const bh = Math.max(1, Math.round(H * fit * dpr));
