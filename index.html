@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- aadhav.dev is the site's address. The same build is still published
+         to GitHub Pages, which cannot send a server redirect, so a visit
+         there (or to www) is sent on from here, path and all. The canonical
+         link below tells crawlers the same thing. /portfolio is another
+         repo's page and never loads this file. -->
+    <script>
+      if (location.hostname === 'aadhavsivakumar.github.io' || location.hostname === 'www.aadhav.dev')
+        location.replace('https://aadhav.dev' + location.pathname + location.search + location.hash);
+    </script>
     <title>Aadhav Sivakumar — Robotics &amp; Embodied AI Engineer</title>
 
     <!-- The app is client-rendered, so the static HTML a crawler or a link
@@ -10,19 +19,19 @@
          LinkedIn, Slack or iMessage previews as a blank card. -->
     <meta name="description" content="Aadhav Sivakumar — robotics engineer working on embodied AI: vision-language-action models, world models, reinforcement learning and simulation. AI Engineer at Roboflow (Edge AI engineering team); MS Mechatronics &amp; Robotics, NYU Tandon. New York &amp; San Francisco.">
     <meta name="author" content="Aadhav Sivakumar">
-    <link rel="canonical" href="https://aadhavsivakumar.github.io/">
+    <link rel="canonical" href="https://aadhav.dev/">
     <meta name="theme-color" content="#F6F5F1" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0C0C0D" media="(prefers-color-scheme: dark)">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Aadhav Sivakumar">
-    <meta property="og:url" content="https://aadhavsivakumar.github.io/">
+    <meta property="og:url" content="https://aadhav.dev/">
     <meta property="og:title" content="Aadhav Sivakumar — Robotics &amp; Embodied AI Engineer">
     <meta property="og:description" content="Robotics engineer working on embodied AI — VLAs, world models, reinforcement learning and simulation. AI Engineer at Roboflow; MS Mechatronics &amp; Robotics, NYU Tandon. New York &amp; San Francisco.">
     <!-- 1200x630 JPG (Media/web/og.jpg): a WebP preview does not show on
          LinkedIn or Slack. Rendered from a small HTML page — the AS mark,
          the name, the role, the gold waves. -->
-    <meta property="og:image" content="https://aadhavsivakumar.github.io/Media/web/og.jpg">
+    <meta property="og:image" content="https://aadhav.dev/Media/web/og.jpg">
     <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -31,7 +40,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Aadhav Sivakumar — Robotics &amp; Embodied AI Engineer">
     <meta name="twitter:description" content="Robotics engineer working on embodied AI — VLAs, world models, reinforcement learning and simulation. AI Engineer at Roboflow; MS Mechatronics &amp; Robotics, NYU Tandon. New York &amp; San Francisco.">
-    <meta name="twitter:image" content="https://aadhavsivakumar.github.io/Media/web/og.jpg">
+    <meta name="twitter:image" content="https://aadhav.dev/Media/web/og.jpg">
     <meta name="twitter:image:alt" content="AS — Aadhav Sivakumar, Robotics &amp; Embodied AI Engineer">
 
     <!-- Structured data so a search result can carry the role, employer,
@@ -42,8 +51,8 @@
       "@context": "https://schema.org",
       "@type": "Person",
       "name": "Aadhav Sivakumar",
-      "url": "https://aadhavsivakumar.github.io/",
-      "image": "https://aadhavsivakumar.github.io/Media/web/Gradpic.webp",
+      "url": "https://aadhav.dev/",
+      "image": "https://aadhav.dev/Media/web/Gradpic.webp",
       "jobTitle": "AI Engineer",
       "worksFor": {
         "@type": "Organization",

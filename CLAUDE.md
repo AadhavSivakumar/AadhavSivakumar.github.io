@@ -3234,13 +3234,27 @@ and section-title letters 6-of-52 visible mid-cascade → 52-of-52 immediately.
 
 ## Deployment
 
-**Every push to `master` is a production release.** `.github/workflows/deploy.yml`
-runs `npm ci` → `npm run build` on each push and publishes `dist/` to GitHub Pages
-via `actions/deploy-pages`; `gh api repos/:owner/:repo/pages` reports
-`build_type: workflow`, and the site is live at
-`https://aadhavsivakumar.github.io/`. Typical run time ~1m30s. There is no PR
-gate and no preview environment — if you push, it ships. `dist/` is gitignored
-and must NOT be committed; CI builds it.
+**Every push to `master` is a production release, to TWO places.**
+
+- **`https://aadhav.dev/` is the site's address** (Oct 8). Cloudflare Workers
+  Builds watches this repo: on each push it runs `npm run build` and `npx
+  wrangler deploy`, which uploads `dist/` as the static assets of the Worker
+  `aadhav-dev` (`wrangler.jsonc`; no Worker script, and a path that is not a
+  file gets the page, `single-page-application`). DNS is on Cloudflare. To
+  check a deploy landed, compare the `assets/index-*.js` hash in
+  `curl https://aadhav.dev/` against a local build.
+- **GitHub Pages** still publishes the same build: `.github/workflows/deploy.yml`
+  runs `npm ci` → `npm run build` and `actions/deploy-pages` (~1 min), at
+  `https://aadhavsivakumar.github.io/`. Pages cannot send a server redirect,
+  so an inline script at the top of `index.html` sends a visit there (and to
+  `www.aadhav.dev`) on to `https://aadhav.dev` with its path, query and hash;
+  the canonical link, `og:url`, the share images and the JSON-LD all name
+  aadhav.dev. Do NOT set a custom domain on this repo's Pages: it is the
+  user site, so GitHub would move `aadhavsivakumar.github.io/portfolio` (the
+  other repo, below) onto that domain too.
+
+There is no PR gate and no preview environment — if you push, it ships.
+`dist/` is gitignored and must NOT be committed; both builders build it.
 
 `https://aadhavsivakumar.github.io/portfolio` is served by a **different repo**
 (`AadhavSivakumar/portfolio`) and is unaffected by deploys here.
