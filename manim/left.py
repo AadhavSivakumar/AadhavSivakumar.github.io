@@ -1263,87 +1263,166 @@ class IdleUntrained(Scene):
         idle(self, S0, IDLE_T * 1.5)
 
 
+# ── the GAUSSIAN SPLAT reconstruction (Oct 8; the owner: "the gaussian splat
+# animation could use some work to represent a gaussian splat better"). It
+# follows what 3D Gaussian Splatting does, in order: the views' structure-from-
+# motion gives a SPARSE POINT CLOUD on the scene's surfaces (and a few floaters
+# in the air); every point becomes a small ISOTROPIC Gaussian in the photo's
+# colour there; optimisation turns them ANISOTROPIC — flat ellipses lying along
+# the surfaces, big where a surface is plain (the wall, the floor, the open
+# table), small where there is detail (the cubes' edges, the lip) — and
+# DENSIFIES them (splats split into more where detail is missing) while the
+# floaters are pruned; what is left re-draws the scene from overlapping
+# blobs. Each splat is drawn as a Gaussian is: soft, its opacity falling off
+# from the centre (stacked ellipses), with a faint rim at 2 sigma as splat
+# viewers outline them. The old version was a loose cloud of two-tone dots
+# that ended as a sparse row of dashes on the floor.
 def _splat_specs(seed=3):
-    """The splats of the reconstruction, once: where each SETTLES on a surface
-    of the shot (the table top, its front lip, the three cubes), its size and
-    angle there, its colour (the photo's, lifted off the page), and where it
-    STARTS: a loose, bloated blob somewhere in the volume over the table (the
-    initialisation the optimisation starts from), never outside the frame."""
+    """Every splat of the reconstruction, once: where it ends (p), its size and
+    angle there (w, h at 2 sigma, ang), colour and peak opacity, and how it is
+    born — gen 0 from an SfM point (pt: the point, seen by view `view`, its
+    isotropic start radius r0), gen 1 split off a gen-0 parent at time `born`
+    — plus the floaters the optimisation prunes."""
     rnd = random.Random(seed)
     W, yb, yt = frame_box()
-    tab = ManimColor(PAL["table"]).interpolate(ManimColor(PAL["soft"]), 0.42)
-    lip = ManimColor(PAL["lip"]).interpolate(ManimColor(PAL["soft"]), 0.3)
+    far = fp(0, 1, 0)[1]
+    soft = ManimColor(PAL["soft"])
+    mix = lambda c, t: ManimColor(PAL[c]).interpolate(soft, t)
     out = []
 
-    def add(pos, w, h, ang, col, op, key, lo=None):
-        if lo is None:
-            lo = fp(rnd.uniform(-0.85, 0.85), rnd.uniform(0.05, 0.95), rnd.uniform(0.05, 0.75))
-            lo = lo + np.array([rnd.uniform(-0.15, 0.15), rnd.uniform(-0.15, 0.15), 0])
-        lo = np.array(lo, dtype=float)
-        lo[0] = min(max(lo[0], -W + 0.25), W - 0.25)
-        lo[1] = min(max(lo[1], yb + 0.2), yt - 0.35)
-        out.append(dict(p=np.array(pos, dtype=float), lo=lo, w=w, h=h, ang=ang, ang0=rnd.uniform(-1.6, 1.6),
-                        col=col, op=op, key=key + rnd.uniform(0, 0.25)))
+    def add(pos, w, h, ang, col, op, gen=0, parent=None, key=None):
+        out.append(dict(p=np.array(pos, dtype=float), w=w, h=h, ang=ang, col=col, op=op, gen=gen, parent=parent, rk=1.0 if w < 0.6 else 0.35,
+                        view=rnd.randrange(3), r0=0.07 + 0.03 * rnd.random(),
+                        key=rnd.uniform(0, 0.35) if key is None else key, born=rnd.uniform(0.12, 0.55)))
+        return len(out) - 1
 
-    # the table top: jittered on a 9 x 6 grid so it is covered evenly, flat
-    # (wide and foreshortened), turned a little with the perspective
-    for i in range(9):
+    def surface(pts, col, op, ang_of, split=1, jit=0.35):
+        """gen-0 splats at pts (sizes from `size`, angles from `ang_of`), each
+        splitting into `split` gen-1 children placed beside it on the same surface"""
+        for (pos, w, h) in pts:
+            i = add(pos, w, h, ang_of(pos), col, op)
+            for _ in range(split):
+                q = pos + np.array([rnd.uniform(-jit, jit) * w, rnd.uniform(-jit, jit) * h * 2.2, 0])
+                k = rnd.uniform(0.55, 0.8)
+                add(q, w * k, h * k, ang_of(q) + rnd.uniform(-0.15, 0.15), col, op * rnd.uniform(0.85, 1.0), 1, i)
+
+    # the wall and the floor behind the table: a few LARGE, faint splats (a
+    # plain surface needs few Gaussians)
+    for i in range(5):
+        for j in range(2):
+            x = -W + 2 * W * (i + rnd.uniform(0.25, 0.75)) / 5
+            y = far + 0.25 + (yt - far - 0.35) * (j + rnd.uniform(0.25, 0.75)) / 2
+            add([x, y, 0], rnd.uniform(0.75, 0.95), rnd.uniform(0.42, 0.55), rnd.uniform(-0.3, 0.3), mix("wall", 0.38), 0.5)
+    for i in range(5):
+        x = -W + 2 * W * (i + rnd.uniform(0.3, 0.7)) / 5
+        add([x, yb + rnd.uniform(0.05, 0.14), 0], rnd.uniform(0.6, 0.75), rnd.uniform(0.16, 0.22), rnd.uniform(-0.08, 0.08), mix("floor", 0.4), 0.5)
+    # the table top: plain, so mostly big flat splats along the surface,
+    # turned with the perspective — smaller near the cubes (detail)
+    det = [fp(*A0), fp(*DISTRACT[0][0]), fp(*DISTRACT[1][0])]
+    pts = []
+    for i in range(10):
         for j in range(6):
-            uu = -0.9 + 1.8 * (i + rnd.uniform(0.15, 0.85)) / 9
-            vv = 0.02 + 0.96 * (j + rnd.uniform(0.15, 0.85)) / 6
+            uu = -0.92 + 1.84 * (i + rnd.uniform(0.2, 0.8)) / 10
+            vv = 0.03 + 0.94 * (j + rnd.uniform(0.2, 0.8)) / 6
             q = fp(uu, vv)
-            k = 1 - 0.3 * vv
-            add(q, 0.24 * k, 0.07 * k, -0.18 * uu * vv + rnd.uniform(-0.12, 0.12), tab, 0.5, 0.55 * (1 - vv))
-    # its front lip: a row of thin splats along the near edge
-    for i in range(8):
-        uu = -0.92 + 1.84 * (i + 0.5) / 8
-        q = fp(uu, 0) + np.array([0, -0.06, 0])
-        add(q, 0.3, 0.06, rnd.uniform(-0.05, 0.05), lip, 0.75, 0.0)
-    # the cubes: small splats filling each cube's projected prism, coloured by
-    # the face they land on
+            near = min(np.linalg.norm(q - d) for d in det)
+            k = (1 - 0.32 * vv) * (0.55 + 0.45 * min(1, near / 0.6))
+            pts.append((q, 0.46 * k, 0.17 * k))
+    surface(pts, mix("table", 0.5), 0.6, lambda q: -0.16 * (q[0] / W) * (q[1] - yb), split=1)
+    # its front lip: a row of thin splats along the edge (an edge is detail)
+    pts = [(fp(-0.94 + 1.88 * (i + 0.5) / 12, 0) + np.array([0, -0.06, 0]), 0.2, 0.045) for i in range(12)]
+    surface(pts, mix("lip", 0.4), 0.8, lambda q: rnd.uniform(-0.04, 0.04), split=1, jit=0.25)
+    # the cubes: each FACE covered by four overlapping splats lying along it
+    # (the front's upright, the top's flattened along it, the side's along its
+    # slant), in that face's shade, each splitting once toward an edge — so
+    # the model re-forms the cubes, not a scatter of specks
     for (p, s), tgt in [((A0, RED_S), True)] + [(d, False) for d in DISTRACT]:
         q = fp(p[0], p[1], 0)
         sz = s * SC_K * (1 - 0.3 * p[1])
-        x = q[0] - sz * 0.22
-        dd = sz * 0.45
-        base = ManimColor(PAL["copper"]) if tgt else ManimColor(PAL["soft"])
-        n = 22 if tgt else 16
-        for _ in range(n):
-            t = rnd.uniform(0, 1) ** 1.4
-            px, py = x + rnd.uniform(-0.42, 0.42) * sz, q[1] + rnd.uniform(0.08, 0.92) * sz
-            pos = np.array([px + t * dd, py + t * dd, 0])
-            face = "front" if t < 0.3 else ("top" if py > q[1] + sz * 0.55 else "side")
-            col = base.lighter(0.25) if face == "top" else (base.darker(0.25) if face == "side" else base)
-            r = sz * (0.32 if tgt else 0.36)
-            lo = q + np.array([rnd.uniform(-0.55, 0.55), rnd.uniform(0.1, 0.9), 0])
-            add(pos, r * rnd.uniform(0.8, 1.2), r * rnd.uniform(0.45, 0.7), rnd.uniform(-0.8, 0.8), col,
-                0.62 if tgt else 0.6, 0.35 + 0.3 * p[1], lo=lo)
-    return out
+        x0, y0 = q[0] - sz * 0.22 - sz / 2, q[1]
+        d = sz * 0.45
+        base = ManimColor(PAL["copper"]) if tgt else mix("cube", 0.5)
+        op = 0.95 if tgt else 0.8
+        faces = [(base, lambda a, b: [x0 + a * sz, y0 + b * sz, 0], sz * 0.62, sz * 0.62, 0.0),
+                 (base.lighter(0.25) if tgt else base.lighter(0.12), lambda a, b: [x0 + a * sz + b * d, y0 + sz + b * d, 0], sz * 0.66, d * 0.62, 0.0),
+                 (base.darker(0.25) if tgt else base.darker(0.12), lambda a, b: [x0 + sz + b * d, y0 + a * sz + b * d, 0], d * 0.8, sz * 0.62, 0.35)]
+        for col, at, w, h, ang in faces:
+            for a_ in (0.27, 0.73):
+                for b_ in (0.27, 0.73):
+                    gi = add(at(a_ + rnd.uniform(-0.04, 0.04), b_ + rnd.uniform(-0.04, 0.04)), w * rnd.uniform(0.9, 1.05), h * rnd.uniform(0.9, 1.05), ang + rnd.uniform(-0.08, 0.08), col, op)
+                    a2, b2 = a_ + (0.18 if a_ > 0.5 else -0.18), b_ + rnd.uniform(-0.12, 0.12)
+                    add(at(a2, b2), w * 0.5, h * 0.5, ang, col, op, 1, gi)
+    # floaters: SfM outliers in the air over the table, pruned as it trains
+    floaters = []
+    for _ in range(9):
+        q = fp(rnd.uniform(-0.8, 0.8), rnd.uniform(0.2, 0.9), rnd.uniform(0.35, 0.95))
+        floaters.append(dict(p=q, view=rnd.randrange(3), r0=0.04 + 0.03 * rnd.random(), col=mix("table", 0.45), op=0.35, key=rnd.uniform(0, 0.4)))
+    for sp in out:   # a gen-0 splat's SfM point: on its surface, a little off (triangulation noise)
+        sp["pt"] = sp["p"] + np.array([rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03), 0])
+    return out, floaters
 
 
 _SPLATS = {}
 
 
-def splat_set(loose=0.0, seed=3, a=1.0):
-    """Gaussian splats over the shot's surfaces: each a soft core in a fainter
-    halo (a Gaussian's falloff), anisotropic, rotated. loose 1 = the
-    initialisation (bloated, scattered over the table's volume, faint);
-    0 = settled on the surfaces. Splats settle in their own order (the lip
-    and near table first), so the optimisation reads as converging."""
+def _gauss(w, h, col, op, rim):
+    """One Gaussian splat: stacked ellipses whose opacities fall off from the
+    centre (1, 1.4 and 2 sigma), and a hairline rim at 2 sigma"""
+    g = VGroup(*[Ellipse(width=w * f, height=h * f, fill_color=col, fill_opacity=op * o, stroke_width=0)
+                 for f, o in ((1.0, 0.16), (0.7, 0.26), (0.42, 0.42))])
+    if rim > 0.01:
+        g.add(Ellipse(width=w, height=h, stroke_color=PAL["ink"], stroke_width=0.5, stroke_opacity=0.2 * rim, fill_opacity=0))
+    return g
+
+
+def splat_scene(s, seed=3):
+    """The reconstruction at stage s: 0..1 the views' SfM points appear (view
+    by view), 1..2 each point becomes an isotropic Gaussian, 2..3 the
+    optimisation (anisotropic, densified, floaters pruned, rims in)."""
     if seed not in _SPLATS:
         _SPLATS[seed] = _splat_specs(seed)
+    specs, floaters = _SPLATS[seed]
     g = VGroup()
-    for sp in _SPLATS[seed]:
-        t = smooth01((1 - loose) * 1.45 - sp["key"] * 0.6) if 0 < loose < 1 else 1 - loose
-        L = 1 - t
-        pos = lerp(sp["p"], sp["lo"], L)
-        w = sp["w"] * (1 + 0.7 * L)
-        h = sp["h"] * (1 + 1.5 * L)
-        ang = lerp(sp["ang"], sp["ang0"], L)
-        op = sp["op"] * (1 - 0.5 * L) * a
-        halo = Ellipse(width=w * 1.7, height=h * 1.7, fill_color=sp["col"], fill_opacity=op * 0.22, stroke_width=0)
-        core = Ellipse(width=w, height=h, fill_color=sp["col"], fill_opacity=op, stroke_width=0)
-        g.add(VGroup(halo, core).rotate(ang).move_to(pos))
+    a1 = smooth01(s - 1)                       # points → isotropic Gaussians
+    u = min(max(s - 2, 0.0), 1.0)              # the optimisation
+    rim = a1 * (0.75 + 0.25 * smooth01((u - 0.35) / 0.5))   # outlined from the start: a Gaussian at the point
+    for sp in specs + floaters:
+        is_f = "w" not in sp
+        if not is_f and sp["gen"] == 1:
+            continue
+        if s < 2 and s * 3 > sp["view"] + 0.3 + 0.5 * sp["key"] and a1 < 0.99:   # an SfM point, once its view has seen it; it fades as its Gaussian grows
+            g.add(Dot(sp["pt"] if not is_f else sp["p"], radius=0.014, color=PAL["ink"]).set_opacity(0.75 * (1 - a1)))
+        if s < 1:
+            continue
+        if is_f:                               # a floater: grows like the rest, then is pruned
+            k = 1 - smooth01((u - sp["key"]) / 0.35)
+            if k > 0.02:
+                r = sp["r0"] * 2 * (0.3 + 0.7 * a1)
+                g.add(_gauss(r, r, sp["col"], sp["op"] * k, rim * k).move_to(sp["p"]))
+            continue
+        t = smooth01((u - sp["key"]) / 0.6)    # this splat's own progress through the optimisation
+        r = sp["r0"] * 2 * (0.3 + 0.7 * a1)
+        w, h = lerp(r, sp["w"], t), lerp(r, sp["h"], t)
+        if s < 2:
+            w = h = r
+        pos = lerp(sp["pt"], sp["p"], t)
+        op = sp["op"] * (0.55 + 0.45 * t) * a1
+        g.add(_gauss(w, h, sp["col"], op, rim * sp["rk"]).rotate(sp["ang"] * t).move_to(pos))
+    # densification: each child splits off its parent at `born` and slides to
+    # its own place, growing
+    if u > 0:
+        for sp in specs:
+            if sp["gen"] != 1:
+                continue
+            b = smooth01((u - sp["born"]) / 0.3)
+            if b <= 0.01:
+                continue
+            par = specs[sp["parent"]]
+            tp = smooth01((u - par["key"]) / 0.6)
+            ppos = lerp(par["pt"], par["p"], tp)
+            pos = lerp(ppos, sp["p"], b)
+            w, h = sp["w"] * (0.35 + 0.65 * b), sp["h"] * (0.35 + 0.65 * b)
+            g.add(_gauss(w, h, sp["col"], sp["op"] * b, rim * b * sp["rk"]).rotate(sp["ang"]).move_to(pos))
     return g
 
 
@@ -1372,9 +1451,10 @@ def view_frustum(i):
 
 
 class Act1(Base):
-    """REAL2SIM. Three views capture the scene; the photo gives way to Gaussian
-    splats that start as a loose cloud and converge onto the surfaces; the
-    sim twin draws in under them and the splats are retired."""
+    """REAL2SIM. Three views capture the scene and leave a sparse point cloud;
+    the points become Gaussians that the optimisation stretches along the
+    surfaces and densifies as the photo gives way to them; the sim twin draws
+    in under the splat model and the splats are retired."""
     def construct(self):
         # draw order by z_index (Scene.play would otherwise re-stack what it
         # animates on top of the arm): backdrop or twin grid, mark, cubes, splats,
@@ -1414,30 +1494,30 @@ class Act1(Base):
         self.add(always_redraw(lambda: tracker(p.get_value()).set_z_index(Z["ui"])))
 
         # 2 · three views of the scene: each camera draws in, then shows what
-        # it sees (its frustum onto the table), one after another
+        # it sees (its frustum onto the table), one after another — and leaves
+        # its structure-from-motion points on the surfaces it saw
+        S = ValueTracker(0.0)
+        rec = always_redraw(lambda: splat_scene(S.get_value()).set_z_index(Z["splat"]))
+        self.add(rec)
         cams = [view_cam(v, VIEW_AT).set_z_index(Z["cam"]) for v in VIEWS]
         self.play(LaggedStart(*[DrawBorderThenFill(c, stroke_color=PAL["ink"], stroke_width=1.2) for c in cams], lag_ratio=0.3),
                   run_time=0.35)
         frs = [view_frustum(i).set_z_index(Z["cam"]) for i in range(3)]
         self.play(LaggedStart(*[Succession(Create(fr, lag_ratio=0.0, run_time=0.36, rate_func=smooth),
                                            FadeOut(fr, run_time=0.2)) for fr in frs], lag_ratio=0.62),
-                  p.animate.set_value(0.18), run_time=1.0)
+                  S.animate.set_value(1.0), p.animate.set_value(0.18), run_time=1.0, rate_func=linear)
 
-        # 3 · the reconstruction starts: the photo dims and the splats'
-        # initial cloud draws in over the table's volume; the cameras go
-        cloud = splat_set(1.0).set_z_index(Z["splat"])
-        self.play(photo.animate.set_value(0.35),
-                  LaggedStart(*[FadeIn(e) for e in cloud], lag_ratio=0.01),
+        # 3 · the reconstruction starts: the photo dims, each point becomes a
+        # small round Gaussian in the photo's colour; the cameras go
+        self.play(photo.animate.set_value(0.35), S.animate.set_value(2.0),
                   *[FadeOut(c) for c in cams], p.animate.set_value(0.35), run_time=0.55, rate_func=smooth)
 
-        # 4 · the optimisation: the splats converge onto the surfaces as the
-        # photo fades out under them; what is left is the splat model
-        L = ValueTracker(1.0)
-        self.remove(cloud, *cloud)
-        conv = always_redraw(lambda: splat_set(L.get_value()).set_z_index(Z["splat"]))
-        self.add(conv)
-        self.play(L.animate.set_value(0.0), photo.animate.set_value(0.0), p.animate.set_value(0.7),
+        # 4 · the optimisation: the Gaussians stretch along the surfaces, split
+        # where detail is missing, the floaters are pruned, and the photo
+        # fades out under them; what is left is the splat model
+        self.play(S.animate.set_value(3.0), photo.animate.set_value(0.0), p.animate.set_value(0.7),
                   run_time=0.85, rate_func=smooth)
+        conv = rec
         for grp in (sh[0], sh[2], sh[4]):
             grp.clear_updaters()
         self.remove(sh[0], sh[2], sh[4])

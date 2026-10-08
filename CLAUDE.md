@@ -562,10 +562,24 @@ Flourish3D.jsx but unused. The right side (the robots) is unchanged.
   the die becomes a dark 14×11 photosite array read out row by row — a
   rolling shutter — and the mosaic resolves into the photo) ·
   IdleUntrained (the arm grasps at air: a fading trail, an × at each empty
-  grasp, never within reach of a cube — `WANDER`) · Act1 REAL2SIM (three
-  view glyphs capture the scene, the photo dissolves into anisotropic
-  Gaussian splats in its colours that tighten onto the surfaces, the grid
-  and the model draw in under them) · IdleTwin (the twin SIMULATES: the red
+  grasp, never within reach of a cube — `WANDER`) · Act1 REAL2SIM, rebuilt
+  Oct 8 as 3D Gaussian Splatting actually trains (the owner: "the gaussian
+  splat animation could use some work to represent a gaussian splat
+  better"; it was a loose cloud of two-tone dots ending as a sparse row of
+  dashes): each of three view glyphs leaves its structure-from-motion
+  POINTS on the surfaces it saw (plus a few floaters in the air); every
+  point becomes a small ROUND Gaussian in the photo's colour; the
+  optimisation stretches them into flat ANISOTROPIC ellipses lying along
+  the surfaces — big on the wall, floor and open table, small at the
+  cubes' faces and the lip — DENSIFIES them (children split off their
+  parents), prunes the floaters, and the photo fades out under a model
+  that re-forms the scene, each cube face covered by overlapping splats in
+  its own shade. A splat is drawn as a Gaussian: three stacked ellipses
+  whose opacity falls off from the centre and a faint rim at 2 sigma, as
+  splat viewers outline them (fainter on the big background ones).
+  `splat_scene(s)` draws stage s (0-1 points, 1-2 isotropic, 2-3
+  optimisation) from specs built once (`_splat_specs`); then the grid and
+  the model draw in under it. Seams re-checked: ≤340 px · IdleTwin (the twin SIMULATES: the red
   cube drops and bounces, `drop_state`) · Act2 SIM DATA (the twin shrinks
   rigidly into a 2×3 wall of randomised copies — layout, target start,
   floor tone — each arm runs its demonstration, dashed path; then a world
