@@ -10,13 +10,16 @@ import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
 import ScrollProgress from './components/ScrollProgress';
-import ClickSpark from './components/reactbits/ClickSpark';
+import TargetCursor from './components/reactbits/TargetCursor';
 import Flourish3D from './components/Flourish3D';
 import LeftFilm from './components/LeftFilm';
 import WaveField from './components/WaveField';
 import RobotDock from './components/RobotDock';
 import { useTheme } from './hooks/useTheme';
 import { startScrollSnap } from './scrollSnap';
+
+// what the reticle's corners close on: everything that can be clicked
+const CURSOR_TARGETS = 'a[href], button, [role="button"], [role="tab"], .cursor-target';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -299,8 +302,10 @@ function App() {
     // motion component cannot quietly opt out of it.
     <MotionConfig reducedMotion="user">
       <ScrollProgress />
-      {/* React Bits' ClickSpark: a burst of gold sparks wherever you click */}
-      <ClickSpark sparkColor="#C5A35C" />
+      {/* React Bits' TargetCursor (the owner's settings: hoverDuration 0.9,
+          the system cursor kept): a spinning reticle round the pointer whose
+          corners close on whatever can be clicked. Mouse and trackpad only. */}
+      <TargetCursor targetSelector={CURSOR_TARGETS} hoverDuration={0.9} hideDefaultCursor={false} />
       {/* Page-wide decorative flourishes: one canvas per side, fixed to the
           viewport behind all content, scrubbed by page scroll. NOT gated on
           width any more — they were invisible on every phone. The stage sizes

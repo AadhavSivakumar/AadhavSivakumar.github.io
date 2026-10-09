@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- aadhav.dev is the site's address. The same build is still published
-         to GitHub Pages, which cannot send a server redirect, so a visit
-         there (or to www) is sent on from here, path and all. The canonical
-         link below tells crawlers the same thing. /portfolio is another
-         repo's page and never loads this file. -->
+    <!-- aadhav.dev is the site's address (production). The same build is
+         also published to aadhavsivakumar.github.io, which is the owner's
+         DEVELOPMENT copy and is deliberately NOT redirected; the canonical
+         link below tells crawlers which address is the real one. www is sent
+         on to the bare domain, path and all. /portfolio is another repo's
+         page (it redirects to aadhav.dev itself) and never loads this file. -->
     <script>
-      if (location.hostname === 'aadhavsivakumar.github.io' || location.hostname === 'www.aadhav.dev')
+      if (location.hostname === 'www.aadhav.dev')
         location.replace('https://aadhav.dev' + location.pathname + location.search + location.hash);
     </script>
     <title>Aadhav Sivakumar — Robotics &amp; Embodied AI Engineer</title>

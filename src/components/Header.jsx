@@ -188,6 +188,10 @@ export default function Header({ theme, toggleTheme }) {
           </button>
         </Glass>
       </div>
+      {/* On a phone the bar's free stretch: the two animation stages ride
+          here (RobotDock.jsx measures it and lays the dock over it). Not
+          rendered as a box on wider screens. */}
+      <div className="header-art" aria-hidden="true" />
       {/* On a phone the seven links and the toggle are 750px of nav on a
           390px screen. They used to swipe sideways; they are a menu behind
           this button now, at the owner's request. Hidden above 768px by CSS. */}

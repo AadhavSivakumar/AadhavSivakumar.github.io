@@ -503,7 +503,6 @@ html[data-theme="dark"] .f3d::before {
   pointer-events: none;
   overflow: hidden;
 }
-.f3d-dock__toggle { display: none; }
 
 /* TABLETS (769-991): smaller, fainter, pulled off each edge and staggered
    vertically, so the two frame the column rather than both landing behind
@@ -514,71 +513,52 @@ html[data-theme="dark"] .f3d::before {
   .f3d--right { right: -14px; top: calc(71vh - var(--fh) / 2); }
 }
 
-/* PHONES: THE DOCK. The two stages side by side in a band across the bottom
-   of the screen, ABOVE the content (z 20: sections are z 10, the header
-   1000, the modal 2000), so the robots are seen rather than glimpsed behind
-   a paragraph — the owner asked for the animation to be "viewable in mobile
-   mode". The band's height is the smaller of a third of the screen and what
-   two stages of that height fit across (each stage is 340:660, and 74% of it
-   shows — the drawing's ink runs y 120-615 of 660, so the top is cropped by
-   the dock's edge and the bottom hangs 6% below the screen). The hero is
-   shortened by the dock and the content gets the dock's height of bottom
-   padding, so nothing is left unreachable behind it. Its background is
-   transparent at the top of the hero — the sine field shows through — and
-   solid once the page scrolls (`.is-solid`, RobotDock.jsx): the strands
-   slide under its edge and the pieces form inside it. */
+.header-art { display: none; }
+
+/* PHONES: THE PIECES RIDE IN THE NAVBAR (Oct 8, last; the owner: "on
+   mobile, just have the animations play in the little empty space in the
+   navbar. Remove the AS in the navbar on mobile"). It was a band across the
+   bottom of the screen (Oct 8, earlier: "viewable in mobile mode", then
+   smaller twice). The bar's free stretch — `.header-art` in Header.jsx,
+   between the theme toggle and the profiles — is measured by RobotDock.jsx
+   and the dock laid exactly over it, ABOVE the bar (z 1001: the header is
+   1000, the modal 2000), the two stages side by side. At ~54px tall a fixed
+   view of the 340x660 drawing left a robot 20px high at the bottom of the
+   bar, so each stage is FRAMED PER PAGE: RobotDock.jsx holds the box each
+   stage's ink fills on every settled page and across every act (measured),
+   eases between them with the act, and writes the stage's size (--fw, --fh:
+   the closest framing, so the canvas is sharp), transform and clip. */
 @media (max-width: 768px) {
-  :root { --dock-h: min(32vh, 70vw, 300px); }
   .f3d-dock {
-    inset: auto 0 0 0;
-    height: var(--dock-h);
-    z-index: 20;
-    transition: height 0.3s ease;
+    inset: auto;
+    left: var(--dock-l, 0px);
+    top: var(--dock-t, 0px);
+    width: var(--dock-w, 0px);
+    height: var(--dock-hh, 62px);
+    z-index: 1001;
   }
-  .f3d-dock::before {
-    content: '';
-    position: absolute; inset: 0;
-    background: var(--background-color);
-    border-top: 1px solid var(--border-color);
-    opacity: 0;
-    transition: opacity 0.5s ease;
-  }
-  .f3d-dock.is-solid::before { opacity: 1; }
-  .f3d {
-    --fh: calc(var(--dock-h) / 0.74);
-    --fw: calc(var(--fh) * 340 / 660);
+  .f3d-dock .f3d {
+    left: 0; right: auto; top: 0; bottom: auto;
+    transform-origin: 0 0;
     opacity: 0.95;
-    top: auto;
-    bottom: calc(var(--fh) * -0.06);
   }
-  .f3d--left  { left: calc(50% - var(--fw) - 1vw); }
-  .f3d--right { left: calc(50% + 1vw); right: auto; }
-  .f3d-dock__toggle {
-    display: inline-flex;
-    position: absolute; top: 0; right: 12px;
-    height: 24px; padding: 0 10px;
-    pointer-events: auto;
-    font: 600 11px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    letter-spacing: 0.02em;
-    color: var(--secondary-color);
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+  .f3d-dock .f3d::before { display: none; }
+  /* the bar: frosted over the hero, SOLID page colour once the pieces fade
+     in (RobotDock.jsx sets html.dock-solid at a third of the hero, where they
+     start). The left film is rendered on the page colour, and over a
+     translucent bar its frame showed as a box. Under the bar's own content:
+     the header is a stacking context, so z -1 paints over its background and
+     beneath everything in it. */
+  header::after {
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: var(--background-color);
+    opacity: 0; transition: opacity 0.5s ease;
   }
-  .f3d-dock.is-solid .f3d-dock__toggle, .f3d-dock.is-collapsed .f3d-dock__toggle { opacity: 1; }
-  /* the footer is the last thing on the page and OUTSIDE main, so the room
-     under the dock goes on it (on main it left the footer behind the dock) */
-  footer { margin-bottom: calc(var(--dock-h) + 8px); }
-  #hero { min-height: calc(100vh - var(--dock-h)); min-height: calc(100svh - var(--dock-h)); padding-top: 84px; }
-  /* collapsed for reading: a tab's worth of dock, the stages hidden */
-  html.dock-collapsed .f3d-dock { height: 24px; }
-  html.dock-collapsed .f3d-dock .f3d { visibility: hidden; }
-  html.dock-collapsed footer { margin-bottom: 32px; }
-  html.dock-collapsed #hero { min-height: 100vh; min-height: 100svh; }
+  html.dock-solid header::after { opacity: 1; }
+  /* no wordmark: the art has its place, the stretch between the toggle and
+     the profiles */
+  header .logo { display: none; }
+  .header-art { display: block; flex: 1 1 0; min-width: 0; align-self: stretch; order: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) { .f3d { opacity: 0.6; } }
@@ -1153,7 +1133,7 @@ html[data-theme="dark"] .modal-dynamic-button:hover {
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll-cue, .hero-scroll-cue * { animation: none; }
-  header nav, .nav-burger span, .f3d-dock, .f3d-dock::before, .f3d-dock__toggle { transition: none; }
+  header nav, .nav-burger span, header::after { transition: none; }
   .lift-card, .doc-tile, .social-links a, .project-tag { transition: none; }
   .lift-card:hover, .doc-tile:hover { transform: none; }
   .lift-card:active, .doc-tile:active { transform: none; }
@@ -2500,9 +2480,9 @@ html[data-theme="dark"] .hero-bubble__shine::before {
    it holds from a 320x568 phone to a 430x740 one. What a card leaves out —
    descriptions, tags — is in its modal, a tap away. ─────────────────── */
 @media (max-width: 768px) {
-  /* the animation band: smaller (was min(32vh, 70vw, 300px)) */
-  :root { --dock-h: min(19vh, 40vw, 160px); --dock-room: var(--dock-h); --head-h: 62px; }
-  html.dock-collapsed { --dock-room: 24px; }
+  /* the room under each page's content (the animation band's height until
+     the pieces moved into the navbar) */
+  :root { --dock-room: 14px; --head-h: 62px; }
 
   /* the header: the profiles beside the menu button, always (they were
      inside the menu) */
@@ -2526,7 +2506,6 @@ html[data-theme="dark"] .hero-bubble__shine::before {
 
   /* the hero: the bubble, the name and the chips above the band */
   #hero { height: 100svh; min-height: 0 !important; padding: calc(var(--head-h) + 4px) 16px calc(var(--dock-room) + 6px) !important; box-sizing: border-box; }
-  html.dock-collapsed #hero { min-height: 0 !important; }
   .hero-bubble { --photo: clamp(100px, 30vw, 140px); --ring: 10px; margin-bottom: 12px; }
   #hero h1 { margin-bottom: 0; }
   #hero .hero-chips { gap: 7px; margin-top: 14px; }
@@ -2631,31 +2610,13 @@ html[data-theme="dark"] .hero-bubble__shine::before {
      strip across the waves.
    Desktop and tablets are untouched (everything here is ≤768px). */
 @media (max-width: 768px) {
-  :root { --dock-h: min(16vh, 36vw, 136px); --stage-gap: clamp(28px, 11vw, 56px); }
+  /* a plain page colour on phones: the body's fixed radial made a tone step
+     at the band's edge, and would at the solid navbar's */
   body { background: var(--background-color); }
-  .f3d {
-    /* the drawing rows [--win-a, --win-b] fill the band, less --win-pad */
-    --win-a: 18; --win-b: 628; --win-pad: 6px;
-    --fh: calc((var(--dock-h) - var(--win-pad)) * 660 / (var(--win-b) - var(--win-a)));
-    --fw: calc(var(--fh) * 340 / 660);
-    bottom: calc(var(--win-pad) / 3 - var(--fh) * (660 - var(--win-b)) / 660);
-  }
-  .f3d--right { --win-a: 64; --win-b: 578; }
-  .f3d--left  { left: calc(50% - var(--fw) - var(--stage-gap) / 2); }
-  .f3d--right { left: calc(50% + var(--stage-gap) / 2); right: auto; }
-  .f3d-dock .f3d::before { display: none; }
-  .f3d-dock::before { border-top: none; }
-  .f3d-dock::after {
-    content: ''; position: absolute; left: 0; right: 0; top: 0; z-index: 2;
-    border-top: 1px solid var(--border-color);
-    opacity: 0; transition: opacity 0.5s ease;
-  }
-  .f3d-dock.is-solid::after { opacity: 1; }
-  .f3d-dock__toggle { right: 10px; width: 30px; padding: 0; justify-content: center; align-items: center; z-index: 3; font-size: 12px; }
-  /* the WebGL canvases set their own visibility inline, so the collapsed
-     band showed a red cube in its 24px strip */
-  html.dock-collapsed .f3d-dock .f3d * { visibility: hidden !important; }
 }
+/* (Oct 8, last: the band is gone — the pieces ride in the navbar, see
+   "PHONES: THE PIECES RIDE IN THE NAVBAR" — and its rules with it. The
+   per-stage windows measured above are kept there.) */
 
 /* ── THE MODAL'S FIRST AND LAST FRAMES (Oct 8; the owner: "a small weirdness
    with graphics right at the start of the opening animation and right at the

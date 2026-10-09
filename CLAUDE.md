@@ -1283,7 +1283,10 @@ That is the DRAWING coordinate system, and every fit, camera constant and LOD
 threshold in the file is expressed in it — only `ctx.setTransform` changes.
 Resize the stage in CSS and nothing about the composition needs re-tuning.
 
-**On a PHONE (≤768px) the pieces live in a DOCK** (`RobotDock.jsx`,
+**Since Oct 8 (last), on a PHONE the pieces ride IN THE NAVBAR** — see
+"Oct 8, last: the pieces in the navbar" below; the band described in this
+paragraph and in "Oct 8, phones" / "the band again" is gone.
+**On a PHONE (≤768px) the pieces lived in a DOCK** (`RobotDock.jsx`,
 `.f3d-dock`): a band across the bottom of the screen, ABOVE the content
 (z 20 — sections are z 10, the header 1000, the modal 2000), with both
 stages side by side in it. The owner asked for the animation to be
@@ -1825,6 +1828,26 @@ What uses what:
   arrow's page-bottom position moved to `.page-next-magnet`).
 - **Dock** → the Get In Touch links (adapted: real <a> links, fixed height).
 - **ClickSpark** → gold sparks wherever you click (one fixed canvas).
+  REMOVED Oct 8 at the owner's request; TargetCursor replaced it (below).
+- **TargetCursor** (Oct 8, the owner's settings: `hoverDuration` 0.9, the
+  system cursor kept) → a spinning reticle round the pointer whose corners
+  close on anything clickable (`CURSOR_TARGETS` in App.jsx: links, buttons,
+  `role="button"` — every card — and tabs). Rewritten WITHOUT GSAP: the spin
+  is a CSS animation of `rotate` (no DOM writes), position is the `translate`
+  property and the press `scale`, all else one rAF loop that stops when
+  nothing moves; the held target's box is re-read each frame (a tilting card
+  keeps its corners). Hidden until the pointer moves and while it is outside
+  the page or over an iframe; absent on touch screens and under reduced
+  motion. 0 mutations with the pointer resting, on a card or off one.
+  FIREFOX does not blend it (`mix-blend-mode: difference`) against the
+  body's `background-attachment: fixed` background — the corners drew plain
+  white on the light page — so there it is the page's ink, unblended
+  (`@supports (-moz-appearance: none)` in TargetCursor.css). Moving the body
+  background onto its own fixed layer fixed the blend but cost Firefox ~15
+  more frames over 20 ms in a 460-frame scroll pass (four runs each), so it
+  stays on the body.
+  Headless Firefox reports no fine pointer, so harnesses there must spoof
+  `matchMedia('(pointer: fine)')` to see it.
 - **StarBorder** → the Resume page's Download button.
 - **SpotlightCard**, **GlareHover**, **ShinyText** → CSS adaptations: a light
   under the pointer on experience/major cards and the resume viewer; a glare
@@ -2630,6 +2653,33 @@ right stage's DPR cap on phones is a 0.14 Mpx budget up to 2.5x (it was
 1.25: soft robots on a 3x screen); settled draw cost unchanged (0.7-2.9 ms).
 Desktop and tablet screenshots are pixel-identical to before.
 
+**Oct 8, last: the pieces in the navbar** (the owner: "On mobile, just
+have the animations play in the little empty space in the navbar. Remove the
+AS in the navbar on mobile"). The bottom band, its collapse tab and the room
+the pages and the hero left for it are gone (`--dock-room` is 14px).
+`Header.jsx` renders `.header-art`, a flex stretch between the theme toggle
+and the profiles (phones only; the wordmark is hidden there), and
+`RobotDock.jsx` lays the dock exactly over it (`--dock-l/-t/-w/-hh`, z 1001
+above the bar). **Each stage is FRAMED PER PAGE**: with the whole drawing in
+a ~54px bar the SO-ARM was 20px tall at the bottom of it, so `FRAMES` holds
+the box each stage's ink fills on every settled page and the box that holds
+each act (measured at 1440x900 in SwiftShader Chromium over ~24 s of work
+loop and eight moments an act, +8 units), `frameAt` eases between them with
+`actAt` (opening out to the act's box mid-act), and the dock writes each
+stage's `transform` (translate + scale) and `clip-path` on scroll, only when
+they change. A stage's LAYOUT size is its closest framing (`--fw/--fh`,
+rewritten only on resize), so every frame is a scale-down and nothing is
+reallocated on scroll. Both stages fill the bar's height less 8px, or less
+where the stretch is narrow (76px on a 320px phone). Re-measure `FRAMES` if a
+scene moves (the harness: `nav/ink.mjs` + `ink.py` in the session scratch).
+The bar turns solid page colour as the pieces fade in (`html.dock-solid`,
+`header::after`): the left film is rendered on the page colour and showed as
+a box on the frosted bar. The right stage's DPR cap on phones goes to 3x
+(~20k backing px). Checked on five phones: stages clear of the toggle,
+profiles and burger, every page one screen with nothing under the header, 0
+mutations on still pages; desktop and tablet geometry identical to
+production at all six sizes.
+
 **Oct 8, later (the owner: "ultra robot doesn't look detailed enough. Also,
 the atlas robot's arm gets clipped off while waving. Which animation is
 decreasing performance the most?").**
@@ -3305,7 +3355,13 @@ and section-title letters 6-of-52 visible mid-cascade → 52-of-52 immediately.
 
 ## Deployment
 
-**Every push to `master` is a production release, to TWO places.**
+**Every push to `master` publishes to TWO places.** aadhav.dev is
+PRODUCTION; aadhavsivakumar.github.io is the owner's DEVELOPMENT copy (Oct 8,
+the owner: "I want the .github.io to be a development site and aadhav.dev to
+be production"). Today both build from `master`, so they carry the same
+commit; making aadhav.dev wait for a release means pointing Cloudflare
+Workers Builds at another branch in the Cloudflare dashboard, which only the
+owner can do.
 
 - **`https://aadhav.dev/` is the site's address** (Oct 8). Cloudflare Workers
   Builds watches this repo: on each push it runs `npm run build` and `npx
@@ -3316,11 +3372,12 @@ and section-title letters 6-of-52 visible mid-cascade → 52-of-52 immediately.
   `curl https://aadhav.dev/` against a local build.
 - **GitHub Pages** still publishes the same build: `.github/workflows/deploy.yml`
   runs `npm ci` → `npm run build` and `actions/deploy-pages` (~1 min), at
-  `https://aadhavsivakumar.github.io/`. Pages cannot send a server redirect,
-  so an inline script at the top of `index.html` sends a visit there (and to
-  `www.aadhav.dev`) on to `https://aadhav.dev` with its path, query and hash;
-  the canonical link, `og:url`, the share images and the JSON-LD all name
-  aadhav.dev. Do NOT set a custom domain on this repo's Pages: it is the
+  `https://aadhavsivakumar.github.io/`. It is NOT redirected (it was for a
+  few hours on Oct 8; the owner wants it as the development copy). The
+  inline script at the top of `index.html` sends only `www.aadhav.dev` on to
+  `https://aadhav.dev`, with its path, query and hash; the canonical link,
+  `og:url`, the share images and the JSON-LD all name aadhav.dev, so search
+  engines index production, not the copy. Do NOT set a custom domain on this repo's Pages: it is the
   user site, so GitHub would move `aadhavsivakumar.github.io/portfolio` (the
   other repo, below) onto that domain too.
 
@@ -3328,7 +3385,11 @@ There is no PR gate and no preview environment — if you push, it ships.
 `dist/` is gitignored and must NOT be committed; both builders build it.
 
 `https://aadhavsivakumar.github.io/portfolio` is served by a **different repo**
-(`AadhavSivakumar/portfolio`) and is unaffected by deploys here.
+(`AadhavSivakumar/portfolio`) and is unaffected by deploys here. **Since Oct
+8 it REDIRECTS to https://aadhav.dev** (that repo's `a5ba455`, the owner's
+request): its `index.html` opens with `location.replace`, a meta refresh and
+a canonical link, and a `public/404.html` does the same for any other path
+under /portfolio/.
 
 **That last sentence was false until 2026-09-10, and the way it was false is
 worth knowing.** The old portfolio hard-coded absolute
