@@ -5,7 +5,10 @@
 //
 // Its LENS mode as the site's cursor (the owner, Oct 9: "replace the current
 // cursor animation with this"), and on a card the glass grows over the whole
-// card ("when hovering over a card, have it expand to the whole card").
+// card ("when hovering over a card, have it expand to the whole card"). It
+// snaps the same way onto the header's links, profiles and theme toggle, and
+// onto a lanyard badge, whose corners the 3D canvas puts on the glass bus.
+// It tells the hero's waves where it is (their gravity well, WaveField.jsx).
 //
 // REBUILT, not copied. Upstream is a three.js scene (@react-three/fiber,
 // drei's MeshTransmissionMaterial, a lens.glb) whose glass bends only what
@@ -32,6 +35,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { onScroll } from '../../scrollDriver';
+import { glassState, publishGlass, getVirtualTarget, onVirtualTarget } from '../../glassBus';
 import './FluidGlass.css';
 
 const FILTER_ID = 'fluid-glass-filter';
@@ -43,8 +47,7 @@ const RIM = 0.45;       // the lens's bent rim, as a fraction of its radius
 const BEND = 0.45;      // how far in the very edge samples, as a fraction of the rim
 const CA = 0.1;         // chromatic aberration (upstream's lensProps)
 const FOLLOW = 0.15;    // the lens chasing the pointer (upstream's damp)
-const GROW = 0.14;      // growing over a card and back
-const SLIDE = 0.12;     // from one card straight to the next
+const GROW = 0.14;      // growing over a target and back
 
 const lerp = (a, b, t) => a + (b - a) * t;
 const cardRim = (w, h) => Math.min(26, 0.2 * Math.min(w, h));
@@ -139,7 +142,35 @@ function supportsSVGBackdrop() {
   return div.style.backdropFilter !== '';
 }
 
-export default function FluidGlass({ cardSelector = '.lift-card', size = 128 }) {
+// a header control's box: its own, padded a little so the glass sits round
+// it like a bead, and a pill if the element has no rounding of its own
+function uiBox(el) {
+  const b = cardBox(el), pad = 3;
+  const w = b.w + 2 * pad, h = b.h + 2 * pad;
+  const radius = b.radius >= 4 ? b.radius + pad : h / 2;
+  return { ...b, w, h, radius };
+}
+// a badge drawn on the lanyard's canvas: the rectangle that best fits its
+// four projected corners, turned to its top edge
+function quadBox(v) {
+  const [a, b, c, d] = v.quad;
+  const cx = (a[0] + b[0] + c[0] + d[0]) / 4, cy = (a[1] + b[1] + c[1] + d[1]) / 4;
+  const w = (Math.hypot(b[0] - a[0], b[1] - a[1]) + Math.hypot(c[0] - d[0], c[1] - d[1])) / 2;
+  const h = (Math.hypot(d[0] - a[0], d[1] - a[1]) + Math.hypot(c[0] - b[0], c[1] - b[1])) / 2;
+  const ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+  return { cx, cy, w: Math.max(4, w), h: Math.max(4, h), radius: v.radius ?? 0.06 * Math.min(w, h), tf: `rotate(${ang.toFixed(4)}rad)`, origin: '50% 50%' };
+}
+// how each kind of target is cut: a card's middle is flat so its text stays
+// crisp; a header control is a small bead that magnifies a little
+const KIND = {
+  card: (w, h) => ({ rim: cardRim(w, h), mag: 0 }),
+  badge: (w, h) => ({ rim: Math.min(14, 0.1 * Math.min(w, h)), mag: 0 }),   // a lanyard badge: small, its print runs near the edge
+  ui: (w, h) => ({ rim: RIM * Math.min(w, h) / 2, mag: 0.06 }),
+};
+const SLIDE_MS = 260;   // gliding from one target straight to the next
+const ease = k => k * k * (3 - 2 * k);
+
+export default function FluidGlass({ cardSelector = '.lift-card', uiSelector = 'header a[href], header button', size = 128 }) {
   const glassRef = useRef(null);
   const mapRef = useRef(null);
   const chanRefs = [useRef(null), useRef(null), useRef(null)];
@@ -153,18 +184,23 @@ export default function FluidGlass({ cardSelector = '.lift-card', size = 128 }) 
     if (!enabled || !el) return undefined;
     const feImage = mapRef.current;
     const chans = chanRefs.map(r => r.current);
-    const LENS_RIM = (size / 2) * RIM;
+    const LENS = { rim: (size / 2) * RIM, mag: MAG };
 
     let mx = 0, my = 0, shown = false;
-    const px = dv(0), py = dv(0);                  // the lens, chasing the pointer
-    const m = dv(0);                               // 0 = the lens, 1 = over the card
-    const box = { cx: dv(0), cy: dv(0), w: dv(0), h: dv(0) };   // the card's box, eased between cards
-    let card = null;     // the card under the pointer
-    let last = null;     // the card the glass is (or was last) over, until it is a lens again
+    const px = dv(0), py = dv(0);       // the lens, chasing the pointer
+    const m = dv(0);                    // 0 = the lens, 1 = on the target
+    // a target: { key, kind, virtual?, el?, box() }
+    let tgt = null;      // what the pointer is on
+    let last = null;     // what the glass is (or was last) on, until it is a lens again
+    let from = null;     // gliding from one target to the next: the box it left, and when
     let lastRead = null, raf = 0, prev = 0;
+    let drawnBox = null;
     const drawn = {};
-
     const set = (k, v, apply) => { if (drawn[k] !== v) { drawn[k] = v; apply(v); } };
+    const pub = { on: false, x: 0, y: 0, snap: 0 };
+
+    const domTarget = (node, kind) => ({ key: node, kind, el: node, box: () => (kind === 'ui' ? uiBox(node) : cardBox(node)) });
+    const virtTarget = v => ({ key: `v:${v.id}`, kind: 'badge', virtual: true, box: () => quadBox(getVirtualTarget() || v) });
 
     const tick = now => {
       raf = 0;
@@ -174,31 +210,38 @@ export default function FluidGlass({ cardSelector = '.lift-card', size = 128 }) 
       busy = damp(px, mx, FOLLOW, dt, 0.02) | busy;
       busy = damp(py, my, FOLLOW, dt, 0.02) | busy;
 
-      if (card && !card.isConnected) release();
-      let cb = null;
+      if (tgt && tgt.el && !tgt.el.isConnected) release();
+      let B = null;
       if (last) {
-        cb = cardBox(last);
-        const read = `${cb.cx},${cb.cy},${cb.w},${cb.h},${cb.tf}`;
-        if (read !== lastRead) { busy = true; lastRead = read; }      // the card is tilting, scaling or scrolling
-        if (m.x < 0.001) for (const k of ['cx', 'cy', 'w', 'h']) { box[k].x = cb[k]; box[k].v = 0; }
-        for (const k of ['cx', 'cy', 'w', 'h']) busy = damp(box[k], cb[k], SLIDE, dt, 0.02) | busy;
+        const live = last.box();
+        const read = `${live.cx},${live.cy},${live.w},${live.h},${live.tf}`;
+        if (read !== lastRead) { busy = true; lastRead = read; }      // tilting, scaling, swinging or scrolling
+        Object.assign(live, KIND[last.kind](live.w, live.h));
+        B = live;
+        if (from) {
+          const k = Math.min(1, (now - from.t0) / SLIDE_MS), e = ease(k);
+          B = { ...live };
+          for (const key of ['cx', 'cy', 'w', 'h', 'radius', 'rim', 'mag']) B[key] = lerp(from.box[key], live[key], e);
+          if (k >= 1) from = null; else busy = true;
+        }
       }
-      busy = damp(m, card ? 1 : 0, GROW, dt, 0.0005) | busy;
-      if (!card && m.x === 0) { last = null; lastRead = null; }
+      busy = damp(m, tgt ? 1 : 0, GROW, dt, 0.0005) | busy;
+      if (!tgt && m.x === 0) { last = null; lastRead = null; from = null; }
 
       const t = last ? m.x : 0;
-      const cx = lerp(px.x, box.cx.x, t), cy = lerp(py.x, box.cy.x, t);
-      const w = lerp(size, box.w.x, t), h = lerp(size, box.h.x, t);
-      const r = lerp(size / 2, cb ? Math.min(cb.radius, w / 2, h / 2) : size / 2, t);
+      const cx = lerp(px.x, B ? B.cx : 0, t), cy = lerp(py.x, B ? B.cy : 0, t);
+      const w = lerp(size, B ? B.w : size, t), h = lerp(size, B ? B.h : size, t);
+      const r = lerp(size / 2, B ? Math.min(B.radius, B.w / 2, B.h / 2) : size / 2, t);
+      const rim = lerp(LENS.rim, B ? B.rim : LENS.rim, t), mag = lerp(LENS.mag, B ? B.mag : LENS.mag, t);
+      drawnBox = { cx, cy, w, h, radius: r, rim, mag };
       set('tr', `${(cx - w / 2).toFixed(1)}px ${(cy - h / 2).toFixed(1)}px`, v => { el.style.translate = v; });
       set('w', `${w.toFixed(1)}px`, v => { el.style.width = v; });
       set('h', `${h.toFixed(1)}px`, v => { el.style.height = v; });
       set('r', `${r.toFixed(1)}px`, v => { el.style.borderRadius = v; });
-      set('tf', t > 0 && cb ? cb.tf : 'none', v => { el.style.transform = v; });
-      set('or', t > 0 && cb ? cb.origin : '50% 50%', v => { el.style.transformOrigin = v; });
+      set('tf', t > 0 && B ? B.tf : 'none', v => { el.style.transform = v; });
+      set('or', t > 0 && B ? B.origin : '50% 50%', v => { el.style.transformOrigin = v; });
       if (svg) {
-        const rim = Math.round(lerp(LENS_RIM, cardRim(w, h), t));
-        const map = mapFor(Math.round(w), Math.round(h), Math.round(r), Math.max(1, rim), +(MAG * (1 - t)).toFixed(3));
+        const map = mapFor(2 * Math.round(w / 2), 2 * Math.round(h / 2), Math.round(r), Math.max(1, Math.round(rim)), +mag.toFixed(3));
         set('map', map.href, v => {
           // the map's box in the glass's own pixels: the filter's user space
           // is the glass's border box, and a percentage here resolved
@@ -210,16 +253,24 @@ export default function FluidGlass({ cardSelector = '.lift-card', size = 128 }) 
         });
       }
 
+      // tell the waves where the lens is (they pull toward it)
+      if (pub.on !== shown || pub.x !== px.x || pub.y !== py.x || pub.snap !== t) {
+        pub.on = shown; pub.x = px.x; pub.y = py.x; pub.snap = t;
+        Object.assign(glassState, pub, { r: size / 2 });
+        publishGlass();
+      }
+
       if (busy) raf = requestAnimationFrame(tick);
       else prev = 0;
     };
     const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
 
-    function release() { card = null; kick(); }
-    const enter = c => {
-      if (c === card) return;
-      // straight on from another card, the box slides from that one (tick)
-      card = c; last = c; lastRead = null;
+    function release() { tgt = null; kick(); }
+    const enter = next => {
+      if (tgt && tgt.key === next.key) { kick(); return; }
+      // straight on from another target: glide from where the glass is
+      from = last && m.x > 0.001 && drawnBox ? { box: drawnBox, t0: performance.now() } : null;
+      tgt = next; last = next; lastRead = null;
       kick();
     };
 
@@ -236,27 +287,38 @@ export default function FluidGlass({ cardSelector = '.lift-card', size = 128 }) 
       if (!shown) return;
       shown = false;
       el.classList.remove('is-on');
-      card = null; last = null; lastRead = null; m.x = 0; m.v = 0;
+      tgt = null; last = null; lastRead = null; from = null; m.x = 0; m.v = 0;
+      kick();
     };
-    const cardAt = node => {
-      const c = node instanceof Element ? node.closest(cardSelector) : null;
-      return c && !c.closest(NOT_CARDS) ? c : null;
+    const targetAt = node => {
+      if (!(node instanceof Element)) return null;
+      const c = node.closest(cardSelector);
+      if (c && !c.closest(NOT_CARDS)) return domTarget(c, 'card');
+      const u = node.closest(uiSelector);
+      return u ? domTarget(u, 'ui') : null;
     };
     // no relatedTarget: the pointer left the window, or went into an iframe
     const onOut = e => { if (!e.relatedTarget) hide(); };
     const onOver = e => {
-      const c = cardAt(e.target);
-      if (c) enter(c); else if (card) release();
+      const next = targetAt(e.target);
+      if (next) enter(next);
+      else if (tgt && !tgt.virtual) release();    // a canvas badge is let go by its own canvas
     };
-    // a click opens the card's modal: the glass goes back to being a lens
-    const onClick = e => { if (card && card.contains(e.target)) release(); };
+    // a click opens a card's modal: the glass goes back to being a lens
+    const onClick = e => { if (tgt && tgt.kind === 'card' && tgt.el && tgt.el.contains(e.target)) release(); };
+    // the lanyard's badges: hovered or held, the glass takes their shape
+    const stopVirtual = onVirtualTarget(() => {
+      const v = getVirtualTarget();
+      if (v) enter(virtTarget(v));
+      else if (tgt && tgt.virtual) release();
+    });
     // scrolled out from under the pointer (no mouse event says so), or the
-    // card moved: follow it, or let go
+    // target moved: follow it, or let go
     const stopScroll = onScroll(() => {
-      if (!card && !last) return;
-      if (card) {
-        const under = cardAt(document.elementFromPoint(mx, my));
-        if (under !== card) { if (under) enter(under); else release(); }
+      if (!tgt && !last) return;
+      if (tgt && !tgt.virtual) {
+        const under = targetAt(document.elementFromPoint(mx, my));
+        if (!under) release(); else if (under.key !== tgt.key) enter(under);
       }
       kick();
     });
@@ -268,15 +330,17 @@ export default function FluidGlass({ cardSelector = '.lift-card', size = 128 }) 
     window.addEventListener('blur', hide);
     return () => {
       stopScroll();
+      stopVirtual();
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseover', onOver);
       document.removeEventListener('mouseout', onOut);
       window.removeEventListener('click', onClick, { capture: true });
       window.removeEventListener('blur', hide);
       if (raf) cancelAnimationFrame(raf);
+      glassState.on = false; publishGlass();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, svg, cardSelector, size]);
+  }, [enabled, svg, cardSelector, uiSelector, size]);
 
   if (!enabled) return null;
   return createPortal(

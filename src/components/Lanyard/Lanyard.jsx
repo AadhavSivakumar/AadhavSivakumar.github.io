@@ -1,0 +1,1148 @@
+/* eslint-disable react/no-unknown-property */
+// React Bits' Lanyard (reactbits.dev/components/lanyard) — Copyright (c) 2026
+// David Haz, MIT + Commons Clause (see ../reactbits/LICENSE.md) — heavily
+// extended. It hung beside the Experience and Research cards until Sept 28,
+// when the owner asked for motion badges instead (MotionLanyard.jsx, now the
+// fallback where WebGL is missing). BACK on Oct 9 (the owner: "can you use
+// the reactbits lanyards?"), with what changed since:
+// - the badge's front carries what the motion badge's did — photo, name,
+//   role, the dates, the holder's name — in the site's type (Zodiak,
+//   Switzer; it was Poppins, which the site no longer loads), and the back
+//   the organisation, role, place and dates under the logo;
+// - the canvas renders ON DEMAND: a frame only while a body is awake, the
+//   strap is still easing, a badge is hovered or held, or the pointer moves
+//   (the sway). Settled, it draws nothing at all — it used to render and
+//   step the physics every frame while on screen;
+// - while a badge is hovered or held, its four projected corners go on the
+//   glass bus, and the cursor glass takes its shape (FluidGlass.jsx).
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
+import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
+import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
+import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
+import * as THREE from 'three';
+import { setVirtualTarget, clearVirtualTarget } from '../../glassBus';
+
+import cardGLB from './card.glb';
+import lanyardTexture from './lanyard.png';
+
+extend({ MeshLineGeometry, MeshLineMaterial });
+
+// 1x1 transparent pixel — lets useTexture be called unconditionally when a
+// front/back image isn't supplied.
+const BLANK_PIXEL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+// The card model's front face is UV-mapped to the LEFT half of the texture
+// atlas and the back face to the RIGHT half (measured from card.glb). Each
+// custom image is composited into its own half so the two faces render
+// independently, aspect-preserving (no stretching).
+// Physical size of the card's printed face, in world units (matches the card
+// collider: 0.8 x 1.125 half-extents). Used to undo the aspect difference
+// between the UV rect and the badge artwork so nothing renders stretched.
+const CARD_FACE_W = 1.6;
+const CARD_FACE_H = 2.25;
+
+const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.755 };
+const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
+
+// Stable rope-joint offsets relative to the band's anchor group. Kept as
+// module constants so re-renders never hand rapier a "new" position (which
+// would teleport the bodies and tear the strap from its fixed end). The
+// chain starts hanging vertically at equilibrium — a horizontal start makes
+// neighboring cards collide while dropping and fall asleep mid-swing,
+// freezing the straps at a diagonal.
+// A SHORT strap: three rope segments of ROPE_SEG each (it was 1.0 — the owner
+// asked for less string and a bigger badge). The spawn offsets step by the
+// same length, because the chain must start hanging at its own equilibrium.
+const ROPE_SEG = 0.4;   // shorter again (the owner: "don't make the string too long")
+const J1_POS = [0, -ROPE_SEG, 0];
+const J2_POS = [0, -2 * ROPE_SEG, 0];
+const J3_POS = [0, -3 * ROPE_SEG, 0];
+const CARD_POS = [0, -3 * ROPE_SEG - 1.4, 0];
+
+// Cursor-proximity sway: a moving pointer within SWAY_RADIUS (world units)
+// of a card nudges it away, strongest up close.
+const SWAY_RADIUS = 4.5;
+const SWAY_STRENGTH = 0.4;   // the owner wanted it to react more to the mouse (was 0.12)
+
+// Click-to-flip: torque impulse that starts the card spinning toward the
+// yaw target on the other side.
+const FLIP_KICK = 0.08;
+
+// Hover tilt: max lean (radians) toward the cursor while it rests on a card,
+// mirroring the 3D tilt the HTML cards used to have.
+const TILT_MAX = 0.6;
+
+// Recency gradient: `slot` 0 is the present badge (NYU / Roboflow) and renders
+// largest; each step into the past is a touch smaller. The gradient is gentle
+// so the run reads as a premium row of similar badges. Indexed by slot; slots
+// beyond the list fall back to the last (smallest) entry.
+const SLOT_SCALE = [1, 0.9, 0.82];
+// Baseline hang height of the innermost badge. Badges deliberately do NOT sit
+// in one flat rank — a flat rank of equal-length vertical straps under a
+// straight crossbar reads as prison bars. Each badge rides at a staggered
+// height (slotRise + hangJitter) and the overhead rail curves to follow them.
+// Hang height. Raised from 2.4 once the badges moved into the 300x460
+// Experience columns and could finally be LOOKED AT: at 2.4 the card came to
+// rest 12px off the bottom of its column, so it was badly composed at rest and
+// any drag pushed it straight out of frame. 3.65 lifts it ~55px, which both
+// balances the column and leaves room to pull the badge down.
+const SLOT_BASE_Y = 3.65;
+
+// Per-slot vertical stagger: inner/recent badges hang a touch lower, older ones
+// a touch higher, so the pins aren't a dead-flat rank — but kept subtle (the
+// pins sit almost level, just a gentle step out toward the edges) plus a tiny
+// per-badge jitter so the set still reads hand-hung rather than mechanical.
+const SLOT_RISE_BY = [0, 0.25, 0.45];
+function slotRise(slot) {
+  return SLOT_RISE_BY[slot] ?? SLOT_RISE_BY[SLOT_RISE_BY.length - 1];
+}
+function hangJitter(name) {
+  let h = 2166136261;
+  for (const ch of name || 'x') { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return (((h >>> 0) % 1000) / 1000 - 0.5) * 0.2; // ±0.1 world units
+}
+
+// The lanyards hang from a PEGBOARD: a perforated panel behind the badges with
+// a ball-headed metal pin per badge that the strap loops over. Because the
+// badges are staggered, the pins land at different heights — reading as pins
+// pushed into different holes. Sizes are world units at sizeMul 1.
+// The peg now stands ~1.7 off the board instead of 0.47, so it needs some
+// thickness or it reads as a needle rather than a pegboard hook.
+const PIN_SHAFT_R = 0.085;
+const PIN_HEAD_R = 0.12;
+// HOW FAR BACK THE BOARD HAS TO BE, worked out rather than nudged. A card
+// FLIPPING sweeps its corners through z by its own half-width (collider half
+// width 0.8 x its scale) about a centre held at CARD_MIN_Z. The board used to
+// sit at -0.35 — less than a third of that — so every flip drove a corner
+// through the panel and the badge was sliced by it. Now a FORMULA of the
+// badge's scale, with 0.30 of clearance behind the worst case, so growing the
+// badge cannot quietly reintroduce the bug: at sizeMul 2.05 it is -2.19.
+const boardZ = scale => -(0.25 + 0.8 * scale + 0.30);
+// And the card's own centre never goes behind this, so the sweep above is
+// measured from a known place. Hard clamp while dragging, soft push after.
+const CARD_MIN_Z = -0.25;
+
+function slotScale(slot) {
+  return SLOT_SCALE[slot] ?? SLOT_SCALE[SLOT_SCALE.length - 1];
+}
+
+export default function Lanyard({
+  position = [0, 0, 30],
+  gravity = [0, -40, 0],
+  fov = 20,
+  transparent = true,
+  cards = [],
+  clearCenterPx = 0,
+  spreadStep = null,
+  sizeMul = 1,
+  lanyardImage = null,
+  lanyardWidth = 1
+}) {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // The canvas used to render for the whole session: six rapier rope chains
+  // stepping and a multi-megapixel scene drawing at 60fps even when the About
+  // strip was scrolled far off screen. rAF is only throttled when the whole TAB
+  // is hidden, never when a canvas merely leaves the viewport, so nothing was
+  // stopping it. Now the world only runs while any part of the strip is on
+  // screen, and parks on a single settled frame otherwise.
+  const wrapRef = useRef(null);
+  const [onScreen, setOnScreen] = useState(true);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setOnScreen(e.isIntersecting), { rootMargin: '120px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div className="lanyard-wrapper" ref={wrapRef}>
+      <Canvas
+        frameloop={onScreen ? 'demand' : 'never'}
+        camera={{ position, fov }}
+        // Same reasoning as the flourish canvases: shading cost scales with
+        // pixels, and a cap of 2 on a retina screen is four times the work of a
+        // cap of 1. This is the single biggest lever on the 3D scene, and it is
+        // one this environment cannot see (no WebGL, and it reports a ratio
+        // of 1 anyway).
+        dpr={[1, isMobile ? 1.25 : 1.5]}
+        gl={{ alpha: transparent }}
+        onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
+      >
+        <ambientLight intensity={Math.PI} />
+        <Wake />
+        <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
+          <BandField
+            cards={cards}
+            clearCenterPx={clearCenterPx}
+            spreadStep={spreadStep}
+            sizeMul={sizeMul}
+            isMobile={isMobile}
+            lanyardImage={lanyardImage}
+            lanyardWidth={lanyardWidth}
+          />
+        </Physics>
+        <Environment blur={0.75}>
+          <Lightformer intensity={2} color="white" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
+          <Lightformer intensity={3} color="white" position={[-1, -1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
+          <Lightformer intensity={3} color="white" position={[1, 1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
+          <Lightformer intensity={10} color="white" position={[-10, 0, 14]} rotation={[0, Math.PI / 2, Math.PI / 3]} scale={[100, 10, 1]} />
+        </Environment>
+      </Canvas>
+    </div>
+  );
+}
+
+// ON DEMAND. A frame is drawn only when something asks for one: each Band
+// asks for the next while any of its bodies is awake, its strap is still
+// easing, or it is hovered or held (see `keepAwake` in Band), and a pointer
+// moving anywhere asks for one so the sway can test it. When nothing asks,
+// nothing is drawn and the physics does not step. Resuming after a pause, the
+// clock is reset first: the first frame's delta would otherwise be the whole
+// pause (rapier clamps it to 0.5 s and runs it all at once — a jump).
+let lastAwake = 0;
+const keepAwake = state => { lastAwake = performance.now(); state.invalidate(); };
+function Wake() {
+  const { invalidate, clock } = useThree();
+  useEffect(() => {
+    const on = () => {
+      if (performance.now() - lastAwake > 120) clock.getDelta();
+      invalidate();
+    };
+    window.addEventListener('pointermove', on, { passive: true });
+    invalidate();
+    return () => window.removeEventListener('pointermove', on);
+  }, [invalidate, clock]);
+  return null;
+}
+
+// Lays the bands out around the (HTML) about card sitting at the canvas
+// center: `slot` 0 is the innermost badge on each `side`, higher slots step
+// outward toward the viewport edge. Inner badges hang slightly lower,
+// mirroring the staggered badges on the live /portfolio page.
+function BandField({ cards, clearCenterPx = 0, spreadStep = null, sizeMul = 1, ...bandProps }) {
+  const { viewport, size } = useThree();
+  const [layout, setLayout] = useState(null);
+
+  // The physics bodies don't follow their anchors when the canvas aspect
+  // ratio changes, which tears the straps from their fixed ends. Wait for
+  // the resize to settle, then remount the bands (via key) at positions
+  // computed for the new viewport.
+  useEffect(() => {
+    const t = setTimeout(
+      () => setLayout({ world: viewport.width, px: size.width }),
+      layout ? 300 : 0
+    );
+    return () => clearTimeout(t);
+  }, [viewport.width, size.width]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!layout) return null;
+
+  const worldPerPx = layout.world / layout.px;
+  const slots = cards.length ? Math.max(...cards.map(c => c.slot || 0)) + 1 : 1;
+  // Card half-width in world units for a slot (0.8 is the card's half width at
+  // scale 1 — matches the collider), so spacing is derived from real size.
+  const half = s => 0.8 * slotScale(s) * sizeMul;
+  // Center half-gap between the two innermost badges, plus the spacing between
+  // adjacent slots. `spreadStep` overrides the auto (size-based) spacing.
+  const inner = clearCenterPx * worldPerPx + half(0) + 0.4;
+  const step = spreadStep || half(0) + half(1) + 0.6;
+  // Drop the outermost badges that would run off-screen rather than stacking.
+  const edgeLimit = layout.world / 2 - 0.4;
+  let maxSlots = slots;
+  while (maxSlots > 1 && inner + (maxSlots - 1) * step + half(maxSlots - 1) > edgeLimit) maxSlots--;
+  const stamp = `${layout.world.toFixed(1)}x${layout.px}@${sizeMul}`;
+
+  const shown = cards.filter(c => (c.slot || 0) < maxSlots);
+  // `side: 'center'` is for a canvas holding ONE badge (the Experience rows):
+  // the left/right maths always clears the centre by half a card plus a gap,
+  // which is right for a pair flanking the about card and wrong for a badge
+  // that has the whole column to itself.
+  const anchorXOf = c => (c.side === 'center' ? 0 : (inner + (c.slot || 0) * step) * (c.side === 'left' ? -1 : 1));
+  // Staggered hang height (see slotRise/hangJitter). The delta scales with the
+  // badge size so the cascade stays proportional across sizeMul values.
+  // `drop` hangs a badge that many ROWS lower: the Experience canvas spans two
+  // card rows (+ the gap), so one row is ~0.51 of its height
+  const anchorYOf = c => SLOT_BASE_Y + (slotRise(c.slot || 0) + hangJitter(c.badge?.name)) * sizeMul - (c.dropPx || 0) * (viewport.height / size.height);
+  const anchors = shown.map(c => ({ x: anchorXOf(c), y: anchorYOf(c) }));
+
+  return (
+    <>
+      {/* a small board per pin: one board spanning a column of badges read as a wall */}
+      {anchors.map((a, i) => <LanyardRack key={i} anchors={[a]} sizeMul={sizeMul} />)}
+      {shown.map((c, i) => (
+        <Band
+          key={`${c.badge?.name || i}@${stamp}`}
+          {...bandProps}
+          anchorX={anchorXOf(c)}
+          anchorY={anchorYOf(c)}
+          scale={slotScale(c.slot || 0) * sizeMul}
+          image={c.image}
+          badge={c.badge}
+          extra={c}
+        />
+      ))}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Texture ownership.
+//
+// Three of the textures here are BUILT at runtime (the pegboard grid, the
+// inverted strap, and the per-badge composite atlas) and three of the code
+// paths that produce them can instead return a SHARED texture that this
+// component did not create: `materials.base.map` from the cached GLTF, or the
+// `useTexture` result, both of which drei hands to every other badge as well.
+//
+// Disposing one of those shared textures would blank the strap or the card face
+// on every OTHER badge, and useGLTF caches the GLTF, so it would not come back
+// on remount either. So disposal is keyed on a mark set at construction rather
+// than on "is this a texture" — a texture is freed only by the component that
+// made it.
+//
+// This matters because BandField remounts every band (by key) whenever the
+// canvas aspect changes, and each band rebuilds its own copy of the 1678x1677
+// card atlas: 14.3 MB on the GPU with mips, ~86 MB for a full set of six.
+// Before this, every settled resize leaked another set.
+const OWNED = '__disposeWithOwner';
+
+function own(tex) {
+  if (tex) tex.userData[OWNED] = true;
+  return tex;
+}
+
+function useOwnedTexture(tex) {
+  useEffect(() => {
+    if (!tex?.userData?.[OWNED]) return; // shared: not ours to free
+    return () => tex.dispose();
+  }, [tex]);
+  return tex;
+}
+
+// A tiling "perforated board" texture for the pegboard panel: a regular grid of
+// recessed holes, tinted to the site theme so the board reads on both.
+function usePegboardTexture(theme) {
+  const tex = useMemo(() => {
+    const S = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = S;
+    const ctx = canvas.getContext('2d');
+    const dark = theme === 'dark';
+    // Classic beige pegboard (masonite): a warm tan panel with recessed holes,
+    // toned a little deeper in dark mode so it still sits on the page.
+    const board = dark ? '#8a7856' : '#e2d3b3';
+    const hole = dark ? '#4f4636' : '#bfa87f';
+    const holeHi = dark ? '#7a6a4d' : '#f2e8d2'; // lit lower rim, fakes depth
+    ctx.fillStyle = board;
+    ctx.fillRect(0, 0, S, S);
+    const step = S / 4; // 4×4 holes per tile
+    const r = step * 0.17;
+    for (let gy = 0; gy < 4; gy++) {
+      for (let gx = 0; gx < 4; gx++) {
+        const x = (gx + 0.5) * step;
+        const y = (gy + 0.5) * step;
+        ctx.beginPath();
+        ctx.arc(x, y + r * 0.22, r * 1.12, 0, Math.PI * 2);
+        ctx.fillStyle = holeHi;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = hole;
+        ctx.fill();
+      }
+    }
+    const t = own(new THREE.CanvasTexture(canvas));
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    t.needsUpdate = true;
+    return t;
+  }, [theme]);
+  useOwnedTexture(tex);
+  return tex;
+}
+
+// The pegboard the lanyards hang from: a perforated panel behind the badge
+// cluster with one ball-headed metal pin per badge. Each strap's fixed anchor
+// sits at its pin, so the lanyard reads as looped over the pin and hanging down
+// past the board. The panel spans only the upper region (behind the pins and
+// upper straps) so the badges dangle in front of / below its lower edge and
+// never clip through it when they swing or flip.
+function LanyardRack({ anchors = [], sizeMul = 1 }) {
+  const theme = useSiteTheme();
+  const pegTex = usePegboardTexture(theme);
+  const pinR = PIN_SHAFT_R * sizeMul;
+  const headR = PIN_HEAD_R * sizeMul;
+
+  const boardMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ metalness: 0, roughness: 0.85 }),
+    []
+  );
+  const frameMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: theme === 'dark' ? '#5c4f38' : '#c9b78f', metalness: 0.15, roughness: 0.6 }),
+    [theme]
+  );
+  const shaftMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#b8bcc4', metalness: 1, roughness: 0.32 }),
+    []
+  );
+  const headMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#d8b268', metalness: 1, roughness: 0.3, emissive: '#3a2c12', emissiveIntensity: 0.35 }),
+    []
+  );
+
+  // Materials are cheap next to the textures, but frameMat is rebuilt on every
+  // theme toggle and each one holds a reference to its map.
+  useEffect(() => () => frameMat.dispose(), [frameMat]);
+  useEffect(() => () => {
+    boardMat.dispose();
+    shaftMat.dispose();
+    headMat.dispose();
+  }, [boardMat, shaftMat, headMat]);
+
+  const geom = useMemo(() => {
+    if (!anchors.length) return null;
+    const xs = anchors.map(a => a.x);
+    const ys = anchors.map(a => a.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const tile = 1.5; // world units per 4-hole tile
+    // A small board: just enough panel to read as a pegboard behind the pin.
+    // It was 3.2 x 2.0 (x sizeMul) and filled the column; the owner asked for
+    // it smaller and the badge bigger, then smaller again. The badge grew
+    // through the canvas height instead (see .exp-lanyard), so nothing here
+    // is physics. Now 0.84 wide and 0.64 tall (x sizeMul) round a lone pin —
+    // a quarter less each way than the 1.12 x 0.84 before; the pin head
+    // (PIN_HEAD_R x sizeMul) still sits well inside it.
+    const w = maxX - minX + 0.84 * sizeMul;
+    const top = maxY + 0.28 * sizeMul; // clears the highest pin
+    const bottom = minY - 0.36 * sizeMul; // below the lowest pin, above the badge
+    const h = top - bottom;
+    return { w, h, cx: (minX + maxX) / 2, cy: (top + bottom) / 2, tile };
+  }, [anchors, sizeMul]);
+
+  if (!geom) return null;
+  boardMat.map = pegTex;
+  boardMat.needsUpdate = true;
+  pegTex.repeat.set(geom.w / geom.tile, geom.h / geom.tile);
+
+  // the board sits back far enough for this badge's own flip sweep
+  const boardDepth = boardZ(sizeMul);
+  const shaftLen = 0.35;
+  const bezel = 0.28 * sizeMul;
+  return (
+    <group>
+      {/* no board any more — the owner: "remove the pegboard, just make it a
+          single pin holding it". The pin is a short shaft and a ball head. */}
+      {anchors.map((a, i) => (
+        <group key={i} position={[a.x, a.y, 0]}>
+          {/* pin shaft: a stub pushed through the board toward the viewer */}
+          <mesh
+            position={[0, 0, 0.16 - shaftLen / 2]}
+            rotation={[Math.PI / 2, 0, 0]}
+            material={shaftMat}
+          >
+            <cylinderGeometry args={[pinR, pinR, shaftLen, 16]} />
+          </mesh>
+          {/* ball head that keeps the loop from slipping off */}
+          <mesh position={[0, 0, 0.16]} material={headMat}>
+            <sphereGeometry args={[headR, 20, 20]} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// Tracks the site theme so the strap can invert against the page: a dark strap
+// on the light theme, a light strap on the dark theme.
+function useSiteTheme() {
+  const [theme, setTheme] = useState(
+    () => (typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme')) || 'light'
+  );
+  useEffect(() => {
+    const el = document.documentElement;
+    const read = () => setTheme(el.getAttribute('data-theme') || 'light');
+    const obs = new MutationObserver(read);
+    obs.observe(el, { attributes: true, attributeFilter: ['data-theme'] });
+    read();
+    return () => obs.disconnect();
+  }, []);
+  return theme;
+}
+
+// The strap artwork is a near-black webbing, which is right on the light theme
+// but disappears on the dark one. Tinting can't fix that (the material colour
+// only multiplies the map), so on the dark theme we render an inverted copy of
+// the texture: a light strap with dark hardware.
+function useStrapTexture(texture, theme) {
+  return useMemo(() => {
+    if (theme !== 'dark' || !texture?.image) return texture;
+    const img = texture.image;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return texture;
+    ctx.filter = 'invert(1)';
+    ctx.drawImage(img, 0, 0);
+    const inverted = own(new THREE.CanvasTexture(canvas));
+    inverted.colorSpace = texture.colorSpace;
+    inverted.wrapS = inverted.wrapT = THREE.RepeatWrapping;
+    inverted.flipY = texture.flipY;
+    inverted.needsUpdate = true;
+    return inverted;
+  }, [texture, theme]);
+}
+
+// Draws an ID-badge face (photo, name, role, ID/EXP rows) into the card's
+// front UV rect, matching the badge design on the live /portfolio page.
+// Proportions are expressed against the live badge's 160x260 canvas card.
+// The badge face.
+//
+// It used to be a white card with near-black text, and the text was hard to
+// read on it. A white card is the worst possible ground here: the Environment's
+// Lightformer ADDS light, so the card blows out toward white and takes the dark
+// text with it. On a dark card the same specular lands on top of light text and
+// the text survives it. That is why the reference badges (Vercel's event badge,
+// the Framer lanyard) are black.
+//
+// `siteDark` is the PAGE theme, not the card's. The card inverts against the
+// page — black card on the light site, pale card on the dark one — for the same
+// reason the strap texture already does: a black card on a black page is gone.
+export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false, extra = null) {
+  const rx = rect.x * W;
+  const ry = rect.y * H;
+  const rw = rect.w * W;
+  const rh = rect.h * H;
+  const u = rh / 260;
+  const cx = rx + rw / 2;
+
+  // Pushed to the ends of the range on purpose. Whatever the environment does
+  // to these values it does to both, so starting further apart is the cheapest
+  // contrast there is.
+  const P = siteDark
+    ? { card: '#faf8f4', band: '#ebe6da', name: '#08090b', role: '#4a4f57',
+        label: '#8a6a22', value: '#08090b', rule: '#c5a35c', ring: '#d8d3c8' }
+    : { card: '#08090b', band: '#141619', name: '#ffffff', role: '#c3c8d0',
+        label: '#e6bd72', value: '#ffffff', rule: '#c5a35c', ring: '#31353d' };
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rx, ry, rw, rh);
+  ctx.clip();
+
+  ctx.fillStyle = P.card;
+  ctx.fillRect(rx, ry, rw, rh);
+  // Full-bleed header band is drawn untransformed so it still reaches both
+  // edges of the card.
+  ctx.fillStyle = P.band;
+  ctx.fillRect(rx, ry, rw, 80 * (rh / 260));
+
+  // The UV rect is squarer than the 160x260 badge design it carries, so a
+  // naive draw stretches every glyph horizontally. Compress x about the card's
+  // centre line by exactly that ratio so text and the photo stay true.
+  const squash = (CARD_FACE_W / CARD_FACE_H) * (260 / 160);
+  ctx.translate(cx, 0);
+  ctx.scale(1 / squash, 1);
+  ctx.translate(-cx, 0);
+
+  if (img) {
+    const r = 50 * u;
+    const cy = ry + 75 * u;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    const s = Math.max((2 * r) / img.width, (2 * r) / img.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
+    ctx.drawImage(img, cx - (img.width * s) / 2, cy - (img.height * s) / 2, img.width * s, img.height * s);
+    ctx.restore();
+    // a thin ring so the photo reads as a portrait hole punched in the card
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.lineWidth = 2 * u;
+    ctx.strokeStyle = P.ring;
+    ctx.stroke();
+  }
+
+  // a gold rule under the photo
+  ctx.fillStyle = P.rule;
+  ctx.fillRect(rx + 22 * u, ry + 131 * u, rw - 44 * u, 2 * u);
+
+  // The site's type (Oct 9): the name in the display serif, the rest in the
+  // sans — what the motion badge printed: name, role, the dates, the holder.
+  ctx.textAlign = 'center';
+  ctx.fillStyle = P.name;
+  ctx.font = `700 ${28 * u}px Zodiak, Georgia, serif`;
+  ctx.fillText(badge.name, cx, ry + 162 * u, rw - 14 * u);
+  ctx.fillStyle = P.role;
+  ctx.font = `500 ${16 * u}px Switzer, system-ui, sans-serif`;
+  ctx.fillText(badge.role, cx, ry + 184 * u, rw - 14 * u);
+  if (extra?.period) {
+    ctx.fillStyle = P.label;
+    ctx.font = `600 ${15 * u}px Switzer, system-ui, sans-serif`;
+    ctx.fillText(extra.period, cx, ry + 212 * u, rw - 14 * u);
+  }
+  ctx.fillStyle = P.value;
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 ${12 * u}px Switzer, system-ui, sans-serif`;
+  ctx.fillText('Aadhav Sivakumar', cx, ry + 243 * u, rw - 14 * u);
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
+
+// The back, under the logo: what the motion badge's back said — the
+// organisation and role (two lines each at most), then WHERE and WHEN. Dark
+// type on the warm field the back has always had.
+function drawBackText(ctx, rect, card, W, H) {
+  const rx = rect.x * W, ry = rect.y * H, rw = rect.w * W, rh = rect.h * H;
+  const u = rh / 260, cx = rx + rw / 2;
+  const squash = (CARD_FACE_W / CARD_FACE_H) * (260 / 160);
+  const maxW = (rw - 26 * u) * squash;       // in the squashed space below
+  const b = card.back || {};
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.clip();
+  ctx.translate(cx, 0); ctx.scale(1 / squash, 1); ctx.translate(-cx, 0);
+  ctx.textAlign = 'center';
+  // wrap to at most two lines, stepping the type down until it fits
+  // ("NYU Tandon School of Engineering" does not at the first size)
+  const fit = (text, weight, family, sizes) => {
+    for (let k = 0; k < sizes.length; k++) {
+      ctx.font = `${weight} ${sizes[k] * u}px ${family}`;
+      const out = [];
+      let line = '';
+      for (const word of String(text || '').split(' ')) {
+        const next = line ? `${line} ${word}` : word;
+        if (ctx.measureText(next).width > maxW && line) { out.push(line); line = word; } else line = next;
+      }
+      if (line) out.push(line);
+      if (out.length <= 2 || k === sizes.length - 1) return { lines: out.slice(0, 2), size: sizes[k] };
+    }
+    return { lines: [], size: sizes[0] };
+  };
+  // the budget, in the 260-unit face: org from 136, at most 2 + 2 lines,
+  // then WHERE and WHEN — the last baseline lands by ~250 even then
+  let y = ry + 136 * u;
+  const org = fit(b.org || card.badge?.name, 700, 'Zodiak, Georgia, serif', [17, 15, 13.5, 12]);
+  ctx.fillStyle = '#16140f';
+  for (const l of org.lines) { ctx.fillText(l, cx, y, maxW); y += org.size * 1.12 * u; }
+  const role = fit(b.role || card.badge?.role, 500, 'Switzer, system-ui, sans-serif', [13, 12, 11]);
+  ctx.fillStyle = '#3b372d';
+  for (const l of role.lines) { ctx.fillText(l, cx, y, maxW); y += role.size * 1.25 * u; }
+  y += 6 * u;
+  const row = (label, value) => {
+    if (!value) return;
+    ctx.fillStyle = '#5a4a24';
+    ctx.font = `600 ${9.5 * u}px Switzer, system-ui, sans-serif`;
+    ctx.fillText(label, cx, y, maxW); y += 11.5 * u;
+    ctx.fillStyle = '#16140f';
+    ctx.font = `500 ${12 * u}px Switzer, system-ui, sans-serif`;
+    ctx.fillText(value, cx, y, maxW); y += 15 * u;
+  };
+  row('WHERE', b.location);
+  row('WHEN', card.period);
+  ctx.restore();
+}
+
+// the badge is printed in the site's type, so wait for it before drawing
+const BADGE_FONTS = ['700 28px Zodiak', '500 16px Switzer', '600 15px Switzer'];
+function useFontsReady() {
+  const [ok, setOk] = useState(() => typeof document === 'undefined' || !document.fonts || BADGE_FONTS.every(f => document.fonts.check(f)));
+  useEffect(() => {
+    if (ok) return;
+    Promise.all(BADGE_FONTS.map(f => document.fonts.load(f))).then(() => setOk(true), () => setOk(true));
+  }, [ok]);
+  return ok;
+}
+
+function Band({
+  maxSpeed = 50,
+  minSpeed = 0,
+  isMobile = false,
+  anchorX = 0,
+  anchorY = 4,
+  scale = 1,
+  image = null,
+  badge = null,
+  extra = null,
+  lanyardImage = null,
+  lanyardWidth = 1
+}) {
+  const fontsReady = useFontsReady();
+  // the card objects are rebuilt with every render of the page; the atlas is
+  // rebuilt only when what it prints changes
+  const extraKey = JSON.stringify([extra?.period, extra?.back]);
+  const band = useRef(),
+    fixed = useRef(),
+    j1 = useRef(),
+    j2 = useRef(),
+    j3 = useRef(),
+    card = useRef();
+  const vec = new THREE.Vector3(),
+    ang = new THREE.Vector3(),
+    rotQ = new THREE.Quaternion(),
+    rotE = new THREE.Euler(),
+    dir = new THREE.Vector3(),
+    pitchAxis = new THREE.Vector3();
+  const flipped = useRef(false);
+  const press = useRef(null);
+  const lastPointer = useRef({ x: 0, y: 0 });
+  const hoverTilt = useRef(null);
+  const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
+  const { nodes, materials } = useGLTF(cardGLB);
+  
+  const texture = useTexture(lanyardImage || lanyardTexture);
+  const theme = useSiteTheme();
+  const strapTex = useOwnedTexture(useStrapTexture(texture, theme));
+  const photoTex = useTexture(image || BLANK_PIXEL);
+
+  // Composite this badge into the card's texture atlas: the front face gets
+  // the ID-badge layout (photo + name/role/ID/EXP), the back face gets the
+  // photo full-bleed, aspect-preserving (no stretch).
+  const cardMap = useMemo(() => {
+    const baseMap = materials.base.map;
+    if (!image && !badge) return baseMap;
+
+    // HALF RESOLUTION ON PURPOSE. The GLB's atlas is 1678x1677, and the front
+    // face takes 0.755 of its height — about 1266px of texture for a card that
+    // renders roughly 212px tall, so six times more than the screen can show.
+    // Six badges at full size is ~86MB of GPU texture (14.3MB each with mips)
+    // and an upload of the same every time BandField remounts the bands on a
+    // resize. At half it is ~21MB and still three times oversampled.
+    const ATLAS_SCALE = 0.5;
+    const baseImg = baseMap.image;
+    const W = Math.round(baseImg.width * ATLAS_SCALE);
+    const H = Math.round(baseImg.height * ATLAS_SCALE);
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return baseMap;
+    ctx.imageSmoothingQuality = 'high';
+    // Keep the original baked atlas for the card edges and any untouched face.
+    ctx.drawImage(baseImg, 0, 0, W, H);
+
+    // Back face: fit the whole logo inside the card ("contain") on a clean
+    // white field. A cover-fit crops wide wordmarks so they run off the edges.
+    const drawContain = (img, rect, top = false) => {
+      const rx = rect.x * W;
+      const ry = rect.y * H;
+      const rw = rect.w * W;
+      const rh = rect.h * H;
+      // Aspect of the rect as it actually appears on the physical card face:
+      // taken from the WHOLE back (the logo may get only its top half)
+      const faceScaleX = (BACK_UV_RECT.w * W) / (BACK_UV_RECT.h * H * (CARD_FACE_W / CARD_FACE_H));
+      const pad = 0.14;
+      const availW = rw * (1 - 2 * pad) / faceScaleX;
+      const availH = rh * (1 - 2 * pad);
+      const s = Math.min(availW / img.width, availH / img.height);
+      const dw = img.width * s * faceScaleX;
+      const dh = img.height * s;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rx, ry, rw, rh);
+      ctx.clip();
+      // NOT pure white. The back face has to stay pale — it carries logo
+      // artwork, some of it dark-on-transparent, which would vanish on black —
+      // but at #ffffff the flipped card was invisible against the light site's
+      // own near-white page. Seen only once WebGL worked here: flip a badge on
+      // the light theme and the card had no discernible edge at all. A warm
+      // off-white field with an inset border makes it read as an object while
+      // leaving the logos every bit as legible.
+      ctx.fillStyle = '#a9a294';
+      // with text under it, the field and border are the whole back's (drawBackText)
+      if (!top) ctx.fillRect(rx, ry, rw, rh);
+      ctx.drawImage(img, rx + (rw - dw) / 2, ry + (rh - dh) / 2 + (top ? rh * 0.06 : 0), dw, dh);
+      if (!top) {
+        const bw = Math.max(2, rh * 0.012);
+        ctx.lineWidth = bw;
+        ctx.strokeStyle = '#6f6859';
+        ctx.strokeRect(rx + bw / 2, ry + bw / 2, rw - bw, rh - bw);
+      }
+      ctx.restore();
+    };
+
+    const drawCover = (img, rect) => {
+      const rx = rect.x * W;
+      const ry = rect.y * H;
+      const rw = rect.w * W;
+      const rh = rect.h * H;
+      const scale = Math.max(rw / img.width, rh / img.height);
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      const dx = rx + (rw - dw) / 2;
+      const dy = ry + (rh - dh) / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(rx, ry, rw, rh);
+      ctx.clip();
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+    };
+
+    const photo = image ? photoTex.image : null;
+    if (extra?.back) {
+      const r = BACK_UV_RECT, bw = Math.max(2, r.h * H * 0.012);
+      ctx.fillStyle = '#a9a294';
+      ctx.fillRect(r.x * W, r.y * H, r.w * W, r.h * H);
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = '#6f6859';
+      ctx.strokeRect(r.x * W + bw / 2, r.y * H + bw / 2, r.w * W - bw, r.h * H - bw);
+    }
+    if (badge) drawBadgeFace(ctx, FRONT_UV_RECT, badge, photo, W, H, theme === 'dark', extra);
+    else if (photo) drawCover(photo, FRONT_UV_RECT);
+    if (photo) drawContain(photo, extra?.back ? { ...BACK_UV_RECT, h: BACK_UV_RECT.h * 0.48 } : BACK_UV_RECT, !!extra?.back);
+    if (extra?.back) drawBackText(ctx, BACK_UV_RECT, extra, W, H);
+
+    const composite = own(new THREE.CanvasTexture(canvas));
+    composite.colorSpace = THREE.SRGBColorSpace;
+    composite.flipY = baseMap.flipY;
+    composite.anisotropy = 16;
+    composite.needsUpdate = true;
+    return composite;
+    // `theme` is a dependency because the card inverts against the page. Each
+    // rebuild makes a fresh 14.3MB atlas; the old one is freed by
+    // useOwnedTexture, which is what that machinery is for.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [image, badge, extraKey, photoTex, materials.base.map, theme, fontsReady]);
+  useOwnedTexture(cardMap);
+
+  const [curve] = useState(
+    () => new THREE.CatmullRomCurve3([new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()])
+  );
+  const [dragged, drag] = useState(false);
+  const releaseVel = useRef(new THREE.Vector3());
+  const releasePending = useRef(false);
+  const [hovered, hover] = useState(false);
+  // the glass bus: this badge's corners on screen while it is hovered or held
+  const cardMesh = useRef();
+  const glassId = `badge:${badge?.name || anchorX}`;
+  const onGlass = useRef(false);
+  const cardBounds = useMemo(() => { const g = nodes.card.geometry; if (!g.boundingBox) g.computeBoundingBox(); return g.boundingBox; }, [nodes]);
+  const corners = useMemo(() => [0, 1, 2, 3].map(() => new THREE.Vector3()), []);
+  useEffect(() => () => clearVirtualTarget(glassId), [glassId]);
+
+  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], ROPE_SEG]);
+  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], ROPE_SEG]);
+  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], ROPE_SEG]);
+  useSphericalJoint(j3, card, [
+    [0, 0, 0],
+    [0, 1.5 * scale, 0]
+  ]);
+
+  useEffect(() => {
+    if (hovered) {
+      document.body.style.cursor = dragged ? 'grabbing' : 'grab';
+      return () => void (document.body.style.cursor = 'auto');
+    }
+  }, [hovered, dragged]);
+
+  useFrame((state, delta) => {
+    if (dragged) {
+      vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
+      dir.copy(vec).sub(state.camera.position).normalize();
+      vec.add(dir.multiplyScalar(state.camera.position.length()));
+      [card, j1, j2, j3, fixed].forEach(ref => ref.current?.wakeUp());
+
+      let tx = vec.x - dragged.x, ty = vec.y - dragged.y, tz = vec.z - dragged.z;
+
+      // KEEP IT ON SCREEN. The drag target was whatever the pointer projected
+      // to, with nothing stopping it leaving the canvas — drag a badge down and
+      // it left the frame and was simply gone. Clamp the card's centre to the
+      // visible world box, allowing for its own half-size.
+      // Keep the WHOLE card inside the frame. This used to clamp the card's
+      // centre instead, because on the old full-width strip the badges rested
+      // so close to the limit that a stricter clamp left no drag travel at all.
+      // In the Experience columns, with the hang raised (SLOT_BASE_Y), there is
+      // room: ~70px of downward travel and ~94px sideways, and the badge never
+      // leaves its column. Measured, not assumed — the loose clamp let 61px of
+      // a 157px badge hang below the canvas mid-drag.
+      // The extents are MEASURED, not derived: the visible card is not centred
+      // on its collider (the mesh group sits 1.2*scale below the body, and the
+      // GLB has its own origin), so the collider's half-extents under-state
+      // how far the art reaches. Probed by dragging each badge into both lower
+      // corners with a deliberately large margin and reading the clearance off
+      // the render: at 0.8 the badge cleared the bottom by 13px and the sides
+      // by 25px, at ~43.5px per world unit and scale 1.6. That put the art's
+      // true half-extents at ~1.44 and ~0.94 of the scale, and those are the
+      // numbers below — PROPORTIONAL, so a bigger badge stays inside without
+      // re-probing. The constant on the end is the gap left to the frame.
+      // Never negative: a narrow, tall column leaves little world width, and a
+      // negative half-width would make the clamp flip the card side to side.
+      const halfW = Math.max(0, state.viewport.width / 2 - (0.94 * scale + 0.18));
+      const halfH = Math.max(0, state.viewport.height / 2 - (1.4375 * scale + 0.15));
+      if (tx < -halfW) tx = -halfW; else if (tx > halfW) tx = halfW;
+      if (ty < -halfH) ty = -halfH; else if (ty > halfH) ty = halfH;
+      if (tz < CARD_MIN_Z) tz = CARD_MIN_Z;               // never behind the board
+
+      // FOLLOW WITH WEIGHT. Teleporting a kinematic body straight onto the
+      // pointer snapped the strap taut every frame. Easing toward the target
+      // lets the rope lead and lag the way a real lanyard does.
+      const cur = card.current.translation();
+      const a2 = Math.min(1, delta * 18);
+      const nx = cur.x + (tx - cur.x) * a2;
+      const ny = cur.y + (ty - cur.y) * a2;
+      const nz = cur.z + (tz - cur.z) * a2;
+      // Remember how fast it is travelling, so letting go throws it rather
+      // than dropping it. A kinematic body carries no velocity into the
+      // dynamic state, so without this every release killed the swing dead.
+      if (delta > 0) {
+        releaseVel.current.set(
+          (nx - cur.x) / delta, (ny - cur.y) / delta, (nz - cur.z) / delta,
+        );
+      }
+      card.current?.setNextKinematicTranslation({ x: nx, y: ny, z: nz });
+    } else if (card.current && !hovered) {
+      // A moving cursor gently pushes nearby cards away, making the
+      // lanyards sway as the mouse passes (like the live /portfolio badges).
+      // Skipped while hovering the card itself — the hover tilt takes over.
+      const moved = state.pointer.x !== lastPointer.current.x || state.pointer.y !== lastPointer.current.y;
+      if (moved) {
+        lastPointer.current.x = state.pointer.x;
+        lastPointer.current.y = state.pointer.y;
+        vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
+        dir.copy(vec).sub(state.camera.position).normalize();
+        vec.add(dir.multiplyScalar(state.camera.position.length()));
+        const pos = card.current.translation();
+        const dx = pos.x - vec.x;
+        const dy = pos.y - vec.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < SWAY_RADIUS && dist > 0.05) {
+          const f = (1 - dist / SWAY_RADIUS) * SWAY_STRENGTH * Math.min(delta, 1 / 30);
+          card.current.applyImpulse({ x: (dx / dist) * f, y: (dy / dist) * f, z: 0 }, true);
+        }
+      }
+    }
+    // The frame after a release, hand the drag's velocity to the now-dynamic
+    // body. Clamped, because flinging the pointer should swing a badge, not
+    // fire it off the pegboard.
+    if (!dragged && releasePending.current && card.current) {
+      releasePending.current = false;
+      const v = releaseVel.current;
+      const speed = v.length();
+      if (speed > 0.05) {
+        if (speed > 12) v.multiplyScalar(12 / speed);
+        card.current.wakeUp();
+        card.current.setLinvel({ x: v.x, y: v.y, z: v.z }, true);
+      }
+      releaseVel.current.set(0, 0, 0);
+    }
+
+    // Soft push back out if the physics has carried the card toward the board.
+    // A collider on the panel would do this too, at the cost of a collision
+    // pair per badge per step for a case that is a few centimetres deep.
+    if (!dragged && card.current) {
+      const cz = card.current.translation().z;
+      if (cz < CARD_MIN_Z) {
+        card.current.wakeUp();
+        card.current.applyImpulse({ x: 0, y: 0, z: (CARD_MIN_Z - cz) * 0.9 }, true);
+      }
+    }
+
+    if (fixed.current) {
+      [j1, j2].forEach(ref => {
+        if (!ref.current.lerped) ref.current.lerped = new THREE.Vector3().copy(ref.current.translation());
+        const clampedDistance = Math.max(0.1, Math.min(1, ref.current.lerped.distanceTo(ref.current.translation())));
+        // Clamp the lerp alpha to 1 — above 1 Vector3.lerp extrapolates past
+        // the target, which makes the strap diverge into huge streaks
+        // whenever the frame rate drops below maxSpeed fps.
+        ref.current.lerped.lerp(
+          ref.current.translation(),
+          Math.min(1, delta * (minSpeed + clampedDistance * (maxSpeed - minSpeed)))
+        );
+      });
+      curve.points[0].copy(j3.current.translation());
+      curve.points[1].copy(j2.current.lerped);
+      curve.points[2].copy(j1.current.lerped);
+      curve.points[3].copy(fixed.current.translation());
+      // 24, not 32. meshline rebuilds its position and counter arrays on every
+      // setPoints call whatever it is handed, so the only real lever is how
+      // many points there are — and a four-point catmull-rom over a strap this
+      // short is smooth well before 32.
+      band.current.geometry.setPoints(curve.getPoints(isMobile ? 12 : 24));
+
+      // Steer the card's yaw toward its front — or its back after a
+      // click-flip — along the shortest path. While the cursor rests on the
+      // card, lean the yaw/pitch targets toward it for a 3D hover tilt.
+      ang.copy(card.current.angvel());
+      const q = card.current.rotation();
+      rotQ.set(q.x, q.y, q.z, q.w);
+      rotE.setFromQuaternion(rotQ, 'YXZ');
+      const tilt = (!dragged && hovered && hoverTilt.current) || null;
+      let yawErr = rotE.y - ((flipped.current ? Math.PI : 0) + (tilt ? tilt.nx * TILT_MAX : 0));
+      yawErr = Math.atan2(Math.sin(yawErr), Math.cos(yawErr));
+      // Lean toward the cursor. "Top toward the viewer" is a NEGATIVE local
+      // pitch on a card facing you and a positive one on a card that has been
+      // flipped to face away, so the target's sign follows the flip.
+      const pitchTarget = tilt ? (flipped.current ? 1 : -1) * tilt.ny * TILT_MAX : 0;
+      const pitchErr = rotE.x - pitchTarget;
+      // The pitch correction is about the card's OWN pitch axis, expressed in
+      // world space. It used to be applied about world x, which is the body's
+      // x only while the card faces forward: after a flip the body's x points
+      // the other way, so the damper pushed pitch AWAY from its target and a
+      // hovered flipped card wound itself up instead of settling. Reproduced
+      // numerically — a 0.20 rad error went to 0.193 at yaw 0 and to 0.207 at
+      // yaw pi; through the body axis it goes to 0.193 in both.
+      pitchAxis.set(1, 0, 0).applyQuaternion(rotQ).multiplyScalar(-pitchErr * 0.35);
+      card.current.setAngvel({
+        x: ang.x + pitchAxis.x,
+        y: ang.y - yawErr * 0.35 + pitchAxis.y,
+        z: ang.z + pitchAxis.z,
+      });
+    }
+
+    // Ask for the next frame while anything here still moves (the canvas
+    // renders on demand — see Wake): a body awake, the strap still easing
+    // after it, or the badge hovered or held.
+    const settling = [j1, j2].some(r => r.current?.lerped && r.current.lerped.distanceTo(r.current.translation()) > 0.0005);
+    if (dragged || hovered || settling || [j1, j2, j3, card].some(r => r.current && !r.current.isSleeping())) keepAwake(state);
+
+    // The cursor glass takes this badge's shape while it is hovered or held:
+    // its four corners, projected to the page.
+    if ((hovered || dragged) && cardMesh.current) {
+      const m = cardMesh.current, bb = cardBounds, z = (bb.min.z + bb.max.z) / 2;
+      m.updateWorldMatrix(true, false);
+      const rect = state.gl.domElement.getBoundingClientRect();
+      corners[0].set(bb.min.x, bb.max.y, z); corners[1].set(bb.max.x, bb.max.y, z);
+      corners[2].set(bb.max.x, bb.min.y, z); corners[3].set(bb.min.x, bb.min.y, z);
+      const quad = corners.map(c => {
+        c.applyMatrix4(m.matrixWorld).project(state.camera);
+        return [rect.left + ((c.x + 1) / 2) * rect.width, rect.top + ((1 - c.y) / 2) * rect.height];
+      });
+      setVirtualTarget({ id: glassId, quad });
+      onGlass.current = true;
+    } else if (onGlass.current) {
+      onGlass.current = false;
+      clearVirtualTarget(glassId);
+    }
+  });
+
+  curve.curveType = 'chordal';
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+  return (
+    <>
+      <group position={[anchorX, anchorY, 0]}>
+        <RigidBody ref={fixed} {...segmentProps} type="fixed" />
+        <RigidBody position={J1_POS} ref={j1} {...segmentProps}>
+          <BallCollider args={[0.1]} />
+        </RigidBody>
+        <RigidBody position={J2_POS} ref={j2} {...segmentProps}>
+          <BallCollider args={[0.1]} />
+        </RigidBody>
+        <RigidBody position={J3_POS} ref={j3} {...segmentProps}>
+          <BallCollider args={[0.1]} />
+        </RigidBody>
+        <RigidBody position={CARD_POS} ref={card} {...segmentProps} type={dragged ? 'kinematicPosition' : 'dynamic'}>
+          <CuboidCollider args={[0.8 * scale, 1.125 * scale, 0.01]} />
+          <group
+            scale={2.25 * scale}
+            position={[0, -1.2 * scale, -0.05]}
+            onPointerOver={() => hover(true)}
+            onPointerOut={() => { hover(false); hoverTilt.current = null; }}
+            onPointerMove={e => {
+              if (!card.current) return;
+              const pos = card.current.translation();
+              hoverTilt.current = {
+                nx: THREE.MathUtils.clamp((e.point.x - pos.x) / (0.9 * scale), -1, 1),
+                ny: THREE.MathUtils.clamp((e.point.y - pos.y) / (1.2 * scale), -1, 1),
+              };
+              card.current.wakeUp();
+            }}
+            onPointerUp={e => {
+              releasePending.current = true;
+              e.target.releasePointerCapture(e.pointerId);
+              drag(false);
+              // A press without meaningful movement is a click: flip the
+              // card around instead of requiring a drag-and-snap.
+              const p = press.current;
+              press.current = null;
+              if (p && performance.now() - p.t < 350 && Math.hypot(e.point.x - p.x, e.point.y - p.y) < 0.2) {
+                flipped.current = !flipped.current;
+                card.current?.applyTorqueImpulse({ x: 0, y: (flipped.current ? 1 : -1) * FLIP_KICK, z: 0 }, true);
+              }
+            }}
+            onPointerDown={e => {
+              e.target.setPointerCapture(e.pointerId);
+              press.current = { t: performance.now(), x: e.point.x, y: e.point.y };
+              drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
+            }}
+          >
+            <mesh ref={cardMesh} geometry={nodes.card.geometry}>
+              {/* A printed ID badge, not a piano. This was clearcoat 1 at
+                  clearcoatRoughness 0.1 with metalness 0.35, which is a hard
+                  gloss lacquer: against the Environment's intensity-10
+                  Lightformer it threw a sharp specular sheet across the card
+                  and washed the name and role text out. A laminated badge does
+                  have a slight sheen, so the clearcoat stays — just weak and
+                  diffused. metalness in particular has no business here: a
+                  metallic surface tints its reflection by the base colour and
+                  darkens the diffuse term, which is the opposite of what a
+                  white printed card does with light. */}
+              {/*
+                The card has to hold its own contrast under a very bright
+                environment. Simulated through the material's own maths (flat
+                card, ambient + IBL diffuse + GGX specular + clearcoat lobe,
+                ACES tonemap): with envMapIntensity at 1 and clearcoat 0.25,
+                a brightening environment washes the black card from value 3
+                toward 118 and text contrast collapses from 12:1 to 4.2:1.
+                Three changes, all scoped to the card rather than to the
+                scene's lighting:
+                  envMapIntensity  - the broad specular wash is what lifts the
+                                     blacks, and it is the card that needs
+                                     protecting, not the clip or the strap
+                  clearcoat        - a second specular lobe stacked on top of
+                                     the first, straight onto the artwork
+                  emissiveMap      - the artwork adds its OWN light, shaped by
+                                     itself. Light text emits, the dark card
+                                     does not, so the separation between them
+                                     survives whatever the environment does.
+                Same simulation with these: 9.9:1 at the brightest, card at 59.
+                Lower emissive on the pale card - there the BACKGROUND is what
+                emits, and too much of it clips the card to flat white.
+              */}
+              <meshPhysicalMaterial
+                map={cardMap}
+                map-anisotropy={16}
+                emissiveMap={cardMap}
+                emissive="#ffffff"
+                emissiveIntensity={theme === 'dark' ? 0.3 : 0.75}
+                envMapIntensity={0.12}
+                clearcoat={0}
+                roughness={0.95}
+                metalness={0.04}
+              />
+            </mesh>
+            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
+            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+          </group>
+        </RigidBody>
+      </group>
+      <mesh ref={band}>
+        <meshLineGeometry />
+        <meshLineMaterial
+          color="white"
+          depthTest={false}
+          resolution={isMobile ? [1000, 2000] : [1000, 1000]}
+          useMap
+          map={strapTex}
+          repeat={[-4, 1]}
+          lineWidth={lanyardWidth}
+        />
+      </mesh>
+    </>
+  );
+}

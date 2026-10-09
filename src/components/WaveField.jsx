@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { onScroll as onPageScroll } from '../scrollDriver';
+import { glassState, onGlass } from '../glassBus';
 import {
   VW, VH, FIELD_A, FREQ_LAND, FREQ_PORT, DRIFT, ROW_FIRST, ROW_LAST,
   rowY, rowA, rowT, waveY, S_ART, live, heroPhase, heroHeight,
@@ -13,14 +14,27 @@ import {
 //
 // Idle rules: it redraws only while something moves — the entrance, the drift
 // while the hero is on screen and the tab is visible (~30fps: it moves ten
-// pixels a second), the mouse bulge. Past the hero the canvas is cleared once
+// pixels a second), the gravity well. Past the hero the canvas is cleared once
 // and nothing runs.
 //
 // The stroke TAPERS down the field (the owner: "a little thicker at the top
 // and thinner at the bottom"), from STROKE_TOP to STROKE_BOTTOM css px.
 const STROKE_TOP = 3.8, STROKE_BOTTOM = 0.9;   // 0.6 until the bottom rows were asked to fade less (Oct 8)
-// the pointer lens: its radius (virtual units) and how far it parts the rows
-const LENS_R = 46, LENS_H = { land: 40, port: 16 };
+// The GRAVITY WELL under the cursor (Oct 9; the owner: "have the effect of
+// the cursor on the waves feel more like a gravity well kind of effect, so it
+// plays along better with the circle around the mouse"). The rows used to
+// PART round the pointer, pushed away from it. Now every point of every row
+// is pulled TOWARD the centre of the cursor glass, by
+//   s(r) = G · r · exp(−r² / L²)
+// — nothing at the centre (the lens covers it) and nothing far away, most
+// just outside the lens's rim, so the rows bunch round the circle as if
+// falling into it. G < 1 keeps a row from folding over itself (r − s(r) only
+// grows). The centre is the GLASS's own eased centre, read off the glass bus,
+// so the well sits exactly under the lens and travels with it; as the glass
+// snaps onto a card or a control, the well lets go. Without the glass (it is
+// off on touch screens) the well follows the pointer on its own easing.
+const WELL_G = 0.72, WELL_L = 2.1;   // strength (under 1: no fold); falloff, in lens radii
+const WELL_R = 64;                   // the lens's radius when there is no glass
 
 export default function WaveField() {
   const ref = useRef(null);
@@ -59,53 +73,56 @@ export default function WaveField() {
 
     measure();
 
-    // ── the pointer LENS ────────────────────────────────────────────────
-    // (the owner: "make the mouse hovering effect a bit better"). It was
-    // /portfolio's bulge: every row near the cursor lifted into one lump that
-    // snapped on and off. Now the rows PART around the pointer — pushed up
-    // above it and down below it, like a lens — the lens follows the pointer
-    // with easing rather than sitting on it, and fades in and out.
-    let tx = null, ty = null;               // where the pointer is (virtual units)
-    let mx = null, my = null;               // where the lens is, easing after it
-    let lens = 0, lensTo = 0;               // its strength, 0..1
+    // ── the gravity well ────────────────────────────────────────────────
+    let tx = null, ty = null;               // the pointer, viewport px
+    let wx = null, wy = null;               // the well's centre
+    let inHero = false;
+    let lens = 0;                           // the well's strength, 0..1
+    let drawnAt = '';
     const onMove = e => {
       if (reduce) return;
       const yPage = e.clientY + scrollY;
-      if (yPage < 0 || yPage > heroH) { lensTo = 0; wake(); return; }
-      tx = (e.clientX / W) * VW;
-      ty = (yPage / heroH) * VH;
-      if (mx === null) { mx = tx; my = ty; }
-      lensTo = 1;
+      inHero = yPage >= 0 && yPage <= heroH;
+      tx = e.clientX; ty = e.clientY;
+      if (wx === null) { wx = tx; wy = ty; }
       wake();
     };
-    const onLeave = () => { lensTo = 0; wake(); };
-    // ease the lens toward the pointer; true while it is still moving
+    const onLeave = () => { inHero = false; wake(); };
+    // move the centre and ease the strength; true while either still changes
     const stepLens = dt => {
-      if (mx === null) return false;
-      const k = 1 - Math.exp(-dt * 9), kl = 1 - Math.exp(-dt * (lensTo ? 6 : 4));
-      mx += (tx - mx) * k; my += (ty - my) * k;
-      lens += (lensTo - lens) * kl;
-      if (lensTo === 0 && lens < 0.002) { lens = 0; mx = my = null; return false; }
-      return Math.abs(tx - mx) + Math.abs(ty - my) > 0.05 || Math.abs(lensTo - lens) > 0.002;
+      if (wx === null && !glassState.on) return false;
+      const glass = glassState.on;
+      if (glass) { wx = glassState.x; wy = glassState.y; }
+      else if (tx !== null) { const k = 1 - Math.exp(-dt * 9); wx += (tx - wx) * k; wy += (ty - wy) * k; }
+      const to = reduce || !inHero ? 0 : glass ? 1 - glassState.snap : 1;
+      lens += (to - lens) * (1 - Math.exp(-dt * (to > lens ? 6 : 4)));
+      if (Math.abs(to - lens) < 0.002) lens = to;
+      const at = `${wx},${wy},${lens}`;
+      const moved = at !== drawnAt;
+      drawnAt = at;
+      return moved || (!glass && tx !== null && Math.abs(tx - wx) + Math.abs(ty - wy) > 0.3);
     };
 
     // ── drawing ─────────────────────────────────────────────────────────
     // A field point at screen x on row i sits at
     //   y = (rowY + wave) * heroH / VH - scrollY
     // with the wave mirrored about the centre: its argument is |xv - VW/2|.
-    function fieldY(i, yv, xs, phase, freq, bulgeH) {
+    function fieldY(i, yv, xs, phase, freq) {
       const xv = (xs / W) * VW;
-      let w = waveY(i, Math.abs(xv - VW / 2), phase, freq);
-      if (bulgeH > 0 && lens > 0) {
-        // a derivative of a gaussian in y: rows above are pushed up, rows
-        // below pushed down, the push fading with distance in x and y
-        const dx = xv - mx, dy = yv - my, d2 = dx * dx + dy * dy, R = LENS_R;
-        // tapered to EXACTLY zero at 3R by a smooth window: a hard cutoff
-        // there left ~1.3 units of push and every row stepped at the edge
-        // (the owner: "a weird discontinuity… with the mouse hover effect")
-        if (d2 < 9 * R * R) { const q = 1 - d2 / (9 * R * R); w += bulgeH * lens * (dy / R) * Math.exp(-d2 / (2 * R * R)) * q * q; }
-      }
-      return (yv + w) * (heroH / VH) - scrollY;
+      return (yv + waveY(i, Math.abs(xv - VW / 2), phase, freq)) * (heroH / VH) - scrollY;
+    }
+    // the well's pull on one point, in place on P (screen px). Past 3L the
+    // pull is under a fiftieth of a pixel, so the points there are skipped.
+    const P = [0, 0];
+    let wellG = 0, wellL2 = 1;
+    function pull(x, y) {
+      P[0] = x; P[1] = y;
+      if (wellG <= 0) return P;
+      const dx = x - wx, dy = y - wy, d2 = dx * dx + dy * dy;
+      if (d2 > 9 * wellL2) return P;
+      const f = wellG * Math.exp(-d2 / wellL2);
+      P[0] = x - dx * f; P[1] = y - dy * f;
+      return P;
     }
 
     function draw(now) {
@@ -115,7 +132,9 @@ export default function WaveField() {
       if (s >= S_ART) return false;
       const elapsed = now - t0;
       const phase = live.phase, freq = live.freq;
-      const bulgeH = portrait ? LENS_H.port : LENS_H.land;
+      const R = glassState.on ? glassState.r : WELL_R;
+      wellG = lens > 0.001 && wx !== null ? WELL_G * lens : 0;
+      wellL2 = (WELL_L * R) ** 2;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
       ctx.strokeStyle = ink;
@@ -140,12 +159,15 @@ export default function WaveField() {
         // rows — "I can still see individual segments")
         ctx.beginPath();
         const N = Math.max(120, Math.round(W / 6));
-        let px = 0, py = fieldY(i, yv, 0, phase, freq, bulgeH);
+        pull(0, fieldY(i, yv, 0, phase, freq));
+        let px = P[0], py = P[1];
         ctx.moveTo(px, py);
         for (let q = 1; q <= N; q++) {
-          const xs = (W * q) / N, y = fieldY(i, yv, xs, phase, freq, bulgeH);
-          ctx.quadraticCurveTo(px, py, (px + xs) / 2, (py + y) / 2);
-          px = xs; py = y;
+          const xs = (W * q) / N;
+          pull(xs, fieldY(i, yv, xs, phase, freq));
+          const x = P[0], y = P[1];
+          ctx.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2);
+          px = x; py = y;
         }
         ctx.lineTo(px, py);
         ctx.stroke();
@@ -156,7 +178,7 @@ export default function WaveField() {
 
     // ── the loop ────────────────────────────────────────────────────────
     // Runs only while something animates on its own: the entrance, the drift
-    // (hero on screen, tab visible, ~30fps), the bulge. Otherwise the scroll
+    // (hero on screen, tab visible, ~30fps), the well. Otherwise the scroll
     // driver is the only thing that redraws.
     let raf = 0, prev = 0, lastDraw = 0, needDraw = true, lensBusy = false;
     const DRIFT_MS = 31;
@@ -204,6 +226,7 @@ export default function WaveField() {
     document.addEventListener('pointerleave', onLeave);
     const onVis = () => { if (document.visibilityState !== 'hidden') wake(); };
     document.addEventListener('visibilitychange', onVis);
+    const stopGlass = onGlass(() => { if (!cleared) wake(); });
     const themeWatch = new MutationObserver(() => { readTheme(); wake(); });
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -216,6 +239,7 @@ export default function WaveField() {
       document.removeEventListener('pointerleave', onLeave);
       document.removeEventListener('visibilitychange', onVis);
       ro?.disconnect();
+      stopGlass();
       themeWatch.disconnect();
     };
   }, []);

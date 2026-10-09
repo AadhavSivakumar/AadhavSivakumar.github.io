@@ -65,7 +65,7 @@ prevent.
 - **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
 - **motion** (`motion/react`, the framer-motion successor) — the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), the cards' hover tilt (`LiftCard.jsx`), the modal's phased open/close sequence (`Modal.jsx`), the lanyard badges (`MotionLanyard.jsx`) and the React Bits copies that need it (BlurText, Dock). It does **not** drive the card reveals (`useScrollReveal`).
 - **anime.js is GONE** (Oct 9, the owner: "Get rid of anime.js"). What it did: the hero name's letter cascade (now React Bits' BlurText), the top scroll-progress bar (removed — "don't need a top progress scroll bar"), and every scroll-into-view card entrance, which `src/hooks/useScrollReveal.js` now runs on the browser's Web Animations API (`el.animate`, same distances, durations and outQuint curve; `LiftCard`, `Reveal`, the Resume viewer). The hook suppresses inline CSS transitions during the entrance and removes the animation on completion so the CSS hover/tap states and a card's motion tilt resume. Main script 553 → 513 KB (195 → 180 KB gzipped).
-- **three.js** — only the WebGL Atlas on the last page (`atlasGL.js`, lazy). The lanyards were three.js + @react-three/fiber / drei / rapier / meshline until Sept 28; they are motion components now (`MotionLanyard.jsx`).
+- **three.js** — the right stage's robots (`robotGL.js`) and the Atlas (`atlasGL.js`), lazy; and since Oct 9 AGAIN the lanyard badges, with @react-three/fiber 8 / drei 9 / rapier 1.5 / meshline (`Lanyard/Lanyard.jsx`, a lazy ~2.4 MB chunk + the 2.4 MB `card.glb`, fetched only at ≥992px near the Experience page). They were motion components Sept 28 – Oct 9; `MotionLanyard.jsx` is now the no-WebGL fallback.
 
 ## Source layout
 
@@ -257,7 +257,32 @@ browser cannot play the video (no H.264 in many Linux Chromium builds; it used
 to fall through to "Image Not Found") — and the build check enforces its
 existence.
 
-## The lanyard badges — now MOTION, not 3D (`src/components/MotionLanyard.jsx`)
+## The lanyard badges — 3D AGAIN since Oct 9 (`Lanyard/Lanyard.jsx`)
+
+**Oct 9: React Bits' 3D lanyard is back** (the owner: "can you use the
+reactbits lanyards?"). It is the extended port this file describes below
+under "The 3D lanyard", restored from `e31e570^` with: the badge front
+printing what the motion badge did (photo, name in Zodiak, role, the dates,
+"Aadhav Sivakumar"; Poppins was gone from the site), the back the
+organisation and role (stepped down to fit two lines each — "NYU Tandon
+School of Engineering"), WHERE and WHEN under the logo (`drawBackText`; the
+logo's aspect is taken from the whole back face); fonts awaited before the
+atlas is drawn (`useFontsReady`); the atlas rebuilt only when what it prints
+changes (`extraKey`). **The canvas renders ON DEMAND** (`frameloop
+'demand'`): a Band asks for the next frame only while a body is awake, its
+strap is still easing, or it is hovered or held (`keepAwake`), and any
+pointer move asks for one (the sway); waking from idle resets the clock
+first, or rapier would run the whole pause (clamped to 0.5 s) in one frame.
+Measured: 0 lanyard draw calls in 3 s on a settled page (it used to render
+and step every frame while on screen), 0 DOM mutations. **The cursor glass
+snaps to a hovered or held badge**: each frame the Band projects its card
+mesh's four corners and puts them on the glass bus (`src/glassBus.js`,
+`setVirtualTarget`); the glass fits a turned rectangle to them, so it swings
+and turns with the badge. Where WebGL is missing (headless Firefox here) or
+its context is lost, the motion badges below hang instead. Layout, drop and
+size are the old ones (`dropPx = i * rowPx - 45`, `sizeMul` 1.1).
+
+### The motion badges (`src/components/MotionLanyard.jsx`) — the fallback since Oct 9
 
 **Sept 28: the three.js + rapier lanyard is GONE** (the owner: "can you use
 Framer for the lanyards instead?"). Each badge is a motion (Framer Motion)
@@ -1603,7 +1628,7 @@ select `.f3d canvas:not(.f3d-gl)` for the 2D one.
 **Sept 28, later: the hover LENS, a natural centre, a smooth modal close.**
 The pointer no longer lifts /portfolio's bulge under itself: the rows PART
 around it (a derivative-of-gaussian push, up above the pointer and down
-below, `LENS_R` 46 / `LENS_H` 40 virtual units, windowed by (1 - d²/9R²)² so it reaches exactly zero at 3R — a hard cutoff there left a visible step in every row), the lens eases after the
+below, `LENS_R` 46 / `LENS_H` 40 virtual units, windowed by (1 - d²/9R²)² so it reaches exactly zero at 3R — a hard cutoff there left a visible step in every row) [REPLACED Oct 9 by a GRAVITY WELL — the owner: "more like a gravity well… so it plays along better with the circle around the mouse": every point is pulled toward the cursor glass's centre by s(r) = G·r·exp(−r²/L²), G 0.72 (under 1, so no row folds), L 2.1 lens radii, peaking just outside the lens's rim; the centre is the glass's own eased centre off the glass bus, and the well lets go as the glass snaps onto a target], the lens eases after the
 pointer (`stepLens`, ~9/s) and fades in and out, and the loop runs only
 while it is still moving. `CENTER_SOFT` 55 → 14: at 55 the soft centre
 flattened a whole half-wave into a plateau ("looks a bit unnatural"); 14
@@ -1840,6 +1865,16 @@ What uses what:
   `mix-blend-mode: difference` against the body's fixed-attachment
   background (moving that background cost Firefox ~15 more slow frames per
   460), so it drew in the page's ink there.
+- **FluidGlass, later Oct 9** (the owner: "when hovering over the navbar or
+  the socials icons or the day/night toggle, have the glass snap to it as
+  well… have the glass snap to the lanyard as well"): a TARGET is a card
+  (`.lift-card`: exact box, flat middle), a header control (`header
+  a[href], header button`: padded 3px, a pill if unrounded, a small bead
+  that magnifies 6%) or a canvas badge (from the glass bus: a rectangle fit
+  to four projected corners, turned, thin 14px rim). Moving straight from
+  one target to the next GLIDES (260 ms from the drawn box), then tracks the
+  live box exactly (no damping lag on a swinging badge). The glass publishes
+  its lens centre on the glass bus for the waves' well (below).
 - **FluidGlass** (Oct 9, the owner: "replace the current cursor animation
   with this … And when hovering over a card, have it expand to the whole
   card") → `reactbits/FluidGlass.jsx`, a 128px glass LENS that chases the
