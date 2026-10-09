@@ -6,8 +6,8 @@
 // Its LENS mode as the site's cursor (the owner, Oct 9: "replace the current
 // cursor animation with this"), and on a card the glass grows over the whole
 // card ("when hovering over a card, have it expand to the whole card"). It
-// snaps the same way onto the header's links, profiles and theme toggle, and
-// onto a lanyard badge, whose corners the 3D canvas puts on the glass bus.
+// snaps the same way onto everything else that can be clicked (CLICKABLE),
+// and onto a lanyard badge, whose corners the 3D canvas puts on the glass bus.
 // It tells the hero's waves where it is (their gravity well, WaveField.jsx).
 //
 // REBUILT, not copied. Upstream is a three.js scene (@react-three/fiber,
@@ -39,8 +39,13 @@ import { glassState, publishGlass, getVirtualTarget, onVirtualTarget } from '../
 import './FluidGlass.css';
 
 const FILTER_ID = 'fluid-glass-filter';
-// copies of a card that fly in the modal carry its classes: not targets
-const NOT_CARDS = '.modal-animator, [role="dialog"]';
+// EVERYTHING that can be clicked is a target (the owner, Oct 9: "have the
+// glass effect latch on to anything that is clickable"): links, buttons and
+// anything with a button's, tab's or link's role (every card is one), form
+// controls. Not the COPIES of a card that fly in and out of the modal.
+const CLICKABLE = 'a[href], button:not([disabled]), [role="button"], [role="tab"], [role="link"], [role="menuitem"], summary, select, label[for], input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"]';
+const NOT_TARGETS = '.modal-ghost, .modal-flyer';
+const BIG = 90;   // a clickable this big both ways is covered like a card, not beaded
 
 const MAG = 0.1;        // the lens's middle is magnified ~11%
 const RIM = 0.45;       // the lens's bent rim, as a fraction of its radius
@@ -170,7 +175,7 @@ const KIND = {
 const SLIDE_MS = 260;   // gliding from one target straight to the next
 const ease = k => k * k * (3 - 2 * k);
 
-export default function FluidGlass({ cardSelector = '.lift-card', uiSelector = 'header a[href], header button', size = 128 }) {
+export default function FluidGlass({ cardSelector = '.lift-card', targetSelector = CLICKABLE, size = 128 }) {
   const glassRef = useRef(null);
   const mapRef = useRef(null);
   const chanRefs = [useRef(null), useRef(null), useRef(null)];
@@ -292,10 +297,12 @@ export default function FluidGlass({ cardSelector = '.lift-card', uiSelector = '
     };
     const targetAt = node => {
       if (!(node instanceof Element)) return null;
-      const c = node.closest(cardSelector);
-      if (c && !c.closest(NOT_CARDS)) return domTarget(c, 'card');
-      const u = node.closest(uiSelector);
-      return u ? domTarget(u, 'ui') : null;
+      const t = node.closest(targetSelector);
+      if (!t || t.closest(NOT_TARGETS)) return null;
+      // a card, or anything as big as one, is covered exactly; anything
+      // smaller gets a bead round it
+      const big = t.matches(cardSelector) || Math.min(t.offsetWidth, t.offsetHeight) > BIG;
+      return domTarget(t, big ? 'card' : 'ui');
     };
     // no relatedTarget: the pointer left the window, or went into an iframe
     const onOut = e => { if (!e.relatedTarget) hide(); };
@@ -305,7 +312,7 @@ export default function FluidGlass({ cardSelector = '.lift-card', uiSelector = '
       else if (tgt && !tgt.virtual) release();    // a canvas badge is let go by its own canvas
     };
     // a click opens a card's modal: the glass goes back to being a lens
-    const onClick = e => { if (tgt && tgt.kind === 'card' && tgt.el && tgt.el.contains(e.target)) release(); };
+    const onClick = e => { if (tgt && tgt.el && tgt.el.matches(cardSelector) && tgt.el.contains(e.target)) release(); };
     // the lanyard's badges: hovered or held, the glass takes their shape
     const stopVirtual = onVirtualTarget(() => {
       const v = getVirtualTarget();
@@ -340,7 +347,7 @@ export default function FluidGlass({ cardSelector = '.lift-card', uiSelector = '
       glassState.on = false; publishGlass();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, svg, cardSelector, uiSelector, size]);
+  }, [enabled, svg, cardSelector, targetSelector, size]);
 
   if (!enabled) return null;
   return createPortal(

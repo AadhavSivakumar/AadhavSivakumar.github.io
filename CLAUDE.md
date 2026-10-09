@@ -1865,6 +1865,15 @@ What uses what:
   `mix-blend-mode: difference` against the body's fixed-attachment
   background (moving that background cost Firefox ~15 more slow frames per
   460), so it drew in the page's ink there.
+- **FluidGlass, last Oct 9** (the owner: "have the glass effect latch on to
+  anything that is clickable"): the targets are `CLICKABLE` in
+  FluidGlass.jsx — links, enabled buttons, anything with a button / tab /
+  link / menuitem role (every card), summary, select, label[for], checkable
+  and button inputs — except the card COPIES that fly in the modal
+  (`.modal-ghost`, `.modal-flyer`; the modal's own buttons are targets). A
+  `.lift-card` or anything over 90px both ways is covered exactly; anything
+  smaller gets the bead. Checked: 28 of 28 sampled clickables on four pages
+  enclosed.
 - **FluidGlass, later Oct 9** (the owner: "when hovering over the navbar or
   the socials icons or the day/night toggle, have the glass snap to it as
   well… have the glass snap to the lanyard as well"): a TARGET is a card
@@ -2775,6 +2784,33 @@ decreasing performance the most?").**
   only the left film playing, 2-7k ms/s without the glass and the ceiling
   (~14k) with it. So: continuous motion (videos, waves, robots) is what
   costs; the glass multiplies whatever moves under or near it.
+
+**Oct 9: what makes the site lag, measured** (the owner: "the site is a bit
+laggy, analyze which components are causing the most lag"). Each piece
+switched off in turn (a local `?off=` switch, not committed), CPU of every
+browser process per page, pointer still and pointer moving, 1440x900.
+FIREFOX is the useful one here (it plays the H.264 covers; software
+rendering); Chromium here emulates the GPU on the CPU (SwiftShader), so
+anything it would draw on a GPU reads as cores and its numbers only rank.
+Still, CPU ms per second (1000 = one core):
+- the CARD COVER VIDEOS are the most, by far: Additional Projects 1544 →
+  130 with the covers held, Major Projects 875 → 135, Experience and
+  Research ~600 → ~130.
+- the hero's WAVES: 984 → 257 on the hero (only there).
+- StarBorder on the Resume page's Download button (an infinite CSS
+  animation): 363 → ~110 with it stopped. Nothing else on that page costs.
+- the right ROBOTS' settled loop: ~190 on Experience / Research.
+- the left film ~0-30; the 3D lanyard 0 settled (on demand) but heavy while
+  the badges drop in and settle (Chromium/SwiftShader 2.8-5.6 cores for a
+  few seconds after arriving); the glass 0 at rest.
+- MOVING the pointer costs ~+700-1300 everywhere (card tilt, the glass, the
+  well, the sway); the glass alone ~400 of it in Firefox, which has no
+  refraction to pay for — the per-frame box reads and style writes.
+SCROLLING: this box's Firefox now puts ~130 of 460 frames over 20 ms for
+the Oct 8 build too (it measured p90 17.2 that day) — the box changed, so
+compare builds by rebuilding the old one in a worktree, never against an
+old number. Against the Oct 8 build: no mouse, +~5 slow frames; with a
+mouse, +~30 (the glass and the waves' well, ~15-25 each, overlapping).
 
 **Oct 8, last: the Ultra grounded in Ultra's own FILMS** (the owner: "ground
 the ultra stuff based on videos of the actual robot"). The eight product
