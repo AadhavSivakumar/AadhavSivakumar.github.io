@@ -5,10 +5,10 @@
 // when the owner asked for motion badges instead (MotionLanyard.jsx, now the
 // fallback where WebGL is missing). BACK on Oct 9 (the owner: "can you use
 // the reactbits lanyards?"), with what changed since:
-// - the badge's front carries what the motion badge's did — photo, name,
-//   role, the dates, the holder's name — in the site's type (Zodiak,
-//   Switzer; it was Poppins, which the site no longer loads), and the back
-//   the organisation, role, place and dates under the logo;
+// - the badge's front carries the logo, the name and ONE year, and the back
+//   the role, the exact dates and a QR code to the site (the owner, Oct 9),
+//   in the site's type (Zodiak, Switzer; it was Poppins, which the site no
+//   longer loads);
 // - the canvas renders ON DEMAND: a frame only while a body is awake, the
 //   strap is still easing, a badge is hovered or held, or the pointer moves
 //   (the sway). Settled, it draws nothing at all — it used to render and
@@ -32,6 +32,7 @@ import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphe
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 import { setVirtualTarget, clearVirtualTarget } from '../../glassBus';
+import { SITE_QR, QR_RUNS } from '../../siteQR';
 
 import cardGLB from './card.glb';
 import lanyardTexture from './lanyard.png';
@@ -545,7 +546,7 @@ function useStrapTexture(texture, theme) {
 // `siteDark` is the PAGE theme, not the card's. The card inverts against the
 // page — black card on the light site, pale card on the dark one — for the same
 // reason the strap texture already does: a black card on a black page is gone.
-export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false, extra = null) {
+export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false) {
   const rx = rect.x * W;
   const ry = rect.y * H;
   const rw = rect.w * W;
@@ -606,32 +607,34 @@ export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false, ext
   ctx.fillStyle = P.rule;
   ctx.fillRect(rx + 22 * u, ry + 131 * u, rw - 44 * u, 2 * u);
 
-  // The site's type (Oct 9): the name in the display serif, the rest in the
-  // sans — what the motion badge printed: name, role, the dates, the holder.
+  // Only who and when (the owner, Oct 9: "the front side of the lanyards
+  // should just have a single year and the name"): the name large in the
+  // display serif, the year under it in tracked gold figures. The role and
+  // the exact dates are on the back.
   ctx.textAlign = 'center';
   ctx.fillStyle = P.name;
-  ctx.font = `700 ${28 * u}px Zodiak, Georgia, serif`;
-  ctx.fillText(badge.name, cx, ry + 162 * u, rw - 14 * u);
-  ctx.fillStyle = P.role;
-  ctx.font = `500 ${16 * u}px Switzer, system-ui, sans-serif`;
-  ctx.fillText(badge.role, cx, ry + 184 * u, rw - 14 * u);
-  if (extra?.period) {
+  ctx.font = `700 ${34 * u}px Zodiak, Georgia, serif`;
+  ctx.fillText(badge.name, cx, ry + 184 * u, rw - 14 * u);
+  if (badge.year) {
+    const ls = 3.2 * u;
     ctx.fillStyle = P.label;
-    ctx.font = `600 ${15 * u}px Switzer, system-ui, sans-serif`;
-    ctx.fillText(extra.period, cx, ry + 212 * u, rw - 14 * u);
+    ctx.font = `600 ${19 * u}px Switzer, system-ui, sans-serif`;
+    // letter-spacing is added after the last figure too; half of it back
+    // keeps the year centred (and where it is unsupported, ls is not drawn)
+    const tracked = 'letterSpacing' in ctx;
+    if (tracked) ctx.letterSpacing = `${ls}px`;
+    ctx.fillText(badge.year, cx + (tracked ? ls / 2 : 0), ry + 218 * u);
+    if (tracked) ctx.letterSpacing = '0px';
   }
-  ctx.fillStyle = P.value;
-  ctx.globalAlpha = 0.7;
-  ctx.font = `500 ${12 * u}px Switzer, system-ui, sans-serif`;
-  ctx.fillText('Aadhav Sivakumar', cx, ry + 243 * u, rw - 14 * u);
-  ctx.globalAlpha = 1;
 
   ctx.restore();
 }
 
-// The back, under the logo: what the motion badge's back said — the
-// organisation and role (two lines each at most), then WHERE and WHEN. Dark
-// type on the warm field the back has always had.
+// The back (the owner, Oct 9): the role, the exact dates, and a QR code to
+// the site — dark type on the warm field the back has always had, the code on
+// a white tile with two modules of margin round it (the light border a
+// scanner needs; the field alone is too grey). The code's place is fixed and
+// the text is centred in the space above it, one line of role or two.
 function drawBackText(ctx, rect, card, W, H) {
   const rx = rect.x * W, ry = rect.y * H, rw = rect.w * W, rh = rect.h * H;
   const u = rh / 260, cx = rx + rw / 2;
@@ -642,9 +645,10 @@ function drawBackText(ctx, rect, card, W, H) {
   ctx.beginPath(); ctx.rect(rx, ry, rw, rh); ctx.clip();
   ctx.translate(cx, 0); ctx.scale(1 / squash, 1); ctx.translate(-cx, 0);
   ctx.textAlign = 'center';
-  // wrap to at most two lines, stepping the type down until it fits
-  // ("NYU Tandon School of Engineering" does not at the first size)
-  const fit = (text, weight, family, sizes) => {
+  // wrap to at most `max` lines, stepping the type down until it fits
+  // ("Graduate Robotics Researcher · LAIR" does not at the first size); a
+  // break at the " · " before a lab's name drops the dot
+  const fit = (text, weight, family, sizes, max = 2) => {
     for (let k = 0; k < sizes.length; k++) {
       ctx.font = `${weight} ${sizes[k] * u}px ${family}`;
       const out = [];
@@ -654,31 +658,42 @@ function drawBackText(ctx, rect, card, W, H) {
         if (ctx.measureText(next).width > maxW && line) { out.push(line); line = word; } else line = next;
       }
       if (line) out.push(line);
-      if (out.length <= 2 || k === sizes.length - 1) return { lines: out.slice(0, 2), size: sizes[k] };
+      const lines = out.map(l => l.replace(/^· | ·$/g, ''));
+      if (lines.length <= max || k === sizes.length - 1) return { lines: lines.slice(0, max), size: sizes[k], over: lines.length > max };
     }
     return { lines: [], size: sizes[0] };
   };
-  // the budget, in the 260-unit face: org from 136, at most 2 + 2 lines,
-  // then WHERE and WHEN — the last baseline lands by ~250 even then
-  let y = ry + 136 * u;
-  const org = fit(b.org || card.badge?.name, 700, 'Zodiak, Georgia, serif', [17, 15, 13.5, 12]);
+
+  // the code: 25 modules of 4 units, 2 of margin — 116 of the face's 160
+  const n = SITE_QR.length, m = 4 * u, pad = 2 * m, side = n * m + 2 * pad;
+  const tx = cx - side / 2, ty = ry + 108 * u;
+
+  // the role and the dates, centred between the clip and the code
+  // two lines if the role fits them, else three a size down ("Undergraduate
+  // Research Assistant · TML" lost its lab at two)
+  let role = fit(b.role || card.badge?.name, 700, 'Zodiak, Georgia, serif', [19, 17, 15.5]);
+  if (role.over) role = fit(b.role, 700, 'Zodiak, Georgia, serif', [15.5, 14], 3);
+  const roleLH = role.size * 1.16, datesH = b.dates ? 20 : 0;
+  let y = ry + (63 - (role.lines.length * roleLH + datesH) / 2 + role.size * 0.78) * u;
   ctx.fillStyle = '#16140f';
-  for (const l of org.lines) { ctx.fillText(l, cx, y, maxW); y += org.size * 1.12 * u; }
-  const role = fit(b.role || card.badge?.role, 500, 'Switzer, system-ui, sans-serif', [13, 12, 11]);
+  for (const l of role.lines) { ctx.fillText(l, cx, y, maxW); y += roleLH * u; }
+  if (b.dates) {
+    ctx.fillStyle = '#3b372d';
+    ctx.font = `600 ${13.5 * u}px Switzer, system-ui, sans-serif`;
+    ctx.fillText(b.dates, cx, y + 4 * u, maxW);
+  }
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(tx, ty, side, side, 5 * u); else ctx.rect(tx, ty, side, side);
+  ctx.fill();
+  ctx.fillStyle = '#0d0c09';
+  ctx.beginPath();
+  for (const [x, yy, len] of QR_RUNS) ctx.rect(tx + pad + x * m, ty + pad + yy * m, len * m, m);
+  ctx.fill();
   ctx.fillStyle = '#3b372d';
-  for (const l of role.lines) { ctx.fillText(l, cx, y, maxW); y += role.size * 1.25 * u; }
-  y += 6 * u;
-  const row = (label, value) => {
-    if (!value) return;
-    ctx.fillStyle = '#5a4a24';
-    ctx.font = `600 ${9.5 * u}px Switzer, system-ui, sans-serif`;
-    ctx.fillText(label, cx, y, maxW); y += 11.5 * u;
-    ctx.fillStyle = '#16140f';
-    ctx.font = `500 ${12 * u}px Switzer, system-ui, sans-serif`;
-    ctx.fillText(value, cx, y, maxW); y += 15 * u;
-  };
-  row('WHERE', b.location);
-  row('WHEN', card.period);
+  ctx.font = `600 ${11.5 * u}px Switzer, system-ui, sans-serif`;
+  ctx.fillText('aadhav.dev', cx, ty + side + 16 * u, maxW);
   ctx.restore();
 }
 
@@ -709,7 +724,7 @@ function Band({
   const fontsReady = useFontsReady();
   // the card objects are rebuilt with every render of the page; the atlas is
   // rebuilt only when what it prints changes
-  const extraKey = JSON.stringify([extra?.period, extra?.back]);
+  const extraKey = JSON.stringify(extra?.back);
   const band = useRef(),
     fixed = useRef(),
     j1 = useRef(),
@@ -760,16 +775,16 @@ function Band({
     // Keep the original baked atlas for the card edges and any untouched face.
     ctx.drawImage(baseImg, 0, 0, W, H);
 
-    // Back face: fit the whole logo inside the card ("contain") on a clean
-    // white field. A cover-fit crops wide wordmarks so they run off the edges.
-    const drawContain = (img, rect, top = false) => {
+    // Back face of a badge with nothing to print there: fit the whole logo
+    // inside the card ("contain"). A cover-fit crops wide wordmarks so they
+    // run off the edges.
+    const drawContain = (img, rect) => {
       const rx = rect.x * W;
       const ry = rect.y * H;
       const rw = rect.w * W;
       const rh = rect.h * H;
-      // Aspect of the rect as it actually appears on the physical card face:
-      // taken from the WHOLE back (the logo may get only its top half)
-      const faceScaleX = (BACK_UV_RECT.w * W) / (BACK_UV_RECT.h * H * (CARD_FACE_W / CARD_FACE_H));
+      // Aspect of the rect as it actually appears on the physical card face
+      const faceScaleX = rw / (rh * (CARD_FACE_W / CARD_FACE_H));
       const pad = 0.14;
       const availW = rw * (1 - 2 * pad) / faceScaleX;
       const availH = rh * (1 - 2 * pad);
@@ -788,15 +803,12 @@ function Band({
       // off-white field with an inset border makes it read as an object while
       // leaving the logos every bit as legible.
       ctx.fillStyle = '#a9a294';
-      // with text under it, the field and border are the whole back's (drawBackText)
-      if (!top) ctx.fillRect(rx, ry, rw, rh);
-      ctx.drawImage(img, rx + (rw - dw) / 2, ry + (rh - dh) / 2 + (top ? rh * 0.06 : 0), dw, dh);
-      if (!top) {
-        const bw = Math.max(2, rh * 0.012);
-        ctx.lineWidth = bw;
-        ctx.strokeStyle = '#6f6859';
-        ctx.strokeRect(rx + bw / 2, ry + bw / 2, rw - bw, rh - bw);
-      }
+      ctx.fillRect(rx, ry, rw, rh);
+      ctx.drawImage(img, rx + (rw - dw) / 2, ry + (rh - dh) / 2, dw, dh);
+      const bw = Math.max(2, rh * 0.012);
+      ctx.lineWidth = bw;
+      ctx.strokeStyle = '#6f6859';
+      ctx.strokeRect(rx + bw / 2, ry + bw / 2, rw - bw, rh - bw);
       ctx.restore();
     };
 
@@ -827,9 +839,10 @@ function Band({
       ctx.strokeStyle = '#6f6859';
       ctx.strokeRect(r.x * W + bw / 2, r.y * H + bw / 2, r.w * W - bw, r.h * H - bw);
     }
-    if (badge) drawBadgeFace(ctx, FRONT_UV_RECT, badge, photo, W, H, theme === 'dark', extra);
+    if (badge) drawBadgeFace(ctx, FRONT_UV_RECT, badge, photo, W, H, theme === 'dark');
     else if (photo) drawCover(photo, FRONT_UV_RECT);
-    if (photo) drawContain(photo, extra?.back ? { ...BACK_UV_RECT, h: BACK_UV_RECT.h * 0.48 } : BACK_UV_RECT, !!extra?.back);
+    // with text on the back (role, dates, the code), the logo is the front's alone
+    if (photo && !extra?.back) drawContain(photo, BACK_UV_RECT);
     if (extra?.back) drawBackText(ctx, BACK_UV_RECT, extra, W, H);
 
     const composite = own(new THREE.CanvasTexture(canvas));

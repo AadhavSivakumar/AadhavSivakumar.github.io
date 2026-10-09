@@ -162,7 +162,10 @@ That is the owner's stated goal, and three things follow from it:
   Project Millet INCOMPLETE, which its card already said). Kept
   off the page even though the CV has them: partner names for
   integrations, a customer rig's cost, NVIDIA's unreleased product names (Cosmos 3 Edge is RELEASED — the owner, Oct 1 — so it may be named),
-  and the name of the robot whose teleop data the π0 work used.
+  and the name of the robot whose teleop data the π0 work used. **One
+  partner IS named, at the owner's request** (Oct 9: "mention working with
+  Standard Bots"): the Roboflow x Standard Bots robotics integration, in the
+  Roboflow summary and its second bullet, from the CV. No others.
 - **`skillGroupsData` order is deliberate**: since Sept 27 **Robot Learning:
   VLAs & World Models** leads (π0/openpi, Cosmos, Isaac Sim, Gaussian
   splatting, LeRobot, ACT/GR00T, JAX, teleop, MuJoCo, DGAM — each on the
@@ -281,6 +284,25 @@ mesh's four corners and puts them on the glass bus (`src/glassBus.js`,
 and turns with the badge. Where WebGL is missing (headless Firefox here) or
 its context is lost, the motion badges below hang instead. Layout, drop and
 size are the old ones (`dropPx = i * rowPx - 45`, `sizeMul` 1.1).
+
+**Oct 9, later: what the badges print** (the owner: "the front side of the
+lanyards should just have a single year and the name… the other side has
+more specific dates, and my role there, and a qr code to the website").
+FRONT: the logo, the name large, one year in tracked gold — the year it ran
+to, as a class year reads (`year` in `badgeCards.js`: UCSC 2024, NYU 2026,
+Roboflow 2026, Starship 2026). BACK: the row's role (two lines, or three a
+size down; a break at " · " before a lab's name drops the dot — the motion
+badge puts the lab on its own line), the exact dates (`dates` in
+`badgeCards.js`, from the Extended CV; for NYU and UCSC the degree's, as the
+cards pair them) and a QR code to https://aadhav.dev on a white tile with two
+modules of margin, "aadhav.dev" under it. The code is DATA, not an encoder:
+`src/siteQR.js` holds the 25x25 matrix (segno, version 2, ECC Q — how it was
+made is in its header) and the runs/path both renderers draw. **Check a
+change to the back by decoding the code off a screenshot** (zxing-cpp, `pip
+install --target <scratch> zxing-cpp`): all four badges, both themes, 3D and
+motion, read https://aadhav.dev. The back no longer carries the logo, the
+organisation, WHERE, the tags or the barcode; the front no longer the role,
+the dates or the holder's name.
 
 ### The motion badges (`src/components/MotionLanyard.jsx`) — the fallback since Oct 9
 

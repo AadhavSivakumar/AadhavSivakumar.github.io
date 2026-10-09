@@ -69,13 +69,6 @@ const canWebGL = () => {
 // owner: "make the starship id badge align with the starship card… put all
 // of the lanyards on the left side"). ONE canvas for both, because the
 // canvas HEIGHT sets a 3D badge's size.
-// the badge's back has one line for tags: take them in order, skipping any
-// that would overflow it, rather than cutting one off with an ellipsis
-const fitTags = (tags = [], max = 26) => tags.reduce((out, t) => {
-  const len = out.join(' · ').length + (out.length ? 3 : 0) + t.length;
-  return out.length < 3 && len <= max ? [...out, t] : out;
-}, []);
-
 function RowLanyard({ rows, wide }) {
   const ref = useRef(null);
   // "near" is true on arrival (this page starts just under the hero), and
@@ -85,11 +78,9 @@ function RowLanyard({ rows, wide }) {
   const near = useNearViewport(ref);
   const [opened, setOpened] = useState(isOpened);
   useEffect(() => whenOpened(() => setOpened(true)), []);
-  // each badge carries its row's DATES (the owner: "just have the dates on
-  // the ID cards" — they came off the cards)
-  const cards = useMemo(() => rows.map(r => badgeByName[r.badge] && { ...badgeByName[r.badge], period: r.period,
-    // the back of the badge: what a flip is for
-    back: { org: r.org, role: r.role, degree: r.degree, location: r.location, tags: fitTags(r.tags) } }).filter(Boolean), [rows]);
+  // the front prints the name and a year (badgeCards.js); the BACK, what a
+  // flip is for, the row's role, the exact dates and the QR code
+  const cards = useMemo(() => rows.map(r => { const c = badgeByName[r.badge]; return c && { ...c, back: { role: r.role, dates: c.badge.dates } }; }).filter(Boolean), [rows]);
   // one card row + the grid gap, in px: how far below the first badge the
   // second hangs, so each is level with its own card
   const [rowPx, setRowPx] = useState(0);
