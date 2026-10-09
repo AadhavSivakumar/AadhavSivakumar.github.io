@@ -42,9 +42,12 @@ const FILTER_ID = 'fluid-glass-filter';
 // EVERYTHING that can be clicked is a target (the owner, Oct 9: "have the
 // glass effect latch on to anything that is clickable"): links, buttons and
 // anything with a button's, tab's or link's role (every card is one), form
-// controls. Not the COPIES of a card that fly in and out of the modal.
+// controls. Not the COPIES of a card that fly in and out of the modal, and
+// not the resume's PAGES (each is a link to the PDF; the owner, Oct 9:
+// "don't have the glass effect snap on to the actual resume itself") — over
+// them it stays a lens.
 const CLICKABLE = 'a[href], button:not([disabled]), [role="button"], [role="tab"], [role="link"], [role="menuitem"], summary, select, label[for], input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"]';
-const NOT_TARGETS = '.modal-ghost, .modal-flyer';
+const NOT_TARGETS = '.modal-ghost, .modal-flyer, .resume-pages';
 const BIG = 90;   // a clickable this big both ways is covered like a card, not beaded
 
 const MAG = 0.1;        // the lens's middle is magnified ~11%
@@ -320,23 +323,30 @@ export default function FluidGlass({ cardSelector = '.lift-card', targetSelector
       else if (tgt && tgt.virtual) release();
     });
     // scrolled out from under the pointer (no mouse event says so), or the
-    // target moved: follow it, or let go
-    const stopScroll = onScroll(() => {
+    // target moved: follow it, or let go. The page's scroll comes through the
+    // scroll driver; a box scrolling INSIDE the page (the Resume page's skill
+    // list, the resume itself, a modal) only through a capturing listener,
+    // since an element's scroll event does not bubble.
+    const recheck = () => {
       if (!tgt && !last) return;
       if (tgt && !tgt.virtual) {
         const under = targetAt(document.elementFromPoint(mx, my));
         if (!under) release(); else if (under.key !== tgt.key) enter(under);
       }
       kick();
-    });
+    };
+    const stopScroll = onScroll(recheck);
+    const onInnerScroll = e => { if (e.target !== document) recheck(); };
 
     window.addEventListener('mousemove', onMove, { passive: true });
     window.addEventListener('mouseover', onOver, { passive: true });
     document.addEventListener('mouseout', onOut, { passive: true });
     window.addEventListener('click', onClick, { capture: true, passive: true });
     window.addEventListener('blur', hide);
+    document.addEventListener('scroll', onInnerScroll, { capture: true, passive: true });
     return () => {
       stopScroll();
+      document.removeEventListener('scroll', onInnerScroll, { capture: true });
       stopVirtual();
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseover', onOver);

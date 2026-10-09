@@ -2092,6 +2092,24 @@ html[data-theme="dark"] .project-tag {
 .resume-bigdoc.is-on { border-color: var(--primary-color); box-shadow: inset 0 0 0 1px var(--primary-color); }
 .resume-actions { display: flex; align-items: center; gap: 8px; margin: 2px 0 6px; }
 .resume-actions .resume-open, .resume-actions .resume-star { margin: 0 !important; }
+/* the two actions are BIG (the owner, Oct 9: "make the open pdf button and
+   the download button bigger"): they share the column's width, 46px tall */
+.resume-actions .resume-open, .resume-actions .resume-star { flex: 1 1 0; min-width: 0; text-align: center; }
+/* no side padding on either: a flex basis of 0 counts the padding, and the
+   link carries its own while StarBorder's sits on its inner box — with it they
+   came out 185 and 149 wide. The star's 1px edge is the 1px less of padding */
+.resume-actions .resume-open { padding: 14px 0 !important; font-size: 1rem !important; line-height: 22px !important; }
+.resume-actions .resume-star .inner-content { padding: 13px 0 !important; font-size: 1rem !important; line-height: 22px !important; }
+/* the skill groups SCROLL in what is left of the column, fading at its foot.
+   The column clips (overflow: hidden), and below 1920x1080 the last one to
+   three groups had been cut off and could not be reached at all; the bigger
+   actions above took another 17px. The padding lets the last chip scroll
+   clear of the fade. Not on phones: there the list is a sideways row. */
+@media (min-width: 769px) {
+  .resume-side .skill-chips { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: flex-start; padding-bottom: 30px; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(#000 calc(100% - 30px), transparent); mask-image: linear-gradient(#000 calc(100% - 30px), transparent); }
+  .resume-side .skill-chips::-webkit-scrollbar { display: none; }
+}
 .resume-frame { border-top: 0; }
 @media (max-height: 840px) { .resume-bigdoc { padding: 11px 14px; } .resume-bigdoc__text strong { font-size: 1.1rem; } }
 /* Switzer's word space is narrow; with the site's slight negative tracking

@@ -1744,6 +1744,17 @@ OPEN no longer flashes black — its flyer starts as a canvas still of the
 card's frame (`src/snapshot.js`, shared with the close) and the live video
 fades in on `playing`.
 
+**Oct 9, Resume page** (the owner: "Make the open pdf button and the
+download button bigger"): Open PDF and Download share the side column's
+width, 50px tall at 1rem (were ~100x32 at 0.82rem); no side padding on
+either, or a flex basis of 0 counts the link's padding and not StarBorder's
+inner box's, and they came out 185 / 149 wide. Found doing it: the column
+clips (`overflow: hidden`) and below 1920x1080 the last one to three SKILL
+GROUPS had been cut off and could not be reached at all (1366x768: 5 full
+and 1 cut of 8). The skill list now scrolls in what is left of the column,
+fading at its foot (desktop only; phones keep the sideways row). Every
+page one screen at the five sizes and four phones.
+
 **Oct 6, Resume page again** (the owner: skills "just show up on the left
 side where the resume is", bigger Resume button, a page-with-text icon and
 cascading pages for the CV). The skill chips no longer open a modal: they
@@ -1873,7 +1884,12 @@ What uses what:
   (`.modal-ghost`, `.modal-flyer`; the modal's own buttons are targets). A
   `.lift-card` or anything over 90px both ways is covered exactly; anything
   smaller gets the bead. Checked: 28 of 28 sampled clickables on four pages
-  enclosed.
+  enclosed. NOT the resume's page images either (`.resume-pages`, each a
+  link to the PDF; the owner: "don't have the glass effect snap on to the
+  actual resume itself"): over them it stays the lens. It re-checks what is
+  under the pointer when a box INSIDE the page scrolls (a capturing `scroll`
+  listener — an element's scroll does not bubble to the scroll driver), so
+  a list scrolling under a still pointer moves it chip to chip.
 - **FluidGlass, later Oct 9** (the owner: "when hovering over the navbar or
   the socials icons or the day/night toggle, have the glass snap to it as
   well… have the glass snap to the lanyard as well"): a TARGET is a card
