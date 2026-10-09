@@ -141,17 +141,12 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   // the flight's target needs the content mounted: re-render once after the
   // first (lift) paint so the flyer starts with the lift, not after it
   const [, force] = useState(0);
-  // the spotlight the card had under the pointer: on the copy for its first
-  // paints, then faded (its CSS transition) as it lifts
-  const [unlit, setUnlit] = useState(false);
   useLayoutEffect(() => {
     if (phase === 'lift') {
       force(x => x + 1);
       // the real card goes in the frame the modal first paints (App.jsx)
       if (onLifted) onLifted();
-      setUnlit(false);
-      let id = requestAnimationFrame(() => { id = requestAnimationFrame(() => setUnlit(true)); });
-      return () => cancelAnimationFrame(id);
+      return undefined;
     }
     if (phase === 'open' || phase === 'closed') flyVid.current = null;
     return undefined;
@@ -512,13 +507,13 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
       >
         {cardHTML && (
           <motion.div
-            className={`modal-ghost ${cardClass || ''}${L.light && !unlit && phase === 'lift' ? ' lit' : ''}`}
+            className={`modal-ghost ${cardClass || ''}`}
             aria-hidden="true"
             // its size goes in as variables the CSS applies with !important:
             // a phone's `.exp-card { height: auto !important }` beat the inline
             // height, and a box whose children are all pinned is 0 tall when
             // auto — its overflow clip hid the whole copy's text
-            style={{ '--gw': `${r.width}px`, '--gh': `${r.height}px`, transformOrigin: '0 0', ...(L.light ? { '--mouse-x': L.light.x || '50%', '--mouse-y': L.light.y || '50%' } : null) }}
+            style={{ '--gw': `${r.width}px`, '--gh': `${r.height}px`, transformOrigin: '0 0' }}
             initial={{ opacity: 1, scale: 1 }}
             animate={{ opacity: ghostOn ? 1 : 0, scale: ghostScale }}
             // the scale runs on the SAME clock as the surface (0.6 open, 0.55

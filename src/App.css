@@ -1980,16 +1980,9 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 }
 .skill-chip:hover::before, .resume-doc:hover::before, .modal-dynamic-button:hover::before { background-position: 100% 100%, 0 0; }
 
-/* SpotlightCard (adaptation): a soft light follows the pointer across the
-   experience and major-project cards and the resume viewer (--mouse-x/y are
-   set by LiftCard / Skills on pointer move) */
-.exp-card, .major-project-card, .resume-viewer { --mouse-x: 50%; --mouse-y: 50%; }
-.exp-card::after, .major-project-card:not(.about-me-card)::after, .resume-viewer::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
-  background: radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), color-mix(in srgb, var(--accent-color) 14%, transparent), transparent 70%);
-  opacity: 0; transition: opacity 0.5s ease;
-}
-.exp-card:hover::after, .major-project-card:hover::after, .resume-viewer:hover::after { opacity: 1; }
+/* SpotlightCard's light under the pointer (on the experience and major cards
+   and the resume viewer) removed Oct 9 — the owner: "I don't need that little
+   glow around the mouse when hovering over the cards" */
 .resume-viewer { position: relative; }
 
 /* ShinyText (CSS adaptation, hover-only so a still page stays still): the
@@ -2620,8 +2613,6 @@ html[data-theme="dark"] .hero-bubble__shine::before {
    for — a grid placement would make a pinned box's grid AREA its frame */
 .modal-animator .modal-ghost, .modal-animator .modal-ghost.small-project-card { top: -1px !important; left: -1px !important; display: block !important;
   width: var(--gw) !important; height: var(--gh) !important; min-height: 0 !important; max-height: none !important; aspect-ratio: auto !important; }
-/* the spotlight the card had under the pointer, on the copy's first paint */
-.modal-animator .modal-ghost.lit::after { opacity: 1; }
 /* the flying still is the whole frame, cropped the way the media it stands
    in for crops it (src/snapshot.js) */
 .modal-flyer-shot canvas { object-fit: cover; }

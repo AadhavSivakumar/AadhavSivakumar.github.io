@@ -76,7 +76,7 @@ export default function Skills({ onCardClick, next }) {
     <section id="skills" ref={pageRef} className="page page--wide resume-page" aria-labelledby="skills-title">
       <SectionTitle id="skills-title">Resume</SectionTitle>
       <div className="resume-layout">
-        <div className="resume-viewer" ref={viewerRef} onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - r.left}px`); e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - r.top}px`); }}>
+        <div className="resume-viewer" ref={viewerRef}>
           {skill ? (
             <div className="resume-frame resume-skills" key={skill.id}>
               <div className="resume-skills__inner" tabIndex={0} aria-label={`${skill.title} skills`}>

@@ -1957,7 +1957,10 @@ What uses what:
   not hold the loop).
 - **StarBorder** → the Resume page's Download button.
 - **SpotlightCard**, **GlareHover**, **ShinyText** → CSS adaptations: a light
-  under the pointer on experience/major cards and the resume viewer; a glare
+  under the pointer on experience/major cards and the resume viewer (REMOVED
+  Oct 9, the owner: "I don't need that little glow around the mouse when
+  hovering over the cards" — the `::after`, the `--mouse-x/y` writes and the
+  modal copy's `.lit` are gone); a glare
   sweep on skill chips, transcript buttons and modal buttons; a shine on
   "Learn more" while its card is hovered.
 **Upstream loops that would have broken "a still page is still", fixed in
@@ -2493,8 +2496,8 @@ card type frame by frame). What was wrong, and the rule now:
   the lift; the surface starts from the card's corners, border and shadow
   (`look`, read in App; one-shadow `rgba() x y blur spread` strings, or
   motion cannot interpolate); a media-first small card's surface starts CLEAR
-  and fills early in the expand; the spotlight under the pointer rides the
-  copy (`.lit`) and fades. The lift of the flyer is a transform about the
+  and fills early in the expand; the spotlight under the pointer rode the
+  copy (`.lit`) and faded, until the spotlight was removed (Oct 9). The lift of the flyer is a transform about the
   card's centre, so the small card's overlay text grows with its picture,
   starting at the size the hover's translateZ drew it (`zk`).
 - **The settle must name every property the collapse animated.** It left out
@@ -2882,6 +2885,22 @@ clearcoat shades the same), and a front `directionalLight` (4.5) stands in
 for what the environment gave the card, matched by render in both themes
 (card and logo within 5 levels; 0.5 left the black card at 4, not 30).
 Physics, layout, drop and interaction are unchanged.
+
+**Oct 9, what the 3D lanyard costs, measured** (the owner: "for the
+lanyards, how is it affecting performance?"; `lanperf.mjs` in the session
+scratch: SwiftShader Chromium, 1440x900, the Experience page, against the
+motion badges by blocking the Lanyard chunk; lanyard frames counted by
+wrapping the WebGL draw calls, the main-thread time of the rAF callbacks that
+drew them timed). Download: the chunk 2.3 MB (850 KB gzipped) + `card.glb`
+2.4 MB (a PNG texture, does not compress), desktop only, after the opening.
+Build: +1.3 s of long tasks on the hero (from ~4.7 s, the Experience canvas)
+and +0.85 s on arriving at Experience (the Research canvas, now within
+600px). Still: 0 frames, the same as the motion badges. **A pointer moving
+ANYWHERE on the two pages renders a frame** (`Wake`), ~3.7 ms of main thread
+each on this Ryzen 7 7735HS — but r3f only sees the pointer over its own
+canvas, so with the pointer over the cards the sway cannot react and those
+frames redraw an identical picture (one per display frame on a real screen).
+Hovering a badge 3.3 ms a frame; a drag and release renders ~5.6 s at 2.2 ms.
 
 **Oct 9: what makes the site lag, measured** (the owner: "the site is a bit
 laggy, analyze which components are causing the most lag"). Each piece

@@ -46,9 +46,6 @@ export default function LiftCard({ className = '', delay = 0, onClick, children,
   const onMove = e => {
     if (!on || !canHover()) return;
     const r = e.currentTarget.getBoundingClientRect();
-    // React Bits' SpotlightCard: the light under the pointer (CSS ::after)
-    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - r.left}px`);
-    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - r.top}px`);
     const ox = e.clientX - r.left - r.width / 2, oy = e.clientY - r.top - r.height / 2;
     rotateX.set((oy / (r.height / 2)) * -amp);
     rotateY.set((ox / (r.width / 2)) * amp);

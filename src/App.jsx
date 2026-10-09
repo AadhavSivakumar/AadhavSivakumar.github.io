@@ -223,9 +223,6 @@ function App() {
     const small = cardElement.classList.contains('small-project-card');
     const cs = getComputedStyle(cardElement);
     const pose = cardElement.__tiltPose || { rx: 0, ry: 0, s: 1 };
-    // the light under the pointer (SpotlightCard, `:hover::after`) rides on
-    // the copy and fades over the lift instead of switching off
-    const lit = hoverable && cardElement.matches(':hover') && /exp-card|major-project-card/.test(cardElement.className) && !cardElement.classList.contains('about-me-card');
     setModalState({
       isOpen: true,
       itemData,
@@ -247,7 +244,6 @@ function App() {
         hair: css(varColor('--hair')),
         surface: css(varColor('--surface-color')),
         bare: small,
-        light: lit ? { x: cardElement.style.getPropertyValue('--mouse-x'), y: cardElement.style.getPropertyValue('--mouse-y') } : null,
       },
     });
   }, []);
