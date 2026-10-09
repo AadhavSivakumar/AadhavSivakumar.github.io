@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, animate, useMotionValue, useSpring, useTransform, useReducedMotion } from 'motion/react';
-import { SITE_QR, QR_PATH } from '../siteQR';
+import { qrFor } from '../badgeQR';
 
 // The ID badges, drawn with motion (Framer Motion) instead of three.js +
 // rapier (the owner: "can you use Framer for the lanyards instead?"). That
@@ -17,7 +17,8 @@ import { SITE_QR, QR_PATH } from '../siteQR';
 // into a sway; hovering tilts the card toward the pointer in 3D and slides
 // the laminate's sheen with it; a click (not a drag) flips it to the back.
 // The front says who and when — the logo, the name, one year; the back the
-// role, the exact dates and a QR code to the site (the owner, Oct 9).
+// role, the exact dates and a QR code to the organisation's site (the owner,
+// Oct 9).
 // Nothing runs on a still page: every motion is a spring that settles.
 const SWING = { type: 'spring', stiffness: 42, damping: 4.2, mass: 1 };   // degrees about the pin
 
@@ -32,7 +33,7 @@ function Badge({ card, pinTop, strap, siteDark }) {
   const pinRef = useRef(null);
   const dragged = useRef(false);
   const strapH = useTransform(stretch, s => strap + s);
-  const b = card.badge, back = card.back || {};
+  const b = card.badge, back = card.back || {}, qr = qrFor(back.site);
   const swingTo = (to, velocity = 0) => animate(swing, to, { ...SWING, velocity });
 
   // the entrance: it drops in already swinging and settles
@@ -118,11 +119,13 @@ function Badge({ card, pinTop, strap, siteDark }) {
                 {back.role?.includes(' · ') && <span className="mlan-back-lab">{back.role.split(' · ')[1]}</span>}
                 {back.dates && <span className="mlan-back-dates">{back.dates}</span>}
               </span>
-              {/* aadhav.dev; two modules of white margin, the border a scanner needs */}
-              <svg className="mlan-qr" viewBox={`-2 -2 ${SITE_QR.length + 4} ${SITE_QR.length + 4}`} shapeRendering="crispEdges" aria-hidden="true">
-                <path d={QR_PATH} />
-              </svg>
-              <span className="mlan-qr-url">aadhav.dev</span>
+              {/* the organisation's site; two modules of white margin, the border a scanner needs */}
+              {qr && <>
+                <svg className="mlan-qr" viewBox={`-2 -2 ${qr.n + 4} ${qr.n + 4}`} shapeRendering="crispEdges" aria-hidden="true">
+                  <path d={qr.path} />
+                </svg>
+                <span className="mlan-qr-url">{back.siteLabel}</span>
+              </>}
             </motion.div>
           </motion.div>
         </motion.div>

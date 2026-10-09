@@ -79,8 +79,9 @@ function RowLanyard({ rows, wide }) {
   const [opened, setOpened] = useState(isOpened);
   useEffect(() => whenOpened(() => setOpened(true)), []);
   // the front prints the name and a year (badgeCards.js); the BACK, what a
-  // flip is for, the row's role, the exact dates and the QR code
-  const cards = useMemo(() => rows.map(r => { const c = badgeByName[r.badge]; return c && { ...c, back: { role: r.role, dates: c.badge.dates } }; }).filter(Boolean), [rows]);
+  // flip is for, the row's role, the exact dates and a QR code to the
+  // organisation's site
+  const cards = useMemo(() => rows.map(r => { const c = badgeByName[r.badge]; return c && { ...c, back: { role: r.role, dates: c.badge.dates, site: c.badge.site, siteLabel: c.badge.siteLabel } }; }).filter(Boolean), [rows]);
   // one card row + the grid gap, in px: how far below the first badge the
   // second hangs, so each is level with its own card
   const [rowPx, setRowPx] = useState(0);

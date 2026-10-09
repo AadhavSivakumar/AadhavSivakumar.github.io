@@ -12,12 +12,13 @@ import starshipImg from '../../Media/lanyardimgs/Starship.webp';
 // one year — the year it ran to, as a class year reads; the BACK the role
 // (from its experienceData row), these exact dates (the Extended CV's; for
 // the two universities the degree's, as the cards pair them) and a QR code to
-// the site (siteQR.js).
+// the organisation's site — `site`, named under the code as `siteLabel`; its
+// matrix is in badgeQR.js.
 export const badgeCards = [
-  { side: 'left', slot: 1, image: ucscImg, badge: { name: 'UCSC', year: '2024', dates: 'Jun 2020 – Jun 2024' } },
-  { side: 'left', slot: 0, image: nyuImg, badge: { name: 'NYU', year: '2026', dates: 'Aug 2024 – May 2026' } },
-  { side: 'right', slot: 0, image: roboflowImg, badge: { name: 'Roboflow', year: '2026', dates: 'Jan 2026 – Sep 2026' } },
-  { side: 'right', slot: 1, image: starshipImg, badge: { name: 'Starship', year: '2026', dates: 'Aug 2025 – Jan 2026' } },
+  { side: 'left', slot: 1, image: ucscImg, badge: { name: 'UCSC', year: '2024', dates: 'Jun 2020 – Jun 2024', site: 'https://tml.engineering.ucsc.edu', siteLabel: 'UCSC TML' } },
+  { side: 'left', slot: 0, image: nyuImg, badge: { name: 'NYU', year: '2026', dates: 'Aug 2024 – May 2026', site: 'https://robotics.engineering.nyu.edu', siteLabel: 'NYU CREO' } },
+  { side: 'right', slot: 0, image: roboflowImg, badge: { name: 'Roboflow', year: '2026', dates: 'Jan 2026 – Sep 2026', site: 'https://roboflow.com', siteLabel: 'roboflow.com' } },
+  { side: 'right', slot: 1, image: starshipImg, badge: { name: 'Starship', year: '2026', dates: 'Aug 2025 – Jan 2026', site: 'https://www.starship.xyz', siteLabel: 'starship.xyz' } },
 ];
 
 export const badgeByName = Object.fromEntries(badgeCards.map(c => [c.badge.name, c]));

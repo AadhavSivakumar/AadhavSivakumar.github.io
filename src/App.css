@@ -1536,7 +1536,7 @@ html[data-theme="dark"] {
 .mlan-back-role { font: 700 0.86rem/1.2 var(--font-display); letter-spacing: -0.01em; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .mlan-back-lab { font: 600 0.6rem var(--font-sans); letter-spacing: 0.12em; opacity: 0.75; margin-top: -2px; }
 .mlan-back-dates { font: 500 0.7rem var(--font-sans); font-variant-numeric: tabular-nums; opacity: 0.8; white-space: nowrap; }
-.mlan-qr { flex: none; width: 116px; height: 116px; background: #fff; border-radius: 5px; fill: #0d0c09; }   /* 29 units, 4px each */
+.mlan-qr { flex: none; width: 116px; height: 116px; background: #fff; border-radius: 5px; fill: #0d0c09; }   /* a 25-module code is 29 units, 4px each */
 .mlan-qr-url { flex: none; margin-top: 4px; font: 600 0.62rem var(--font-sans); letter-spacing: 0.02em; opacity: 0.7; }
 /* say what it does, once someone is near it */
 .mlan-hint { position: absolute; left: -82px; top: 292px; width: 164px; text-align: center; font: 500 0.6rem var(--font-mono); letter-spacing: 0.06em; color: var(--secondary-color); opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }

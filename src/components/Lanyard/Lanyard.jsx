@@ -6,7 +6,8 @@
 // fallback where WebGL is missing). BACK on Oct 9 (the owner: "can you use
 // the reactbits lanyards?"), with what changed since:
 // - the badge's front carries the logo, the name and ONE year, and the back
-//   the role, the exact dates and a QR code to the site (the owner, Oct 9),
+//   the role, the exact dates and a QR code to the organisation's site (the
+//   owner, Oct 9),
 //   in the site's type (Zodiak, Switzer; it was Poppins, which the site no
 //   longer loads);
 // - the canvas renders ON DEMAND: a frame only while a body is awake, the
@@ -32,7 +33,7 @@ import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphe
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 import { setVirtualTarget, clearVirtualTarget } from '../../glassBus';
-import { SITE_QR, QR_RUNS } from '../../siteQR';
+import { qrFor } from '../../badgeQR';
 
 import cardGLB from './card.glb';
 import lanyardTexture from './lanyard.png';
@@ -631,7 +632,8 @@ export function drawBadgeFace(ctx, rect, badge, img, W, H, siteDark = false) {
 }
 
 // The back (the owner, Oct 9): the role, the exact dates, and a QR code to
-// the site — dark type on the warm field the back has always had, the code on
+// the organisation's site (badgeQR.js), named under it — dark type on the
+// warm field the back has always had, the code on
 // a white tile with two modules of margin round it (the light border a
 // scanner needs; the field alone is too grey). The code's place is fixed and
 // the text is centred in the space above it, one line of role or two.
@@ -664,8 +666,10 @@ function drawBackText(ctx, rect, card, W, H) {
     return { lines: [], size: sizes[0] };
   };
 
-  // the code: 25 modules of 4 units, 2 of margin — 116 of the face's 160
-  const n = SITE_QR.length, m = 4 * u, pad = 2 * m, side = n * m + 2 * pad;
+  // the code: 116 of the face's 160 units square whatever its version, with
+  // 2 modules of margin (25 modules + 4 → 4 units a module; 29 + 4 → 3.5)
+  const qr = qrFor(b.site);
+  const side = 116 * u, m = qr ? side / (qr.n + 4) : 0, pad = 2 * m;
   const tx = cx - side / 2, ty = ry + 108 * u;
 
   // the role and the dates, centred between the clip and the code
@@ -683,17 +687,19 @@ function drawBackText(ctx, rect, card, W, H) {
     ctx.fillText(b.dates, cx, y + 4 * u, maxW);
   }
 
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(tx, ty, side, side, 5 * u); else ctx.rect(tx, ty, side, side);
-  ctx.fill();
-  ctx.fillStyle = '#0d0c09';
-  ctx.beginPath();
-  for (const [x, yy, len] of QR_RUNS) ctx.rect(tx + pad + x * m, ty + pad + yy * m, len * m, m);
-  ctx.fill();
-  ctx.fillStyle = '#3b372d';
-  ctx.font = `600 ${11.5 * u}px Switzer, system-ui, sans-serif`;
-  ctx.fillText('aadhav.dev', cx, ty + side + 16 * u, maxW);
+  if (qr) {
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(tx, ty, side, side, 5 * u); else ctx.rect(tx, ty, side, side);
+    ctx.fill();
+    ctx.fillStyle = '#0d0c09';
+    ctx.beginPath();
+    for (const [x, yy, len] of qr.runs) ctx.rect(tx + pad + x * m, ty + pad + yy * m, len * m, m);
+    ctx.fill();
+    ctx.fillStyle = '#3b372d';
+    ctx.font = `600 ${11.5 * u}px Switzer, system-ui, sans-serif`;
+    ctx.fillText(b.siteLabel || '', cx, ty + side + 16 * u, maxW);
+  }
   ctx.restore();
 }
 

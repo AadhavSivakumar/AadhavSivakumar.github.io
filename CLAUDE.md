@@ -294,13 +294,20 @@ Roboflow 2026, Starship 2026). BACK: the row's role (two lines, or three a
 size down; a break at " · " before a lab's name drops the dot — the motion
 badge puts the lab on its own line), the exact dates (`dates` in
 `badgeCards.js`, from the Extended CV; for NYU and UCSC the degree's, as the
-cards pair them) and a QR code to https://aadhav.dev on a white tile with two
-modules of margin, "aadhav.dev" under it. The code is DATA, not an encoder:
-`src/siteQR.js` holds the 25x25 matrix (segno, version 2, ECC Q — how it was
-made is in its header) and the runs/path both renderers draw. **Check a
-change to the back by decoding the code off a screenshot** (zxing-cpp, `pip
-install --target <scratch> zxing-cpp`): all four badges, both themes, 3D and
-motion, read https://aadhav.dev. The back no longer carries the logo, the
+cards pair them) and a QR code to the ORGANISATION's site on a white tile
+with two modules of margin, named under it (the owner, the same day: "the qr
+codes should go to the roboflow website, or the starship website, or the NYU
+CREO website, or the UCSC TML website, not back to my own website"):
+roboflow.com, www.starship.xyz, robotics.engineering.nyu.edu (NYU's Center
+for Robotics and Embodied Intelligence) and tml.engineering.ucsc.edu —
+`site` / `siteLabel` in `badgeCards.js`. The codes are DATA, not an encoder:
+`src/badgeQR.js` holds each URL's matrix (segno, smallest version at ECC M,
+boosted; versions 2-3, 25 or 29 modules — how they were made is in its
+header) and `qrFor(url)` the runs/path both renderers draw; the tile is the
+same size whatever the version. A `site` with no matrix there prints no code.
+**Check a change to the back by decoding the codes off a screenshot**
+(zxing-cpp, `pip install --target <scratch> zxing-cpp`): all four badges,
+both themes, 3D and motion, must read their own URL. The back no longer carries the logo, the
 organisation, WHERE, the tags or the barcode; the front no longer the role,
 the dates or the holder's name.
 
