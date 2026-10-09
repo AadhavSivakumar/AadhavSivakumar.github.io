@@ -2,8 +2,8 @@ import React, { useRef } from 'react';
 import { motion, useMotionValue, useSpring, useReducedMotion } from 'motion/react';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-// Shared interactive card. anime.js handles the scroll-into-view entrance
-// (via useScrollReveal, which hands the element's transform back when it is
+// Shared interactive card. useScrollReveal runs the scroll-into-view entrance
+// (the Web Animations API; it hands the element's transform back when it is
 // done); on hover the card TILTS in 3D toward the pointer and a caption
 // follows the cursor.
 //

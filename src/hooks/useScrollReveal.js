@@ -1,18 +1,20 @@
 import { useEffect, useRef } from 'react';
-import { animate } from 'animejs';
 
-// Fade/rise (and optional scale) reveal driven by anime.js, triggered the
-// first time the element scrolls into view. Same trigger pattern as
-// SectionTitle (IntersectionObserver) so scroll animations across the site
-// share one engine.
+// Fade/rise (and optional scale) reveal, triggered the first time the element
+// scrolls into view. It is the browser's own Web Animations API (el.animate):
+// anime.js drove it until Oct 9, when the owner had anime.js taken out; the
+// numbers are the same (outQuint, the same distances and durations), and an
+// opacity/transform animation like this runs on the compositor.
 //
 // During the entrance the element's CSS transitions are suppressed inline
 // (transition: none) so a CSS transform-transition — e.g. a card's hover lift
-// — can't fight anime's per-frame writes; on completion the inline
-// transform/opacity/transition are cleared so CSS takes the element back over
-// (hover/tap states resume working).
+// — can't fight it; on completion the animation is removed and the inline
+// transition cleared, so CSS (and a card's motion tilt, which writes the
+// inline transform) take the element back over.
 //
 // delay is accepted in SECONDS to match the old motion call sites.
+const OUT_QUINT = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
 export default function useScrollReveal({
   y = 28,
   scale = null,
@@ -25,45 +27,42 @@ export default function useScrollReveal({
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el) return undefined;
 
     // Respect reduced-motion: show immediately, animate nothing.
     const reduce =
       typeof window !== 'undefined' &&
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) {
+    if (reduce || typeof el.animate !== 'function') {
       onComplete && onComplete(el);
-      return;
+      return undefined;
     }
 
     el.style.opacity = '0';
+    let anim = null;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
         observer.disconnect();
         el.style.transition = 'none';
-        const props = {
-          opacity: [0, 1],
-          duration,
-          delay: delay * 1000,
-          ease: 'outQuint',
-          onComplete: () => {
-            // Hand the element back to CSS (hover/tap transitions resume).
-            el.style.transform = '';
-            el.style.opacity = '';
-            el.style.transition = '';
-            onComplete && onComplete(el);
-          },
+        const from = [y ? `translateY(${y}px)` : '', scale != null ? `scale(${scale})` : ''].join(' ').trim() || 'none';
+        anim = el.animate(
+          [{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }],
+          { duration, delay: delay * 1000, easing: OUT_QUINT, fill: 'backwards' }
+        );
+        el.style.opacity = '';      // the animation holds it at 0 through the delay
+        anim.onfinish = () => {
+          // Hand the element back to CSS (hover/tap transitions resume).
+          el.style.transition = '';
+          anim = null;
+          onComplete && onComplete(el);
         };
-        if (y) props.y = [y, 0];
-        if (scale != null) props.scale = [scale, 1];
-        animate(el, props);
       },
       { threshold: amount }
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => { observer.disconnect(); if (anim) anim.cancel(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

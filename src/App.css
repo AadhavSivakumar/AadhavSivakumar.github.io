@@ -129,24 +129,6 @@ header nav { display: flex; align-items: center; gap: 6px; }
 }
 
 
-/* Scroll progress bar (anime.js scrubbed by scroll position) */
-.scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  z-index: 1200;
-  pointer-events: none;
-}
-.scroll-progress-bar {
-  height: 100%;
-  width: 100%;
-  transform: scaleX(0);
-  transform-origin: left;
-  background: linear-gradient(90deg, var(--accent-color), #F0E8D0);
-}
-
 /* SECTION & CARD STYLES */
 section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relative; z-index: 10; }
 .section-title { font-size: 3rem; margin-bottom: 40px; text-align: center; }
@@ -199,7 +181,7 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 .page .st-underline { margin-top: 10px; }
 .page--wide { max-width: 1360px; }
 
-/* Section titles: anime.js letter cascade + underline draw */
+/* Section titles: the underline (the letters were an anime.js cascade; BlurText now) */
 .st-word { display: inline-block; white-space: nowrap; }
 .st-letter { display: inline-block; opacity: 0; will-change: transform; }
 .st-underline {
@@ -232,8 +214,6 @@ section { padding: 100px 5%; max-width: 1200px; margin: 0 auto; position: relati
 }
 .hero-photo img { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.05); }
 #hero p { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--secondary-color); font-family: var(--font-sans); }
-.hero-word { display: inline-block; white-space: nowrap; }
-.hero-letter { display: inline-block; will-change: transform; }
 
 .hero-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
 /* ---- Liquid-glass chip tokens (readable on light + dark) ---- */
@@ -640,7 +620,7 @@ html[data-theme="dark"] .f3d::before {
 
 /* Tap press — mirrors the old motion whileTap. :active must beat :hover, so
    it follows the hover rule. The entrance suppresses these transitions inline
-   (see useScrollReveal), so they never fight the anime reveal. */
+   (see useScrollReveal), so they never fight the reveal. */
 .lift-card:active {
   transform: translateY(-4px) scale(0.985);
 }
@@ -1637,8 +1617,6 @@ header.scrolled { box-shadow: none; border-bottom: 1px solid var(--hair); backgr
 .nav-pill { background: var(--surface-color); border: 1px solid var(--hair); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04); }
 html[data-theme="dark"] .nav-pill { background: color-mix(in srgb, var(--primary-color) 8%, transparent); box-shadow: none; }
 .nav-link.active .nav-link-label { color: var(--primary-color); font-weight: 500; text-shadow: none; }
-.scroll-progress { height: 1px; }
-.scroll-progress-bar { background: var(--primary-color); opacity: 0.55; }
 
 /* section titles: left, grotesk, tight, a mono index over them, no bar */
 .page .section-title, .section-title { text-align: center;   /* centred, not left: left-aligned titles ran into the left-hand art and the lanyard pins */ font-weight: 500; letter-spacing: -0.035em; line-height: 1.05; font-size: clamp(1.9rem, 1.1rem + 1.7vw, 2.75rem); }
@@ -1973,11 +1951,9 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
    in src/components/reactbits/ (licence there); this block themes them to
    the site and carries the CSS-only adaptations. ──────────────────────── */
 
-/* BlurText titles: words wrap naturally and stay centred */
-.section-title .blur-text { display: inline; }
-
-/* DecryptedText eyebrow: scrambled glyphs in the accent */
-.hero-eyebrow__scramble { color: var(--accent-ink); opacity: 0.75; }
+/* BlurText titles and the hero's name and eyebrow: words wrap naturally and
+   stay centred */
+.section-title .blur-text, #hero .blur-text { display: inline; }
 
 /* Magnet down-arrow: the wrapper takes the page-bottom position */
 .page-next-magnet { position: absolute !important; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 5; }

@@ -9,17 +9,13 @@ import Skills from './components/Skills';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import Modal from './components/Modal';
-import ScrollProgress from './components/ScrollProgress';
-import TargetCursor from './components/reactbits/TargetCursor';
+import FluidGlass from './components/reactbits/FluidGlass';
 import Flourish3D from './components/Flourish3D';
 import LeftFilm from './components/LeftFilm';
 import WaveField from './components/WaveField';
 import RobotDock from './components/RobotDock';
 import { useTheme } from './hooks/useTheme';
 import { startScrollSnap } from './scrollSnap';
-
-// what the reticle's corners close on: everything that can be clicked
-const CURSOR_TARGETS = 'a[href], button, [role="button"], [role="tab"], .cursor-target';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -301,11 +297,10 @@ function App() {
     // It is set once here rather than component by component so a new
     // motion component cannot quietly opt out of it.
     <MotionConfig reducedMotion="user">
-      <ScrollProgress />
-      {/* React Bits' TargetCursor (the owner's settings: hoverDuration 0.9,
-          the system cursor kept): a spinning reticle round the pointer whose
-          corners close on whatever can be clicked. Mouse and trackpad only. */}
-      <TargetCursor targetSelector={CURSOR_TARGETS} hoverDuration={0.9} hideDefaultCursor={false} />
+      {/* After React Bits' FluidGlass (the owner, Oct 9): a glass lens that
+          follows the pointer, refracting the page, and grows over the whole
+          card under it. Mouse and trackpad only. */}
+      <FluidGlass cardSelector=".lift-card" />
       {/* Page-wide decorative flourishes: one canvas per side, fixed to the
           viewport behind all content, scrubbed by page scroll. NOT gated on
           width any more — they were invisible on every phone. The stage sizes

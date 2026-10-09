@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { animate, stagger } from 'animejs';
 import { motion } from 'motion/react';
 import HeroChip from './HeroChip';
 import GlassSurface from './reactbits/GlassSurface';
-import DecryptedText from './reactbits/DecryptedText';
+import BlurText from './reactbits/BlurText';
 import portrait from '../../Media/hero/frontpagepfp.webp';
 
 // Keyword chips under the name: the fields the owner is looking for work in,
@@ -24,23 +23,7 @@ const NAME = 'Aadhav Sivakumar';
 export default function Hero() {
   const heroRef = useRef(null);
   const [heroOnScreen, setHeroOnScreen] = useState(true);
-  const nameRef = useRef(null);
   const glassRef = useRef(null);
-
-  useEffect(() => {
-    if (!nameRef.current) return;
-    // anime.js is outside <MotionConfig>: honour reduced motion here (the
-    // letters are visible by default, so skipping is all it takes)
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    animate(nameRef.current.querySelectorAll('.hero-letter'), {
-      y: { from: '0.8em' },
-      opacity: { from: 0 },
-      rotate: { from: 6 },
-      duration: 950,
-      delay: stagger(34, { start: 120 }),
-      ease: 'outExpo',
-    });
-  }, []);
 
   // Ambient "living glass": the shared displacement filter the chips refract
   // through ripples slowly. It used to be an anime.js loop calling
@@ -156,29 +139,16 @@ export default function Hero() {
       {/* ONE line of who and where over the name (the owner: "consolidate the
           information" — the serif statement and the descriptive line under
           the name are gone; the chips carry the fields) */}
-      <motion.div
-        className="hero-eyebrow"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {/* React Bits' DecryptedText: the line resolves out of scrambled
-            characters once, left to right, then stays still */}
-        <DecryptedText text="New York & San Francisco" animateOn="view" sequential revealDirection="start" speed={38}
-          characters="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\_-" encryptedClassName="hero-eyebrow__scramble" />
-      </motion.div>
+      <div className="hero-eyebrow">
+        <BlurText text="New York & San Francisco" delay={120} startDelay={0.45} />
+      </div>
 
-      <h1 id="hero-title" ref={nameRef} aria-label={NAME}>
-        {NAME.split(' ').map((word, wi, words) => (
-          <React.Fragment key={wi}>
-            <span className="hero-word" aria-hidden="true">
-              {word.split('').map((ch, i) => (
-                <span key={i} className="hero-letter">{ch}</span>
-              ))}
-            </span>
-            {wi < words.length - 1 ? ' ' : null}
-          </React.Fragment>
-        ))}
+      {/* The name and the line over it come in by React Bits' BlurText (the
+          owner, Oct 9: "use this for the hero text"), word by word out of a
+          blur, at upstream's settings; it replaced an anime.js letter
+          cascade (the eyebrow: DecryptedText). Read as one label. */}
+      <h1 id="hero-title" aria-label={NAME}>
+        <span aria-hidden="true"><BlurText text={NAME} startDelay={0.15} /></span>
       </h1>
 
       <div className="hero-chips" role="list" aria-label="Fields">

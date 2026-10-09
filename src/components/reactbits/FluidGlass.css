@@ -1,0 +1,58 @@
+/* After React Bits' FluidGlass — see FluidGlass.jsx. The glass is one fixed
+   element: its box (translate, width, height, radius) and a card's tilt
+   (transform) are written by the loop; the refraction is the SVG filter as
+   a backdrop-filter (Chromium); the rim, the glint and a soft drop shadow
+   are here, in both themes. */
+.fluid-glass {
+  --fg-hair: rgba(17, 17, 16, 0.16);
+  --fg-hi: rgba(255, 255, 255, 0.9);
+  --fg-shade: rgba(17, 17, 16, 0.07);
+  --fg-drop: rgba(17, 17, 16, 0.2);
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2147483647;
+  display: none;
+  box-shadow:
+    inset 0 0 0 1px var(--fg-hair),
+    inset 1.5px 2px 1px -1px var(--fg-hi),
+    inset -1.5px -2px 1px -1px color-mix(in srgb, var(--fg-hi) 45%, transparent),
+    inset 0 0 14px var(--fg-shade),
+    0 16px 32px -18px var(--fg-drop);
+}
+html[data-theme="dark"] .fluid-glass {
+  --fg-hair: rgba(255, 255, 255, 0.2);
+  --fg-hi: rgba(255, 255, 255, 0.55);
+  --fg-shade: rgba(255, 255, 255, 0.05);
+  --fg-drop: rgba(0, 0, 0, 0.55);
+}
+.fluid-glass.is-on { display: block; }
+.fluid-glass--svg {
+  backdrop-filter: url(#fluid-glass-filter);
+}
+/* the glint: a soft light across the top-left of the glass */
+.fluid-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(85% 55% at 30% 6%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+/* Firefox / Safari: no refraction, so the lens needs a body to be seen —
+   a faint darkening toward its edge, as a lens's thick rim has */
+.fluid-glass--plain {
+  background: radial-gradient(closest-side, transparent 62%, var(--fg-shade) 100%);
+}
+
+.fluid-glass__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}

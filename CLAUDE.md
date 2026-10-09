@@ -63,8 +63,8 @@ prevent.
 ## Tech stack
 
 - **React 18 + Vite 6** — SPA, entry `index.html` → `src/main.jsx` → `src/App.jsx`.
-- **motion** (`motion/react`, the framer-motion successor) — only four files import it: the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), and the modal's phased open/close sequence (`Modal.jsx`). It does **not** drive the card reveals or the hover lift.
-- **animejs v4** — the hero name's per-letter cascade, section-title letter cascades (`SectionTitle`), the scroll-scrubbed progress bar (`ScrollProgress`, via `anim.seek`), and — via `src/hooks/useScrollReveal.js` — **every scroll-into-view card entrance** on the site (`LiftCard`, `Reveal`, `Resume`'s tiles, `Contact`'s links). The hook suppresses inline CSS transitions during the entrance and clears them on completion so the CSS hover/tap states resume. Note v4 API: `ease: 'outExpo'`, tween `{ from: ... }` or `[from, to]` values.
+- **motion** (`motion/react`, the framer-motion successor) — the header's `layoutId` nav pill and theme-toggle icon swap (`Header.jsx`), the hero and its chips (`Hero.jsx`, `HeroChip.jsx`), the cards' hover tilt (`LiftCard.jsx`), the modal's phased open/close sequence (`Modal.jsx`), the lanyard badges (`MotionLanyard.jsx`) and the React Bits copies that need it (BlurText, Dock). It does **not** drive the card reveals (`useScrollReveal`).
+- **anime.js is GONE** (Oct 9, the owner: "Get rid of anime.js"). What it did: the hero name's letter cascade (now React Bits' BlurText), the top scroll-progress bar (removed — "don't need a top progress scroll bar"), and every scroll-into-view card entrance, which `src/hooks/useScrollReveal.js` now runs on the browser's Web Animations API (`el.animate`, same distances, durations and outQuint curve; `LiftCard`, `Reveal`, the Resume viewer). The hook suppresses inline CSS transitions during the entrance and removes the animation on completion so the CSS hover/tap states and a card's motion tilt resume. Main script 553 → 513 KB (195 → 180 KB gzipped).
 - **three.js** — only the WebGL Atlas on the last page (`atlasGL.js`, lazy). The lanyards were three.js + @react-three/fiber / drei / rapier / meshline until Sept 28; they are motion components now (`MotionLanyard.jsx`).
 
 ## Source layout
@@ -77,10 +77,10 @@ src/
   waveField.js            # constants + timeline shared by WaveField and Flourish3D
   scrollSnap.js           # settle onto a page after 2s still; tells the art when it has
   hooks/useTheme.js       # light/dark via data-theme attr + localStorage
-  hooks/useScrollReveal.js # anime.js scroll-into-view entrance used by every card
+  hooks/useScrollReveal.js # scroll-into-view entrance used by every card (Web Animations API)
   components/
     Header.jsx            # fixed nav, scroll-spy + animated gold pill (layoutId)
-    Hero.jsx              # portrait disc, anime.js letter cascade, keyword chips
+    Hero.jsx              # portrait disc, BlurText name and eyebrow, keyword chips
     HeroChip.jsx          # liquid-glass keyword pill (backdrop-filter + SVG refraction)
     WaveField.jsx         # the hero sine field: fixed full-viewport canvas that splits into the flourishes
     Flourish3D.jsx        # the two canvas side flourishes (see below)
@@ -94,10 +94,9 @@ src/
     Resume.jsx            # Resume / Extended CV / Transcript tiles (Drive embeds)
     Contact.jsx, Footer.jsx
     Modal.jsx             # single reusable modal; phased lift->expand->populate
-    LiftCard.jsx          # shared card: anime.js entrance (useScrollReveal) + CSS hover lift (no tilt)
+    LiftCard.jsx          # shared card: entrance (useScrollReveal) + TiltedCard hover tilt
     Reveal.jsx            # shared fade/rise-on-scroll wrapper
-    SectionTitle.jsx      # anime.js letter-cascade h2 + underline draw
-    ScrollProgress.jsx    # top progress bar, anime.js scrubbed by scroll
+    SectionTitle.jsx      # BlurText h2
   robots/                 # the REAL machines, baked from MuJoCo Menagerie models (see below)
     index.js              # lazy loader, mesh preparation, forward kinematics
     soarm.json fr3.json ur5e.json ultra.json atlas.json   # baked meshes: mm, Z-up, decimated
@@ -1822,32 +1821,51 @@ What uses what:
   modal measures the card at rest. Small project cards also take the
   component's LOOK: the cover is the card (15px radius, 4:3; 16:11 / 16:10
   on short screens), title and tags over it on a scrim, lifted 30px in z.
-- **BlurText** → `SectionTitle.jsx` (replaced the anime.js letter cascade).
-- **DecryptedText** → the hero eyebrow, once on view.
+- **BlurText** → `SectionTitle.jsx` (replaced the anime.js letter cascade),
+  and since Oct 9 the hero's NAME and eyebrow line (the owner: "use this
+  for the hero text"; it replaced an anime.js cascade and DecryptedText,
+  which is deleted). The copy follows upstream's current defaults (delay
+  200, a 50px fall out of blur 10 → 5 → 0, linear; `animationFrom` /
+  `animationTo` / `easing`), plus `startDelay`; the section titles pass
+  their old shorter fall and ease-out explicitly. Words are inline-blocks
+  joined by a no-break space (a plain space at the end of an inline-block
+  collapses).
 - **Magnet** → the header profile marks and every page's down arrow (the
   arrow's page-bottom position moved to `.page-next-magnet`).
 - **Dock** → the Get In Touch links (adapted: real <a> links, fixed height).
 - **ClickSpark** → gold sparks wherever you click (one fixed canvas).
   REMOVED Oct 8 at the owner's request; TargetCursor replaced it (below).
-- **TargetCursor** (Oct 8, the owner's settings: `hoverDuration` 0.9, the
-  system cursor kept) → a spinning reticle round the pointer whose corners
-  close on anything clickable (`CURSOR_TARGETS` in App.jsx: links, buttons,
-  `role="button"` — every card — and tabs). Rewritten WITHOUT GSAP: the spin
-  is a CSS animation of `rotate` (no DOM writes), position is the `translate`
-  property and the press `scale`, all else one rAF loop that stops when
-  nothing moves; the held target's box is re-read each frame (a tilting card
-  keeps its corners). Hidden until the pointer moves and while it is outside
-  the page or over an iframe; absent on touch screens and under reduced
-  motion. 0 mutations with the pointer resting, on a card or off one.
-  FIREFOX does not blend it (`mix-blend-mode: difference`) against the
-  body's `background-attachment: fixed` background — the corners drew plain
-  white on the light page — so there it is the page's ink, unblended
-  (`@supports (-moz-appearance: none)` in TargetCursor.css). Moving the body
-  background onto its own fixed layer fixed the blend but cost Firefox ~15
-  more frames over 20 ms in a 460-frame scroll pass (four runs each), so it
-  stays on the body.
-  Headless Firefox reports no fine pointer, so harnesses there must spoof
-  `matchMedia('(pointer: fine)')` to see it.
+- **TargetCursor** (Oct 8) — REMOVED Oct 9 for FluidGlass (below). It was
+  a GSAP-free port: CSS-spun reticle, one rAF loop; in Firefox it could not
+  `mix-blend-mode: difference` against the body's fixed-attachment
+  background (moving that background cost Firefox ~15 more slow frames per
+  460), so it drew in the page's ink there.
+- **FluidGlass** (Oct 9, the owner: "replace the current cursor animation
+  with this … And when hovering over a card, have it expand to the whole
+  card") → `reactbits/FluidGlass.jsx`, a 128px glass LENS that chases the
+  pointer (upstream's maath damp, smoothTime 0.15) and, over a `.lift-card`,
+  GROWS into a glass slab exactly over the card (box, corner radius and the
+  card's live 3D tilt, copied from its computed transform each frame) and
+  shrinks back to the pointer on leaving; a click releases it. REBUILT, not
+  copied: upstream is an r3f scene (MeshTransmissionMaterial + lens.glb)
+  that can only refract its own three.js content — over HTML it would bend
+  nothing. Here the PAGE is refracted by an SVG filter used as a
+  backdrop-filter (GlassSurface's technique): a displacement map drawn per
+  shape on a small canvas (`mapFor`: inward offsets rising steeply in a rim
+  band, plus a pull toward the centre for the lens's ~1.11x magnification;
+  the card slab's middle is flat so text stays crisp), one
+  feDisplacementMap per colour channel at ±10% for upstream's chromatic
+  aberration. Measured: magnification 1.11, shift 0 (fitted from
+  screenshots); offsets exact under a 3D tilt. **The feImage must be sized in
+  PIXELS** (`width`/`height` attributes = the glass's size): a percentage
+  resolves against the 0x0 `<svg>`, not the glass. Chromium only; Firefox
+  and Safari get the rim, glint and an edge shade (`fluid-glass--plain`, no
+  map is drawn). The system cursor stays; absent on touch screens and under
+  reduced motion; 0 mutations with the pointer resting, on a card or off,
+  on every page. Harness notes: headless Firefox needs the `(pointer:
+  fine)` spoof; to look at the grow frame by frame, replace
+  `requestAnimationFrame` with a hand-stepped queue (Playwright's clock did
+  not hold the loop).
 - **StarBorder** → the Resume page's Download button.
 - **SpotlightCard**, **GlareHover**, **ShinyText** → CSS adaptations: a light
   under the pointer on experience/major cards and the resume viewer; a glare
