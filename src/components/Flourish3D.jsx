@@ -3,6 +3,7 @@ import { onScroll as onPageScroll } from '../scrollDriver';
 import { heroPhase, S_MORPH, S_ART, partT, partArtA, publishTargets, actAt } from '../waveField';
 import { onSettle } from '../scrollSnap';
 import { loadRobots, standing, facing, bodyPlacements, axisM } from '../robots/index.js';
+import { whenOpened } from '../opening';
 
 // The RIGHT stage's line art: an electric motor formed FROM THE HERO'S SINE
 // WAVES (scroll, and the right half of each row flies into it, part by part),
@@ -1573,7 +1574,10 @@ export default function Flourish3D({ side = 'right' }) {
     //   arm    — works: the joints sweep and the gripper opens and closes
     //   sensor — reads out: a band sweeps the grid and the picture changes
     let ROBOTS = null;                     // the baked machines, once loaded
-    loadRobots().then(r => { ROBOTS = r; if (lastY >= 0) draw(lastY); }).catch(() => {});
+    // not on the opening's clock: the robots are not on the hero, and five
+    // mesh chunks parsed and prepared there cost the entrance frames (until
+    // they arrive the drawn fallback skins stand in, as they always have)
+    whenOpened(() => loadRobots().then(r => { ROBOTS = r; if (lastY >= 0) draw(lastY); }).catch(() => {}));
     let idleT = 0;                         // seconds of idle animation, from the settle
     let idleOn = false;
     let settleU = 0;                       // the settle blend: 1 live, 0 at rest (see the settled loop)
@@ -3831,7 +3835,16 @@ export default function Flourish3D({ side = 'right' }) {
       const { i, t } = actAt(y);
       return i < 0 ? 'pieces' : t >= 1 ? `act${i}` : null;
     };
+    // On the hero this stage shows nothing (the prelude fades it in from 30%
+    // of the way out), so a canvas that is still blank is left alone: the
+    // first touch of a 2D canvas allocates its backing store, 125 ms of the
+    // hero's entrance in the software-GPU harness, for an empty frame.
+    let blank = true;
     function draw(y = window.scrollY) {
+      const sIn = reduce ? Infinity : heroPhase(y);
+      const empty = sIn < S_ART && smooth(win(sIn, 0.3, 0.62)) <= 0.004;
+      if (empty && blank) return;
+      blank = empty;
       const t0 = PERF ? performance.now() : 0;
       ctx.setTransform(dpr * fit, 0, 0, dpr * fit, 0, 0);
       ctx.clearRect(0, 0, W, H);

@@ -105,6 +105,36 @@
       }
     }
     </script>
+    <!-- The FIRST PAINT. The app is client-rendered, so until its script has
+         run the page is this file alone: the right theme and page colour
+         from the first frame (the theme used to be applied by React after
+         the first render, so a dark-theme visitor saw white, then the light
+         page, then dark), and the first screen's fonts requested now rather
+         than once the hero has been rendered and laid out (src/opening.js
+         is the rest of the opening). Keep the colours in step with
+         --background-color / --text-color in App.css. -->
+    <script>
+      try {
+        var t = localStorage.getItem('theme');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    </script>
+    <!-- on BODY, never html: a background on html stops the body's being
+         carried onto the page canvas, and the body then paints over the
+         wave field's layer (z-index -1) — the waves vanished. Zero
+         specificity (:where), so App.css's own body rules always win. -->
+    <style>
+      html { color-scheme: light; }
+      html[data-theme="dark"] { color-scheme: dark; }
+      :where(body) { background: #F6F5F1; color: #111110; }
+      :where(html[data-theme="dark"] body) { background: #0C0C0D; color: #EDECE8; }
+    </style>
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/src/assets/fonts/zodiak-400-normal.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/src/assets/fonts/switzer-500-normal.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/src/assets/fonts/switzer-400-normal.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/src/assets/fonts/fragment-mono-400.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/src/assets/fonts/zodiak-700-normal.woff2">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23111110' /><text x='50%25' y='54%25' dominant-baseline='central' text-anchor='middle' font-size='52' font-weight='500' letter-spacing='-2' font-family='Georgia, serif' fill='%23F6F5F1'>AS</text></svg>">
     <!-- fonts are self-hosted (src/assets/fonts, @font-face in App.css) -->
 </head>

@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { isOpened, whenOpened } from '../opening';
 import SectionTitle from './SectionTitle';
 import LiftCard from './LiftCard';
 import { CoverVideo } from './ProjectCard';
@@ -50,13 +51,16 @@ function useNearViewport(ref, margin = '600px') {
   return near;
 }
 
-// Can this browser make a WebGL context at all? Checked once. Where it
-// cannot, the badges are the motion ones (MotionLanyard.jsx), so they are
-// never silently missing.
+// Does this browser have WebGL at all? Where it does not, the badges are the
+// motion ones (MotionLanyard.jsx) and the 3D chunk is never fetched. This
+// used to CREATE a WebGL context to find out — a whole context, made and
+// thrown away (and, until Oct 9, never released), 360 ms of the main thread
+// in the software-GPU harness. A browser that has the API but cannot make a
+// context (a blocklisted driver, headless Firefox here) is caught by the
+// ErrorBoundary below when the renderer fails, and gets the same badges.
 let webglOK = null;
 const canWebGL = () => {
-  if (webglOK !== null) return webglOK;
-  try { const c = document.createElement('canvas'); webglOK = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webglOK = false; }
+  if (webglOK === null) webglOK = typeof window !== 'undefined' && ('WebGL2RenderingContext' in window || 'WebGLRenderingContext' in window);
   return webglOK;
 };
 
@@ -74,7 +78,13 @@ const fitTags = (tags = [], max = 26) => tags.reduce((out, t) => {
 
 function RowLanyard({ rows, wide }) {
   const ref = useRef(null);
+  // "near" is true on arrival (this page starts just under the hero), and
+  // building the 3D badges — a WebGL renderer, its shaders, the physics —
+  // took seconds of the main thread in the middle of the hero's entrance;
+  // they hang once the opening is over, or as soon as the reader scrolls
   const near = useNearViewport(ref);
+  const [opened, setOpened] = useState(isOpened);
+  useEffect(() => whenOpened(() => setOpened(true)), []);
   // each badge carries its row's DATES (the owner: "just have the dates on
   // the ID cards" — they came off the cards)
   const cards = useMemo(() => rows.map(r => badgeByName[r.badge] && { ...badgeByName[r.badge], period: r.period,
@@ -93,7 +103,7 @@ function RowLanyard({ rows, wide }) {
   // an exception, so the error boundary never sees it; watch the canvas
   const [lost, setLost] = useState(false);
   useEffect(() => {
-    if (!wide || !near) return undefined;
+    if (!wide || !near || !opened) return undefined;
     let canvas = null;
     const onLost = () => setLost(true);
     const t = setInterval(() => {
@@ -101,14 +111,14 @@ function RowLanyard({ rows, wide }) {
       if (canvas) { canvas.addEventListener('webglcontextlost', onLost); clearInterval(t); }
     }, 500);
     return () => { clearInterval(t); if (canvas) canvas.removeEventListener('webglcontextlost', onLost); };
-  }, [wide, near]);
+  }, [wide, near, opened]);
   const placed = useMemo(() => cards.map((c, i) => ({ ...c, side: 'center', slot: 0, dropPx: i * rowPx - 45 })), [cards, rowPx]);
   if (!cards.length) return null;
-  const flat = !canWebGL() || lost;
+  const flat = lost || (wide && near && opened ? !canWebGL() : webglOK === false);
   const motionBadges = <MotionLanyard cards={cards} rowPx={rowPx} />;
   return (
     <div ref={ref} className={`exp-lanyard exp-lanyard--pair${flat ? '' : ' exp-lanyard--3d'}`} aria-hidden={flat ? undefined : 'true'}>
-      {wide && near && rowPx > 0 && (flat ? motionBadges : (
+      {wide && near && opened && rowPx > 0 && (flat ? motionBadges : (
         // The boundary sits OUTSIDE the Suspense so it catches both a WebGL
         // context that cannot be created and a failed fetch of the lazy chunk.
         <ErrorBoundary label="Lanyard" fallback={motionBadges}>

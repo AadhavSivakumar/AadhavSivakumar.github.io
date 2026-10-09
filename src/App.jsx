@@ -16,6 +16,7 @@ import WaveField from './components/WaveField';
 import RobotDock from './components/RobotDock';
 import { useTheme } from './hooks/useTheme';
 import { startScrollSnap } from './scrollSnap';
+import { startOpening } from './opening';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -45,6 +46,9 @@ function App() {
       history.scrollRestoration = 'manual';
     }
     window.scrollTo(0, 0);
+    // the hero's entrance has the main thread to itself; everything heavy
+    // that is not for the first screen waits for it (src/opening.js)
+    startOpening();
   }, []);
 
   // Settle onto a page when the scroll has been still for two seconds, and

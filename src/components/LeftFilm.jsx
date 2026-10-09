@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { onScroll } from '../scrollDriver';
 import { onSettle } from '../scrollSnap';
 import { actAt, heroPhase, win, smooth } from '../waveField';
+import { isOpened, whenOpened } from '../opening';
 
 // The LEFT stage, rendered in Manim (the owner: "refactor the whole left side
 // animation in manim"). The scenes are in manim/left.py and the clips are
@@ -116,6 +117,9 @@ export default function LeftFilm() {
     const heldIndex = () => (state.i < 0 ? 0 : state.t >= DONE ? state.i + 1 : null);
     const update = () => {
       raf = 0;
+      // the stage is invisible on the hero: its first clips (half a megabyte)
+      // are fetched once the opening is over, or the reader scrolls
+      if (!isOpened()) return;
       // where the page is NOW: on a fresh load straight onto a section the
       // first measurement ran before the layout had grown, said "before act
       // 0", and the camera's idle loop played on Additional Projects until
@@ -155,7 +159,8 @@ export default function LeftFilm() {
     const mo = new MutationObserver(() => { theme = themeNow(); scrub.dataset.clip = ''; idle.dataset.clip = ''; schedule(); });
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     schedule();
-    return () => { stopScroll(); stopSettle(); mo.disconnect(); if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); idle.pause(); };
+    const stopOpen = whenOpened(schedule);
+    return () => { stopScroll(); stopSettle(); stopOpen(); mo.disconnect(); if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); idle.pause(); };
   }, []);
 
   return (

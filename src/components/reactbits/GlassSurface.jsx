@@ -6,6 +6,10 @@
 import { useEffect, useState, useRef, useId } from 'react';
 import './GlassSurface.css';
 
+// adapted: whether this browser can filter a backdrop through SVG, asked once
+// for the page rather than once per surface
+let svgFiltersOK = null;
+
 const GlassSurface = ({
   children,
   width = 200,
@@ -71,9 +75,35 @@ const GlassSurface = ({
     return `data:image/svg+xml,${encodeURIComponent(svgContent)}`;
   };
 
+  // adapted (Oct 9, the opening): upstream rebuilt the map three times per
+  // surface at mount (an effect, the ResizeObserver's first call, the
+  // width/height effect), each a layout read and a new filter image — for
+  // all 62 surfaces on the page, 52 of them screens away, and in Firefox and
+  // Safari, which never use it. Now: only where the SVG mode is on, only
+  // once the surface is near the screen, and only when its size or look
+  // has changed.
+  const mapKey = useRef('');
+  const near = useRef(false);
   const updateDisplacementMap = () => {
-    feImageRef.current?.setAttribute('href', generateDisplacementMap());
+    const fe = feImageRef.current, el = containerRef.current;
+    if (!fe || !el || !near.current || forceFallback || !supportsSVGFilters()) return;
+    const r = el.getBoundingClientRect();
+    const key = [Math.round(r.width * 2), Math.round(r.height * 2), borderRadius, borderWidth, brightness, opacity, blur, mixBlendMode].join();
+    if (key === mapKey.current) return;
+    mapKey.current = key;
+    fe.setAttribute('href', generateDisplacementMap());
   };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { near.current = true; return undefined; }
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      near.current = true; io.disconnect(); updateDisplacementMap();
+    }, { rootMargin: '50% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   useEffect(() => {
     updateDisplacementMap();
@@ -131,6 +161,7 @@ const GlassSurface = ({
   }, []);
 
   const supportsSVGFilters = () => {
+    if (svgFiltersOK !== null) return svgFiltersOK;
     if (typeof window === 'undefined' || typeof document === 'undefined') {
       return false;
     }
@@ -139,13 +170,13 @@ const GlassSurface = ({
     const isFirefox = /Firefox/.test(navigator.userAgent);
 
     if (isWebkit || isFirefox) {
-      return false;
+      return (svgFiltersOK = false);
     }
 
     const div = document.createElement('div');
     div.style.backdropFilter = `url(#${filterId})`;
 
-    return div.style.backdropFilter !== '';
+    return (svgFiltersOK = div.style.backdropFilter !== '');
   };
 
   const containerStyle = {

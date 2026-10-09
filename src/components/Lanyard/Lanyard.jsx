@@ -14,10 +14,20 @@
 //   (the sway). Settled, it draws nothing at all — it used to render and
 //   step the physics every frame while on screen;
 // - while a badge is hovered or held, its four projected corners go on the
-//   glass bus, and the cursor glass takes its shape (FluidGlass.jsx).
+//   glass bus, and the cursor glass takes its shape (FluidGlass.jsx);
+// - NO ENVIRONMENT MAP (Oct 9, the owner: "if the lanyards are too heavy…
+//   simplify them"). Measured, the physics was never the weight — rapier
+//   stepped for 74 ms in 12 s. drei's <Environment> was: four Lightformers
+//   rendered to a cube and prefiltered (PMREM) on the main thread, its blur
+//   shader the slowest compile in the scene, ~1.4 s of the badges' set-up in
+//   the software-GPU harness. The card is matte and took 12% of it; the
+//   metal parts took all of it, and are MATCAPS now (a lit sphere drawn once
+//   on a small canvas: no lights, no environment, the cheapest shader
+//   there is). The card is a standard material (the physical one, with no
+//   clearcoat, shades the same and compiles a bigger shader).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
+import { useGLTF, useTexture } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
@@ -27,6 +37,30 @@ import cardGLB from './card.glb';
 import lanyardTexture from './lanyard.png';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
+
+// A MATCAP: the look of a lit sphere of the material, painted once — the
+// highlight up and to the left, where the Environment's big Lightformer was.
+// Shared by every badge and kept for the page's life (never disposed: one
+// 64px texture each).
+const MATCAPS = {
+  gold:  [[0, '#fff3d2'], [0.16, '#f0cf86'], [0.45, '#c39a4e'], [0.78, '#7a5a24'], [1, '#3e2c10']],
+  steel: [[0, '#ffffff'], [0.18, '#d9dce1'], [0.5, '#9a9ea6'], [0.8, '#5a5e66'], [1, '#2c2e33']],
+  black: [[0, '#8d9198'], [0.12, '#3c3e43'], [0.4, '#16171a'], [1, '#060607']],
+};
+const matcapMats = {};
+function matcap(kind) {
+  if (matcapMats[kind]) return matcapMats[kind];
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d');
+  const grad = g.createRadialGradient(24, 20, 1, 32, 32, 32);
+  MATCAPS[kind].forEach(([o, col]) => grad.addColorStop(o, col));
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return (matcapMats[kind] = new THREE.MeshMatcapMaterial({ matcap: tex }));
+}
 
 // 1x1 transparent pixel — lets useTexture be called unconditionally when a
 // front/back image isn't supplied.
@@ -179,6 +213,11 @@ export default function Lanyard({
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
         <ambientLight intensity={Math.PI} />
+        {/* what the Environment gave the card, in its place: a light from the
+            front, its intensity found by matching renders of the four badges
+            in both themes (card colour and logo within 5 levels of what the
+            Environment drew: 0.5 left the black card at 4, not 30) */}
+        <directionalLight position={[0, 2, 10]} intensity={4.5} />
         <Wake />
         <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
           <BandField
@@ -191,12 +230,6 @@ export default function Lanyard({
             lanyardWidth={lanyardWidth}
           />
         </Physics>
-        <Environment blur={0.75}>
-          <Lightformer intensity={2} color="white" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
-          <Lightformer intensity={3} color="white" position={[-1, -1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
-          <Lightformer intensity={3} color="white" position={[1, 1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
-          <Lightformer intensity={10} color="white" position={[-10, 0, 14]} rotation={[0, Math.PI / 2, Math.PI / 3]} scale={[100, 10, 1]} />
-        </Environment>
       </Canvas>
     </div>
   );
@@ -392,23 +425,15 @@ function LanyardRack({ anchors = [], sizeMul = 1 }) {
     () => new THREE.MeshStandardMaterial({ color: theme === 'dark' ? '#5c4f38' : '#c9b78f', metalness: 0.15, roughness: 0.6 }),
     [theme]
   );
-  const shaftMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#b8bcc4', metalness: 1, roughness: 0.32 }),
-    []
-  );
-  const headMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#d8b268', metalness: 1, roughness: 0.3, emissive: '#3a2c12', emissiveIntensity: 0.35 }),
-    []
-  );
+  // the pin's steel and gold are matcaps (see the top of the file): shared,
+  // never disposed here
+  const shaftMat = matcap('steel');
+  const headMat = matcap('gold');
 
   // Materials are cheap next to the textures, but frameMat is rebuilt on every
   // theme toggle and each one holds a reference to its map.
   useEffect(() => () => frameMat.dispose(), [frameMat]);
-  useEffect(() => () => {
-    boardMat.dispose();
-    shaftMat.dispose();
-    headMat.dispose();
-  }, [boardMat, shaftMat, headMat]);
+  useEffect(() => () => boardMat.dispose(), [boardMat]);
 
   const geom = useMemo(() => {
     if (!anchors.length) return null;
@@ -1114,20 +1139,18 @@ function Band({
                 Lower emissive on the pale card - there the BACKGROUND is what
                 emits, and too much of it clips the card to flat white.
               */}
-              <meshPhysicalMaterial
+              <meshStandardMaterial
                 map={cardMap}
                 map-anisotropy={16}
                 emissiveMap={cardMap}
                 emissive="#ffffff"
                 emissiveIntensity={theme === 'dark' ? 0.3 : 0.75}
-                envMapIntensity={0.12}
-                clearcoat={0}
                 roughness={0.95}
                 metalness={0.04}
               />
             </mesh>
-            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
-            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+            <mesh geometry={nodes.clip.geometry} material={matcap('black')} />
+            <mesh geometry={nodes.clamp.geometry} material={matcap('black')} />
           </group>
         </RigidBody>
       </group>

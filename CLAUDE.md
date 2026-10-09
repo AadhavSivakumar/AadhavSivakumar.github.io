@@ -2801,6 +2801,59 @@ decreasing performance the most?").**
   (~14k) with it. So: continuous motion (videos, waves, robots) is what
   costs; the glass multiplies whatever moves under or near it.
 
+**Oct 9: the OPENING** (the owner: "The opening of the site is really
+rough, is there a way to make it smoother/load in a better more efficient
+way?"). A cold load, recorded frame by frame and profiled: the page was blank
+~0.7 s, then the navbar sat alone for a second, the name froze half-blurred
+for 2 s and the waves arrived all at once — the main thread was blocked 6.5
+s of the first 7. The cause was the 3D LANYARD building on the hero: the
+Experience page starts just under it, so `useNearViewport`'s 600px margin
+said "near" on arrival, and its WebGL renderer, shaders and environment bake
+ran in the middle of the entrance. Also on the hero: the five robot mesh
+chunks, the left film's first clips, sixteen card posters, 62 glass-surface
+maps built three times each, a WebGL probe context, and the right stage's
+canvas allocated to clear an empty frame. What changed:
+- **`src/opening.js`**: work that is not for the first screen waits for
+  `whenOpened(fn)` — the entrance over (3.2 s, the waves' last row) and the
+  browser idle, or the reader scrolling, whichever is first — and the jobs
+  run ONE PER IDLE PERIOD. The lanyard (RowLanyard's `opened`), the robot
+  meshes (`loadRobots` in Flourish3D) and the left film's first fetch use
+  it. New heavy work that is not on the hero should too.
+- Card POSTERS load within a screen of the viewport (`near` in CoverVideo),
+  not at mount. GlassSurface (our copy) builds its map once, when near the
+  screen, only in SVG mode, and only when its size or look changes.
+  Flourish3D leaves its canvas untouched while the hero shows nothing of it
+  (`blank`).
+- `index.html`: the theme is set before the first paint (dark visitors saw
+  the light page for up to a second), the page colour is on BODY from the
+  first frame — never on html, which stops the body's background reaching
+  the canvas and hid the waves under it — and the first screen's five font
+  files are preloaded. `public/_headers`: `/assets/*` (hashed names) cached
+  a year, immutable, on Cloudflare; they were revalidated on every visit.
+- The WebGL probe (`canWebGL`) checks for the API instead of creating a
+  context (it made a whole one and never released it); a browser with the
+  API but no context falls to the ErrorBoundary's motion badges (checked in
+  headless Firefox).
+A/B against the previous commit rebuilt locally, SwiftShader Chromium, long
+tasks in the first 4.5 s: 2.8-3.4 s (worst 1.5 s) → 60 ms; with the CPU
+throttled 4x, 2.9-3.2 s → ~0.75 s and first paint 0.63-1.04 → 0.57 s.
+Firefox (no lanyard WebGL here) was already smooth and stays p90 17. Layout
+identical to production on all seven pages at six sizes; 0 mutations on
+still pages, desktop and phone.
+
+**Oct 9: the 3D lanyard, lighter** (the owner: "If the lanyards are too heavy
+for the site (physics) then you can simplify them"). Measured, the physics
+is not the weight: rapier stepped 74-113 ms in 12 s. drei's `<Environment>`
+was — four Lightformers rendered to a cube and prefiltered (PMREM) on the
+main thread, ~1.4 s of the badges' set-up here, half the scene's shader
+programs (16 → 8). It is gone: the metal parts (pin head, shaft, clip,
+clamp) are MATCAPS painted on a 64px canvas (`MATCAPS` / `matcap()` in
+Lanyard.jsx), the card a standard material (the physical one with no
+clearcoat shades the same), and a front `directionalLight` (4.5) stands in
+for what the environment gave the card, matched by render in both themes
+(card and logo within 5 levels; 0.5 left the black card at 4, not 30).
+Physics, layout, drop and interaction are unchanged.
+
 **Oct 9: what makes the site lag, measured** (the owner: "the site is a bit
 laggy, analyze which components are causing the most lag"). Each piece
 switched off in turn (a local `?off=` switch, not committed), CPU of every
@@ -3391,7 +3444,7 @@ nothing at all on a still page — the idle check is 0 mutations. If the weight
 ever has to come down, the target is that 3MB chunk (the badges), not
 anime.js or motion.
 
-- The Lanyard is imported with `React.lazy` in `Experience.jsx` and only rendered at ≥992px (and only once a row is near the viewport), so mobile never downloads the three.js stack or the 2.4MB `card.glb`. Verified: the `Lanyard-*.js` chunk is not requested until the Experience section is scrolled to. `vite.config.js` deliberately has **no `manualChunks`** — Rollup's automatic splitting keeps the 3D stack inside the lazy Lanyard chunk. A hand-rolled split was tried and created a vendor↔three chunk cycle that broke React at runtime; don't reintroduce one. After touching `vite.config.js`, re-verify `dist/assets/index-*.js` has no static `from"./..."` import of a chunk containing three.js.
+- The Lanyard is imported with `React.lazy` in `Experience.jsx` and only rendered at ≥992px (and only once a row is near the viewport AND the opening is over — see "Oct 9: the OPENING"), so mobile never downloads the three.js stack or the 2.4MB `card.glb`. Verified: the `Lanyard-*.js` chunk is not requested until the Experience section is scrolled to. `vite.config.js` deliberately has **no `manualChunks`** — Rollup's automatic splitting keeps the 3D stack inside the lazy Lanyard chunk. A hand-rolled split was tried and created a vendor↔three chunk cycle that broke React at runtime; don't reintroduce one. After touching `vite.config.js`, re-verify `dist/assets/index-*.js` has no static `from"./..."` import of a chunk containing three.js.
 
 ## Theming
 

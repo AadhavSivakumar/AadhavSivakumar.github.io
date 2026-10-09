@@ -1,0 +1,7 @@
+# Cloudflare (aadhav.dev) response headers. Vite names everything under
+# /assets/ by a hash of its contents, so a file there never changes: it can be
+# kept for a year without asking again. Everything else keeps Cloudflare's
+# default (revalidate every time), because those names are reused when the
+# file is replaced. GitHub Pages ignores this file.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -34,6 +34,18 @@ export function CoverVideo({ src, title, placeholder }) {
   // decides the motion.
   const playing = useSyncExternalStore(subscribe, getPlaying, getServerPlaying);
 
+  // The POSTER waits until the card is within a screen of the viewport. A
+  // poster is not lazy: all sixteen (~400 KB) were fetched on arrival, ahead
+  // of the hero's own fonts and portrait, for pages several screens down.
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || near || typeof IntersectionObserver === 'undefined') { if (!near) setNear(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) setNear(true); }, { rootMargin: '100% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
@@ -85,7 +97,7 @@ export function CoverVideo({ src, title, placeholder }) {
     <video
       ref={ref}
       src={cardSrc(src)}
-      poster={poster}
+      poster={near ? poster : undefined}
       preload="none"
       loop
       muted
