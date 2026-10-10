@@ -33,7 +33,7 @@ const STROKE_TOP = 3.8, STROKE_BOTTOM = 0.9;   // 0.6 until the bottom rows were
 // so the well sits exactly under the lens and travels with it; as the glass
 // snaps onto a card or a control, the well lets go. Without the glass (it is
 // off on touch screens) the well follows the pointer on its own easing.
-const WELL_G = 0.72, WELL_L = 2.1;   // strength (under 1: no fold); falloff, in lens radii
+const WELL_G = 0.72, WELL_L = 2.5;   // strength (under 1: no fold); falloff, in lens radii (2.1 until Oct 10: "slightly larger")
 const WELL_R = 64;                   // the lens's radius when there is no glass
 
 export default function WaveField() {
@@ -112,7 +112,7 @@ export default function WaveField() {
       return (yv + waveY(i, Math.abs(xv - VW / 2), phase, freq)) * (heroH / VH) - scrollY;
     }
     // the well's pull on one point, in place on P (screen px). Past 3L the
-    // pull is under a fiftieth of a pixel, so the points there are skipped.
+    // pull is under a twentieth of a pixel, so the points there are skipped.
     const P = [0, 0];
     let wellG = 0, wellL2 = 1;
     function pull(x, y) {
