@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import LiftCard from './LiftCard';
+import { slugify } from '../deepLink';
 import { subscribe, getPlaying, getServerPlaying } from '../coverPlayback';
 import GlassTag from './GlassTag';
 
@@ -139,6 +140,7 @@ export default function ProjectCard({ project, isMajor, itemType, onCardClick, i
       className={`${isMajor ? 'major-project-card' : 'small-project-card'} project-modal-trigger`}
       delay={(index % 3) * 0.09}
       onClick={(e) => onCardClick(e.currentTarget, project, itemType)}
+      data-link={slugify(project.title)}   // its modal's URL: #<page>/<this> (deepLink.js)
       // React Bits' TiltedCard (see LiftCard): a small card tilts like its demo; a
       // wide major row only a little
       tilt={isMajor ? { amp: 4, scale: 1.015 } : { amp: 12, scale: 1.06 }}

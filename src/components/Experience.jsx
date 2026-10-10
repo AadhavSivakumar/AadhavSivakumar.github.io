@@ -152,6 +152,7 @@ function ExperienceCard({ item, index, onCardClick }) {
       className={`exp-card exp-card--${index}${item.video ? ' exp-card--media' : ''} project-modal-trigger`}
       delay={index * 0.08}
       onClick={(e) => onCardClick(e.currentTarget, toModal(item), 'experience')}
+      data-link={item.id.replace(/^exp-/, '')}   // its modal's URL: #experience/roboflow (deepLink.js)
       tilt={{ amp: 3, scale: 1.012 }}
     >
      <div className="exp-body">

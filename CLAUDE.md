@@ -192,15 +192,19 @@ That is the owner's stated goal, and three things follow from it:
   repo's code; media `m_robotperception`), the 2D lidar card (`'i'`) was
   removed, and the CV desktop arm (`'g'`) became "Bimanual SO-ARM101
   Teleoperation" (the CV's LAIR line), with a stand-in render for a cover;
-  since Oct 10 it is "Real2Sim2Real SO-ARM101", with the owner's footage
-  (see "Oct 10, Real2Sim2Real SO-ARM101").
+  since Oct 10 it is "Real2Sim2Real SO-ARM101", with the owner's footage,
+  and a MAJOR project in Stockbot's place (see "Oct 10, Real2Sim2Real
+  SO-ARM101" and "Oct 10, later").
   Also back from the old site, on request: "Machine Learning & AI
   Instructor" (`'n'`, before MATE ROV; the old card had no text, so it is
   written from the CV's IDEA-program entry; cover cropped to the camera
   view of its Nicla Vision demo) — fifteen small cards, three full rows.
   The RL card credits the two classmates by name (the owner agreed; their
   names are in the project's public README).
-- **`majorProjectsData` is exactly the four the owner chose**: Glass-2-Bot,
+- **`majorProjectsData` is exactly the four the owner chose** — since Oct 10:
+  the RL Go2 project, SMART compost sorting, Real2Sim2Real SO-ARM101 (`'g'`,
+  in Stockbot's place) and UR10e Kinematics; what follows is the earlier
+  set: Glass-2-Bot,
   SMART compost sorting, Stockbot, and "UR10e Kinematics in MuJoCo" (id `'h'`, once titled "3D Fruit Ninja
   Simulation", then "MuJoCo simulation for forward/inverse kinematics for
   6DOF arm" — renamed at the owner's request; the description is taken from the
@@ -1795,7 +1799,8 @@ RE-CENTRED: its title card (frames < 105) and closing stats card (frames
 ≥ 1156) are left-aligned from x 120, and the 4:3 card crop (x 160-1120)
 cut them ("88%" read "8%"), so the web copy shifts those frames right by 132
 and 74 px over the background #0F1015 (ffmpeg crop+pad+overlay with
-`enable` on `n`, crf 23); the card copy is 480 wide, crf 29. The console
+`enable` on `n`, crf 23); the card copy is 480 wide, crf 29 [SUPERSEDED the
+same day, when the card became major: see "Oct 10, later"]. The console
 screenshot is not used: the write-up says its values are illustrative.
 Product names checked as released (GR00T N1.7 is GA; Isaac Sim 6.1 and
 Isaac Lab 3.0 are public). NOTE for the owner: the step 9 clip's caption
@@ -1804,6 +1809,49 @@ where the write-up (and the modal) say three knocked out of reach, two on
 a cup's rim and one empty grasp. Checked in Firefox: the card plays its
 copy, the modal 1 / 10 with ten steps, step 3's clip from the strip, every
 page one screen at the five sizes and on a 390x844 phone, no page errors.
+
+**Oct 10, later: Real2Sim2Real is a MAJOR project, and every page and modal
+has a URL** (the owner: "Swap real2sim2real soarm101 with Stockbot:Grocery
+Robotics. Put stockbot and Robot perception in the first row of additional
+projects. Put Underwater drone for shipwreck reconstruction in the second
+row. Put project millet in the last row", then "when the modal is open,
+have it so pasting the url somewhere else automatically opens to that
+specific project/modal. Also do the same for each section").
+- **The swap**: `'g'` is the third major card (a `cardDescription` written
+  from the write-up, no colons or semicolons) and Stockbot (id 6) a small
+  card, its `cardDescription` kept. The small cards run FOUR to a row on a
+  desktop and THREE on a phone (measured; "five to a row" below is
+  history), so the order is chosen to put the rows right on both: k,
+  Stockbot, Robot Perception, Glass-2-Bot · SoleGait, the Underwater Drone,
+  Advanced Mechatronics, ML Instructor · Dog Feeder, FPGA, Mechatronics
+  Competition, Project Millet (phone: k, Stockbot, RP · Glass-2-Bot,
+  SoleGait, ROV · … · …, Millet).
+- **The cover, again**: a major card crops its cover to ~2.33:1 on a
+  desktop (the whole width) but to a SQUARE tile on a phone (x 288-992 of
+  1280), which cut the reel's title and stats cards at both ends. Rebuilt
+  from the original reel: the title card (frames < 105) scaled 0.82 and the
+  stats card (frames ≥ 1155, its fade in from black included) 0.72, each
+  centred on x 640 and kept at its own height, over a background taken from
+  the frame's own corner (the stats card fades through black, so a fixed
+  #0F1015 would show as a strip). Text boxes measured: 120-898 and
+  120-1016 wide, now inside 294-986 (a 320px phone's tile). Card copy 880
+  wide (a major card's), crf 29.
+- **Links** (`src/deepLink.js`): `#experience`, `#research`, `#projects`,
+  `#additional-projects`, `#skills`, `#contact` name a page (the section
+  ids, which the nav's links already used); `#<page>/<slug>` names a card's
+  modal, the slug the card's `data-link` (a project's title through
+  `slugify`, an experience row's id without "exp-", "about" for the bio). As
+  the reader scrolls the hash is REPLACED (no history entries); opening a
+  modal PUSHES one, so Back closes it (`closeRequest` on Modal: the ×'s
+  close, waiting for the lift and expand if Back comes during them); × or
+  Escape goes back over that entry. Loading a link scrolls straight to the
+  page and, once the card's entrance has finished and the fonts are in,
+  CLICKS the card, so the modal lifts out of it as usual; an unknown slug
+  lands on the page. App's old `scrollTo(0, 0)` on mount is now in
+  `startLinks` (no hash: the top). Hash URLs because GitHub Pages has no
+  fallback for unknown paths. Checked in Firefox: every kind of link,
+  desktop and phone, scroll tracking, Escape, ×, Back/Forward, a nav link
+  then Back, Back during the lift, 0 mutations on a still page.
 
 **Oct 9, Resume page** (the owner: "Make the open pdf button and the
 download button bigger"): Open PDF and Download share the side column's

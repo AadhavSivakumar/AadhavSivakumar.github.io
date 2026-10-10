@@ -17,6 +17,7 @@ import RobotDock from './components/RobotDock';
 import { useTheme } from './hooks/useTheme';
 import { startScrollSnap } from './scrollSnap';
 import { startOpening } from './opening';
+import { startLinks, linkOpened, linkClosed } from './deepLink';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -40,15 +41,22 @@ function App() {
     cardHTML: null,
     cardClass: '',
   });
+  // a close asked for from outside the modal: the browser's Back (deepLink.js)
+  const [closeRequest, setCloseRequest] = useState(0);
 
   useEffect(() => {
     if (history.scrollRestoration) {
       history.scrollRestoration = 'manual';
     }
-    window.scrollTo(0, 0);
     // the hero's entrance has the main thread to itself; everything heavy
     // that is not for the first screen waits for it (src/opening.js)
     startOpening();
+    // the top of the page, or where the URL's link points: a page, or a
+    // card whose modal it opens the way a click does (src/deepLink.js)
+    return startLinks({
+      open: card => card.click(),
+      close: () => setCloseRequest(n => n + 1),
+    });
   }, []);
 
   // Settle onto a page when the scroll has been still for two seconds, and
@@ -223,6 +231,7 @@ function App() {
     const small = cardElement.classList.contains('small-project-card');
     const cs = getComputedStyle(cardElement);
     const pose = cardElement.__tiltPose || { rx: 0, ry: 0, s: 1 };
+    linkOpened(cardElement);   // the URL names this card's modal now
     setModalState({
       isOpen: true,
       itemData,
@@ -288,6 +297,7 @@ function App() {
       lastClickedCardRef.current = null;
     }
     setModalState(prev => ({ ...prev, isOpen: false }));
+    linkClosed();
   }, []);
 
   return (
@@ -350,6 +360,7 @@ function App() {
         cardClass={modalState.cardClass}
         media={modalState.media}
         look={modalState.look}
+        closeRequest={closeRequest}
         onLifted={hideCard}
         onCloseStart={syncCardClip}
         onLanding={revealCard}

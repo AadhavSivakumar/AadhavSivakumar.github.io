@@ -62,7 +62,7 @@ function finalRect() {
 const NO_SHADOW = 'rgba(0, 0, 0, 0) 0px 0px 0px 0px';
 const clear = c => c && c.replace(/,\s*[\d.]+\)$/, ', 0)');
 
-export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, look, onLifted, onCloseStart, onLanding, onClose }) {
+export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, look, closeRequest, onLifted, onCloseStart, onLanding, onClose }) {
   const [phase, setPhase] = useState('closed');
   const [pick, setPick] = useState(0);            // which gallery item is in the media slot
   const dialogRef = useRef(null);
@@ -173,6 +173,16 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     // its content to leave first (the close "isn't fully smooth")
     setPhase((p) => (p === 'open' ? 'collapse' : p));
   }, [media, pick, onCloseStart]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A close asked for from outside (the browser's Back, App.jsx): the same
+  // close as the ×, once the modal is open — asked during the lift or the
+  // expand, it waits for them.
+  const closeAsked = useRef(0);
+  useEffect(() => {
+    if (!closeRequest || closeRequest === closeAsked.current) return;
+    if (phase === 'open') { closeAsked.current = closeRequest; handleClose(); }
+    else if (!isOpen) closeAsked.current = closeRequest;
+  }, [closeRequest, phase, isOpen, handleClose]);
 
   // Give the content stagger-out a moment before collapsing the surface.
   useEffect(() => {
