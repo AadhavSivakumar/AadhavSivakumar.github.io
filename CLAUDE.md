@@ -1846,10 +1846,22 @@ specific project/modal. Also do the same for each section").
   the reader scrolls the hash is REPLACED (no history entries); opening a
   modal PUSHES one, so Back closes it (`closeRequest` on Modal: the ×'s
   close, waiting for the lift and expand if Back comes during them); × or
-  Escape goes back over that entry. Loading a link scrolls straight to the
-  page and, once the card's entrance has finished and the fonts are in,
-  CLICKS the card, so the modal lifts out of it as usual; an unknown slug
-  lands on the page. App's old `scrollTo(0, 0)` on mount is now in
+  Escape goes back over that entry. An unknown slug lands on the page.
+  **A PASTED link opens the modal ALREADY OPEN** (the same evening, the
+  owner: "when I put in this link to an incognito tab, I want the modal to
+  already be open"; it used to scroll, wait for the card's entrance and the
+  fonts, then click the card, open ~2.5-3 s after load): App runs
+  `startLinks` in a LAYOUT effect, `follow` clicks the card at once with
+  `instantNext` set, `linkOpened` returns `instant`, and Modal goes straight
+  to `open` in a layout effect with every layer mounted at its open state
+  (`initial`s) and the card hidden in the same frame. Measured: the first
+  frame React paints has the modal full size, backdrop and text at 1, at the
+  right page (Firefox and Chromium, desktop and phone, four kinds of link).
+  Such a modal was measured before the page settled, so its CLOSE measures
+  the card again (`recapture` in App: finishes the card's entrance, takes
+  off `animating-out` to measure without its scale, re-freezes the copy) and
+  lands on it to the pixel, closed at 3 s or at 0.3 s. Back and Forward onto
+  a modal's entry still wait for the card and click it (lift and expand). App's old `scrollTo(0, 0)` on mount is now in
   `startLinks` (no hash: the top). Hash URLs because GitHub Pages has no
   fallback for unknown paths. Checked in Firefox: every kind of link,
   desktop and phone, scroll tracking, Escape, ×, Back/Forward, a nav link
@@ -3686,6 +3698,12 @@ owner can do.
   engines index production, not the copy. Do NOT set a custom domain on this repo's Pages: it is the
   user site, so GitHub would move `aadhavsivakumar.github.io/portfolio` (the
   other repo, below) onto that domain too.
+
+**aadhav.dev ignores byte ranges** (found Oct 10): Workers static assets
+answer `Range: bytes=0-1` on an .mp4 with 200 and the whole file, where
+GitHub Pages answers 206. A video cannot be scrubbed past what has
+downloaded (the owner hit it, then it worked once loaded), and Safari
+requires range support for media.
 
 There is no PR gate and no preview environment — if you push, it ships.
 `dist/` is gitignored and must NOT be committed; both builders build it.

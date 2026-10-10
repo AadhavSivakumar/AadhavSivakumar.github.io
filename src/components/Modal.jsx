@@ -62,7 +62,7 @@ function finalRect() {
 const NO_SHADOW = 'rgba(0, 0, 0, 0) 0px 0px 0px 0px';
 const clear = c => c && c.replace(/,\s*[\d.]+\)$/, ', 0)');
 
-export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, look, closeRequest, onLifted, onCloseStart, onLanding, onClose }) {
+export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, cardClass, media, look, closeRequest, instant, onRecapture, onLifted, onCloseStart, onLanding, onClose }) {
   const [phase, setPhase] = useState('closed');
   const [pick, setPick] = useState(0);            // which gallery item is in the media slot
   const dialogRef = useRef(null);
@@ -113,13 +113,25 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
   };
 
   useEffect(() => {
-    if (isOpen && cardRect && phase === 'closed') {
+    if (isOpen && cardRect && phase === 'closed' && !instant) {
       savedRect.current = { ...cardRect };
       setPick(0);
       document.body.style.overflow = 'hidden';
       setPhase('lift');
     }
-  }, [isOpen, cardRect, phase]);
+  }, [isOpen, cardRect, phase, instant]);
+  // a pasted link's modal (deepLink.js): straight to OPEN, before the first
+  // paint, every layer mounted at its open state (the `initial`s below); the
+  // card is hidden in the same frame, as the lift would have hidden it
+  useLayoutEffect(() => {
+    if (isOpen && cardRect && phase === 'closed' && instant) {
+      savedRect.current = { ...cardRect };
+      setPick(0);
+      document.body.style.overflow = 'hidden';
+      setPhase('open');
+      if (onLifted) onLifted();
+    }
+  }, [isOpen, cardRect, phase, instant]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeFrom = useRef(null);
   // THE CLOSE FLIES A SNAPSHOT (the owner: "right when I click the close
@@ -152,16 +164,24 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     return undefined;
   }, [phase]);   // eslint-disable-line react-hooks/exhaustive-deps
   const handleClose = useCallback(() => {
+    if (phase !== 'open') return;
+    // opened already open: the card is measured again now (App.jsx), and the
+    // close lands on that
+    let md = media;
+    if (instant && onRecapture) {
+      const fresh = onRecapture();
+      if (fresh) { savedRect.current = { ...fresh.cardRect }; md = fresh.media; }
+    }
     // where the modal's media is right now (it may have been scrolled)
     const el = contentRef.current && contentRef.current.querySelector('.modal-image');
     if (el) {
       const b = el.getBoundingClientRect(); closeFrom.current = { top: b.top, left: b.left, width: b.width, height: b.height };
       // the card's clip goes to this moment now, so it has landed long before the card shows
-      if (media && el.tagName === 'VIDEO' && pick === 0) { media.time = el.currentTime; if (onCloseStart) onCloseStart(media.time); }
+      if (md && el.tagName === 'VIDEO' && pick === 0) { md.time = el.currentTime; if (onCloseStart) onCloseStart(md.time); }
     }
     closeShot.current = el ? snapshot(el) : null;
     setCloseBase(null);
-    const cm = media && media.el;
+    const cm = md && md.el;
     if (cm && cm.tagName === 'VIDEO') {
       const grab = () => setCloseBase({ shot: snapshot(cm) });
       if (cm.seeking) cm.addEventListener('seeked', grab, { once: true }); else grab();
@@ -172,7 +192,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     // the card copy fades back in, instead of an empty modal waiting 260ms for
     // its content to leave first (the close "isn't fully smooth")
     setPhase((p) => (p === 'open' ? 'collapse' : p));
-  }, [media, pick, onCloseStart]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [media, pick, onCloseStart, phase, instant, onRecapture]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // A close asked for from outside (the browser's Back, App.jsx): the same
   // close as the ×, once the modal is open — asked during the lift or the
@@ -494,7 +514,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
     <>
       <motion.div
         className="modal-backdrop"
-        initial={{ opacity: 0 }}
+        initial={{ opacity: instant ? 1 : 0 }}
         animate={{ opacity: backdropOn ? 1 : 0 }}
         // paced with the card, not ahead of it (the owner: "the background
         // darkens too much too fast"): it eases in across the lift and the
@@ -511,7 +531,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
         onKeyDown={trapTab}
         className={`modal-animator ${modalTypeClass}`}
         style={{ transformPerspective: 900 }}
-        initial={{ ...r, scale: P.s, rotateX: P.rx, rotateY: P.ry, opacity: 1, boxShadow: L.shadow || NO_SHADOW, borderRadius: cardRadius, ...cardPaint }}
+        initial={instant ? 'open' : { ...r, scale: P.s, rotateX: P.rx, rotateY: P.ry, opacity: 1, boxShadow: L.shadow || NO_SHADOW, borderRadius: cardRadius, ...cardPaint }}
         variants={animatorTargets}
         animate={phase}
         // the settle ends when the flying picture has handed over (below), if there is one
@@ -526,7 +546,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             // height, and a box whose children are all pinned is 0 tall when
             // auto — its overflow clip hid the whole copy's text
             style={{ '--gw': `${r.width}px`, '--gh': `${r.height}px`, transformOrigin: '0 0' }}
-            initial={{ opacity: 1, scale: 1 }}
+            initial={instant ? { opacity: 0, scale: ghostScale } : { opacity: 1, scale: 1 }}
             animate={{ opacity: ghostOn ? 1 : 0, scale: ghostScale }}
             // the scale runs on the SAME clock as the surface (0.6 open, 0.55
             // close) so the copy never over- or under-fills it; on close it
@@ -545,7 +565,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             ref={closeRef}
             onClick={handleClose}
             aria-label="Close modal"
-            initial={{ opacity: 0 }}          // mounted hidden: without it the × flashed on the lifting card's corner
+            initial={{ opacity: instant ? 1 : 0 }}          // mounted hidden: without it the × flashed on the lifting card's corner
             animate={{ opacity: phase === 'open' ? 1 : 0 }}
             transition={{ duration: 0.25 }}
           >
@@ -555,7 +575,7 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             ref={wrapRef}
             className="modal-content-wrapper"
             variants={contentContainer}
-            initial="hidden"
+            initial={instant ? 'show' : 'hidden'}
             animate={contentOn ? 'show' : 'hidden'}
           >
             {renderContent()}

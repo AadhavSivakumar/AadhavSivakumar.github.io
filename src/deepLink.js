@@ -14,6 +14,13 @@ import { onScroll } from './scrollDriver';
 // the card on screen. A link to a card that has gone (a renamed project)
 // still lands on its page.
 //
+// A PASTED link (the page loading with one) opens the modal ALREADY OPEN
+// (the owner: "when I put in this link to an incognito tab, I want the modal
+// to already be open"): the page is put at the card's page and the modal
+// drawn open in the first frame, with no lift or expand; it still closes
+// into its card. Back and Forward onto a modal's entry open it as a click
+// does, out of the card.
+//
 // Scrolling REPLACES the hash, it never adds a history entry. Opening a
 // modal PUSHES one, so the browser's Back closes it (on a phone that is how
 // people close things); closing it with × or Escape goes back over that
@@ -42,6 +49,7 @@ let modal = null;       // the open modal: { hash, pushed }
 let page = 'hero';      // the page the URL names
 let following = null;   // the card a link is opening
 let busy = false;       // following a link: the scroll is ours
+let instantNext = false; // the card being opened is a pasted link's: open it already open
 let skipPop = false;    // our own history.back() is on its way
 
 // the page under the middle of the screen
@@ -80,7 +88,7 @@ function whenShown(card) {
   });
 }
 
-async function follow({ page: to, slug }, smooth) {
+async function follow({ page: to, slug }, smooth, instant = false) {
   const el = document.getElementById(to);
   if (!el) return;
   busy = true;
@@ -90,6 +98,16 @@ async function follow({ page: to, slug }, smooth) {
   if (!card) {
     busy = false;
     write('replaceState', hashOf(to), history.state);
+    return;
+  }
+  if (instant) {
+    // no waiting for the card's entrance or the fonts: the modal does not
+    // grow out of the card, and it measures the card again when it closes
+    busy = false;
+    following = card;
+    instantNext = true;
+    api.open(card);
+    instantNext = false;
     return;
   }
   await whenShown(card);
@@ -120,12 +138,14 @@ function onPop() {
   }
 }
 
-// App calls these as a modal opens and once it has closed
+// App calls these as a modal opens and once it has closed. linkOpened says
+// whether the modal should open already open (a pasted link).
 export function linkOpened(card) {
   const at = card.closest('section[id]')?.id, slug = card.dataset.link;
-  if (!at || !slug) return;
+  if (!at || !slug) return false;
   const hash = hashOf(at, slug);
   const fromLink = card === following;
+  const instant = fromLink && instantNext;
   following = null;
   page = at;
   if (fromLink) {
@@ -136,6 +156,7 @@ export function linkOpened(card) {
     modal = { hash, pushed: true };
     write('pushState', hash, { modal: hash });
   }
+  return instant;
 }
 
 export function linkClosed() {
@@ -146,13 +167,14 @@ export function linkClosed() {
   else write('replaceState', hashOf(page));
 }
 
-// Start once the page has mounted. Follows the URL's link, if it has one;
-// otherwise the page opens at the top, as it always has.
+// Start once the page has mounted, before its first paint (App's layout
+// effect). Follows the URL's link, if it has one; otherwise the page opens
+// at the top, as it always has.
 export function startLinks(handlers) {
   api = handlers;
   addEventListener('popstate', onPop);
   const to = parse(location.hash);
-  if (to.page) follow(to, false);
+  if (to.page) follow(to, false, true);
   else { scrollTo(0, 0); if (location.hash) write('replaceState', ''); }
   // after the link is under way (`busy`), or the first call (onScroll calls
   // at once) would name whatever page the browser had scrolled to

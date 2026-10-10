@@ -1,5 +1,5 @@
 import { snapshot } from './snapshot';
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { MotionConfig } from 'motion/react';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -40,11 +40,14 @@ function App() {
     cardRect: null,
     cardHTML: null,
     cardClass: '',
+    instant: false,   // opened by a pasted link: drawn open from the first frame
   });
   // a close asked for from outside the modal: the browser's Back (deepLink.js)
   const [closeRequest, setCloseRequest] = useState(0);
 
-  useEffect(() => {
+  // a LAYOUT effect, so a pasted link's page and open modal are in the first
+  // frame the browser paints (a passive effect showed the hero first)
+  useLayoutEffect(() => {
     if (history.scrollRestoration) {
       history.scrollRestoration = 'manual';
     }
@@ -231,9 +234,10 @@ function App() {
     const small = cardElement.classList.contains('small-project-card');
     const cs = getComputedStyle(cardElement);
     const pose = cardElement.__tiltPose || { rx: 0, ry: 0, s: 1 };
-    linkOpened(cardElement);   // the URL names this card's modal now
+    const instant = linkOpened(cardElement);   // the URL names this card's modal now
     setModalState({
       isOpen: true,
+      instant,
       itemData,
       itemType,
       cardRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
@@ -257,6 +261,33 @@ function App() {
     });
   }, []);
   const hideCard = useCallback(() => { lastClickedCardRef.current?.classList.add('animating-out'); }, []);
+  // A modal a pasted link opened already open was measured before the page
+  // had settled (the card's entrance, the fonts), so the close measures the
+  // card again, the way a click does, before it shrinks onto it.
+  const recapture = useCallback(() => {
+    const card = lastClickedCardRef.current;
+    if (!card) return null;
+    card.getAnimations().forEach(a => { try { a.finish(); } catch { /* gone */ } });
+    const was = card.style.transition;
+    card.style.transition = 'none';
+    card.classList.remove('animating-out');   // its scale(0.95) would be measured
+    const r = card.getBoundingClientRect();
+    const old = lastMediaRef.current && lastMediaRef.current.el;
+    const playing = old && old.__wasPlaying;
+    const media = mediaOf(card);
+    // mediaOf pauses the clip and notes whether it was playing: it may have
+    // started behind the modal (its cover started once on screen), or been
+    // playing at the open and paused then
+    if (media && media.el) media.el.__wasPlaying = media.el.__wasPlaying || playing;
+    const cardHTML = frozenHTML(card);
+    card.classList.add('animating-out');
+    void card.offsetWidth;                    // hidden again at once, not over its 0.2 s fade
+    card.style.transition = was;
+    lastMediaRef.current = media;
+    const cardRect = { top: r.top, left: r.left, width: r.width, height: r.height };
+    setModalState(prev => ({ ...prev, cardRect, cardHTML, media }));
+    return { cardRect, media };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // The close lands a copy of the card exactly over the real one; the real
   // card is revealed INSTANTLY underneath (its own un-hide transition — fade
@@ -361,6 +392,8 @@ function App() {
         media={modalState.media}
         look={modalState.look}
         closeRequest={closeRequest}
+        instant={modalState.instant}
+        onRecapture={recapture}
         onLifted={hideCard}
         onCloseStart={syncCardClip}
         onLanding={revealCard}
