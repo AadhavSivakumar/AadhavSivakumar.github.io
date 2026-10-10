@@ -190,9 +190,10 @@ That is the owner's stated goal, and three things follow from it:
   Projects (second, after the webinar). "3D space mapping with depth camera"
   (`'j'`) was replaced by Robot Perception (`'rp'`, from the Robot-Perception
   repo's code; media `m_robotperception`), the 2D lidar card (`'i'`) was
-  removed, and the CV desktop arm (`'g'`) is now "Bimanual SO-ARM101
-  Teleoperation" (the CV's LAIR line). Its cover `so101.webp` is a STAND-IN,
-  this site's own SO-ARM101 render: replace it when the owner sends footage.
+  removed, and the CV desktop arm (`'g'`) became "Bimanual SO-ARM101
+  Teleoperation" (the CV's LAIR line), with a stand-in render for a cover;
+  since Oct 10 it is "Real2Sim2Real SO-ARM101", with the owner's footage
+  (see "Oct 10, Real2Sim2Real SO-ARM101").
   Also back from the old site, on request: "Machine Learning & AI
   Instructor" (`'n'`, before MATE ROV; the old card had no text, so it is
   written from the CV's IDEA-program entry; cover cropped to the camera
@@ -1772,6 +1773,37 @@ the site's theme toggle (`data-theme`), not the OS setting. Also: the modal
 OPEN no longer flashes black — its flyer starts as a canvas still of the
 card's frame (`src/snapshot.js`, shared with the close) and the live video
 fades in on `playing`.
+
+**Oct 10, Real2Sim2Real SO-ARM101** (the owner: "add these videos and these
+descriptions to Bimanual SO-ARM101 Teleoperation. Instead, call it
+Real2Sim2Real SO-ARM101"). Card `'g'`, from the owner's write-up and ten
+videos (a highlight reel and one clip per pipeline step 1-9: phone capture,
+Gaussian splat, real-to-sim alignment, sim demos, takeovers, data audit,
+real demos, policy generations, sim evaluation). Originals as received —
+videos, JPG posters, the console screenshot, the .md and its page — in
+`Media/projects/g_so101real2sim/`. The modal: the intro, the headline
+numbers as a `meta` line, the ten steps as an ORDERED list (`ordered: true`
+on a `list` block, new in Modal.jsx; the numbers in `--accent-ink`, since
+they are text), the results, the lessons, the next steps, the stack as
+`tags`, and the old LAIR bimanual paragraph last (kept, the owner said
+"add"). Written without semicolons (the owner removed one from the Roboflow
+text on Oct 9). GALLERY ITEM N IS STEP N (`gallery/g_so101real2sim/1-9.mp4`,
+the owner's files unchanged: already 1280x720 H.264, faststart, silent; the
+posters their JPGs as WebP); each clip carries its own "STEP N" header and
+caption, which is why the gallery needs no captions. THE COVER IS THE REEL,
+RE-CENTRED: its title card (frames < 105) and closing stats card (frames
+≥ 1156) are left-aligned from x 120, and the 4:3 card crop (x 160-1120)
+cut them ("88%" read "8%"), so the web copy shifts those frames right by 132
+and 74 px over the background #0F1015 (ffmpeg crop+pad+overlay with
+`enable` on `n`, crf 23); the card copy is 480 wide, crf 29. The console
+screenshot is not used: the write-up says its values are illustrative.
+Product names checked as released (GR00T N1.7 is GA; Isaac Sim 6.1 and
+Isaac Lab 3.0 are public). NOTE for the owner: the step 9 clip's caption
+says "4 time-outs (cube knocked out of reach, no retry), 2 tipped cups"
+where the write-up (and the modal) say three knocked out of reach, two on
+a cup's rim and one empty grasp. Checked in Firefox: the card plays its
+copy, the modal 1 / 10 with ten steps, step 3's clip from the strip, every
+page one screen at the five sizes and on a 390x844 phone, no page errors.
 
 **Oct 9, Resume page** (the owner: "Make the open pdf button and the
 download button bigger"): Open PDF and Download share the side column's

@@ -402,10 +402,12 @@ export default function Modal({ isOpen, itemData, itemType, cardRect, cardHTML, 
             } else if (content.type === 'meta') {
               return <motion.p key={i} variants={contentItem} className="modal-meta">{content.value}</motion.p>;
             } else if (content.type === 'list') {
+              // `ordered` numbers the items: a project's pipeline steps, which its gallery clips are labelled by
+              const List = content.ordered ? motion.ol : motion.ul;
               return (
-                <motion.ul key={i} variants={contentItem} className="modal-dynamic-list">
+                <List key={i} variants={contentItem} className="modal-dynamic-list">
                   {content.items.map((item, j) => <li key={j}>{item}</li>)}
-                </motion.ul>
+                </List>
               );
             } else if (content.type === 'tags') {
               return (

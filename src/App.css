@@ -1054,6 +1054,8 @@ html[data-theme="dark"] #resume-modal-iframe { filter: invert(1) hue-rotate(180d
 .modal-dynamic-list { margin: 0 0 20px; padding-left: 1.2em; line-height: 1.65; }
 .modal-dynamic-list li { margin: 8px 0; }
 .modal-dynamic-list li::marker { color: var(--accent-color); }
+ol.modal-dynamic-list { padding-left: 1.7em; }
+ol.modal-dynamic-list li::marker { color: var(--accent-ink); font-weight: 600; font-variant-numeric: tabular-nums; }   /* numbers are text: the decorative gold is 2.2:1 */
 .modal-tags { margin: 4px 0 24px; gap: 8px; }
 .modal-tags .project-tag { font-size: 0.8rem !important; padding: 4px 12px 4px 10px !important; }
 .modal-dynamic-image { max-width: 100%; height: auto; border-radius: 8px; margin: 20px auto; display: block; box-shadow: 0 4px 12px var(--shadow-color-ambient); }
