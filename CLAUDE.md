@@ -159,7 +159,9 @@ That is the owner's stated goal, and three things follow from it:
   project descriptions and several small cards were rewritten from it
   (Oct 8: replaced with the owner's new copy, which marks DGAM "incomplete;
   concept stage" — the site now says so wherever DGAM appears — and
-  Project Millet INCOMPLETE, which its card already said). Kept
+  Project Millet INCOMPLETE, which its card already said; since Oct 10 its
+  modal opens on a meta line, "Incomplete · Master's project at NYU ·
+  Sep–Dec 2025", at the owner's request). Kept
   off the page even though the CV has them: partner names for
   integrations, a customer rig's cost, NVIDIA's unreleased product names (Cosmos 3 Edge is RELEASED — the owner, Oct 1 — so it may be named),
   and the name of the robot whose teleop data the π0 work used. **One
