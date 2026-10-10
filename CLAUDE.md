@@ -1828,7 +1828,7 @@ specific project/modal. Also do the same for each section").
   Advanced Mechatronics, ML Instructor · Dog Feeder, FPGA, Mechatronics
   Competition, Project Millet (phone: k, Stockbot, RP · Glass-2-Bot,
   SoleGait, ROV · … · …, Millet).
-- **The cover, again**: a major card crops its cover to ~2.33:1 on a
+- **The cover, again** [SUPERSEDED by "The owner's second version" below]: a major card crops its cover to ~2.33:1 on a
   desktop (the whole width) but to a SQUARE tile on a phone (x 288-992 of
   1280), which cut the reel's title and stats cards at both ends. Rebuilt
   from the original reel: the title card (frames < 105) scaled 0.82 and the
@@ -1854,6 +1854,24 @@ specific project/modal. Also do the same for each section").
   fallback for unknown paths. Checked in Firefox: every kind of link,
   desktop and phone, scroll tracking, Escape, ×, Back/Forward, a nav link
   then Back, Back during the lift, 0 mutations on a still page.
+- **The owner's second version, the same evening** (their text,
+  `Media/projects/g_so101real2sim/aadhav_modal_so101.js`, and a new reel,
+  `videos/so101_real2sim2real_reel_{HQ,web}.mp4`, kept as received). The
+  card text, tags and modal are THEIRS VERBATIM: the real-arm result (19 /
+  21 co-trained against 6 / 21 real-only), why the sim data helped, a "Code
+  on GitHub" button to the public repo. Their text has a few colons ("Next:"),
+  kept as written. The reel (55 s, 60 fps) has a STEP 10 section and no
+  separate clip came with it, so gallery `10.mp4` is cut from it (frames
+  2469-2825, 30 fps). The cover is rebuilt from the HQ reel at 30 fps: its
+  title (frames < 396) and results (>= 2826) screens run nearly edge to edge,
+  so each is cropped to its content box (the union over its window: 20-1268 x
+  68-689 and 44-1221 x 64-656), scaled to 676 wide (0.54 and 0.57) and centred
+  on (640, 360) over the frame's own corner colour. That puts both inside
+  BOTH crops, measured off the page: a desktop major card shows y 86-634 of
+  the full width, a 320px phone's square tile x 295-985. Card copy 880 wide,
+  crf 29 (1.3 MB), modal copy 4.8 MB, the poster at 6.3 s (the title whole).
+  The reel's step 9 caption still says "4 time-outs, 2 tipped cups" (see the
+  NOTE above).
 
 **Oct 9, Resume page** (the owner: "Make the open pdf button and the
 download button bigger"): Open PDF and Download share the side column's
