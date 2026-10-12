@@ -118,12 +118,16 @@ export const experienceData = [
     ],
     tags: ['π0 / π0.5', 'Isaac Sim', 'Gaussian Splatting', 'LeRobot', 'openpi / JAX'],
     // the owner's own LAIR footage (Oct 6), in pipeline order: VR
-    // teleoperation of the bimanual robot (4), the teleop view (1), a
-    // simulated training demonstration (2), an ACT policy's successful
+    // teleoperation of the bimanual robot (4), the operator in the headset
+    // beside the robot's ZED view (11), the spectator page beside that view
+    // while stacking cubes (12), the teleop view (1) and folding a box (10),
+    // a simulated training demonstration (2), an ACT policy's successful
     // cube-in-box rollout (3); then the lab: setting up the SO-ARM101
     // stations (5) and the workstation (6), unboxing (7) and wiring (8) the
-    // BlueROV2, and its OceanSim / Isaac Sim mission environment (9)
-    gallery: gal('x_nyu', ['4.mp4', '1.mp4', '2.mp4', '3.mp4', '5.mp4', '6.mp4', '7.mp4', '8.mp4', '9.mp4']),
+    // BlueROV2, and its OceanSim / Isaac Sim mission environment (9).
+    // 10-12 added Oct 12; 12's control panel (the robot's name, a lab path)
+    // is painted out
+    gallery: gal('x_nyu', ['4.mp4', '11.mp4', '12.mp4', '1.mp4', '10.mp4', '2.mp4', '3.mp4', '5.mp4', '6.mp4', '7.mp4', '8.mp4', '9.mp4']),
   },
   {
     id: 'exp-ucsc',

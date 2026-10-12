@@ -1736,7 +1736,21 @@ the gallery), setting up the SO-ARM101 stations (5) and the lab workstation
 camera flying over a reconstruction (9; CROPPED to the viewport — the full
 frame had the Isaac Sim tab bar and a clideo.com converter watermark).
 Silent (phone audio dropped), 960 px phone clips, crf 28-31. Order: 4, 1,
-2, 3, 5-9. Colleagues appear in 6 and 7, as the owner filmed them.
+2, 3, 5-9 [since Oct 12: 4, 11, 12, 1, 10, 2, 3, 5-9]. Colleagues appear in 6 and 7, as the owner filmed them.
+Round 3 (Oct 12, "add these videos under the NYU card/modal"): the
+operator in the VR headset beside the robot's ZED view (11, 1920x540), the
+teleop spectator page beside that view while stacking cubes (12) and a
+first-person view folding a box (10, 960x540), silent, crf 27-28. **12 is
+REDACTED**: the spectator page's control panel (top left) carried the
+robot's name in its title and a lab machine's home-directory path. It is
+painted out by a static patch (the 3D view's flat wall and floor, the floor
+edge measured off the frame, so the panel simply is not there) with the
+owner's "PC page (screen recording)" label redrawn over it in the font it
+was drawn in (OpenCV Hershey Simplex, scale 1.2, thickness 2, at (21, 48);
+OpenCV 5 renders a different font, so use 4.x), then scaled to 1920x516.
+The original as received is on disk as
+`Media/projects/x_nyu/screen-sync.mp4` and GIT-IGNORED, like the award
+letter.
 
 **Oct 6, the glass is REAL now (navbar AND tags).** The owner asked
 again ("are you using the glass things I sent… navbars and the tags").

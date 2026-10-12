@@ -6,3 +6,7 @@ manim/__pycache__/
 
 # Award letter: carries a student ID, NYU email and signature. Kept on disk, never public.
 Media/projects/b_solegait/2.png
+
+# NYU screen recording as received: its control panel names the robot and shows a lab
+# machine's path. The web copy (gallery/x_nyu/12.mp4) has the panel painted out.
+Media/projects/x_nyu/screen-sync.mp4
