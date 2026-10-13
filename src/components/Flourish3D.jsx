@@ -1577,7 +1577,7 @@ export default function Flourish3D({ side = 'right' }) {
     // not on the opening's clock: the robots are not on the hero, and five
     // mesh chunks parsed and prepared there cost the entrance frames (until
     // they arrive the drawn fallback skins stand in, as they always have)
-    whenOpened(() => loadRobots().then(r => { ROBOTS = r; if (lastY >= 0) draw(lastY); }).catch(() => {}));
+    whenOpened(() => loadRobots().then(r => { ROBOTS = r; if (lastY >= 0) draw(lastY); warmRobotGL(); }).catch(() => {}));
     let idleT = 0;                         // seconds of idle animation, from the settle
     let idleOn = false;
     let settleU = 0;                       // the settle blend: 1 live, 0 at rest (see the settled loop)
@@ -3499,16 +3499,38 @@ export default function Flourish3D({ side = 'right' }) {
     // lines and baked meshes go to it instead of the Canvas2D painter's sort.
     // ?nogl keeps the Canvas2D path (and is what a browser without WebGL gets).
     const NOGL = typeof location !== 'undefined' && new URLSearchParams(location.search).has('nogl');
-    let robotGLLoading = false;
+    // Both are asked for by the scroll, but each step that holds the main
+    // thread — evaluating the module, creating the WebGL renderer, the Atlas's
+    // model parse and first compile — waits for a moment the page is still
+    // (whenOpened, opening.js): built mid-scroll they froze it, ~0.4 s
+    // arriving at Experience and ~0.7 s on the way to the last page (Oct 13).
+    // Until then the Canvas2D drawing stands in, as it always has.
+    let robotGLLoading = false, dead = false;
+    const cancels = [];
+    const still = fn => cancels.push(whenOpened(() => { if (!dead) fn(); }));
     const wantRobotGL = () => {
       if (isLeft || robotGL || robotGLLoading || NOGL) return;
       robotGLLoading = true;
-      import('./robotGL.js').then(m => { robotGL = m.createRobotGL(host, canvas); if (robotGL) { robotGL.resize(fit, dpr); if (lastY >= 0) draw(lastY); } }).catch(() => {});
+      still(() => import('./robotGL.js').then(m => still(() => {
+        robotGL = m.createRobotGL(host, canvas);
+        if (robotGL) { robotGL.resize(fit, dpr); if (lastY >= 0) draw(lastY); warmRobotGL(); }
+      })).catch(() => {}));
+    };
+    // every robot's meshes and programs, once both the GL backend and the
+    // meshes are here (robotGL.js `warm`)
+    let robotGLWarm = false;
+    const warmRobotGL = () => {
+      if (robotGLWarm || !robotGL || !ROBOTS) return;
+      robotGLWarm = true;
+      still(() => robotGL && robotGL.warm(Object.values(ROBOTS).flatMap(r => r.parts)));
     };
     const wantAtlasGL = () => {
       if (isLeft || atlasGL || atlasGLLoading) return;
       atlasGLLoading = true;
-      import('./atlasGL.js').then(m => { atlasGL = m.createAtlasGL(host); if (atlasGL) { atlasGL.resize(fit, dpr); if (lastY >= 0) draw(lastY); } }).catch(() => {});
+      still(() => import('./atlasGL.js').then(m => still(() => {
+        atlasGL = m.createAtlasGL(host, still);
+        if (atlasGL) { atlasGL.resize(fit, dpr); if (lastY >= 0) draw(lastY); }
+      })).catch(() => {}));
     };
     function drawAtlasE(base, q, grow) {
       const R = ROBOTS.atlas; if (!R) return;
@@ -3863,7 +3885,7 @@ export default function Flourish3D({ side = 'right' }) {
         const { i, t } = actAt(y);
         if (i < 0) art();
         else if (ROBOTS) {
-          if (i >= 3) wantAtlasGL();     // fetch the GL Atlas a page before it is needed
+          if (i >= 2) wantAtlasGL();     // the GL Atlas, two pages before it is needed (its set-up waits for a still moment)
           if (i === 0) drawSoArmAct(t);
           else if (i === 1) drawFrankaAct(t);
           else if (i === 2) drawURPairAct(t);
@@ -4013,6 +4035,8 @@ export default function Flourish3D({ side = 'right' }) {
       if (trailing) cancelAnimationFrame(trailing);
       sizeRO?.disconnect();
       themeWatch.disconnect();
+      dead = true;
+      cancels.forEach(c => c());
       atlasGL?.dispose();
       robotGL?.dispose();
     };

@@ -12,7 +12,7 @@
 //   longer loads);
 // - the canvas renders ON DEMAND: a frame only while a body is awake, the
 //   strap is still easing, a badge is hovered or held, or the pointer moves
-//   (the sway). Settled, it draws nothing at all — it used to render and
+//   over or near the canvas (the sway). Settled, it draws nothing at all — it used to render and
 //   step the physics every frame while on screen;
 // - while a badge is hovered or held, its four projected corners go on the
 //   glass bus, and the cursor glass takes its shape (FluidGlass.jsx);
@@ -240,23 +240,31 @@ export default function Lanyard({
 // ON DEMAND. A frame is drawn only when something asks for one: each Band
 // asks for the next while any of its bodies is awake, its strap is still
 // easing, or it is hovered or held (see `keepAwake` in Band), and a pointer
-// moving anywhere asks for one so the sway can test it. When nothing asks,
+// moving over or near the canvas asks for one so the sway can test it. When nothing asks,
 // nothing is drawn and the physics does not step. Resuming after a pause, the
 // clock is reset first: the first frame's delta would otherwise be the whole
 // pause (rapier clamps it to 0.5 s and runs it all at once — a jump).
 let lastAwake = 0;
 const keepAwake = state => { lastAwake = performance.now(); state.invalidate(); };
+// Only a pointer over the canvas, or within WAKE_PX of it, asks: r3f sees the
+// pointer only over its own canvas, so a move anywhere else on the page
+// redrew an identical picture, ~3.7 ms a frame while the mouse moved over the
+// cards (measured Oct 9). The margin gives the frame that un-hovers a badge.
+const WAKE_PX = 80;
 function Wake() {
-  const { invalidate, clock } = useThree();
+  const { invalidate, clock, gl } = useThree();
   useEffect(() => {
-    const on = () => {
+    const el = gl.domElement;
+    const on = e => {
+      const r = el.getBoundingClientRect();
+      if (e.clientX < r.left - WAKE_PX || e.clientX > r.right + WAKE_PX || e.clientY < r.top - WAKE_PX || e.clientY > r.bottom + WAKE_PX) return;
       if (performance.now() - lastAwake > 120) clock.getDelta();
       invalidate();
     };
     window.addEventListener('pointermove', on, { passive: true });
     invalidate();
     return () => window.removeEventListener('pointermove', on);
-  }, [invalidate, clock]);
+  }, [invalidate, clock, gl]);
   return null;
 }
 

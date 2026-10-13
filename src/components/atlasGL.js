@@ -24,10 +24,14 @@ import * as THREE from 'three';
 
 const PERSP = 600, ZOOM = 0.85, W = 340, H = 660;
 
-export function createAtlasGL(host) {
+// `defer(fn)` runs fn at a moment the page is still (Flourish3D passes
+// opening.js's whenOpened): the model's parse and the warm-up below hold the
+// main thread, and mid-scroll they were a frozen frame.
+export function createAtlasGL(host, defer = fn => fn()) {
   const canvas = document.createElement('canvas');
   canvas.className = 'f3d-gl';
-  canvas.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;';
+  // hidden until the first real frame (render), so the warm-up draw is unseen
+  canvas.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;visibility:hidden;';
   host.appendChild(canvas);
   let renderer;
   try {
@@ -222,7 +226,9 @@ export function createAtlasGL(host) {
     mats.push(m);
     return m;
   };
-  fetch(new URL('../robots/atlas26.bin', import.meta.url)).then(r => r.arrayBuffer()).then(buf => {
+  let disposed = false;
+  fetch(new URL('../robots/atlas26.bin', import.meta.url)).then(r => r.arrayBuffer()).then(buf => defer(() => {
+    if (disposed) return;
     const dv = new DataView(buf);
     const hl = dv.getUint32(0, true);
     const hdr = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, hl)));
@@ -271,7 +277,28 @@ export function createAtlasGL(host) {
       grp.add(new THREE.Mesh(g, mcache[mk] || (mcache[mk] = matFor(p.mat, hdr.mats[p.mat] || { kd: [0.5, 0.5, 0.5], ke: [0, 0, 0], ns: 250 }, look))));
     }
     ready = true;
-  }).catch(() => {});
+    defer(warm);
+  })).catch(() => {});
+
+  // WARM-UP, at the next still moment (Oct 13): draw every piece once into
+  // the hidden canvas, with every material as it is and as its see-through
+  // variant (the act-5 morph fades pieces, a program switch). That compiles
+  // the programs, waits for them (the first DRAW with a program is where the
+  // browser waits for its compile) and puts the geometry on the GPU. Left to
+  // the first frame that shows the Atlas, all of it landed in the scroll to
+  // the last page.
+  function warm() {
+    if (disposed || shown) return;
+    const vis = [...groups.values()].map(g => g.visible);
+    groups.forEach(g => { g.visible = true; });
+    renderer.render(scene, camera);
+    const was = mats.map(m => [m.transparent, m.depthWrite]);
+    mats.forEach(m => { m.transparent = true; m.depthWrite = false; m.needsUpdate = true; });
+    renderer.render(scene, camera);
+    mats.forEach((m, i) => { [m.transparent, m.depthWrite] = was[i]; m.needsUpdate = true; });
+    renderer.clear();
+    [...groups.values()].forEach((g, i) => { g.visible = vis[i]; });
+  }
 
   // stage matrix {m (3x3 row-major, carries scale), t} -> three, y flipped
   const toM4 = (T, out) => out.set(
@@ -391,6 +418,7 @@ export function createAtlasGL(host) {
       shown = false;
     },
     dispose() {
+      disposed = true;
       geos.forEach(g => g.dispose()); mats.forEach(m => m.dispose());
       renderer.dispose(); canvas.remove();
     },

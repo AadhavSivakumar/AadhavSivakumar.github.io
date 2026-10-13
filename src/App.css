@@ -1902,7 +1902,11 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 .modal-animator .modal-ghost.small-project-card > img,
 .modal-animator .modal-ghost.small-project-card > video {
   aspect-ratio: 4 / 3 !important; border-radius: 15px;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 26px -18px rgba(0,0,0,0.55);
+  /* no resting shadow (Oct 13, the owner: "a bit of lag while scrolling"):
+     the soft shadow under twelve pictures was the biggest single cost of a
+     scroll, 45 of 74 frames slow on this page, 3 of 74 without it. The
+     hover shadow stays, one card at a time. */
+  box-shadow: none;
 }
 .small-projects-grid .small-project-card::after,
 .modal-animator .modal-ghost.small-project-card::after {           /* the scrim the text sits on */
@@ -1916,7 +1920,8 @@ html[data-theme="dark"] .tilt-caption { background: #EDECE8; color: #141416; }
 }
 .small-projects-grid .small-project-content h3 {
   color: #F6F4EE !important; font-size: 1.02rem !important; line-height: 1.18 !important;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.45);
+  /* no text-shadow: a blurred shadow behind twelve titles cost scroll frames
+     too, and the scrim under them carries the contrast */
 }
 .small-projects-grid .small-project-content .project-tags-container { margin-top: 5px; gap: 0; -webkit-mask-image: none; mask-image: none; }
 .small-projects-grid .small-project-content .project-tag {

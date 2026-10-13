@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { isOpened, whenOpened } from '../opening';
+import { whenOpened } from '../opening';
 import SectionTitle from './SectionTitle';
 import LiftCard from './LiftCard';
 import { CoverVideo } from './ProjectCard';
@@ -74,10 +74,13 @@ function RowLanyard({ rows, wide }) {
   // "near" is true on arrival (this page starts just under the hero), and
   // building the 3D badges — a WebGL renderer, its shaders, the physics —
   // took seconds of the main thread in the middle of the hero's entrance;
-  // they hang once the opening is over, or as soon as the reader scrolls
+  // they hang once the opening is over, or as soon as the reader scrolls.
+  // And only once near, at a moment the page is STILL (opening.js): the
+  // Research badges came near in the middle of the scroll into Experience
+  // and froze it ~0.65 s (Oct 13)
   const near = useNearViewport(ref);
-  const [opened, setOpened] = useState(isOpened);
-  useEffect(() => whenOpened(() => setOpened(true)), []);
+  const [opened, setOpened] = useState(false);
+  useEffect(() => (near && !opened ? whenOpened(() => setOpened(true), true) : undefined), [near, opened]);
   // the front prints the name and a year (badgeCards.js); the BACK, what a
   // flip is for, the row's role, the exact dates and a QR code to the
   // organisation's site

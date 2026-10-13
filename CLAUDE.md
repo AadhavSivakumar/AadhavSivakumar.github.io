@@ -3055,6 +3055,54 @@ compare builds by rebuilding the old one in a worktree, never against an
 old number. Against the Oct 8 build: no mouse, +~5 slow frames; with a
 mouse, +~30 (the glass and the waves' well, ~15-25 each, overlapping).
 
+**Oct 13: scroll lag, the fixes** (the owner: "There's a bit of lag while
+scrolling"). The four no-look-change fixes from the Oct 9 analysis, each
+A/B'd against the previous build rebuilt in a worktree:
+- **The small cards' resting shadow is gone** (`box-shadow` on
+  `.small-project-card > img/video`, and the title's 8px `text-shadow`):
+  the biggest single scroll cost, 45 of 74 frames slow on Additional
+  Projects with it, 3 without. The hover shadow stays (one card at a time).
+- **The waves' bug**: past the hero `WaveField` still woke on every
+  pointer move and cleared its full-screen canvas for nothing. It wakes on
+  a pointer move only while the field is drawn (`cleared` false).
+- **The 3D lanyard wakes only for a pointer over its canvas or within
+  80px** (`Wake`, `WAKE_PX`): r3f sees the pointer only there, so a move
+  over the cards redrew an identical picture, ~3.7 ms a frame.
+- **One-off set-up waits for a STILL page** (`opening.js`): `whenOpened`
+  jobs run one per idle period and only after no scroll for 250 ms AND
+  none in the frame after (one long frame spaces a scroll's events further
+  apart than 250 ms; seen in the harness). The badge rows build once near
+  AND still (`whenOpened(…, true)`, first in the queue); the robots' GL
+  backend and the Atlas's module, renderer and model parse each wait for
+  a still moment (`still` in Flourish3D); the GL Atlas is asked for two
+  pages ahead (act index ≥ 2, was 3). Until then the Canvas2D drawing
+  stands in, as it always has.
+- **Both GL stages WARM UP while still** (`robotGL.warm`, atlasGL's
+  `warm`): every program is DRAWN with once, every baked part's geometry
+  uploaded, into a hidden canvas (or redrawn over in the same task).
+  Compiling is not enough: the browser waits for a program's compile at
+  its FIRST DRAW (three's `getUniforms` → `getProgramInfoLog`), so a
+  compiled-only see-through or line program still froze the scroll to
+  Research and to Get In Touch. The Atlas warm draws as-is and with every
+  material see-through (the act-5 morph's program switch). Disposing the
+  robots' warm materials would release the shared program, so they are
+  kept until `dispose`.
+How it was found: `crhitch.mjs` (long tasks per scroll phase, SwiftShader
+Chromium), a CDP profile per phase, and a tracer wrapping `linkProgram` /
+`getProgramInfoLog` per canvas and phase (the session scratch, `stutter/`).
+Measured against the previous build (`c9b1785`) in the same session:
+main-thread long tasks DURING the page-to-page scrolls (SwiftShader
+Chromium, hero 6 s then each page in turn) ~3.4 s a visit → 0 in four runs
+of four (they now land while a page is still: ~0.1 s on Experience and on
+Additional Projects, and on the hero as before); a whole-page Firefox
+scroll, frames over 20 ms 134-138 → 101-107 of 460 and over 40 ms 37-43 →
+10-16 (Additional Projects 52 → 30); the pointer moving, slow frames of 118
+on Major Projects ~90 → 67, Additional ~103 → 84, Get In Touch ~20 → 5.
+Rendering identical in SwiftShader at five moments including the Atlas's
+morph; 0 mutations on a still page. What still costs a scroll here: the
+card cover videos (the owner's call: play on hover only) and the
+robots/film redrawing as acts scrub.
+
 **Oct 8, last: the Ultra grounded in Ultra's own FILMS** (the owner: "ground
 the ultra stuff based on videos of the actual robot"). The eight product
 films on ultra.tech (`ultratech.b-cdn.net/…`: HERO V11, SUPERCUT HERO, ORDER
@@ -3495,7 +3543,15 @@ no-op in the column (nothing overflows).
 ## Settling on a page, and what runs while it is settled
 
 **Stop with a section half in frame and, after 0.7s of stillness, the page
-eases until it fills the screen** (`src/scrollSnap.js`); a section ALREADY in
+eases until it fills the screen** (`src/scrollSnap.js`). **Since Oct 13 the
+glide is a SIGMOID in time** (the owner: "have the snapping to a section be
+more gradual, like a sigmoid"): a logistic curve (k 8, rescaled to run 0 → 1)
+over 750-1300 ms by distance, one INSTANT scroll per frame (html's
+`scroll-behavior: smooth` would ease every step again), holding the target
+two frames before it lets go so its last scroll events still count as its
+own; any wheel, touch, key or mouse-down hands the page back. It was the
+browser's smooth scroll: full speed off the mark, ~0.3 s in Firefox, and
+sometimes dropped after a load (an arrival watch re-issued it). A section ALREADY in
 frame counts as settled 120ms after the scroll stops, so the robots start
 working the moment the reader arrives. It was two seconds for both, which
 the owner found "taking too long". Every page is one screen

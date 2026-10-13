@@ -85,7 +85,9 @@ export default function WaveField() {
       inHero = yPage >= 0 && yPage <= heroH;
       tx = e.clientX; ty = e.clientY;
       if (wx === null) { wx = tx; wy = ty; }
-      wake();
+      // past the hero the canvas is blank: waking here cleared the whole
+      // full-screen canvas on every pointer move, for nothing (Oct 13)
+      if (!cleared) wake();
     };
     const onLeave = () => { inHero = false; wake(); };
     // move the centre and ease the strength; true while either still changes

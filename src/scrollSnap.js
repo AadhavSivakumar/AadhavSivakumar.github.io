@@ -2,7 +2,7 @@ import { onScroll } from './scrollDriver';
 
 // Scroll settles onto a page, and tells the art when it has.
 //
-// Stop with a section half in frame and, two seconds later, the page eases
+// Stop with a section half in frame and, IDLE_MS later, the page glides
 // until that section fills the screen. Every page is one screen tall (see
 // CLAUDE.md, "Pages"), so a settled page always shows exactly one — and that
 // is also where the two canvas pieces are at a keypoint: the waves have just
@@ -28,6 +28,17 @@ const ALIGN_TOL = 8;       // px: close enough, leave it alone
 const MAX_PULL = 0.55;     // of a viewport
 const RETRY_MS = 600;      // while something is in the way
 const FIT = 1.05;          // a section counts as "fits" up to this much of one
+
+// The glide is a SIGMOID in time (Oct 13, the owner: "have the snapping to a
+// section be more gradual, like a sigmoid"): it leaves slowly, is quickest
+// halfway and eases into the page, over GLIDE_MIN..GLIDE_MAX ms by distance.
+// It was the browser's own smooth scroll — off the mark at full speed, and
+// ~0.3 s in Firefox. A logistic curve, rescaled to run exactly 0 -> 1.
+const GLIDE_MIN = 750, GLIDE_MAX = 1300, GLIDE_PER_PX = 1.1;   // ms, ms, ms a px
+const SIG_K = 8;           // steepness: higher waits longer at both ends
+const logistic = x => 1 / (1 + Math.exp(-SIG_K * (x - 0.5)));
+const L0 = logistic(0), L1 = logistic(1);
+const sigmoid = u => (logistic(u) - L0) / (L1 - L0);
 
 const IDS = ['hero', 'experience', 'research', 'projects', 'additional-projects', 'skills', 'contact'];
 
@@ -92,31 +103,29 @@ export function startScrollSnap() {
   if (typeof window === 'undefined' || prefersReduced()) return () => {};
   let timer = 0;
   let watch = 0;
-  // True while OUR eased scroll is in flight. Without it, the scroll events
-  // that scroll emits cancel the arrival watch and reschedule everything, so
-  // nothing confirms the landing — and when the browser drops the animation
-  // (it does, on the first scroll after a load, with the 3MB lanyard chunk
-  // still parsing) the page just sits there misaligned. Seen: one section in
-  // eight failed to snap, run to run.
+  // True while OUR glide is in flight. Without it, the scroll events it
+  // emits would reschedule everything and cancel it.
   let self = false;
 
-  // Watch for the arrival, re-issuing the scroll if it never comes.
-  const watchArrival = (target, tries) => {
-    let hits = 0, frames = 0;
-    const step = () => {
+  // The glide: one frame at a time on the sigmoid, an INSTANT scroll per
+  // frame (html's scroll-behavior is smooth, and 'auto' would hand every
+  // step to the browser's own easing). It holds the target for two more
+  // frames before letting go, so its last scroll events land while `self`
+  // still says they are ours. It replaced the browser's smooth scroll, which
+  // could also be DROPPED on the first scroll after a load (one section in
+  // eight failed to snap) and needed an arrival watch to re-issue it.
+  const glide = target => {
+    const from = window.scrollY;
+    const dur = Math.min(GLIDE_MAX, GLIDE_MIN + Math.abs(target - from) * GLIDE_PER_PX);
+    const t0 = performance.now();
+    let hold = 0;
+    self = true;
+    const step = now => {
       watch = 0;
-      frames += 1;
-      const d = Math.abs(window.scrollY - target);
-      if (d <= 2) hits += 1; else hits = 0;
-      if (hits >= 3) { self = false; setSettled(true); return; }
-      if (frames > 110) {                        // ~1.8s and still not there
-        if (tries < 2 && !blocked()) {
-          window.scrollTo({ top: target, behavior: 'smooth' });
-          watchArrival(target, tries + 1);
-          return;
-        }
-        self = false; setSettled(true); return;  // give up quietly
-      }
+      const u = Math.min(1, Math.max(0, (now - t0) / dur));
+      const y = u < 1 ? from + (target - from) * sigmoid(u) : target;
+      if (Math.abs(window.scrollY - y) >= 0.5) window.scrollTo({ top: y, behavior: 'instant' });
+      if (u >= 1 && ++hold > 2) { self = false; setSettled(true); return; }
       watch = requestAnimationFrame(step);
     };
     watch = requestAnimationFrame(step);
@@ -143,9 +152,7 @@ export function startScrollSnap() {
     const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const target = Math.max(0, Math.min(max, Math.round(c.top)));
     if (Math.abs(target - y) <= ALIGN_TOL) { setSettled(true); return; }
-    self = true;
-    window.scrollTo({ top: target, behavior: 'smooth' });
-    watchArrival(target, 0);
+    glide(target);
   };
 
   // A page that is ALREADY in frame is settled as soon as the scroll stops
@@ -158,7 +165,7 @@ export function startScrollSnap() {
     return !c || Math.abs(c.top - window.scrollY) <= ALIGN_TOL;
   };
   const stop = onScroll(() => {
-    if (self) return;                  // our own animation; watchArrival owns it
+    if (self) return;                  // our own glide; it owns the scroll
     setSettled(false);
     if (watch) { cancelAnimationFrame(watch); watch = 0; }
     clearTimeout(timer);

@@ -167,7 +167,42 @@ export function createRobotGL(host, after) {
   };
 
   let shown = false;
+  let warmMats = null;
   return {
+    // WARM-UP (Oct 13): compile every program the robots use (lit, opaque and
+    // see-through; the props and lines) and put every baked part's geometry
+    // on the GPU, in one draw at a moment the page is still. Left to the
+    // first frame each robot appears in, it landed mid-scroll: ~0.4 s into
+    // the scroll to Research, where the SO-ARM's meshes first draw. Every
+    // program is DRAWN with, not only compiled: the first draw is where the
+    // browser waits for a compile to finish (so the props and lines get a
+    // degenerate triangle each). The draw is replaced by the current frame
+    // before the browser shows anything (both in one task), or the canvas
+    // is still hidden.
+    warm(list) {
+      if (warmMats) return;
+      warmMats = [litMat(false), litMat(true)];      // kept: disposing them would release the shared program
+      const tmp = new THREE.Group();
+      list.forEach((part, i) => { const w = new THREE.Mesh(geoOf(part).geo, warmMats[i === 0 ? 1 : 0]); w.frustumCulled = false; tmp.add(w); });
+      const dummies = [S.flat, S.flatT, S.line].map(st => {
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+        g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(12), 4));
+        const o = st === S.line ? new THREE.LineSegments(g, st.obj.material) : new THREE.Mesh(g, st.obj.material);
+        o.frustumCulled = false; tmp.add(o);
+        return g;
+      });
+      tmp.updateMatrixWorld(true);
+      const hid = scene.children.filter(o => !o.isLight && o.visible);
+      hid.forEach(o => { o.visible = false; });     // the lights stay: they are part of a program's key
+      scene.add(tmp);
+      renderer.compile(scene, camera);
+      renderer.render(scene, camera);
+      scene.remove(tmp);
+      dummies.forEach(g => g.dispose());
+      hid.forEach(o => { o.visible = true; });
+      if (shown) renderer.render(scene, camera); else renderer.clear();
+    },
     resize(fit, dpr) {
       renderer.setPixelRatio(dpr);
       renderer.setSize(Math.round(W * fit), Math.round(H * fit), false);
@@ -232,6 +267,7 @@ export function createRobotGL(host, after) {
     dispose() {
       for (const s of Object.values(S)) { s.geo.dispose(); s.obj.material.dispose(); }
       for (const e of parts.values()) { e.geo.dispose(); for (const it of e.pool) for (const mt of it.mats) mt.dispose(); }
+      warmMats?.forEach(m => m.dispose());
       renderer.dispose(); canvas.remove();
     },
   };
