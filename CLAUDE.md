@@ -1707,9 +1707,16 @@ profiles (`SOCIALS` in Header.jsx: LinkedIn, GitHub, email, X, Instagram — the
 as 17px line icons beside the theme toggle; on a phone the profiles sit at
 the header bar beside the burger since Oct 8 (`.socials--bar`; they were at the bottom of the menu panel, `.socials--menu`, now hidden) and the toggle and burger
 sit right. The link preview is `Media/web/og.jpg` (1200x630 JPG — WebP does
-not unfurl on LinkedIn or Slack): the big AS mark, name, role, the gold
-waves, rendered from an HTML page with Playwright; og/twitter image, type,
-size and alt are set. Roboflow stays in the PRESENT tense everywhere (the
+not unfurl on LinkedIn or Slack); og/twitter image, type, size and alt are
+set. **Since Oct 14 it is the site's own HERO, photographed**
+(`scripts/og-image.mjs`: 1200x630, light theme, navbar and scroll cue
+hidden, rendered at 2x and saved at 1x; the owner: "have it reflect the
+theme of the actual site better, and don't have it mention roboflow"). It
+was a separate card (a big AS mark, the old fonts, "AI Engineer at
+Roboflow"), and the og/twitter DESCRIPTIONS no longer name Roboflow either;
+the search `description` and the JSON-LD still do. Re-run it after the hero
+changes and bump the `?v=` on the image URLs, or the platforms keep their
+cached copy. Roboflow stays in the PRESENT tense everywhere (the
 owner). Hero chips: Robotics first, Embodied AI last.
 
 **Oct 6, projects consolidated (the owner).** The tactile sensor's card is
@@ -1963,9 +1970,8 @@ Indian Type Foundry's Fontshare (ITF Free Font License) and FRAGMENT MONO
 Fonts request any more. Gotcha found doing it: Fontshare's CSS API with
 several families in one request registered only the first in Playwright;
 download the woff2 files instead. Switzer's word space is narrow, so body
-text has neutral tracking and `word-spacing: 0.05em`. Still in the OLD
-fonts: `Media/web/og.jpg` (the Manim clips moved to Fragment Mono the same
-day).
+text has neutral tracking and `word-spacing: 0.05em`. (The Manim clips
+moved to Fragment Mono the same day; `Media/web/og.jpg` caught up on Oct 14.)
 
 **Oct 6.** (1) UCSC's role reads "Undergraduate Research Assistant · TML"
 (as NYU's carries "· LAIR"). (2) TAGS are small glass pills in the hero
