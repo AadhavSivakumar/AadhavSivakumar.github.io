@@ -1905,6 +1905,14 @@ specific project/modal. Also do the same for each section").
   crf 29 (1.3 MB), modal copy 4.8 MB, the poster at 6.3 s (the title whole).
   The reel's step 9 caption still says "4 time-outs, 2 tipped cups" (see the
   NOTE above).
+- **Oct 14, the runs reel is the modal's item 2** (the owner: "add this as
+  video 2 for the soarm101 project"): `so101_runs_real_sim_6x.mp4`, every
+  recorded run of the co-trained policy on the real arm at 6x, overhead and
+  wrist cameras, ending on the 19 / 21 tally. It is `runs.mp4`, FIRST in
+  `gallery` (the cover is item 1). The original as received is in `videos/`;
+  the web copy is 1280x720, 30 fps, crf 28, silent, 4.6 MB (23.8 MB as
+  received), poster at 4 s. The step clips keep their file names, so step N
+  is now the modal's item N + 2.
 
 **Oct 9, Resume page** (the owner: "Make the open pdf button and the
 download button bigger"): Open PDF and Download share the side column's
